@@ -1211,6 +1211,9 @@ Test files:
 | UT-GUI-034.088.M26.T01 | MD-GUI-034.039.M26 | Positive | Discussions by day (SRD-GUI-034.088) | sessions today, yesterday and 4 days ago | groups Today, Yesterday, date; only the first two open; click opens the old day | Pass |
 | UT-GUI-034.088.M26.T02 | MD-GUI-034.039.M26 | Positive | Menu toggles list (SRD-GUI-034.088) | click menu twice | list hidden then shown; + stays | Pass |
 | UT-GUI-034.089.M04.T01 | MD-GUI-034.004.M04 | Positive | AI feed button in strip (SRD-GUI-034.089) | open floor, fold feed; hide and show strip button | width 400; card hidden when folded; button hidden then shown | Pass |
+| UT-GUI-034.090.M11.T01 | MD-GUI-034.012.M11 | Positive | Rotation tail (SRD-GUI-034.090) | 7 days, then 2 days of sector rows | tail = 5 days back; none with 2 days | Pass |
+| UT-GUI-034.090.M27.T01 | MD-GUI-034.047.M27 | Positive | Rotation names and colours (SRD-GUI-034.090) | 4 sectors, 2 almost on one spot | short names, quadrant colours, names do not overlap, hover finds the sector | Pass |
+| UT-GUI-034.090.M27.T02 | MD-GUI-034.047.M27 | Positive | Map / List switch (SRD-GUI-034.090) | click List, new panel, click Map | bars strongest first; choice kept; Map returns | Pass |
 | UT-GUI-034.062.M36.T01 | MD-GUI-034.062.M36 | Positive | Approval cards (SRD-GUI-034.062) | ready hire and 2 picks | heading count 3; pick cards with qty; Open Hiring opens Hiring | Pass |
 | UT-GUI-034.063.M36.T01 | MD-GUI-034.062.M36 | Positive | Today's runs (SRD-GUI-034.063) | runs today | one line per run; events one row with count; no Sample tag | Pass |
 | UT-GUI-034.064.M36.T01 | MD-GUI-034.062.M36 | Positive | Team now (SRD-GUI-034.064) | 2 active, 1 shadow | Team now: 2 active · 1 shadow | Pass |

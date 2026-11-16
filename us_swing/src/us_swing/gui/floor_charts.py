@@ -2,6 +2,8 @@
 Module: MD-GUI-034.047.M27 — Floor chart views
 Parent SRD: SRD-GUI-034.047
 Also: SRD-GUI-034.048–.051 — heat map, line, rotation views and idea cell delegates
+Also: SRD-GUI-034.090 — readable rotation map (names, colours, tails, hover) and a Map /
+List switch whose List shows strength bars
 
 Painted Market Floor panel views. Each view takes product rows (dicts) and draws them with
 ``QPainter`` in theme colours; no web view is used.
@@ -9,17 +11,30 @@ Painted Market Floor panel views. Each view takes product rows (dicts) and draws
 from __future__ import annotations
 
 from collections.abc import Callable, Sequence
+from dataclasses import dataclass
 from typing import Any
 
 from PyQt6.QtCore import QModelIndex, QPointF, QRectF, Qt
-from PyQt6.QtGui import QColor, QFont, QPainter, QPainterPath, QPaintEvent, QPen
+from PyQt6.QtGui import (
+    QColor,
+    QFont,
+    QMouseEvent,
+    QPainter,
+    QPainterPath,
+    QPaintEvent,
+    QPen,
+)
 from PyQt6.QtWidgets import (
+    QButtonGroup,
     QFrame,
     QHBoxLayout,
     QLabel,
+    QPushButton,
+    QStackedWidget,
     QStyle,
     QStyledItemDelegate,
     QStyleOptionViewItem,
+    QToolTip,
     QVBoxLayout,
     QWidget,
 )
@@ -210,21 +225,76 @@ SECTOR_TICKERS = {
     "Industrials": "XLI", "Information Technology": "XLK", "Technology": "XLK",
     "Materials": "XLB", "Real Estate": "XLRE", "Utilities": "XLU",
 }
+_SHORT_NAMES = {"Communication Services": "Communication",
+                "Consumer Discretionary": "Discretionary", "Consumer Staples": "Staples",
+                "Information Technology": "Technology"}
 _QUADRANTS = (("Improving", "TEAL", 0, 0), ("Leading", "GREEN", 1, 0),
               ("Lagging", "RED", 0, 1), ("Weakening", "YELLOW", 1, 1))
+_QUAD_COLOUR = {name: colour for name, colour, _col, _row in _QUADRANTS}
+_LABEL_STEPS = (0, -1, 1, -2, 2, -3, 3)
+
+
+def sector_name(sector: str) -> str:
+    """Short plain sector name, e.g. ``Staples`` for Consumer Staples."""
+    return _SHORT_NAMES.get(sector, sector)
+
+
+def quadrant_of(ratio: float, momentum: float) -> str:
+    """Leading, Weakening, Lagging or Improving around (100, 100)."""
+    if ratio >= 100:
+        return "Leading" if momentum >= 100 else "Weakening"
+    return "Improving" if momentum >= 100 else "Lagging"
+
+
+def quadrant_colour(ratio: float, momentum: float) -> QColor:
+    """Theme colour of the quadrant a point sits in."""
+    return QColor(getattr(C, _QUAD_COLOUR[quadrant_of(ratio, momentum)]))
+
+
+@dataclass(frozen=True)
+class RotationPoint:
+    """One sector: RS ratio, RS momentum and where it was 5 trading days ago (if known)."""
+
+    sector: str
+    ratio: float
+    momentum: float
+    tail: tuple[float, float] | None
+
+
+def rotation_points(rows: Rows) -> list[RotationPoint]:
+    """Read the rows that have both numbers; the tail needs both tail numbers."""
+    out: list[RotationPoint] = []
+    for row in rows:
+        x, y = number(row.get("rs_ratio")), number(row.get("rs_momentum"))
+        if x is None or y is None:
+            continue
+        tx, ty = number(row.get("tail_ratio")), number(row.get("tail_momentum"))
+        tail = (tx, ty) if tx is not None and ty is not None else None
+        out.append(RotationPoint(str(row.get("sector", "")), x, y, tail))
+    return out
+
+
+def _tip(point: RotationPoint) -> str:
+    ticker = SECTOR_TICKERS.get(point.sector, "")
+    head = f"{point.sector} ({ticker})" if ticker else point.sector
+    lines = [head, f"{quadrant_of(point.ratio, point.momentum)} · strength {point.ratio:.1f}"
+             f" · momentum {point.momentum:.1f}"]
+    if point.tail is not None:
+        lines.append(f"5 days ago: strength {point.tail[0]:.1f} · momentum {point.tail[1]:.1f}")
+    return "\n".join(lines)
 
 
 class RotationView(_Painted):
-    """Four quadrants around (100, 100) with one dot per sector."""
+    """Four quadrants around (100, 100): one coloured dot per sector with its name, a dashed
+    tail from where it was 5 trading days ago, and its numbers on hover."""
 
-    def points(self) -> list[tuple[str, float, float]]:
-        """Return ``(sector, rs_ratio, rs_momentum)`` per row with both numbers."""
-        out: list[tuple[str, float, float]] = []
-        for row in self.rows:
-            x, y = number(row.get("rs_ratio")), number(row.get("rs_momentum"))
-            if x is not None and y is not None:
-                out.append((str(row.get("sector", "")), x, y))
-        return out
+    def __init__(self, rows: Rows, parent: QWidget | None = None) -> None:
+        super().__init__(rows, parent)
+        self.setMouseTracking(True)
+
+    def points(self) -> list[RotationPoint]:
+        """Return the sectors that have both numbers."""
+        return rotation_points(self.rows)
 
     def plot_rect(self) -> QRectF:
         """Return the drawing area inside the padding."""
@@ -232,16 +302,48 @@ class RotationView(_Painted):
 
     def to_screen(self, x: float, y: float) -> QPointF:
         """Map an RS ratio and momentum to a point in the plot (momentum up)."""
-        span = max([2.0] + [max(abs(px - 100), abs(py - 100)) * 1.15 + 0.5
-                            for _s, px, py in self.points()])
+        values = [2.0]
+        for p in self.points():
+            values.append(max(abs(p.ratio - 100), abs(p.momentum - 100)) * 1.15 + 0.5)
+            if p.tail is not None:
+                values.append(max(abs(p.tail[0] - 100), abs(p.tail[1] - 100)) * 1.1 + 0.3)
+        span = max(values)
         plot = self.plot_rect()
         return QPointF(plot.center().x() + (x - 100) / span * plot.width() / 2,
                        plot.center().y() - (y - 100) / span * plot.height() / 2)
 
+    def label_rects(self, painter: QPainter) -> list[tuple[RotationPoint, QPointF, QRectF]]:
+        """Place each name right or left of its dot, moving it up or down a line when it would
+        cover another name or dot."""
+        metrics = painter.fontMetrics()
+        plot = self.plot_rect()
+        spots = sorted(((p, self.to_screen(p.ratio, p.momentum)) for p in self.points()),
+                       key=lambda item: item[1].y())
+        dots = [QRectF(s.x() - 5, s.y() - 5, 10, 10) for _p, s in spots]
+        placed: list[QRectF] = []
+        out: list[tuple[RotationPoint, QPointF, QRectF]] = []
+        for point, spot in spots:
+            width = metrics.horizontalAdvance(sector_name(point.sector)) + 2
+            height = metrics.height()
+            choice: QRectF | None = None
+            for step in _LABEL_STEPS:
+                top = spot.y() - height / 2 + step * height
+                for left in (spot.x() + 8, spot.x() - 8 - width):
+                    rect = QRectF(left, top, width, height)
+                    if (plot.contains(rect) and not any(rect.intersects(r) for r in placed)
+                            and not any(rect.intersects(d) for d in dots)):
+                        choice = rect
+                        break
+                if choice is not None:
+                    break
+            rect = choice or QRectF(spot.x() + 8, spot.y() - height / 2, width, height)
+            placed.append(rect)
+            out.append((point, spot, rect))
+        return out
+
     def paintEvent(self, _event: QPaintEvent | None) -> None:  # noqa: N802
-        """Draw the tinted quadrants with names, then a dot and label per sector."""
-        points = self.points()
-        if not points:
+        """Draw the tinted quadrants with names, then tails, dots and names."""
+        if not self.points():
             return
         painter = self._painter()
         plot = self.plot_rect()
@@ -251,23 +353,158 @@ class RotationView(_Painted):
         for name, colour, col, row in _QUADRANTS:
             rect = QRectF(plot.left() + col * half_w, plot.top() + row * half_h, half_w, half_h)
             painter.fillRect(rect, mix(C.BG, getattr(C, colour), 0.08))
-            painter.setPen(QColor(C.MUTED))
+            painter.setPen(mix(C.MUTED, getattr(C, colour), 0.5))
             painter.setFont(small)
             align = (Qt.AlignmentFlag.AlignRight if col else Qt.AlignmentFlag.AlignLeft) | (
                 Qt.AlignmentFlag.AlignBottom if row else Qt.AlignmentFlag.AlignTop)
             painter.drawText(rect.adjusted(4, 2, -4, -2), align, name.upper())
         painter.setFont(self.font())
-        for sector, x, y in points:
-            spot = self.to_screen(x, y)
+        labels = self.label_rects(painter)
+        for point, spot, rect in labels:
+            dot = quadrant_colour(point.ratio, point.momentum)
+            if point.tail is not None:
+                start = self.to_screen(*point.tail)
+                faded = QColor(dot)
+                faded.setAlphaF(0.6)
+                painter.setPen(QPen(faded, 1.4, Qt.PenStyle.DashLine))
+                painter.drawLine(start, spot)
+                painter.setPen(Qt.PenStyle.NoPen)
+                painter.setBrush(faded)
+                painter.drawEllipse(start, 2.0, 2.0)
+            near = QPointF(rect.left() if rect.left() > spot.x() else rect.right(),
+                           rect.center().y())
+            if abs(near.y() - spot.y()) > 3:
+                painter.setPen(QPen(QColor(C.MUTED), 0.8))
+                painter.drawLine(spot, near)
             painter.setPen(Qt.PenStyle.NoPen)
-            painter.setBrush(QColor(C.TEXT))
-            painter.drawEllipse(spot, 3.5, 3.5)
-            painter.setPen(QColor(C.SUBTEXT))
-            name = SECTOR_TICKERS.get(sector, sector)
-            width = painter.fontMetrics().horizontalAdvance(name)
-            left = spot.x() + 6 if spot.x() + 6 + width < plot.right() else spot.x() - 6 - width
-            painter.drawText(QPointF(left, spot.y() + 4), name)
+            painter.setBrush(dot)
+            painter.drawEllipse(spot, 4.5, 4.5)
+            painter.setPen(QColor(C.TEXT))
+            painter.drawText(rect, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
+                             sector_name(point.sector))
         painter.end()
+
+    def point_at(self, pos: QPointF) -> RotationPoint | None:
+        """The sector whose dot is within 8 px of ``pos``."""
+        best: tuple[float, RotationPoint] | None = None
+        for point in self.points():
+            spot = self.to_screen(point.ratio, point.momentum)
+            gap = (spot.x() - pos.x()) ** 2 + (spot.y() - pos.y()) ** 2
+            if gap <= 64 and (best is None or gap < best[0]):
+                best = (gap, point)
+        return best[1] if best else None
+
+    def mouseMoveEvent(self, event: QMouseEvent | None) -> None:  # noqa: N802
+        """Show the hovered sector's numbers."""
+        if event is None:
+            return
+        point = self.point_at(event.position())
+        if point is None:
+            QToolTip.hideText()
+        else:
+            QToolTip.showText(event.globalPosition().toPoint(), _tip(point), self)
+
+
+class StrengthBars(_Painted):
+    """One bar per sector for its strength against the S&P 500 (RS ratio minus 100), strongest
+    first, coloured by quadrant, with the value and quadrant name on the right."""
+
+    def bars(self) -> list[tuple[RotationPoint, float]]:
+        """Return ``(point, strength)`` strongest first."""
+        points = sorted(rotation_points(self.rows), key=lambda p: p.ratio, reverse=True)
+        return [(p, p.ratio - 100) for p in points]
+
+    def paintEvent(self, _event: QPaintEvent | None) -> None:  # noqa: N802
+        """Draw names, bars from a centre line, values and quadrant names."""
+        bars = self.bars()
+        if not bars:
+            return
+        painter = self._painter()
+        metrics = painter.fontMetrics()
+        name_w = max(metrics.horizontalAdvance(sector_name(p.sector)) for p, _v in bars) + 12
+        value_w = metrics.horizontalAdvance("+00.0") + 12
+        stage_w = metrics.horizontalAdvance("Weakening") + 8
+        left, right = _PAD + name_w, self.width() - _PAD - value_w - stage_w
+        row_h = min(26.0, (self.height() - 2 * _PAD) / len(bars))
+        scale = max(max(abs(v) for _p, v in bars) * 1.1, 1.0)
+        centre = (left + right) / 2
+        painter.setPen(QPen(QColor(C.OVERLAY2), 1))
+        painter.drawLine(QPointF(centre, _PAD), QPointF(centre, _PAD + row_h * len(bars)))
+        for i, (point, value) in enumerate(bars):
+            top = _PAD + i * row_h
+            mid = top + row_h / 2
+            colour = quadrant_colour(point.ratio, point.momentum)
+            painter.setPen(QColor(C.TEXT))
+            painter.drawText(QRectF(_PAD, top, name_w - 10, row_h),
+                             Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter,
+                             sector_name(point.sector))
+            end = centre + value / scale * (right - centre)
+            bar = QRectF(min(centre, end), mid - row_h * 0.3, max(abs(end - centre), 1.0),
+                         row_h * 0.6)
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.setBrush(colour)
+            painter.drawRoundedRect(bar, 2, 2)
+            painter.setPen(QColor(C.SUBTEXT))
+            painter.drawText(QRectF(right + 6, top, value_w, row_h),
+                             Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
+                             f"{value:+.1f}")
+            painter.setPen(colour)
+            painter.drawText(QRectF(right + value_w, top, stage_w, row_h),
+                             Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
+                             quadrant_of(point.ratio, point.momentum))
+        painter.end()
+
+
+class RotationPanel(QWidget):
+    """Sector rotation with a Map / List switch: the map, or strength bars. The choice is kept
+    while the app runs, so a panel refresh does not reset it."""
+
+    list_mode = False
+
+    def __init__(self, rows: Rows, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        lines = QVBoxLayout(self)
+        lines.setContentsMargins(0, 0, 0, 0)
+        lines.setSpacing(4)
+        switch = QFrame()
+        switch.setObjectName("rotation_switch")
+        switch.setStyleSheet(
+            f"QFrame#rotation_switch {{ border: 1px solid {C.OVERLAY2}; border-radius: 6px; }}"
+            " QFrame#rotation_switch QPushButton { background: transparent; border: none;"
+            f" padding: 0 10px; color: {C.SUBTEXT}; outline: none; }}"
+            " QFrame#rotation_switch QPushButton:focus { outline: none; }"
+            f" QFrame#rotation_switch QPushButton:checked {{ background: {C.OVERLAY};"
+            f" color: {C.TEXT}; }}")
+        seg = QHBoxLayout(switch)
+        seg.setContentsMargins(0, 0, 0, 0)
+        seg.setSpacing(0)
+        self.map_btn, self.list_btn = QPushButton("Map"), QPushButton("List")
+        group = QButtonGroup(self)
+        for button in (self.map_btn, self.list_btn):
+            button.setCheckable(True)
+            group.addButton(button)
+            seg.addWidget(button)
+        top = QHBoxLayout()
+        top.addStretch(1)
+        top.addWidget(switch)
+        lines.addLayout(top)
+        self.map = RotationView(rows)
+        self.list = StrengthBars(rows)
+        self._stack = QStackedWidget()
+        self._stack.addWidget(self.map)
+        self._stack.addWidget(self.list)
+        lines.addWidget(self._stack, 1)
+        # Map / List buttons → clicked → panel → show that view
+        self.map_btn.clicked.connect(lambda: self.show_list(False))
+        self.list_btn.clicked.connect(lambda: self.show_list(True))
+        self.show_list(RotationPanel.list_mode)
+
+    def show_list(self, on: bool) -> None:
+        """Show the strength bars (``on``) or the map, and remember the choice."""
+        RotationPanel.list_mode = on
+        self._stack.setCurrentWidget(self.list if on else self.map)
+        self.list_btn.setChecked(on)
+        self.map_btn.setChecked(not on)
 
 
 def _paint_background(delegate: QStyledItemDelegate, painter: QPainter,
@@ -336,7 +573,7 @@ class SideDelegate(QStyledItemDelegate):
 def view_body(view: str, rows: Rows) -> QWidget | None:
     """Return the painted body for ``view``, an empty note, or ``None`` for other views."""
     makers: dict[str, Callable[[Rows], QWidget]] = {"tiles": TilesView, "heatmap": HeatMapView,
-                                         "line": LineView, "rotation": RotationView}
+                                         "line": LineView, "rotation": RotationPanel}
     maker = makers.get(view)
     if maker is None:
         return None

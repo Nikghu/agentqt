@@ -726,3 +726,21 @@ def test_feed_button_in_strip(qtbot: QtBot, tmp_path: Path) -> None:
     assert not strip._buttons["feed"].isVisible()
     strip.set_feed_shown(True)
     assert strip._buttons["feed"].isVisible()
+
+
+def test_rotation_tail(tmp_path: Path) -> None:
+    """UT-GUI-034.090.M11.T01: rotation rows carry the RS ratio and momentum of 5 trading days
+    before the latest day; with too little history there is no tail."""
+    from us_swing.market.store import MarketStore, SectorRow
+
+    store = MarketStore(tmp_path)
+    days = [f"2026-11-0{d}" for d in range(2, 9)]
+    rows = [SectorRow(day, "Energy", 100.0, 0.0, 0.0, 0.0, 1, 100.0 + i, 99.0 + i, "Leading", 20)
+            for i, day in enumerate(days)]
+    store.write_sector_days(rows, [])
+    store.close()
+    row = DeskFloorData(SampleFloorData(), tmp_path).rows("sectors.rrg", {})[0]
+    assert (row["tail_ratio"], row["tail_momentum"]) == (101.0, 100.0)
+    short = tmp_path / "short"
+    _write_sectors(short)
+    assert "tail_ratio" not in DeskFloorData(SampleFloorData(), short).rows("sectors.rrg", {})[0]
