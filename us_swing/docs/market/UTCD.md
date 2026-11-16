@@ -129,6 +129,9 @@
 | UT-MKT-002.009.M05.T03 | MD-MKT-002.009.M05 | Negative | Low coverage day skipped (SRD-MKT-002.009) | last day missing 30% of members | no rows for that day | Pass |
 | UT-MKT-002.009.M05.T04 | MD-MKT-002.009.M05 | Negative | No candle file (SRD-MKT-002.009) | missing candles.db | no rows; run not failed | Pass |
 | UT-MKT-002.009.M05.T05 | MD-MKT-002.009.M05 | Positive | Runs after regime in a desk run (SRD-MKT-002.009) | loaded step list, run-now | both steps ok; sector rows written | Pass |
+| UT-MKT-002.011.M05.T01 | MD-MKT-002.009.M05 | Negative | No RSP candles (SRD-MKT-002.011) | candles with SPY only | no sector rows; log says how to get RSP | Pass |
+| UT-MKT-002.012.M05.T01 | MD-MKT-002.009.M05 | Positive | Benchmark switch (SRD-MKT-002.012) | old row, no benchmark stored | old row gone; all days computed; RSP stored; next run adds nothing extra | Pass |
+| UT-MKT-002.013.M06.T01 | MD-MKT-001.013.M06 | Positive | RSP kept fresh (SRD-MKT-002.013) | RSP one day behind; no RSP at all | RSP filled; nothing asked | Pass |
 
 ## FO-MKT-003: Money Flow, Setups, Readiness Score and Ideas
 

@@ -327,7 +327,7 @@ class DeskFloorData:
         if sectors := self._latest_sectors():
             _day, _rank, sector, rel_1m, *_rest = sectors[0]
             tiles.append({"title": "Leading sector", "value": sector,
-                          "note": f"{_signed_pct(rel_1m)} vs SPY 1M"})
+                          "note": f"{_signed_pct(rel_1m)} vs equal-weight S&P 1M"})
         return tiles
 
     def _history(self) -> list[dict[str, Any]]:

@@ -21,6 +21,7 @@ from typing import Any, Protocol
 
 SCHEMA_VERSION = 1
 DB_NAME = "desk.db"
+SECTOR_BENCHMARK = "RSP"  # equal-weight S&P 500: benchmark for sector strength
 STALE_AFTER_S = 60.0
 MORNING_RUN = time(4, 0)  # New York time: the morning run may start from pre-market
 NOT_RESPONDING = "not responding"

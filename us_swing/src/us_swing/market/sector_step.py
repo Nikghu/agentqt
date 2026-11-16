@@ -2,6 +2,9 @@
 Module: MD-MKT-002.009.M05 — market/sector_step.py
 Parent SRD: SRD-MKT-002.009
 
+Also: SRD-MKT-002.011 (RSP is the sector benchmark), SRD-MKT-002.012 (recompute all days when
+the benchmark changes)
+
 Desk step "Sectors": adds every new day of sector strength, rotation and stock RS.
 """
 from __future__ import annotations
@@ -15,8 +18,8 @@ from typing import Any
 
 import pandas as pd
 
-from us_swing.core.desk_contract import StepContext, desk_home
-from us_swing.market.candles import BENCHMARK, CANDLE_DB, CandleReader, member_sectors
+from us_swing.core.desk_contract import SECTOR_BENCHMARK, StepContext, desk_home
+from us_swing.market.candles import CANDLE_DB, CandleReader, member_sectors
 from us_swing.market.rs import rs_scores, rs_table
 from us_swing.market.sectors import sector_lines, sector_table
 from us_swing.market.step import MIN_COVERAGE, RECOMPUTE_DAYS
@@ -25,6 +28,7 @@ from us_swing.market.store import MarketStore, SectorRow, StockRsRow
 log = logging.getLogger(__name__)
 
 _READY_COLUMNS = ["rs_ratio", "rs_momentum", "rel_6m"]
+BENCHMARK_KEY = "sector_benchmark"
 
 
 def _num(value: object) -> float | None:
@@ -74,22 +78,29 @@ class SectorStep:
         if not members.sectors:
             log.warning("[Sectors] No S&P 500 stocks with a sector and candles; nothing computed")
             return 0
-        bars = reader.read([*members.sectors, BENCHMARK])
-        if BENCHMARK not in bars.closes.columns:
-            log.warning("[Sectors] SPY has no daily candles; nothing computed")
+        bars = reader.read([*members.sectors, SECTOR_BENCHMARK])
+        if SECTOR_BENCHMARK not in bars.closes.columns:
+            log.warning("[Sectors] No daily candles for RSP (equal-weight S&P 500); press "
+                        "Update now in Settings with TWS connected; sectors not computed")
             return 0
-        spy = bars.closes[BENCHMARK].dropna()
+        bench = bars.closes[SECTOR_BENCHMARK].dropna()
         cols = [s for s in members.sectors if s in bars.closes.columns]
-        closes = bars.closes[cols].reindex(spy.index)
+        closes = bars.closes[cols].reindex(bench.index)
         sector_of = {s: members.sectors[s] for s in cols}
         lines, counts = sector_lines(closes, sector_of)
-        sectors = sector_table(lines, spy)
+        sectors = sector_table(lines, bench)
         stocks = rs_table(rs_scores(closes), sector_of)
+        if store.meta(BENCHMARK_KEY) != SECTOR_BENCHMARK:
+            store.clear_sector_days()
+            log.info("[Sectors] Sector benchmark is now RSP (equal-weight S&P 500); "
+                     "computing every day again")
         days = self._days_to_write(store, sectors, stocks)
-        if not days:
-            return 0
-        coverage = _per_day(closes.notna().sum(axis=1))
-        return self._write(store, days, sectors, counts, stocks, coverage, members.listed)
+        added = 0
+        if days:
+            coverage = _per_day(closes.notna().sum(axis=1))
+            added = self._write(store, days, sectors, counts, stocks, coverage, members.listed)
+        store.set_meta(BENCHMARK_KEY, SECTOR_BENCHMARK)
+        return added
 
     @staticmethod
     def _days_to_write(

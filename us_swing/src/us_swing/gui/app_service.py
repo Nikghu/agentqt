@@ -72,6 +72,7 @@ from typing import TYPE_CHECKING, Any
 
 import pandas as pd
 
+from us_swing.core.desk_contract import SECTOR_BENCHMARK
 from us_swing.core.desk_watch import OpenTrade, desk_live_symbols, write_open_trades
 from us_swing.core.symbols import yahoo_symbol
 
@@ -915,18 +916,14 @@ class _CandleDownloadWorker(QThread):
         finally:
             ib.disconnect()
 
-    async def _download_benchmark(self, ib: object) -> None:
-        """Fetch 2 years of 1d + 1w bars for the benchmark symbol (e.g. SPY).
+    async def _download_benchmark(self, ib: object, symbol: str) -> None:
+        """Fetch 2 years of 1d + 1w bars for a benchmark symbol (SPY, or RSP for sectors).
 
         Non-fatal: logs a symbol_failed warning on error and continues.
         Benchmark rows are stored in the same price_1d / price_1w tables as
         constituent stocks; they are identifiable by their symbol string alone.
         """
         from ib_insync import Stock  # type: ignore[import]
-
-        symbol = self._benchmark_symbol
-        if not symbol:
-            return
 
         end_dt_str = self._end_date.strftime("%Y%m%d 23:59:59")
         try:
@@ -972,8 +969,10 @@ class _CandleDownloadWorker(QThread):
         conn.close()
 
         # ── Benchmark symbol (SPY) — downloaded first, before the universe loop ─
-        if self._mode in ("full", "delta") and self._benchmark_symbol:
-            await self._download_benchmark(ib)
+        if self._mode in ("full", "delta"):
+            wanted = (self._benchmark_symbol, SECTOR_BENCHMARK)
+            for symbol in dict.fromkeys(s for s in wanted if s):
+                await self._download_benchmark(ib, symbol)
 
         # Duration strings for IBKR reqHistoricalData
         # IBKR rule: durations > 365 days must be expressed in years.
@@ -4961,7 +4960,7 @@ class AppService(QObject):
             floors = DownloadState.load(store.root).floors
             return plan(symbols, settings, store.coverage, floors,
                         _compute_last_trading_day(), delta,
-                        daily_only=(BENCHMARK,))  # SRD-BKT-001.015
+                        daily_only=(BENCHMARK, SECTOR_BENCHMARK))  # SRD-BKT-001.015
 
         return build_plan
 

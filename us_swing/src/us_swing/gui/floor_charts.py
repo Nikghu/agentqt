@@ -69,7 +69,7 @@ def mix(base: str, top: str, weight: float) -> QColor:
 
 
 def heat_colour(value: float) -> QColor:
-    """Return the heat map colour for a strength ``value`` in percent against SPY."""
+    """Return the heat map colour for a strength ``value`` in percent against the benchmark."""
     if value == 0:
         return QColor(C.SURFACE)
     weight = min(abs(value) / _HEAT_FULL, 1.0) * 0.8 + 0.2
@@ -132,7 +132,7 @@ class _Painted(QWidget):
 
 
 class HeatMapView(_Painted):
-    """Sector cells coloured by 1-month strength against SPY."""
+    """Sector cells coloured by 1-month strength against the equal-weight S&P 500 (RSP)."""
 
     def cells(self) -> list[tuple[str, float]]:
         """Return ``(label, value)`` per row that has a readable value."""
@@ -233,10 +233,11 @@ _QUADRANTS = (("Improving", "TEAL", 0, 0), ("Leading", "GREEN", 1, 0),
               ("Lagging", "RED", 0, 1), ("Weakening", "YELLOW", 1, 1))
 _QUAD_COLOUR = {name: colour for name, colour, _col, _row in _QUADRANTS}
 _LABEL_STEPS = (0, -1, 1, -2, 2, -3, 3)
-MAP_NOTE = ("Right: stronger against the S&P 500 than its own 50-day average · Up: that "
-            "strength is rising (last 10 days) · Dashed tail: 5 trading days ago")
-LIST_NOTE = ("% above or below its own 50-day average strength against the S&P 500 · each "
-             "sector is an equal-weight mix of its S&P 500 stocks, from daily closes")
+MAP_NOTE = ("Right: stronger against the equal-weight S&P 500 than its own 50-day average · "
+            "Up: that strength is rising (last 10 days) · Dashed tail: 5 trading days ago")
+LIST_NOTE = ("% above or below its own 50-day average strength against the equal-weight "
+             "S&P 500 (RSP) · each sector is an equal-weight mix of its S&P 500 stocks, from "
+             "daily closes")
 
 
 def sector_name(sector: str) -> str:

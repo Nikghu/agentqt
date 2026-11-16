@@ -116,6 +116,9 @@
 | SRD-MKT-002.008 | FO-MKT-002 | Must | Results are kept in `sector_daily` (one row per sector per day) and `stock_rs` (one row per stock per day) in `desk.db`. | rows | tables | Re-running a day replaces its rows | Implemented |
 | SRD-MKT-002.009 | FO-MKT-002 | Must | The desk step "Sectors" runs after "Market regime", fills history on its first run, recomputes the last 7 days and skips days with data for fewer than 80% of members. | desk run | rows | `market` never imports `desk`; a missing candle file never fails the run | Implemented |
 | SRD-MKT-002.010 | FO-MKT-002 | Should | Each run logs the days added, the top 3 sectors and sectors that changed quadrant. | step | log lines | `[Sectors]` prefix | Implemented |
+| SRD-MKT-002.011 | FO-MKT-002 | Must | Sector lines are measured against RSP (the equal-weight S&P 500) instead of SPY for the 1, 3 and 6-month moves, RS-ratio and RS-momentum, in the desk step and in the score proof. | lines, RSP | moves, ratio, momentum | Without RSP candles no sector day is computed; the regime stays on SPY | Implemented |
+| SRD-MKT-002.012 | FO-MKT-002 | Must | When the stored sector benchmark is not RSP, the Sectors step deletes all `sector_daily` rows once and computes every day again. | `market_meta` | rows | The benchmark is kept in `market_meta` | Implemented |
+| SRD-MKT-002.013 | FO-MKT-002 | Should | The candle download and the Backtest Data download fetch RSP daily bars with SPY, and the candle check fills RSP from Yahoo when it is behind. | downloads | RSP bars | RSP missing from `candles.db` does not stop a run | Implemented |
 
 ## FO-MKT-003: Money Flow, Setups, Readiness Score and Ideas
 
