@@ -3,7 +3,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PyQt6.QtWidgets import QLabel, QWidget
+from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import QLabel, QScrollArea, QWidget
 from pytestqt.qtbot import QtBot
 
 from us_swing.gui.ai_desk import AiDeskWorkspace
@@ -56,3 +57,14 @@ def test_every_section_shows_sample_tag(qtbot: QtBot, tmp_path: Path) -> None:
         tags = [w.text() for w in frame.findChildren(QLabel) if w.objectName() == "sample_tag"]
         assert tags == ["Sample data"]
 
+
+
+def test_sections_scroll_inside(qtbot: QtBot, tmp_path: Path) -> None:
+    """UT-GUI-019.011.M04.T01: Each AI Desk section sits in its own up-down scroll area."""
+    page = AiDeskWorkspace(DeskPoller(tmp_path))
+    qtbot.addWidget(page)
+    page.select_section("Desk settings")
+    shown = page._stack.currentWidget()
+    areas = shown.findChildren(QScrollArea)
+    assert areas and areas[0].widget() is not None
+    assert areas[0].horizontalScrollBarPolicy() == Qt.ScrollBarPolicy.ScrollBarAlwaysOff

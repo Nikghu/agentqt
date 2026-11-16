@@ -624,6 +624,7 @@ Test files:
 | UT-GUI-019.010.M03.T01 | MD-GUI-019.010.M03 | Positive | Screens sit in a resizable scroll area | stack of screens | scroll area holds the stack, widget resizable | Pass |
 | UT-GUI-019.010.M03.T02 | MD-GUI-019.010.M03 | Negative | A too-wide screen does not raise the minimum width | screen minimum 2400 px | scroll area minimum width < 1920 | Pass |
 | UT-GUI-019.011.M03.T01 | MD-GUI-019.011.M03 | Positive | A screen taller than the window gets the window height | screen body 3000 px, window 700 px | no up-down bar, scroll range 0, screen height = window area height | Pass |
+| UT-GUI-019.011.M04.T01 | MD-GUI-019.011.M04 | Positive | An AI Desk section scrolls inside its card | Desk settings section | section in an up-down scroll area, no side bar | Pass |
 | UT-GUI-019.004.M02.T01 | MD-GUI-019.006.M02 | Positive | Watchlist box suggests S&P 500 stocks | universe loads after the panel; type "a" | popup list; first match "AAPL - Apple Inc." | Pass |
 | UT-GUI-019.004.M02.T02 | MD-GUI-019.006.M02 | Positive | Picked suggestion adds the symbol | "AAPL - Apple Inc."; Add | `add_to_watchlist("AAPL")` | Pass |
 | UT-GUI-019.004.M02.T03 | MD-GUI-019.006.M02 | Negative | Non-S&P 500 symbol shows the app notice | "AA"; Add | frameless "NOT IN S&P 500" notice, OK only; nothing added | Pass |

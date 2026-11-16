@@ -28,6 +28,8 @@ An extra up-down scroll bar showed at the right edge of every sidebar screen. Sc
 | File | Change |
 |---|---|
 | `gui/main_window.py` | New `_WidthOnlyBox` holds the screens: asks for their minimum width only, sizes them to the window height; up-down bar off |
+| `gui/ai_desk.py` | Follow-up: each AI Desk section sits in its own up-down scroll area; before, the outer scroll hid that Desk settings was taller than the window, and the fix squeezed its check boxes |
+| `tests/gui/test_ai_desk.py` | UT-GUI-019.011.M04.T01 |
 | `tests/gui/test_side_panels_exit_drawer.py` | UT-GUI-019.011.M03.T01; T01 of 019.010 updated for the holder |
 
 Checked with the real Backtest, Market Floor and AI Desk screens at 1790 × 990: scroll range 0 on all three, header on top.

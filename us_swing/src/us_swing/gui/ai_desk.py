@@ -49,7 +49,7 @@ from us_swing.core.desk_overview import (
 from us_swing.core.desk_trades import DeskTradeSink
 from us_swing.gui.cards import GAP, card, gutter
 from us_swing.gui.desk_control import DeskBar, DeskPoller
-from us_swing.gui.ai_desk_sections import command_frame, runs_box, team_line
+from us_swing.gui.ai_desk_sections import command_frame, runs_box, scroll_of, team_line
 from us_swing.gui.ai_desk_hiring import approvals_box, hiring_frame
 from us_swing.gui.ai_desk_chat import ChatPanel
 from us_swing.gui.ai_desk_console import icon_badge, stat_tile, thin_bar
@@ -132,7 +132,7 @@ class AiDeskWorkspace(QWidget):
         self._stack = QStackedWidget()
         for name in SECTIONS:
             # live sections are built when first shown, so no web view starts with the desk
-            self._stack.addWidget(QWidget() if name in _LIVE_SECTIONS else card(self._build(name)))
+            self._stack.addWidget(QWidget() if name in _LIVE_SECTIONS else self._page(name))
         right.addWidget(self._stack, 1)
         main.addLayout(right, 1)
         # list → currentItemChanged → page → _on_item
@@ -172,11 +172,17 @@ class AiDeskWorkspace(QWidget):
         index = SECTIONS.index(name)
         if name in _LIVE_SECTIONS:
             old = self._stack.widget(index)
-            self._stack.insertWidget(index, card(self._build(name)))
+            self._stack.insertWidget(index, self._page(name))
             if old is not None:
                 self._stack.removeWidget(old)
                 old.deleteLater()
         self._stack.setCurrentIndex(index)
+
+    def _page(self, name: str) -> QWidget:
+        """Section ``name`` in a card that scrolls up-down when the window is too short."""
+        area = scroll_of(self._build(name))
+        area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        return card(area)
 
     def _build(self, name: str) -> QWidget:
         if name == "Command":
