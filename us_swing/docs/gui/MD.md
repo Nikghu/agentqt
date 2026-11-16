@@ -278,6 +278,7 @@ us_swing/src/us_swing/gui/
 | MD-GUI-019.002.M03 | SRD-GUI-019.002 | `us_swing/src/us_swing/gui/main_window.py` | Panel layout and wiring | `MainWindow` | `side_panels`, `reveal`, `log_viewer_panel` | No |
 | MD-GUI-019.009.M03 | SRD-GUI-019.009 | `us_swing/src/us_swing/gui/main_window.py` | Sidebar mini on right panel click | `MainWindow._on_panel_toggled`, `_MiniState` | `reveal` | No |
 | MD-GUI-019.010.M03 | SRD-GUI-019.010 | `us_swing/src/us_swing/gui/main_window.py` | Screens held in a scroll area | `MainWindow._fit_to_screen` | — | No |
+| MD-GUI-019.011.M03 | SRD-GUI-019.011 | `us_swing/src/us_swing/gui/main_window.py` | Screens held at window height | `MainWindow._fit_to_screen`, `_WidthOnlyBox` | — | No |
 
 ## FO-GUI-020 — Charts Workspace
 

@@ -32,10 +32,11 @@ from PyQt6.QtCore import (
     QPoint,
     QPropertyAnimation,
     QSettings,
+    QSize,
     QTimer,
     Qt,
 )
-from PyQt6.QtGui import QCursor, QPixmap
+from PyQt6.QtGui import QCursor, QPixmap, QResizeEvent
 from PyQt6.QtWidgets import (
     QApplication,
     QDialog,
@@ -443,6 +444,38 @@ class _MiniState:
         return self.user_mini or self.auto_mini or self.panel_open
 
 
+# ── Screen holder ──────────────────────────────────────────────────────────────
+
+class _WidthOnlyBox(QWidget):
+    """Holds the screens; asks for their minimum width but never a height.
+
+    No layout on purpose: a layout would pass on the screens' wrapped-text
+    height, and the scroll area would then grow taller than the window.
+    """
+
+    def __init__(self, stack: QStackedWidget) -> None:
+        super().__init__()
+        gutter(self)
+        self._stack = stack
+        stack.setParent(self)
+
+    def minimumSizeHint(self) -> QSize:
+        return QSize(self._stack.minimumSizeHint().width(), 0)
+
+    def sizeHint(self) -> QSize:
+        return self.minimumSizeHint()
+
+    def resizeEvent(self, event: QResizeEvent | None) -> None:
+        self._stack.setGeometry(self.rect())
+        super().resizeEvent(event)
+
+    def event(self, event: QEvent | None) -> bool:
+        # stack → LayoutRequest → this box → updateGeometry → scroll area re-reads the width
+        if event is not None and event.type() == QEvent.Type.LayoutRequest:
+            self.updateGeometry()
+        return super().event(event)
+
+
 # ── Main Window ────────────────────────────────────────────────────────────────
 
 class MainWindow(QMainWindow):
@@ -767,12 +800,16 @@ class MainWindow(QMainWindow):
 
         A maximized frameless window grows to its minimum width and never
         shrinks back, so a wide screen would push the ✕ and the right strip
-        off screen. A screen that needs more room scrolls instead (SRD-GUI-019.010).
+        off screen. A screen that needs more room scrolls sideways instead
+        (SRD-GUI-019.010). Height always matches the window, so a screen's
+        header never scrolls away; each screen scrolls its own body (SRD-GUI-019.011).
         """
-        area = gutter(QScrollArea())
+        area = QScrollArea()
+        gutter(area)
         area.setWidgetResizable(True)
+        area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         area.setFrameShape(QFrame.Shape.NoFrame)
-        area.setWidget(stack)
+        area.setWidget(_WidthOnlyBox(stack))
         return area
 
     def _slide_in(self, page: QWidget | None) -> None:

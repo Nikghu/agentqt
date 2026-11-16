@@ -486,6 +486,7 @@
 | SRD-GUI-019.008 | FO-GUI-019 | Should | Open in Chart switches to the Chart screen and loads the selected symbol. | click | chart | Uses the chart's own load path | Implemented |
 | SRD-GUI-019.009 | FO-GUI-019 | Must | On every screen, a right panel button click shrinks the sidebar to mini before the panel slides in, and the sidebar stays mini while the panel is open. | right panel click | sidebar mini | Window must not grow past the screen; Expand waits until the panel closes | Implemented |
 | SRD-GUI-019.010 | FO-GUI-019 | Must | No screen's content can make the main window wider than the screen; a screen that needs more room scrolls inside its own area. | any screen, right panel open or closed | window, ✕, right panel and icon strip stay on screen | Found with live data at 1962 px on a 1920 px screen (ISS-GUI-0015) | Implemented |
+| SRD-GUI-019.011 | FO-GUI-019 | Must | Every screen gets exactly the window height, so its top section never scrolls away; tables and panels scroll inside the screen. | any screen, window shorter than the screen's content | no up-down scroll bar on the window; header stays on top | Found on Backtest and AI Desk (ISS-GUI-0019) | Draft |
 
 ## FO-GUI-020 — Charts Workspace
 

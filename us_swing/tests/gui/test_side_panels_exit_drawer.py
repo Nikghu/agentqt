@@ -6,8 +6,15 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 import pytest
-from PyQt6.QtCore import QObject, pyqtSignal
-from PyQt6.QtWidgets import QScrollArea, QStackedWidget, QTableWidget, QWidget
+from PyQt6.QtCore import QObject, Qt, pyqtSignal
+from PyQt6.QtWidgets import (
+    QLabel,
+    QScrollArea,
+    QStackedWidget,
+    QTableWidget,
+    QVBoxLayout,
+    QWidget,
+)
 
 from us_swing.gui._types import OpenPosition
 from us_swing.gui.dashboard_panel import _ExitForm, _SquareOffForm
@@ -194,7 +201,7 @@ def test_screens_sit_in_resizable_scroll_area(qtbot):
     area = MainWindow._fit_to_screen(stack)
     qtbot.addWidget(area)
     assert isinstance(area, QScrollArea)
-    assert area.widget() is stack
+    assert stack.parent() is area.widget()
     assert area.widgetResizable()
 
 
@@ -208,3 +215,23 @@ def test_wide_screen_does_not_widen_window(qtbot):
     qtbot.addWidget(area)
     assert stack.minimumSizeHint().width() >= 2400
     assert area.minimumSizeHint().width() < 1920
+
+
+def test_tall_screen_fits_window_height(qtbot):
+    """UT-GUI-019.011.M03.T01: A screen taller than the window gets the window height, no up-down bar."""
+    stack = QStackedWidget()
+    tall = QWidget()
+    tall.setLayout(QVBoxLayout())
+    tall.layout().addWidget(QLabel("header"))
+    body = QWidget()
+    body.setMinimumHeight(3000)
+    tall.layout().addWidget(body)
+    stack.addWidget(tall)
+    area = MainWindow._fit_to_screen(stack)
+    qtbot.addWidget(area)
+    area.resize(1200, 700)
+    area.show()
+    qtbot.waitExposed(area)
+    assert area.verticalScrollBarPolicy() == Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+    assert stack.height() == area.viewport().height()
+    assert area.verticalScrollBar().maximum() == 0
