@@ -1,21 +1,12 @@
 # -*- mode: python ; coding: utf-8 -*-
 
+
 a = Analysis(
     ['run_gui.py'],
     pathex=['src'],
     binaries=[],
-    datas=[('assets', 'assets'), ('src/us_swing/gui/resources', 'us_swing/gui/resources'),
-           ('src/us_swing/market/employees', 'us_swing/market/employees')],
-    hiddenimports=['talib.stream',
-                   # loaded by import path in core/desk_steps.py
-                   'us_swing.market.step', 'us_swing.market.sector_step',
-                   'us_swing.market.idea_step', 'us_swing.market.proof',
-                   'us_swing.desk.employees_step', 'us_swing.market.regime_view',
-                   'us_swing.market.sector_view', 'us_swing.market.setup_review',
-                   'us_swing.market.risk_check', 'us_swing.market.lead_brief',
-                   'us_swing.market.news_step', 'us_swing.market.news_review', 'feedparser',
-                   'us_swing.market.report_page', 'us_swing.market.pick_results',
-                   'us_swing.market.lead_chat', 'us_swing.market.data_recipe', 'us_swing.market.lesson_reflect', 'us_swing.market.watch', 'us_swing.market.watch_flag', 'us_swing.market.checkin_note', 'us_swing.desk.weekly_report', 'us_swing.market.setup_tuning', 'us_swing.market.post_mortem', 'us_swing.market.sentiment', 'us_swing.market.book_strategy', 'us_swing.market.strategy_test', 'us_swing.market.day_end', 'us_swing.market.decision_check', 'us_swing.desk.planner', 'us_swing.market.table_tools', 'us_swing.desk.secretary', 'us_swing.desk.tool_builder', 'us_swing.desk.sandbox', 'us_swing.desk.sandbox_child', 'us_swing.market.tool_reads', 'pypdf'],
+    datas=[('assets', 'assets'), ('src/us_swing/gui/resources', 'us_swing/gui/resources')],
+    hiddenimports=['talib.stream'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
