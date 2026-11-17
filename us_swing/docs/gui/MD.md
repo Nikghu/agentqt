@@ -1,12 +1,13 @@
 # Module Decomposition — GUI Module (GUI)
 
 **Document ID:** MD-GUI
-**Version:** 1.56.0
+**Version:** 1.57.0
 **Traces To:** SRD-GUI v2.16.0 / DD-GUI v1.7.0
 **Status:** Draft
-**Last Updated:** 2026-09-17
+**Last Updated:** 2026-11-17
 **Project:** US Swing Trading System
 
+> v1.57.0: MD-GUI-004.001.M01 extended — `notify_screener_results_updated(send_message)`; manual run sends no message (SRD-GUI-004.014, ISS-GUI-0021).
 > v1.55.1: MD-GUI-018.012.M05 note: no screen uses the sub-menu yet.
 > v1.55.0: AI Desk and Market Floor removed (user, 2026-11-17; docs/audit/DESK_REMOVAL_2026-11-17.md): FO-GUI-034 to FO-GUI-041 modules and MD-GUI-019.011.M04 removed.
 > v1.39.0: M01 (Tools) and M15 (settings) changed (AI Desk v3 M7b, 2026-11-15).
@@ -135,6 +136,7 @@ FO-GUI-012 modifies existing modules rather than creating new files. The new `Li
 | MD-GUI-004.001.M01 | `src/us_swing/gui/execution_panel.py` | Pick box + "+ Add" in `_FilteredStocksPane`; `_PinnedPicksProxy`; pick rows in `_FilteredStocksModel`; ✕ click removes. | SRD-GUI-004.011 |
 | MD-GUI-004.001.M03 | `src/us_swing/gui/intraday_cleanup.py` (new) | `remove_stale_intraday(db_path, keep, idle_days) -> list[str]` — finds and deletes stale stocks' rows in price_1m/3m/15m. | SRD-GUI-004.013 |
 | MD-GUI-004.001.M01 | `src/us_swing/gui/app_service.py` | `_cleanup_stale_intraday(entries)` runs first in `_boot_candle_check()`; keep-set = Filtered Stocks + open trade cycles + positions. | SRD-GUI-004.013 |
+| MD-GUI-004.001.M01 | `src/us_swing/gui/app_service.py`, `src/us_swing/gui/screener_panel.py` | `notify_screener_results_updated(send_message=True)` sets the message flag for one emit; `_on_run_finished()` passes `send_message` only for a scheduled run. | SRD-GUI-004.014 |
 
 ---
 

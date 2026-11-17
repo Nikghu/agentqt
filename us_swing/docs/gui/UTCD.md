@@ -1,12 +1,13 @@
 # Unit Test Case Document â€” GUI Module (GUI)
 
 **Document ID:** UTCD-GUI
-**Version:** 1.46.0
+**Version:** 1.47.0
 **Traces To:** MD-GUI v1.7.0
 **Status:** Draft
-**Last Updated:** 2026-10-16
+**Last Updated:** 2026-11-17
 **Project:** US Swing Trading System
 
+> v1.47.0: UT-GUI-004.001.M01.T26–T27 added, T17 input updated — manual run sends no "screener approved" message (SRD-GUI-004.014).
 > v1.46.0: AI Desk and Market Floor removed (user, 2026-11-17; docs/audit/DESK_REMOVAL_2026-11-17.md): FO-GUI-034 to FO-GUI-041 tests and UT-GUI-019.011.M04.T01 removed.
 > v1.42.1: UT-GUI-041.006–.010 and UT-GUI-034.085 Pass (13) (2026-11-16).
 > v1.42.0: UT-GUI-041.006–.010 and UT-GUI-034.085 added (13, Not Run) (AI Desk v3 M7b, 2026-11-15).
@@ -170,7 +171,7 @@
 | UT-GUI-004.001.M01.T14 | MD-GUI-004.001.M01 | Positive | Removing a pick saves the shorter list and drops it from the engine list | Picks AAPL, TSLA; remove AAPL; no open trade | Store holds TSLA; one refresh; engine list TSLA | Pass |
 | UT-GUI-004.001.M01.T15 | MD-GUI-004.001.M01 | Positive | Picks lead the feed, need no users and win over a screener row | Picks TSLA, MSFT; preset result AAPL, MSFT | TSLA, MSFT (pick), AAPL (scheduled) | Pass |
 | UT-GUI-004.001.M01.T16 | MD-GUI-004.001.M01 | Edge | Picks show with no screener results on disk | Pick TSLA; no results folder | TSLA only | Pass |
-| UT-GUI-004.001.M01.T17 | MD-GUI-004.001.M01 | Negative | Pick change sends no "screener approved" message | `_refresh_after_pick_change()` | Flag False during refresh, True after | Pass |
+| UT-GUI-004.001.M01.T17 | MD-GUI-004.001.M01 | Negative | Pick change sends no "screener approved" message | `_refresh_after_pick_change()` | Flag False during emit, True after | Pass |
 | UT-GUI-004.001.M01.T18 | MD-GUI-004.001.M01 | Positive | Ledger records picks apart | Pick TSLA + Momentum AAPL | (Momentum, AAPL) then (Manual pick, TSLA) | Pass |
 | UT-GUI-004.001.M01.T19 | MD-GUI-004.001.M01 | Positive | Picks stay on top in either sort order | Proxy sorted by score asc / desc | Row 0 is "★ TSLA" with "✕ Remove" | Pass |
 | UT-GUI-004.001.M01.T20 | MD-GUI-004.001.M01 | Edge | A removed pick with an open trade stays on the engine list | Remove AAPL while AAPL has an open trade | Engine list keeps AAPL | Pass |
@@ -179,6 +180,8 @@
 | UT-GUI-004.001.M01.T23 | MD-GUI-004.001.M01 | Edge | Stock idle less than the retention period is kept | Newest bar 3 days old, retention 5 | Rows remain | Pass |
 | UT-GUI-004.001.M01.T24 | MD-GUI-004.001.M01 | Edge | A long break deletes nothing | Every stock's newest bar 30 days before today | Nothing deleted (idle is relative to newest DB bar) | Pass |
 | UT-GUI-004.001.M01.T25 | MD-GUI-004.001.M01 | Negative | Cleanup is skipped when open trades cannot be read | `_tc_query` is None | `remove_stale_intraday` not called | Pass |
+| UT-GUI-004.001.M01.T26 | MD-GUI-004.001.M01 | Positive | List refresh carries the caller's message choice | `notify_screener_results_updated(send_message=True / False)` | Flag True / False during emit; True after | Pass |
+| UT-GUI-004.001.M01.T27 | MD-GUI-004.001.M01 | Negative | Manual run sends no message; scheduled run does | Run finished with mode `manual` / `scheduled` | `send_message=False` / `True` | Pass |
 
 ---
 

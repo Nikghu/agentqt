@@ -146,16 +146,58 @@ def test_picks_without_screener_results() -> None:
     assert [e.symbol for e in entries] == ["TSLA"]
 
 
+def _notify_fake(seen: list[bool]) -> SimpleNamespace:
+    """AppService stand-in that records the message flag at the moment the list is emitted."""
+    fake = SimpleNamespace(_notify_screener_approved=True, get_latest_screener_results=list)
+    fake.screener_results_updated = SimpleNamespace(
+        emit=lambda _entries: seen.append(fake._notify_screener_approved)
+    )
+    fake.notify_screener_results_updated = (
+        lambda **kw: AppService.notify_screener_results_updated(fake, **kw)  # type: ignore[arg-type]
+    )
+    return fake
+
+
 def test_pick_change_skips_screener_notification() -> None:
     """UT-GUI-004.001.M01.T17: a pick change refreshes without the "screener approved" message."""
     seen: list[bool] = []
-    fake = SimpleNamespace(_notify_screener_approved=True)
-    fake.notify_screener_results_updated = lambda: seen.append(fake._notify_screener_approved)
+    fake = _notify_fake(seen)
 
     AppService._refresh_after_pick_change(fake)  # type: ignore[arg-type]
 
     assert seen == [False]
     assert fake._notify_screener_approved is True
+
+
+@pytest.mark.parametrize(("send", "expected"), [(True, [True]), (False, [False])])
+def test_results_update_message_flag(send: bool, expected: list[bool]) -> None:
+    """UT-GUI-004.001.M01.T26: the list refreshes either way; the message flag follows the caller."""
+    seen: list[bool] = []
+    fake = _notify_fake(seen)
+
+    AppService.notify_screener_results_updated(fake, send_message=send)  # type: ignore[arg-type]
+
+    assert seen == expected
+    assert fake._notify_screener_approved is True
+
+
+@pytest.mark.parametrize(("mode", "send"), [("manual", False), ("scheduled", True)])
+def test_only_scheduled_run_sends_message(mode: str, send: bool) -> None:
+    """UT-GUI-004.001.M01.T27: a manual run sends no "screener approved" message; a scheduled run does."""
+    from us_swing.gui import screener_panel as sp
+
+    panel = sp.ScreenerPanel.__new__(sp.ScreenerPanel)
+    panel._demo = MagicMock()
+    panel._storage = MagicMock()
+    panel._auto_run_queue = []
+    panel._selected_preset_id = "p1"
+    for name in ("_run_btn", "_export_btn", "_update_date_display", "_display_result",
+                 "_refresh_preset_meta"):
+        setattr(panel, name, MagicMock())
+
+    panel._on_run_finished(SimpleNamespace(preset_id="p1", execution_mode=mode))
+
+    panel._demo.notify_screener_results_updated.assert_called_once_with(send_message=send)
 
 
 def test_ledger_records_picks_apart() -> None:
