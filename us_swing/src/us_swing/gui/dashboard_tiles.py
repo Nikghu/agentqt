@@ -15,6 +15,7 @@ from PyQt6.QtWidgets import (
     QGridLayout,
     QHBoxLayout,
     QLabel,
+    QScrollArea,
     QTableView,
     QVBoxLayout,
     QWidget,
@@ -220,8 +221,19 @@ class StrategyPnlList(QWidget):
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
-        self._rows = QVBoxLayout()
+        rows_box = QWidget()
+        self._rows = QVBoxLayout(rows_box)
+        self._rows.setContentsMargins(0, 0, 0, 0)
         self._rows.setSpacing(12)
+        self._rows.setAlignment(Qt.AlignmentFlag.AlignTop)
+        self._scroll = QScrollArea()
+        self._scroll.setWidgetResizable(True)
+        self._scroll.setFrameShape(QFrame.Shape.NoFrame)
+        self._scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self._scroll.setStyleSheet(
+            "QScrollArea, QScrollArea > QWidget > QWidget { background: transparent; }"
+        )
+        self._scroll.setWidget(rows_box)
         self.empty_lbl = QLabel("No strategies")
         self.empty_lbl.setStyleSheet(f"color:{C.MUTED};")
         self.total_lbl = QLabel(money(0.0))
@@ -235,7 +247,7 @@ class StrategyPnlList(QWidget):
         box = QVBoxLayout(self)
         box.setContentsMargins(14, 12, 14, 12)
         box.setSpacing(10)
-        box.addLayout(self._rows)
+        box.addWidget(self._scroll, 1)
         box.addWidget(self.empty_lbl)
         box.addStretch()
         box.addWidget(_rule())
@@ -254,6 +266,7 @@ class StrategyPnlList(QWidget):
         for name, note, pnl in rows:
             self._rows.addWidget(self._row(name, note, pnl, peak))
         self.empty_lbl.setVisible(not rows)
+        self._scroll.setVisible(bool(rows))
         total = sum(pnl for _n, _t, pnl in rows)
         self.total_lbl.setText(money(total))
         self.total_lbl.setStyleSheet(f"color:{_pnl_colour(total)}; font-family:{_MONO};")
