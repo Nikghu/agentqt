@@ -19,7 +19,7 @@ The Dashboard Market Watch tile now has a Sector Rotation tab. It ranks the 11 s
 | MD ID | File | Change |
 |---|---|---|
 | MD-GUI-025.022.M06 | `src/us_swing/gui/sector_rotation.py` | Added: sector moves against RSP and the ranked bar view |
-| MD-GUI-025.023.M07 | `src/us_swing/gui/app_service.py` | Changed: `get_daily_closes()`; candle download fetches RSP and sector ETFs (stops on Stop) |
+| MD-GUI-025.023.M07 | `src/us_swing/gui/app_service.py` | Changed: `get_daily_closes()`; candle download fetches RSP and sector ETFs (stops on Stop); missing or old sector ETFs make the database not up to date, so Update now runs for them alone |
 | MD-GUI-025.001.M02 | `src/us_swing/gui/dashboard_panel.py` | Changed: Market Watch / Sector Rotation tabs and range chips in the tile |
 
 ---
@@ -36,7 +36,7 @@ The Dashboard Market Watch tile now has a Sector Rotation tab. It ranks the 11 s
 
 ## Tests
 
-8 new UT cases Pass (UT-GUI-025.021.M02.T01, .022.M06.T01–T05, .022.M07.T01, .023.M07.T01). GUI suite: 725 passed.
+10 new UT cases Pass (UT-GUI-025.021.M02.T01, .022.M06.T01–T05, .022.M07.T01, .023.M07.T01–T03). GUI suite: 726 passed, 1 order-dependent failure not from this change (T200).
 
 ## Known
 

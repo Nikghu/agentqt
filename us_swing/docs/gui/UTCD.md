@@ -778,6 +778,8 @@ Test files:
 | UT-GUI-025.022.M06.T05 | MD-GUI-025.022.M06 | Edge | No moves | [] | empty text shown; no bars | Pass |
 | UT-GUI-025.022.M07.T01 | MD-GUI-025.023.M07 | Positive | Daily closes read | RSP 3 closes, ask 2; XLK missing | last 2 RSP closes by date; XLK left out | Pass |
 | UT-GUI-025.023.M07.T01 | MD-GUI-025.023.M07 | Positive | Candle update fetches sectors | delta run, benchmark SPY | SPY, RSP and 11 ETFs fetched, 13 in all | Pass |
+| UT-GUI-025.023.M07.T02 | MD-GUI-025.023.M07 | Negative | Missing sector ETF is not up to date | stocks current, no sector candles | status PARTIAL (Update now enabled) | Pass |
+| UT-GUI-025.023.M07.T03 | MD-GUI-025.023.M07 | Positive | Stocks and sector ETFs current | all on last trading day | status CURRENT | Pass |
 
 ## FO-GUI-026 — Charts Workspace (Focus + Inspector)
 

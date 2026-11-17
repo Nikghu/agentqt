@@ -127,3 +127,42 @@ def test_download_fetches_rsp_and_sectors(
 
     assert fetched == ["SPY", *SECTOR_SYMBOLS]
     assert len(fetched) == 13
+
+
+def _status(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, qapp: Any,
+            symbols: list[str]) -> Any:
+    db = tmp_path / "candles.db"
+    conn = sqlite3.connect(db)
+    svc_mod._ensure_candle_tables(conn)
+    day = svc_mod._compute_last_trading_day().isoformat()
+    conn.executemany(
+        "INSERT INTO price_1d VALUES (?,?,?,?,?,?,?)",
+        [(sym, f"{day}T00:00:00", 1.0, 1.0, 1.0, 1.0, 1) for sym in symbols],
+    )
+    conn.commit()
+    conn.close()
+    monkeypatch.setattr(svc_mod, "_CANDLE_DB_PATH", db)
+    worker = svc_mod._CandleDbStatusWorker(
+        universe_size=1, symbols=["AAA", *SECTOR_SYMBOLS])
+    infos: list[Any] = []
+    worker.done.connect(infos.append)
+    worker.run()
+    return infos[0].status
+
+
+def test_missing_sector_etf_needs_update(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, qapp: Any
+) -> None:
+    """UT-GUI-025.023.M07.T02: Current stocks but no sector candles is not up to date."""
+    status = _status(tmp_path, monkeypatch, qapp, ["AAA"])
+
+    assert status == svc_mod.CandleDbStatus.PARTIAL
+
+
+def test_current_with_sector_etfs(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, qapp: Any
+) -> None:
+    """UT-GUI-025.023.M07.T03: Stocks and sector ETFs on the last trading day is up to date."""
+    status = _status(tmp_path, monkeypatch, qapp, ["AAA", *SECTOR_SYMBOLS])
+
+    assert status == svc_mod.CandleDbStatus.CURRENT

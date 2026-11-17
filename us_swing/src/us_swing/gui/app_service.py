@@ -735,6 +735,10 @@ class _CandleDbStatusWorker(QThread):
             syms_1d, total_1d, first_1d, _ = _stats("price_1d")
             syms_1w, total_1w, first_1w, last_1w = _stats("price_1w")
             last_1d = _oldest_last_candle_date(conn, self._symbols)
+            have = {row[0] for row in conn.execute("SELECT DISTINCT symbol FROM price_1d")}
+            sectors_missing = any(  # SRD-GUI-025.023: a missing sector ETF needs an update
+                sym in self._symbols and sym not in have for sym in SECTOR_SYMBOLS
+            )
             conn.close()
 
             # Aggregate across both timeframes
@@ -750,6 +754,7 @@ class _CandleDbStatusWorker(QThread):
                     and total_syms / self._universe_size >= _CANDLE_COVERAGE_THRESHOLD
                 )
                 date_ok = last_date == ltd_str if last_date else False
+                date_ok = date_ok and not sectors_missing
                 status = CandleDbStatus.CURRENT if (coverage_ok and date_ok) else CandleDbStatus.PARTIAL
 
             self.done.emit(CandleDbInfo(
@@ -4490,12 +4495,13 @@ class AppService(QObject):
             # Delta mode: only stocks behind the last trading day (SRD-GUI-006.023)
             if mode == "delta":
                 behind = self._candle_stocks_behind(all_symbols, end_date)
-                if not behind:
+                sectors_behind = self._candle_stocks_behind(list(SECTOR_SYMBOLS), end_date)
+                if not behind and not sectors_behind:
                     self.log_message.emit(
                         "INFO", "[CandleDB] All stocks are already up to date"
                     )
                     return
-                all_symbols, last = behind
+                all_symbols, last = behind or ([], None)  # sectors: SRD-GUI-025.023
                 if last:
                     start_date = last + datetime.timedelta(days=1)
 
@@ -4602,13 +4608,16 @@ class AppService(QObject):
         return behind, datetime.date.fromisoformat(last) if last else None
 
     def _candle_check_symbols(self) -> list[str]:
-        """Index stocks that decide whether candles are current (SRD-GUI-006.020).
+        """Index stocks and sector ETFs that decide whether candles are current.
+
+        SRD-GUI-006.020; sector ETFs and RSP per SRD-GUI-025.023.
 
         Stocks in the failed list are left out so one stock IBKR no longer
         knows cannot keep the database behind forever.
         """
         failed = set(self.get_failed_symbols())
-        return [r.symbol for r in self._sp500 if r.symbol not in failed]
+        symbols = [r.symbol for r in self._sp500] + list(SECTOR_SYMBOLS)
+        return [s for s in symbols if s not in failed]
 
     def _on_candle_status_done(self, info: object) -> None:
         self.candle_db_status_changed.emit(info)
