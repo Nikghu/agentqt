@@ -5,7 +5,7 @@
 **Status:** Resolved (user check pending)
 **Date Opened:** 2026-11-17
 **Date Resolved:** 2026-11-17
-**Resolution:** SRD-GUI-004.014 (Draft)
+**Resolution:** SRD-GUI-004.014 (approved by user 2026-11-17, Implemented)
 **Reporter:** User — "whenever I ran the screener I am receiving messages with approved stock. it should not happen for manual run"
 
 ---

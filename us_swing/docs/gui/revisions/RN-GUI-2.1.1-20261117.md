@@ -27,7 +27,7 @@ A manual Run now on a screener preset no longer sends the Telegram "screener app
 
 | SRD ID | Description | Status |
 |---|---|---|
-| SRD-GUI-004.014 | Only a scheduled screener run sends the "screener approved" message | Draft (code done; needs user approval) |
+| SRD-GUI-004.014 | Only a scheduled screener run sends the "screener approved" message | Implemented (approved by user 2026-11-17) |
 
 ---
 

@@ -5,7 +5,7 @@
 ## [20261117] GUI — Manual screener run sends no Telegram message (ISS-GUI-0021)
 
 - Type: Fix
-- FO(s): FO-GUI-004 (SRD-GUI-004.014, Draft)
+- FO(s): FO-GUI-004 (SRD-GUI-004.014, approved by user and Implemented)
 - RN: RN-GUI-2.1.1-20261117
 - Artifacts updated: SRD row, MD row, UTCD T26–T27 (T17 updated), TRACE, ISS-GUI-0021, TODO T201
 - Cause: `_on_run_finished()` refreshed the Execution list the same way for manual and scheduled runs, and the refresh always sent `ScreenerApprovedEvent`
