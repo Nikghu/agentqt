@@ -2,7 +2,7 @@
 Module: MD-GUI-000 — main_window.py
 Shell: MD-GUI-018.005.M03 (Parent SRD: SRD-GUI-018.005)
 Settings dialog wiring: MD-GUI-027.004.M03 (Parent SRD: SRD-GUI-027.004)
-Desk with the app: SRD-GUI-034.068; start task sync at start: SRD-GUI-029.008
+Start task sync at start: SRD-GUI-029.008
 QMainWindow: Frameless terminal UI — title bar, left sidebar, stacked screens.
 
 Layout:
@@ -54,9 +54,7 @@ from PyQt6.QtWidgets import (
 from us_swing import __version__
 from us_swing.data.models import ConnectionStatus
 from us_swing.gui.app_service import AppService
-from us_swing.gui.ai_desk import AiDeskWorkspace
 from us_swing.gui.backtest_workspace import BacktestWorkspace
-from us_swing.gui.desk_control import DeskPoller
 from us_swing.gui.cards import GAP, card, gutter
 from us_swing.gui.chart_workspace import ChartWorkspace
 from us_swing.gui.dashboard_panel import DashboardPanel
@@ -67,7 +65,6 @@ from us_swing.gui.settings_panel import SettingsPanel
 from us_swing.gui.system_store import load_system_config
 from us_swing.gui.icons import refresh_icons
 from us_swing.gui.log_viewer_panel import LogViewerPanel
-from us_swing.gui.market_floor import MarketFloorWorkspace
 from us_swing.gui.reveal import RevealController
 from us_swing.gui.scheduler_dialog import sync_start_tasks
 from us_swing.gui.side_panels import IconStrip, PositionDetails
@@ -416,11 +413,9 @@ _NAV_ITEMS: list[tuple[str, str]] = [
     ("zap", "Execution"),
     ("chart-candlestick", "Charts"),
     ("history", "Backtest"),
-    ("globe", "Market Floor"),
-    ("users", "AI Desk"),
 ]
-_WIDE_PAGES = frozenset({2, 3, 4, 5, 6})   # Execution, Chart, Backtest, Market Floor, AI Desk
-_NO_PANEL_PAGES = frozenset({3, 5, 6})   # Chart, Market Floor, AI Desk
+_WIDE_PAGES = frozenset({2, 3, 4})   # Execution, Chart, Backtest
+_NO_PANEL_PAGES = frozenset({3})   # Chart
 _RIGHT_PANELS = ("details", "watch")
 
 
@@ -509,26 +504,16 @@ class MainWindow(QMainWindow):
         self._execution_panel  = ExecutionPanel(svc)
         self._chart_panel      = ChartWorkspace(svc)
         self._backtest_panel   = BacktestWorkspace(svc)
-        self._desk_poller      = DeskPoller(parent=self)
-        self._floor_panel      = MarketFloorWorkspace(self._desk_poller, sink=svc)
-        self._ai_desk_panel    = AiDeskWorkspace(self._desk_poller, svc)
         self._settings_panel   = SettingsPanel(svc)
         panels = [
             self._dashboard_panel, self._screener_panel, self._execution_panel,
             self._chart_panel, self._backtest_panel,
-            self._floor_panel, self._ai_desk_panel,
         ]
 
         self._settings_panel.theme_changed.connect(self._chart_panel.refresh_theme)
         self._settings_panel.theme_changed.connect(self._execution_panel.refresh_theme)
         # settings_panel → theme_changed → MainWindow → _on_theme_changed
         self._settings_panel.theme_changed.connect(self._on_theme_changed)
-        # floor feed → chart_requested → MainWindow → Charts on that stock (daily)
-        self._floor_panel.chart_requested.connect(lambda s: self._on_chart_requested(s, "1d"))
-        # floor feed → desk_section_requested → MainWindow → _open_desk_section
-        self._floor_panel.desk_section_requested.connect(self._open_desk_section)
-        # AI Desk approval card → chart_requested → MainWindow → Charts on that stock (daily)
-        self._ai_desk_panel.chart_requested.connect(lambda s: self._on_chart_requested(s, "1d"))
 
         # The log panel is listening now, so a failed live-broker start can surface.
         svc.flush_broker_fallback_message()
@@ -539,15 +524,12 @@ class MainWindow(QMainWindow):
         gutter(self._stack)
         for p in panels:
             if p in (self._screener_panel, self._execution_panel, self._dashboard_panel,
-                     self._chart_panel, self._backtest_panel,
-                     self._floor_panel, self._ai_desk_panel):
+                     self._chart_panel, self._backtest_panel):
                 # These screens lay out their own cards on the gutter.
                 self._stack.addWidget(p)
             else:
                 self._stack.addWidget(card(p))
         self._stack.setCurrentIndex(0)
-        self._desk_poller.start()
-        self._desk_poller.start_desk()
         threading.Thread(target=_sync_start_tasks, name="scheduler-sync", daemon=True).start()
 
         # ── Title bar (brand, index prices, feed, win controls) ────────────────
@@ -631,11 +613,6 @@ class MainWindow(QMainWindow):
         self._sidebar.hover_changed.connect(self._on_sidebar_hover)
         # strip → panel_toggled → MainWindow → RevealController
         self._strip.panel_toggled.connect(self._on_panel_toggled)
-        # floor feed → folded_changed → strip → AI feed button state
-        feed = self._floor_panel.feed
-        feed.folded_changed.connect(lambda folded: self._strip.set_checked("feed", not folded))
-        self._strip.set_checked("feed", not feed.is_folded())
-        self._strip.set_feed_shown(self._stack.currentWidget() is self._floor_panel)
         # reveal → revealed → MainWindow → strip buttons + sidebar room
         self._reveal.revealed.connect(self._on_panel_revealed)
         # svc → log_message → strip → warning badge while the log is closed
@@ -706,7 +683,6 @@ class MainWindow(QMainWindow):
         self._stack.setCurrentIndex(index)
         self._slide_in(self._stack.currentWidget())
         self._mini_state.set_page(index)
-        self._strip.set_feed_shown(self._stack.currentWidget() is self._floor_panel)
         if index in _NO_PANEL_PAGES:
             for name in ("right", "log"):
                 if self._reveal.is_open(name):
@@ -722,9 +698,6 @@ class MainWindow(QMainWindow):
         self._on_page_requested(index)
 
     def _on_panel_toggled(self, name: str, show: bool) -> None:
-        if name == "feed":
-            self._floor_panel.feed.set_folded(not show)
-            return
         if name == "log":
             self._reveal.reveal_requested.emit("log", show)
             return
@@ -764,10 +737,6 @@ class MainWindow(QMainWindow):
     def _on_quick_test(self, preset_id: str) -> None:
         self._go_to(4)
         self._backtest_panel.quick_test(preset_id)
-
-    def _open_desk_section(self, name: str) -> None:
-        self._go_to(6)
-        self._ai_desk_panel.select_section(name)
 
     def _on_chart_requested(self, symbol: str, timeframe: str) -> None:
         self._go_to(3)
@@ -1025,8 +994,6 @@ class MainWindow(QMainWindow):
         if worker is not None and hasattr(worker, "isRunning") and worker.isRunning():  # type: ignore[union-attr]
             worker.quit()   # type: ignore[union-attr]
             worker.wait(6000)  # type: ignore[union-attr]
-        self._desk_poller.shutdown(stop_desk=True)
-        self._floor_panel.flush()
         self._demo._stop_live_bar_worker()
         self._demo.shutdown_notifications()
         self._demo.shutdown_order_connection()

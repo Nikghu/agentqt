@@ -90,7 +90,7 @@ def test_strip_keeps_three_buttons(qapp: Any) -> None:
 
     strip = IconStrip()
 
-    assert list(strip._buttons) == ["details", "watch", "log", "feed"]
+    assert list(strip._buttons) == ["details", "watch", "log"]
 
 
 class _PlainTab(QWidget):

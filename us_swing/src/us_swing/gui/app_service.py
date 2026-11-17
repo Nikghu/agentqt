@@ -1,8 +1,6 @@
 """Module: MD-GUI-000.002 — app_service.py
 Parent SRD: SRD-GUI-000.001, SRD-GUI-008.001–SRD-GUI-008.004,
             SRD-GUI-006.011–SRD-GUI-006.014
-Also: MD-GUI-038.001.M01 — desk plan stocks in the live bar feed and open trades shared with
-      the AI desk (SRD-GUI-038.001–.003)
 
 Application service — single source of truth for GUI state.
 
@@ -59,7 +57,6 @@ import datetime
 import enum
 import json
 import logging
-import math
 import sqlite3
 import socket
 import threading
@@ -72,8 +69,6 @@ from typing import TYPE_CHECKING, Any
 
 import pandas as pd
 
-from us_swing.core.desk_contract import SECTOR_BENCHMARK
-from us_swing.core.desk_watch import OpenTrade, desk_live_symbols, write_open_trades
 from us_swing.core.symbols import yahoo_symbol
 
 if TYPE_CHECKING:
@@ -86,7 +81,6 @@ if TYPE_CHECKING:
         EquitySnapshot,
         EquitySnapshotRepository,
     )
-    from us_swing.core.desk_trades import TradePick
     from us_swing.execution.trade_cycle import CycleSnapshot, StrategyPnlSummary
     from us_swing.gui.chart_drawings import DrawingStore
     from us_swing.gui.telegram_commands import TelegramCommandBridge
@@ -775,28 +769,10 @@ class _CandleDbStatusWorker(QThread):
 LIVE_CAP = 100  # IBKR streaming lines for the live bar feed
 
 
-def live_symbols(current: Sequence[str], desk: Sequence[str], cap: int = LIVE_CAP,
+def live_symbols(current: Sequence[str], cap: int = LIVE_CAP,
                  held: Sequence[str] = ()) -> list[str]:
-    """Held stocks, then the app's live symbols, then the desk's new ones, at most ``cap``
-    (SRD-GUI-038.001)."""
-    return list(dict.fromkeys([*sorted(held), *current, *desk]))[:cap]
-
-
-def _write_trades(rows: list[OpenTrade]) -> None:
-    """Write the open trades into desk.db (runs on a short background thread)."""
-    from us_swing.core import desk_contract  # noqa: PLC0415
-    try:
-        write_open_trades(desk_contract.desk_home(), rows, datetime.datetime.now(_ET))
-    except Exception:  # noqa: BLE001 — sharing trades must never stop the app
-        _log.warning("[Desk] Could not share the open trades with the AI desk", exc_info=True)
-
-
-def trade_rows(snaps: Sequence[Any]) -> list[OpenTrade]:
-    """Open trade cycles as desk rows: side, entry, the stop in force and the target."""
-    return [OpenTrade(s.symbol, "short" if str(s.direction).upper() == "SHORT" else "long",
-                      float(s.entry_price), float(s.effective_stop or s.hard_stop_loss),
-                      None if s.target_price is None else float(s.target_price),
-                      str(s.strategy_id or "")) for s in snaps]
+    """Held stocks, then the app's live symbols, at most ``cap``."""
+    return list(dict.fromkeys([*sorted(held), *current]))[:cap]
 
 
 # ── Background worker: intraday chart read ───────────────────────────────────
@@ -970,9 +946,8 @@ class _CandleDownloadWorker(QThread):
 
         # ── Benchmark symbol (SPY) — downloaded first, before the universe loop ─
         if self._mode in ("full", "delta"):
-            wanted = (self._benchmark_symbol, SECTOR_BENCHMARK)
-            for symbol in dict.fromkeys(s for s in wanted if s):
-                await self._download_benchmark(ib, symbol)
+            if self._benchmark_symbol:
+                await self._download_benchmark(ib, self._benchmark_symbol)
 
         # Duration strings for IBKR reqHistoricalData
         # IBKR rule: durations > 365 days must be expressed in years.
@@ -1604,7 +1579,6 @@ class AppService(QObject):
             warning_sink=lambda w: self._event_bus.publish(w),
         )
 
-        self._ensure_ai_desk_strategy(load_strategies, save_strategies)
         self._strategy_engine = StrategyEngine(
             registry_loader=load_strategies,
             registry_saver=save_strategies,
@@ -1629,18 +1603,6 @@ class AppService(QObject):
             lifecycle_bus=self._lifecycle_bus,
             strategy_bus=self._event_bus,
         )
-
-        # ── AI Desk picks (FO-EXE-021) — close sweep every minute, re-send once ──
-        self._desk_signal_timer = QTimer(self)
-        self._desk_signal_timer.setInterval(60_000)
-        self._desk_resent = False
-        self._pending_store.pending_signal_executed.connect(
-            lambda sid: self._on_desk_signal_done(sid, "executed"))
-        self._pending_store.pending_signal_dismissed.connect(
-            lambda sid: self._on_desk_signal_done(sid, "dismissed"))
-        self._desk_signal_timer.timeout.connect(self._desk_signal_tick)
-        self._desk_signal_timer.start()
-        self._desk_signal_tick()
 
     # ── Architecture-level connection status ──────────────────────────────────
 
@@ -2279,16 +2241,11 @@ class AppService(QObject):
     # ── Live bar worker (market-hours 5s IBKR → 1m candle feed) ─────────────
 
     def _start_live_bar_worker(self) -> None:
-        """Start (or restart) the live bar worker for the filtered symbols and the desk's
-        plan stocks and SPY (SRD-GUI-038.001)."""
+        """Start (or restart) the live bar worker for the filtered and held symbols."""
         self._stop_live_bar_worker()
-        desk = self._desk_live_symbols()
-        symbols = live_symbols(self._filtered_symbols, desk, held=self._cycle_symbols)
+        symbols = live_symbols(self._filtered_symbols, held=self._cycle_symbols)
         if not symbols:
             return
-        added = len(set(symbols) - set(self._filtered_symbols))
-        if added:
-            _log.info("[Live] Added %d desk stock(s) to the live feed", added)
         from us_swing.execution.live_bar_worker import LiveBarWorker  # noqa: PLC0415
         cfg = self._system_cfg
         worker = LiveBarWorker(
@@ -2303,36 +2260,6 @@ class AppService(QObject):
         self._live_bar_worker = worker
         worker.start()
         _log.info("[Live] Live bar worker started for %d stock(s)", len(symbols))
-
-    def _desk_live_symbols(self) -> list[str]:
-        """The AI desk's plan stocks of today and SPY; empty when the desk has no data."""
-        from us_swing.core import desk_contract  # noqa: PLC0415
-        try:
-            return desk_live_symbols(desk_contract.desk_home(),
-                                     datetime.datetime.now(_ET).date().isoformat())
-        except Exception:  # noqa: BLE001 — the live feed still runs without desk stocks
-            _log.warning("[Live] Could not read the AI desk's plan stocks", exc_info=True)
-            return []
-
-    def _publish_open_trades(self) -> None:
-        """Share the open trades with the AI desk watchers (SRD-GUI-038.002).
-
-        Only a changed list is written, on a short background thread, so a busy desk.db never
-        blocks the GUI thread or the trade-cycle thread.
-        """
-        query = getattr(self, "_tc_query", None)  # the first status check runs before it exists
-        if query is None:
-            return
-        try:
-            rows = trade_rows(query.open_cycles())
-        except Exception:  # noqa: BLE001 — sharing trades must never stop the app
-            _log.warning("[Desk] Could not read the open trades for the AI desk", exc_info=True)
-            return
-        if rows == getattr(self, "_shared_trades", None):
-            return
-        self._shared_trades = rows
-        threading.Thread(target=_write_trades, args=(rows,), name="desk-open-trades",
-                         daemon=True).start()
 
     def _stop_live_bar_worker(self) -> None:
         """Stop the running live bar worker (no-op if not running)."""
@@ -2441,115 +2368,6 @@ class AppService(QObject):
         except Exception:
             _log.warning("[Strategy] Failed to load latest bar for %s (%s)", symbol, tf)
             return None
-
-    # ── AI Desk picks (FO-EXE-021) ────────────────────────────────────────────
-
-    @staticmethod
-    def _ensure_ai_desk_strategy(
-        load: Callable[[], list[Any]], save: Callable[[list[Any]], None]
-    ) -> None:
-        """Add the fixed AI Desk strategy row when it is missing (SRD-EXE-021.001)."""
-        from us_swing.execution.desk_signals import AI_DESK_STRATEGY, AI_DESK_TYPE
-        from us_swing.gui.strategy_store import StrategyConfig
-
-        try:
-            configs = load()
-            if any(c.name == AI_DESK_STRATEGY for c in configs):
-                return
-            configs.append(StrategyConfig(
-                name=AI_DESK_STRATEGY, mode="paper", capital_max=10,
-                start_time="09:30", end_time="16:00", start_date="", end_date="",
-                days=["Mon", "Tue", "Wed", "Thu", "Fri"], entry_condition="",
-                exit_condition="", strategy_type=AI_DESK_TYPE, auto_trade=False,
-                trade_type="Positional", run_state="STOPPED",
-            ))
-            save(configs)
-            _log.info("[AI Desk] Added the AI Desk strategy for approved picks")
-        except Exception:
-            _log.exception("[AI Desk] Could not add the AI Desk strategy")
-
-    def _ai_desk_config(self) -> Any:
-        from us_swing.execution.desk_signals import AI_DESK_STRATEGY
-        from us_swing.gui.strategy_store import load_strategies
-
-        return next((c for c in load_strategies() if c.name == AI_DESK_STRATEGY), None)
-
-    def desk_pick_qty(self, pick: TradePick) -> int:
-        """Shares for a pick from the AI Desk Capital Max, as engine entries are sized."""
-        cfg = self._ai_desk_config()
-        if cfg is None or pick.entry <= 0:
-            return 0
-        budget = self.effective_capital() * cfg.capital_max * cfg.per_trade_pct / 10000.0
-        return math.floor(budget / pick.entry)
-
-    def send_desk_pick(self, pick: TradePick) -> tuple[int, str]:
-        """Add an approved pick as a pending entry signal; ``(qty, "")`` or ``(0, reason)``."""
-        from us_swing.execution.desk_signals import build_desk_signal
-
-        if pick.side not in ("long", "short"):
-            return 0, "unknown side"
-        qty = self.desk_pick_qty(pick)
-        if qty <= 0:
-            _log.warning("[AI Desk] %s %s was not sent because the quantity is 0",
-                         pick.side, pick.symbol)
-            return 0, "quantity is 0, raise the AI Desk Capital Max"
-        self._pending_store.add(build_desk_signal(pick, qty, self._active_uid))
-        _log.info("[AI Desk] Sent %s %s to Execution, %d share(s)", pick.side, pick.symbol, qty)
-        return qty, ""
-
-    def dismiss_desk_pick(self, pick: TradePick) -> None:
-        """Remove a pick's pending signal again."""
-        from us_swing.execution.desk_signals import desk_signal_id
-
-        self._pending_store.dismiss(desk_signal_id(pick))
-
-    def _dismiss_closed_desk_signals(self, now: datetime.datetime | None = None) -> None:
-        """Dismiss desk signals whose trading day has closed (SRD-EXE-021.004)."""
-        from us_swing.execution.desk_signals import desk_signal_close
-
-        now = now or datetime.datetime.now(_ET)
-        for sig in self._pending_store.list():
-            close = desk_signal_close(sig.signal_id)
-            if close is None or close > now:
-                continue
-            if self._pending_store.dismiss(sig.signal_id) is not None:
-                _log.info("[AI Desk] %s %s was not executed by the close and was removed",
-                          sig.direction.lower(), sig.symbol)
-
-    def _desk_signal_tick(self) -> None:
-        """Re-send once (live mode waits for the broker account), then sweep closed signals."""
-        if not self._desk_resent and (
-            self.get_active_user().mode != "live" or self._ibkr_acct is not None
-        ):
-            self._desk_resent = True
-            self._resend_desk_picks()
-        self._dismiss_closed_desk_signals()
-
-    def _on_desk_signal_done(self, signal_id: str, outcome: str) -> None:
-        """Note an executed or dismissed desk signal so a restart does not send it again."""
-        from us_swing.core import desk_contract
-        from us_swing.core.desk_trades import record_trade_outcome
-
-        if signal_id.startswith("desk:"):
-            record_trade_outcome(desk_contract.desk_home(), signal_id[len("desk:"):], outcome,
-                                 datetime.datetime.now(_ET))
-
-    def _resend_desk_picks(self, now: datetime.datetime | None = None) -> None:
-        """Send today's approved picks again after a restart (SRD-EXE-021.006)."""
-        from us_swing.core import desk_contract
-        from us_swing.core.desk_trades import approved_picks
-        from us_swing.execution.desk_signals import desk_signal_id
-
-        now = now or datetime.datetime.now(_ET)
-        if now.time() >= datetime.time(16, 0):
-            return
-        try:
-            pending = {s.signal_id for s in self._pending_store.list()}
-            for pick in approved_picks(desk_contract.desk_home(), now.date()):
-                if desk_signal_id(pick) not in pending:
-                    self.send_desk_pick(pick)
-        except Exception:
-            _log.exception("[AI Desk] Could not send approved picks again after the restart")
 
     def get_pending_signals(self, user_id: int | None = None) -> list[TradeSignal]:
         from us_swing.execution.signal_bridge import engine_to_gui
@@ -3802,7 +3620,6 @@ class AppService(QObject):
         marshalled to the GUI thread because this callback fires on the
         trade-cycle background thread.
         """
-        self._publish_open_trades()
         if symbols == self._cycle_symbols:
             return
         new_syms = symbols - self._cycle_symbols
@@ -3828,8 +3645,7 @@ class AppService(QObject):
         self._start_intraday_loader(fresh)
         if self._live_bar_worker is not None and self._live_bar_worker.isRunning():
             self._live_bar_worker.set_symbols(
-                live_symbols(self._filtered_symbols, self._desk_live_symbols(),
-                             held=self._cycle_symbols))
+                live_symbols(self._filtered_symbols, held=self._cycle_symbols))
 
     def _on_cycle_tick(self, tag: str, price: float) -> None:
         """Forward live ticks to the trade-cycle service for PnL + exit evaluation."""
@@ -3871,21 +3687,6 @@ class AppService(QObject):
         from us_swing.execution.trade_cycle import CycleClosed
         if isinstance(evt, CycleClosed):
             self._clear_pending_exits_requested.emit(evt.snapshot.strategy_id, evt.symbol)
-            self._record_desk_trade(evt.snapshot)
-
-    @staticmethod
-    def _record_desk_trade(snap: Any) -> None:
-        """Save the real result of a closed AI Desk trade (SRD-MKT-009.005)."""
-        from us_swing.core import desk_contract
-        from us_swing.core.desk_results import record_pick_trade
-        from us_swing.execution.desk_signals import AI_DESK_STRATEGY
-
-        if snap.strategy_id != AI_DESK_STRATEGY:
-            return
-        try:
-            record_pick_trade(desk_contract.desk_home(), snap, datetime.datetime.now(_ET))
-        except Exception:
-            _log.exception("[Results] Could not save the closed AI Desk trade")
 
     def _clear_pending_exits(self, strategy_id: str, symbol: str) -> None:
         """Drop any pending exit signal for a position that just closed (GUI thread)."""
@@ -4038,7 +3839,6 @@ class AppService(QObject):
             "after_hours": "🟡 After-Hours session started (16:00–20:00 ET)",
             "closed":      "🔴 Market CLOSED",
         }
-        self._publish_open_trades()
         now_et = datetime.datetime.now(_ET)
         status = _get_exchange_status(now_et)
         prev   = self._market_status.get("nyse", "")
@@ -4960,7 +4760,7 @@ class AppService(QObject):
             floors = DownloadState.load(store.root).floors
             return plan(symbols, settings, store.coverage, floors,
                         _compute_last_trading_day(), delta,
-                        daily_only=(BENCHMARK, SECTOR_BENCHMARK))  # SRD-BKT-001.015
+                        daily_only=(BENCHMARK,))  # SRD-BKT-001.015
 
         return build_plan
 

@@ -13,20 +13,10 @@ from pytestqt.qtbot import QtBot
 
 from us_swing.core.desk_contract import DeskState, DeskStatus, ProductDescriptor
 from us_swing.core.desk_floor import DeskFloorData
-from us_swing.gui import main_window
 from us_swing.gui.desk_control import DeskPoller
 from us_swing.gui.floor_layouts import LayoutStore, default_layout
 from us_swing.gui.floor_sample import SAMPLE_TAG, SampleFloorData
 from us_swing.gui.market_floor import MarketFloorWorkspace
-
-
-def test_nav_items_order() -> None:
-    """UT-GUI-034.001.M01.T01: Market Floor and AI Desk follow the first five pages."""
-    labels = [label for _icon, label in main_window._NAV_ITEMS]
-    assert labels == [
-        "Dashboard", "Screener", "Execution", "Charts", "Backtest", "Market Floor", "AI Desk",
-    ]
-    assert {5, 6} <= main_window._WIDE_PAGES
 
 
 def test_tabs_and_feed_fold_kept(qtbot: QtBot, tmp_path: Path) -> None:
@@ -706,26 +696,6 @@ def test_saved_news_layout_kept(tmp_path: Path) -> None:
     tabs["News & Calendar"] = tabs["News & Calendar"][:2]
     store.save("Default", tabs)
     assert len(LayoutStore(tmp_path / "layouts.json").load("Default")["News & Calendar"]) == 2
-
-
-def test_feed_button_in_strip(qtbot: QtBot, tmp_path: Path) -> None:
-    """UT-GUI-034.089.M04.T01: the feed is 400 px wide and folding hides its whole card;
-    the strip's AI feed button can be hidden off the Market Floor."""
-    from us_swing.gui.side_panels import IconStrip
-
-    page = MarketFloorWorkspace(DeskPoller(tmp_path), store=LayoutStore(tmp_path / "l.json"))
-    qtbot.addWidget(page)
-    page.show()
-    assert page.feed.width() == 400 and page._feed_card.isVisible()
-    page.feed.set_folded(True)
-    assert not page._feed_card.isVisible() and page.fold_btn.text() == "Show feed"
-    strip = IconStrip()
-    qtbot.addWidget(strip)
-    strip.show()
-    strip.set_feed_shown(False)
-    assert not strip._buttons["feed"].isVisible()
-    strip.set_feed_shown(True)
-    assert strip._buttons["feed"].isVisible()
 
 
 def test_rotation_tail(tmp_path: Path) -> None:
