@@ -2,7 +2,7 @@
 
 **Document:** TODO.md
 **Project:** us_swing
-**Last Updated:** 2026-11-16 (Session 152)
+**Last Updated:** 2026-11-17 (Session 153)
 
 ---
 
@@ -202,3 +202,8 @@ Short, living task list. Keep each description ≤ 50 words; cite module + prior
 | T190 | GUI — App check: Market Floor AI feed shows the Today block (Day call, Handover with More / Less) on top; AI Desk Command header has no day tiles. Approve SRD-GUI-034.092 (Draft). | `gui/floor_feed.py`, `gui/ai_desk_day.py` | Medium | Open |
 | T191 | GUI — App check of ISS-GUI-0020: restart the app, no small window flashes at start; Edit a saved preset, no flash. Approve SRD-GUI-000.010 (Draft). | `gui/sidebar.py`, `gui/screener_views.py`, `gui/screener_panel.py` | Low | Done |
 | T192 | GUI — PyInstaller console-flash hook removed (ISS-GUI-0020). Build the installer, start the installed app: check no black console window flashes. If it does, restore `pyi_rth_quiet_platform.py` and its spec/yaml entries from git. | `USSwing.spec`, `usswing_installer.yaml` | Medium | Open |
+| T193 | DSK — AI Desk removal step 2: cut desk and Market Floor links from main window, app service, broker adapter, strategy engine and the desk command line. App must start with no desk pages. See docs/audit/DESK_REMOVAL_2026-11-17.md. | `gui/main_window.py`, `gui/app_service.py`, `execution/` | High | Open |
+| T194 | DSK — AI Desk removal step 3: delete desk, market, core desk modules, GUI desk and Floor files, desk signals, and their tests. | `desk/`, `market/`, `core/desk_*`, `gui/` | High | Open |
+| T195 | DSK — AI Desk removal step 4: clean the PyInstaller spec, installer files, pypdf dependency and MODULE_MAP files; build and start the installed app. | `USSwing.spec`, `pyproject.toml` | Medium | Open |
+| T196 | DSK — AI Desk removal step 5: delete desk, market and agt docs; remove FO-GUI-034..041 and FO-EXE-021 rows and TRACE rows; write the RN. | `docs/` | Medium | Open |
+| T197 | DSK — AI Desk removal step 6: delete the AI Desk strategy, its cycles and pending signals, and the desk data folder (backup kept at desk_backup_20261117). | `user data` | Medium | Open |
