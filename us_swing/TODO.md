@@ -207,3 +207,4 @@ Short, living task list. Keep each description ≤ 50 words; cite module + prior
 | T195 | DSK — AI Desk removal step 4: clean the PyInstaller spec, installer files, pypdf dependency and MODULE_MAP files; build and start the installed app. | `USSwing.spec`, `pyproject.toml` | Medium | Done |
 | T196 | DSK — AI Desk removal step 5: delete desk, market and agt docs; remove FO-GUI-034..041 and FO-EXE-021 rows and TRACE rows; write the RN. | `docs/` | Medium | Done |
 | T197 | DSK — AI Desk removal step 6: delete the AI Desk strategy, its cycles and pending signals, and the desk data folder (backup kept at desk_backup_20261117). | `user data` | Medium | Done |
+| T198 | GUI — App check: Dashboard P&L by Strategy shows only strategies with P&L today or open trades; names not cut off; list scrolls when long. | `gui/dashboard_tiles.py` | Medium | Open |

@@ -102,6 +102,19 @@ def test_strategy_bars_empty(qtbot):
     assert bars.total_lbl.text() == "$0.00"
 
 
+def test_strategy_rows_keep_height_in_short_tile(qtbot):
+    """UT-GUI-025.005.M01.T03: Many rows in a short tile keep full height and scroll."""
+    bars = StrategyPnlList()
+    qtbot.addWidget(bars)
+    bars.set_rows([(f"Strategy {i}", "0 open", float(i)) for i in range(13)])
+    bars.setFixedHeight(200)
+    bars.show()
+    qtbot.waitExposed(bars)
+    for i in range(bars._rows.count()):
+        row = bars._rows.itemAt(i).widget()
+        assert row.height() >= row.sizeHint().height()
+
+
 # ── DashboardPanel wiring (SRD-GUI-025.001/.002/.006) ─────────────────────────
 
 def _service(positions: list[OpenPosition]) -> MagicMock:
@@ -148,6 +161,21 @@ def test_panel_kpis_from_positions(qtbot, settings):
     assert panel._kpi.value("unreal") == "+$25.05"
     assert panel._kpi.value("pnl") == "+$41.75"
     assert panel._kpi.value("cash") == "$13,579.48"
+
+
+def test_panel_hides_strategy_without_value(qtbot, settings):
+    """UT-GUI-025.005.M01.T04: Strategy with no P&L and no open trades is hidden."""
+    from us_swing.gui.dashboard_panel import DashboardPanel
+    svc = _service([])
+    svc.get_strategy_pnl.side_effect = lambda name, _since: StrategyPnlSummary(
+        today=8.55 if name == "Acc/Dist" else 0.0)
+    svc.get_open_symbols_for_strategy.side_effect = lambda name: []
+    strategies = [SimpleNamespace(name="Acc/Dist"), SimpleNamespace(name="Idle")]
+    with patch("us_swing.gui.dashboard_panel.load_strategies", return_value=strategies),          patch("us_swing.universe.store.load_sp500", return_value=[]):
+        panel = DashboardPanel(svc, settings=settings)
+    qtbot.addWidget(panel)
+    assert panel._strategy_list._rows.count() == 1
+    assert panel._strategy_list.total_lbl.text() == "+$8.55"
     assert panel._strategy_list.total_lbl.text() == "+$8.55"
 
 
