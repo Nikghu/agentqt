@@ -1,12 +1,13 @@
 # Module Decomposition — GUI Module (GUI)
 
 **Document ID:** MD-GUI
-**Version:** 1.55.0
+**Version:** 1.55.1
 **Traces To:** SRD-GUI v2.16.0 / DD-GUI v1.7.0
 **Status:** Draft
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.55.1: MD-GUI-018.012.M05 note: no screen uses the sub-menu yet.
 > v1.55.0: AI Desk and Market Floor removed (user, 2026-11-17; docs/audit/DESK_REMOVAL_2026-11-17.md): FO-GUI-034 to FO-GUI-041 modules and MD-GUI-019.011.M04 removed.
 > v1.39.0: M01 (Tools) and M15 (settings) changed (AI Desk v3 M7b, 2026-11-15).
 > v1.38.0: M32 (feed), M31 (feed cards), M21 (hiring) and M15 (settings) changed (AI Desk v3 M7a, 2026-11-15).
@@ -268,7 +269,7 @@ us_swing/src/us_swing/gui/
 | MD-GUI-018.006.M02 | SRD-GUI-018.006 | `us_swing/src/us_swing/gui/reveal.py` | Size animation for hide/show panels | `RevealController`, `register()`, `on_reveal_requested()`, `revealed` | `QtCore` | No |
 | MD-GUI-018.005.M03 | SRD-GUI-018.005 | `us_swing/src/us_swing/gui/main_window.py` | Shell layout, mini state, peek geometry, screen slide | `MainWindow` | `sidebar`, `reveal` | No |
 | MD-GUI-018.008.M04 | SRD-GUI-018.008 | `us_swing/src/us_swing/gui/sidebar.py` | Connections panel, retry text, market countdown, mini plug | `_ConnectionsPanel`, `market_text()`, `Sidebar.set_feed_retry()`, `Sidebar.clear_feed_retry()` | `AppService`, `market_calendar`, `icons`, `theme` | No |
-| MD-GUI-018.012.M05 | SRD-GUI-018.012 | `us_swing/src/us_swing/gui/sidebar.py` | Screen sub-menu under a nav item (AI Desk uses tabs instead since SRD-GUI-034.067) | `Sidebar.add_sub_nav()` | — | No |
+| MD-GUI-018.012.M05 | SRD-GUI-018.012 | `us_swing/src/us_swing/gui/sidebar.py` | Screen sub-menu under a nav item (no screen uses it yet) | `Sidebar.add_sub_nav()` | — | No |
 
 ## FO-GUI-019 — Side Panels and Exit Drawer
 

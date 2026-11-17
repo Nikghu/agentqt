@@ -43,6 +43,6 @@ The user approved removing these FOs and all their SRDs, including the Approved,
 | 3 | Delete `desk/`, `market/`, `core/desk_*`, GUI desk and Floor files, `execution/desk_signals.py`, and their tests | #157 |
 | 4 | Clean `USSwing.spec`, installer files, `pyproject.toml` (`pypdf`), MODULE_MAP files | #158 |
 | 5 | Delete `docs/desk`, `docs/market`, `docs/agt`; remove the GUI and EXE rows above and TRACE rows; write the RN (RN-GUI-2.0.0-20261117) | #159 |
-| 6 | Delete the "AI Desk" strategy, its cycles and pending signals, and the `~/.usswing/desk` folder | — |
+| 6 | Delete the "AI Desk" strategy, its cycles and pending signals, and the `~/.usswing/desk` folder. Done: 1 strategy row (no cycles; pending signals are not saved), `~/.usswing/desk`, `floor_layouts.json` and `.v1.bak`; copies in `desk_backup_20261117` | #160 |
 
 Each step must pass ruff, mypy --strict, the full pytest run, and an app start check before its PR.

@@ -2,6 +2,17 @@
 
 ---
 
+## [20261117] DSK — AI Desk and Market Floor removed (FO-DSK-001..013, FO-MKT-001..021, FO-GUI-034..041, FO-EXE-021)
+
+- Type: Removal
+- FO(s): FO-DSK-001..013, FO-MKT-001..021, FO-GUI-034..041, FO-EXE-021 (all removed)
+- RN: RN-GUI-2.0.0-20261117
+- Artifacts updated: docs/desk, docs/market, docs/agt deleted; GUI and EXE FO/SRD/DD/MD/UTCD/TRACE cut; DD-GUI-029.007.D01 added (scheduler part of DD-GUI-034.068.D01); TODO (63 Dropped, T141/T187 Closed, T193–T197 Done); decision note docs/audit/DESK_REMOVAL_2026-11-17.md. PRs #155–#160, stacked.
+- Decisions: Market Floor removed too (all its data came from desk.db); Telegram AI notes kept (no desk code); old desk trades deleted (only the AI Desk strategy row existed, no cycles); docs deleted for good, tag desk-final keeps them; old RNs and doc version lines kept as history; shared files cut before desk files were deleted so the app always started.
+- Known: 11 tests already failing on main (candle builder, preset); test_llm_claude_screener imports a module never in git; test_strategy_builder_dialog errors when first in a run (db/data import loop); SRD-GUI-018.012 and .019.011 still name the AI Desk (need Reopen).
+
+---
+
 ## [20261117] GUI — No small windows flash at start (ISS-GUI-0020, FO-GUI-000)
 
 - Type: Bug

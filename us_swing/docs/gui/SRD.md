@@ -1,10 +1,11 @@
 # Software Requirements Document — GUI Module (GUI)
 
 **Document ID:** SRD-GUI
-**Version:** 2.121.0
+**Version:** 2.121.1
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-11-06
+> v2.121.1: SRD-GUI-018.012 and SRD-GUI-019.011 wording no longer names the AI Desk (reopened and fixed on user's call, 2026-11-17).
 > v2.121.0: AI Desk and Market Floor removed (user, 2026-11-17; docs/audit/DESK_REMOVAL_2026-11-17.md): sections FO-GUI-034 to FO-GUI-041 and their SRDs removed.
 > v2.120.2: SRD-GUI-041.006–.010 and SRD-GUI-034.085 Implemented 2026-11-16.
 > v2.120.1: SRD-GUI-041.006–.010 and SRD-GUI-034.085 approved by user 2026-11-15.
@@ -472,7 +473,7 @@
 | SRD-GUI-018.009 | FO-GUI-018 | Should | While auto-connect retries, the Feed row shows the attempt number and a countdown to the next try; the power button tries at once. | `set_feed_retry()`, `clear_feed_retry()` | Feed row text | Retry loop timing unchanged | Implemented |
 | SRD-GUI-018.010 | FO-GUI-018 | Should | The Market row shows the session and the time until the close or the next regular open, skipping weekends and NYSE holidays. | clock (ET) | Market row text | Same session rules as `get_exchange_status` | Implemented |
 | SRD-GUI-018.011 | FO-GUI-018 | Must | In mini mode the panel is a plug button with a worst-status dot and a tooltip of all rows; a click acts like the power button. | `set_mini()` | plug button, badge | Badge: offline > retrying > not connected > live | Implemented |
-| SRD-GUI-018.012 | FO-GUI-018 | Should | A screen can put its own section menu under its sidebar item; the AI Desk sections move there and the page drops its 190 px list. | `add_sub_nav()`, checked item, labels shown | menu shown or hidden | Shown only while that screen is on and labels show (full or hover peek); no group headings | Implemented |
+| SRD-GUI-018.012 | FO-GUI-018 | Should | A screen can put its own section menu under its sidebar item. | `add_sub_nav()`, checked item, labels shown | menu shown or hidden | Shown only while that screen is on and labels show (full or hover peek); no group headings | Implemented |
 
 ## FO-GUI-019 — Side Panels and Exit Drawer
 
@@ -488,7 +489,7 @@
 | SRD-GUI-019.008 | FO-GUI-019 | Should | Open in Chart switches to the Chart screen and loads the selected symbol. | click | chart | Uses the chart's own load path | Implemented |
 | SRD-GUI-019.009 | FO-GUI-019 | Must | On every screen, a right panel button click shrinks the sidebar to mini before the panel slides in, and the sidebar stays mini while the panel is open. | right panel click | sidebar mini | Window must not grow past the screen; Expand waits until the panel closes | Implemented |
 | SRD-GUI-019.010 | FO-GUI-019 | Must | No screen's content can make the main window wider than the screen; a screen that needs more room scrolls inside its own area. | any screen, right panel open or closed | window, ✕, right panel and icon strip stay on screen | Found with live data at 1962 px on a 1920 px screen (ISS-GUI-0015) | Implemented |
-| SRD-GUI-019.011 | FO-GUI-019 | Must | Every screen gets exactly the window height, so its top section never scrolls away; tables and panels scroll inside the screen. | any screen, window shorter than the screen's content | no up-down scroll bar on the window; header stays on top | Found on Backtest and AI Desk (ISS-GUI-0019) | Draft |
+| SRD-GUI-019.011 | FO-GUI-019 | Must | Every screen gets exactly the window height, so its top section never scrolls away; tables and panels scroll inside the screen. | any screen, window shorter than the screen's content | no up-down scroll bar on the window; header stays on top | Found on Backtest (ISS-GUI-0019) | Draft |
 
 ## FO-GUI-020 — Charts Workspace
 

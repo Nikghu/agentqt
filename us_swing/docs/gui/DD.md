@@ -1,12 +1,13 @@
 # Design Document — GUI Module (GUI)
 
 **Document ID:** DD-GUI
-**Version:** 1.33.0
+**Version:** 1.33.1
 **Traces To:** SRD-GUI v2.16.0
 **Status:** Draft
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.33.1: SRD-GUI-018.012 paragraph: AI Desk sub-menu wiring removed.
 > v1.33.0: AI Desk and Market Floor removed (user, 2026-11-17; docs/audit/DESK_REMOVAL_2026-11-17.md): DD-GUI-034 to DD-GUI-041 sections removed; the scheduler part of DD-GUI-034.068.D01 kept as DD-GUI-029.007.D01.
 > v1.32.1: DD-GUI-041.006.D01 updated after the GUI review (2026-11-16).
 > v1.32.0: DD-GUI-041.006.D01 added — tool requests, built tools review, Enable and Disable, Tool builder switch (AI Desk v3 M7b, 2026-11-15).
@@ -1575,7 +1576,7 @@ Layout "Library + slim table" was chosen by the user on 2026-10-22. All pattern 
 - Power button and plug click: CONNECTED → `QMessageBox.question` then `disconnect_feed()`; not RECONNECTING → `connect_feed()` (the old `_TitleBar._on_feed_btn_clicked` logic). `_FeedToggle` and its colour keys are removed.
 - Badge colour: RED if offline, YELLOW if retrying or connecting, MUTED if not connected, GREEN if live.
 
-**Screen sub-menu (SRD-GUI-018.012).** `Sidebar.add_sub_nav(index, widget)` inserts the widget right after nav item `index` (stretch 10, 20 px left margin). `_sync_subs()` runs on `QButtonGroup.idToggled` and in `set_labels_visible()`; the widget shows only when its item is checked and labels show, so mini mode hides it and hover peek shows it. `MainWindow` passes `AiDeskWorkspace.nav` (the section `QListWidget`, created hidden with the page as parent) for index 6. The list keeps its signals, so section switching and the Command badge do not change; it lists the eight sections in group order without headings so it fits without a scroll bar.
+**Screen sub-menu (SRD-GUI-018.012).** `Sidebar.add_sub_nav(index, widget)` inserts the widget right after nav item `index` (stretch 10, 20 px left margin). `_sync_subs()` runs on `QButtonGroup.idToggled` and in `set_labels_visible()`; the widget shows only when its item is checked and labels show, so mini mode hides it and hover peek shows it. No screen passes a sub-menu yet.
 
 ---
 
