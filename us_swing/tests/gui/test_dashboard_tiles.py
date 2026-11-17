@@ -551,3 +551,27 @@ def test_pnl_today_is_equity_change(qtbot, settings):
         daily_pnl=30.0, total_cash_value=1_000.0)
     panel = _panel(qtbot, svc, settings)
     assert panel._kpi.value("pnl") == "−$50.00"
+
+
+def test_sector_rotation_tab(qtbot, settings):
+    """UT-GUI-025.021.M02.T01: Sector Rotation tab shows sector bars and hides watch tools."""
+    from us_swing.gui.sector_rotation import SECTOR_SYMBOLS
+    svc = _service([])
+    days = [f"2026-10-{d:02d}" for d in range(1, 31)]
+    svc.get_daily_closes.return_value = {
+        "RSP": {day: 100.0 for day in days}, "XLK": {day: 100.0 + i for i, day in enumerate(days)}}
+    panel = _panel(qtbot, svc, settings)
+    svc.get_daily_closes.assert_not_called()
+
+    panel._watch_tabs.buttons[1].click()
+
+    assert panel._watch_stack.currentWidget() is panel._sectors
+    assert not panel._sector_range.isHidden()
+    assert all(tool.isHidden() for tool in panel._watch_tools)
+    svc.get_daily_closes.assert_called_with(SECTOR_SYMBOLS, 26)
+    assert len(panel._sectors.bars) == 1
+    panel._sector_range.buttons[0].click()
+    svc.get_daily_closes.assert_called_with(SECTOR_SYMBOLS, 10)
+    panel._watch_tabs.buttons[0].click()
+    assert panel._sector_range.isHidden()
+    assert not any(tool.isHidden() for tool in panel._watch_tools)

@@ -1,10 +1,11 @@
 # Software Requirements Document — GUI Module (GUI)
 
 **Document ID:** SRD-GUI
-**Version:** 2.121.1
+**Version:** 2.122.0
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-11-06
+> v2.122.0: SRD-GUI-025.021–.023 added; approved by user 2026-11-17 — Sector Rotation tab in the Market Watch tile.
 > v2.121.1: SRD-GUI-018.012 and SRD-GUI-019.011 wording no longer names the AI Desk (reopened and fixed on user's call, 2026-11-17).
 > v2.121.0: AI Desk and Market Floor removed (user, 2026-11-17; docs/audit/DESK_REMOVAL_2026-11-17.md): sections FO-GUI-034 to FO-GUI-041 and their SRDs removed.
 > v2.120.2: SRD-GUI-041.006–.010 and SRD-GUI-034.085 Implemented 2026-11-16.
@@ -572,6 +573,9 @@
 | SRD-GUI-025.018 | FO-GUI-025 | Must | "P&L Today" in the KPI strip is equity minus start-of-day equity, so it counts realised and unrealised P&L in paper and live. | account state | KPI value | — | Implemented |
 | SRD-GUI-025.019 | FO-GUI-025 | Must | The watchlist is saved per user and is restored when the app starts. | add or remove a stock | `~/.usswing/watchlist.json` | A missing or broken file gives an empty watchlist | Implemented |
 | SRD-GUI-025.020 | FO-GUI-025 | Must | The Market Watch tile keeps its own saved list per user, separate from the watchlist, and accepts any stock. | add or remove on the tile | `~/.usswing/market_watch.json` | Starts empty; Screener adds and Charts still use the watchlist; supersedes "the user's watchlist" in SRD-GUI-025.007 | Implemented |
+| SRD-GUI-025.021 | FO-GUI-025 | Must | The Market Watch tile header has "Market Watch" and "Sector Rotation" tabs; tile tools show only on Market Watch. | click a tab | — | Same chip style as Open Positions / Exposure | Implemented |
+| SRD-GUI-025.022 | FO-GUI-025 | Must | Sector Rotation shows the 11 sector ETFs as ranked bars of their move minus RSP's move over 1W, 1M or 3M (5, 21 or 63 trading days). | tab open, range chip, candle update done | `price_1d` in candles.db | Sorted strongest first; a sector without closes on both days is left out; shows the last close date; default 1M | Implemented |
+| SRD-GUI-025.023 | FO-GUI-025 | Must | The candle download also fetches daily candles for RSP and the 11 sector ETFs (XLK, XLF, XLE, XLV, XLY, XLP, XLI, XLB, XLU, XLRE, XLC). | full or delta candle update | `price_1d`, `price_1w` | Same 2-year step as SPY; a failed symbol is logged and skipped | Implemented |
 
 ## FO-GUI-026 — Charts Workspace (Focus + Inspector)
 

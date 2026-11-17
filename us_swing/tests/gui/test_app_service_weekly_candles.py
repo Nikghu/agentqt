@@ -114,7 +114,7 @@ def worker(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, qapp: Any) -> Any:
     return svc_mod._CandleDownloadWorker(
         symbols=["AAPL"], start_date=_MON, end_date=_MON + datetime.timedelta(days=4),
         mode="full", ibkr_host="127.0.0.1", ibkr_port=7497, ibkr_client_id=1,
-        benchmark_symbol="",
+        benchmark_symbol="", sector_symbols=(),
     )
 
 
