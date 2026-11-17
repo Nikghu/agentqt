@@ -725,6 +725,8 @@ Test files:
 | UT-GUI-025.001.M01.T01 | MD-GUI-025.003.M01 | Positive | Strip value and note | cap "45.8%" note "of 95%"; pos "5" | cap note shown; pos note hidden | Pass |
 | UT-GUI-025.005.M01.T01 | MD-GUI-025.003.M01 | Positive | Bars scale to the largest P&L | +49.5, −16.3 | fractions 1.0, −0.33; total "+$33.20" | Pass |
 | UT-GUI-025.005.M01.T02 | MD-GUI-025.003.M01 | Edge | No strategies | [] | "No strategies" shown; total "$0.00" | Pass |
+| UT-GUI-025.005.M01.T03 | MD-GUI-025.003.M01 | Edge | Many rows in a short tile keep full height | 13 rows, tile 200 px high | each row at its natural height; rows scroll | Pass |
+| UT-GUI-025.005.M01.T04 | MD-GUI-025.003.M01 | Negative | Strategy with no P&L and no open trades is hidden | two strategies, one $0.00 and 0 open | one row shown | Pass |
 | UT-GUI-025.001.M02.T01 | MD-GUI-025.001.M02 | Positive | Strip filled from positions and account | NDAQ long +8.55, MSFT short +16.50; daily P&L 41.75 | pos "2"; unrealised "+$25.05"; P&L "+$41.75"; strategy total "+$8.55" | Pass |
 | UT-GUI-025.002.M02.T01 | MD-GUI-025.001.M02 | Positive | View switch scopes the dashboard | click "trader" | `set_viewing_uid(1)`; setting "1" | Pass |
 | UT-GUI-025.006.M02.T01 | MD-GUI-025.001.M02 | Positive | Density and maximised tile remembered | Comfort + maximise Strategy; new panel | "comfort"; row height 32; maximised "strategy" | Pass |

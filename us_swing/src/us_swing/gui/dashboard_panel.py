@@ -1975,7 +1975,8 @@ class DashboardPanel(QWidget):
         for name in names:
             summary = self._demo.get_strategy_pnl(name, since_iso("1"))
             open_n = len(self._demo.get_open_symbols_for_strategy(name))
-            rows.append((name, f"{open_n} open", summary.today))
+            if open_n or summary.today:
+                rows.append((name, f"{open_n} open", summary.today))
         self._strategy_list.set_rows(rows)
 
     def _refresh_trades(self) -> None:

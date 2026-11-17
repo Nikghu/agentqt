@@ -13,6 +13,16 @@
 
 ---
 
+## [20261117] GUI — P&L by Strategy tile: hide empty rows, fix cut-off text (FO-GUI-025)
+
+- Type: Bug
+- FO(s): FO-GUI-025 (SRD-GUI-025.005)
+- Artifacts updated: dashboard_tiles.py (rows in a scroll area), dashboard_panel.py (hide $0.00 and 0 open), UTCD T03–T04 added (Pass), TODO T198
+- Decisions: a row shows if it has P&L today or open trades; Total counts shown rows only
+- Known: dashboard_panel.py has old ruff/mypy errors not from this change
+
+---
+
 ## [20261117] DSK — AI Desk and Market Floor removed (FO-DSK-001..013, FO-MKT-001..021, FO-GUI-034..041, FO-EXE-021)
 
 - Type: Removal
