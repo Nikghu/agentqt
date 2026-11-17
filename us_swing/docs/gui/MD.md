@@ -1,12 +1,13 @@
 # Module Decomposition — GUI Module (GUI)
 
 **Document ID:** MD-GUI
-**Version:** 1.8.0
+**Version:** 1.55.0
 **Traces To:** SRD-GUI v2.16.0 / DD-GUI v1.7.0
 **Status:** Draft
 **Last Updated:** 2026-09-17
 **Project:** US Swing Trading System
 
+> v1.55.0: AI Desk and Market Floor removed (user, 2026-11-17; docs/audit/DESK_REMOVAL_2026-11-17.md): FO-GUI-034 to FO-GUI-041 modules and MD-GUI-019.011.M04 removed.
 > v1.39.0: M01 (Tools) and M15 (settings) changed (AI Desk v3 M7b, 2026-11-15).
 > v1.38.0: M32 (feed), M31 (feed cards), M21 (hiring) and M15 (settings) changed (AI Desk v3 M7a, 2026-11-15).
 > v1.37.0: MD-GUI-041.001.M01 added — AI Desk Tools; M08 (workspace), M26 (chat) and M15 (settings) changed (AI Desk v3 M6, 2026-11-14).
@@ -279,7 +280,6 @@ us_swing/src/us_swing/gui/
 | MD-GUI-019.009.M03 | SRD-GUI-019.009 | `us_swing/src/us_swing/gui/main_window.py` | Sidebar mini on right panel click | `MainWindow._on_panel_toggled`, `_MiniState` | `reveal` | No |
 | MD-GUI-019.010.M03 | SRD-GUI-019.010 | `us_swing/src/us_swing/gui/main_window.py` | Screens held in a scroll area | `MainWindow._fit_to_screen` | — | No |
 | MD-GUI-019.011.M03 | SRD-GUI-019.011 | `us_swing/src/us_swing/gui/main_window.py` | Screens held at window height | `MainWindow._fit_to_screen`, `_WidthOnlyBox` | — | No |
-| MD-GUI-019.011.M04 | SRD-GUI-019.011 | `us_swing/src/us_swing/gui/ai_desk.py` | Each AI Desk section scrolls up-down in its card | `AiDeskWorkspace._page` | `ai_desk_sections.scroll_of` | No |
 
 ## FO-GUI-020 — Charts Workspace
 
@@ -428,160 +428,3 @@ us_swing/src/us_swing/gui/
 | MD-GUI-033.004.M02 | SRD-GUI-033.004 | `us_swing/src/us_swing/gui/settings_panel.py`, `gui/settings_dialog.py` | AI block on the Telegram page, save and load, dot, Apply and OK gate | `SettingsPanel.valid_changed`, `is_valid`, `telegram_state()` | `ai_settings_block`, `screener._api_key_store` | No |
 | MD-GUI-033.005.M03 | SRD-GUI-033.005 | `us_swing/src/us_swing/data/models.py`, `gui/user_store.py` | Per-user AI fields with defaults | `UserProfile.ai_*` | — | No |
 
-## FO-GUI-034 — Market Floor and AI Desk Frames
-
-| ID | Parent SRD | File | Responsibility | Public API | Deps | MCP |
-|---|---|---|---|---|---|---|
-| MD-GUI-034.001.M01 | SRD-GUI-034.001 | `us_swing/src/us_swing/gui/main_window.py` | Two nav items and pages, poller shutdown | `_NAV_ITEMS`, `_WIDE_PAGES` | M02, M04, M08 | No |
-| MD-GUI-034.002.M02 | SRD-GUI-034.002 | `us_swing/src/us_swing/gui/desk_control.py` | Desk pill, buttons and off-thread poller; start with the app's pid and stop on close (SRD-GUI-034.068) | `DeskBar`, `DeskPoller`, `allowed_actions()` | `core.desk_contract` | No |
-| MD-GUI-034.010.M03 | SRD-GUI-034.010 | `us_swing/src/us_swing/gui/floor_sample.py` | Sample products and rows behind `FloorData` | `SampleFloorData`, `SAMPLE_TAG` | `core.desk_contract` | No |
-| MD-GUI-034.004.M04 | SRD-GUI-034.004 | `us_swing/src/us_swing/gui/market_floor.py`, `gui/floor_feed.py` | Floor tabs, toolbar, AI feed column | `MarketFloorWorkspace`, `AiFeedColumn` | M02, M03, M05, M06 | No |
-| MD-GUI-034.005.M05 | SRD-GUI-034.005 | `us_swing/src/us_swing/gui/floor_grid_model.py`, `gui/floor_grid.py` | Pure grid rules and the grid widget | `PanelSpec`, `GridModel`, `PanelGrid` | — | No |
-| MD-GUI-034.006.M06 | SRD-GUI-034.006 | `us_swing/src/us_swing/gui/floor_panel.py`, `gui/floor_dialogs.py` | Panel frame, bodies, link bus, catalog and settings dialogs | `PanelFrame`, `LinkBus`, `CatalogDialog`, `PanelSettingsDialog` | M03, `frameless_dialog` | No |
-| MD-GUI-034.008.M07 | SRD-GUI-034.008 | `us_swing/src/us_swing/gui/floor_layouts.py` | Layout file, defaults, last layout, feed fold | `LayoutStore`, `default_layout()` | — | No |
-| MD-GUI-034.009.M08 | SRD-GUI-034.009 | `us_swing/src/us_swing/gui/ai_desk.py`, `gui/ai_desk_sections.py`, `gui/ai_desk_sections2.py`, `gui/ai_desk_sections3.py`, `gui/ai_desk_sample.py` | AI Desk section list and section frames | `AiDeskWorkspace` | M02 | No |
-| MD-GUI-034.003.M09 | SRD-GUI-034.003 | `us_swing/src/us_swing/core/desk_contract.py`, `desk/task.py` | Shared desk launch command; `FloorData` interface | `desk_command()`, `launch_desk()`, `ProductDescriptor`, `FloorData` | — | No |
-| MD-GUI-034.011.M10 | SRD-GUI-034.011 | `us_swing/src/us_swing/core/desk_floor.py`, `gui/market_floor.py` | Desk-backed FloorData and panel refresh after a run | `DeskFloorData` | `core.desk_contract`, M03 | No |
-| MD-GUI-034.012.M11 | SRD-GUI-034.012 | `us_swing/src/us_swing/core/desk_floor.py` | Desk-backed sector and RS leader products | `DeskFloorData` | `core.desk_contract` | No |
-| MD-GUI-034.013.M12 | SRD-GUI-034.013 | `us_swing/src/us_swing/core/desk_floor.py`, `gui/floor_panel.py` | Desk-backed idea list product; the why column takes the spare width | `DeskFloorData` | `core.desk_contract` | No |
-| MD-GUI-034.014.M13 | SRD-GUI-034.014 | `us_swing/src/us_swing/core/desk_floor.py` | Desk-backed Score proof product | `DeskFloorData` | `core.desk_contract` | No |
-| MD-GUI-034.015.M14 | SRD-GUI-034.015 | `us_swing/src/us_swing/core/desk_floor.py`, `gui/floor_feed.py` | Real AI feed from `briefs` | `DeskFloorData.feed()`, `AiFeedColumn.set_items()` | `core.desk_contract` | No |
-| MD-GUI-034.016.M15 | SRD-GUI-034.016 | `us_swing/src/us_swing/gui/ai_desk_settings.py` | Editable desk AI settings in AI Desk → Desk settings | `DeskAiSettingsForm` | `core.desk_ai_settings` | No |
-| MD-GUI-034.017.M16 | SRD-GUI-034.017 | `us_swing/src/us_swing/core/desk_floor.py`, `gui/ai_desk_sections3.py` | Real month spend by employee and model | `DeskFloorData.costs()`, `cost_frame()` | `core.desk_contract` | No |
-| MD-GUI-034.018.M17 | SRD-GUI-034.018 | `us_swing/src/us_swing/core/desk_floor.py` | Desk-backed Latest news, News tags and Calendar products | `DeskFloorData` | `core.desk_contract`, `core.econ_calendar` | No |
-| MD-GUI-034.021.M18 | SRD-GUI-034.021 | `us_swing/src/us_swing/gui/floor_layouts.py` | Default News & Calendar tab with three panels | `default_layout()` | — | No |
-| MD-GUI-034.022.M19 | SRD-GUI-034.022 | `us_swing/src/us_swing/gui/ai_desk_pages.py`, `core/desk_floor.py` | AI Desk Pages section: version list, preview, empty note; read-only page reader | `pages_frame()`, `DeskFloorData.report_pages()`, `DeskFloorData.report_page()` | M20, `core.report_html` | No |
-| MD-GUI-034.024.M20 | SRD-GUI-034.024 | `us_swing/src/us_swing/gui/sealed_view.py` | Sealed web view: off-the-record profile, request filter, JavaScript and file access off | `SealedView`, `allowed_scheme()` | `PyQt6.QtWebEngineCore`, `core.report_html` | No |
-| MD-GUI-034.027.M21 | SRD-GUI-034.027 | `us_swing/src/us_swing/gui/ai_desk_hiring.py` | Hiring section (hires, Start hire, shadow report, decisions) and Command approvals box | `hiring_frame()`, `approvals_box()` | `core.desk_hiring` | No |
-| MD-GUI-034.032.M22 | SRD-GUI-034.032 | `us_swing/src/us_swing/gui/ai_desk_sections3.py`, `core/desk_floor.py` | Reports section from weekly reports | `reports_frame()`, `DeskFloorData.weekly_reports()` | `core.desk_contract` | No |
-| MD-GUI-034.033.M23 | SRD-GUI-034.033 | `us_swing/src/us_swing/gui/ai_desk_settings.py` | Seat cap fields in Desk settings | `DeskAiSettingsForm` | `core.desk_ai_settings`, `core.desk_hiring` | No |
-| MD-GUI-034.034.M24 | SRD-GUI-034.034 | `us_swing/src/us_swing/gui/ai_desk_hiring.py`, `gui/ai_desk.py`, `gui/main_window.py` | Trade pick rows with Approve and Reject in Command → Approvals waiting; the main window passes the app service as the sink | `approvals_box(home, open_hiring, sink)`, `AiDeskWorkspace(poller, sink)` | `core.desk_trades` | No |
-| MD-GUI-034.037.M25 | SRD-GUI-034.037 | `us_swing/src/us_swing/gui/ai_desk_results.py`, `gui/ai_desk.py` | Live AI Desk Results section: totals, breakdowns and the pick table | `results_frame()` | `core.desk_results` | No |
-| MD-GUI-034.039.M26 | SRD-GUI-034.039 | `us_swing/src/us_swing/gui/ai_desk_chat.py`, `gui/ai_desk_sections.py`, `gui/ai_desk.py` | Real lead chat in Command: turns, Ask box, 2-second check while a question waits | `ChatPanel`, `command_frame(name, approvals, chat)` | `core.desk_chat` | No |
-| MD-GUI-034.045.M28 | SRD-GUI-034.045 | `us_swing/src/us_swing/gui/market_floor.py` | Floor header: chips, layout picker, Edit, edit-only buttons, Fold feed, Reset tab | `MarketFloorWorkspace.chip_texts()`, `reset_tab()` | `core.desk_floor` | No |
-| MD-GUI-034.047.M27 | SRD-GUI-034.047 | `us_swing/src/us_swing/gui/floor_charts.py`, `gui/floor_panel.py` | Painted panel views (tiles, heat map, line, rotation) and the score and side cell delegates | `TilesView`, `HeatMapView`, `LineView`, `RotationView`, `ScoreDelegate`, `SideDelegate`, `heat_colour()` | `gui.theme` | No |
-| MD-GUI-034.047.M29 | SRD-GUI-034.047 | `us_swing/src/us_swing/core/desk_floor.py`, `gui/floor_sample.py` | Tiles, breadth history and header chip data from desk.db, sample rows otherwise | `DeskFloorData.chips()`, products `market.tiles`, `breadth.history` | `core.econ_calendar` | No |
-| MD-GUI-034.052.M30 | SRD-GUI-034.052 | `us_swing/src/us_swing/gui/floor_layouts.py` | New default Overview and the one-time Default refresh (file version 2) | `default_layout()`, `LayoutStore` | — | No |
-| MD-GUI-034.053.M31 | SRD-GUI-034.053 | `us_swing/src/us_swing/gui/floor_feed.py`, `gui/market_floor.py`, `gui/main_window.py` | Feed column with typed cards, filter tabs, live dot, footer and action signals; page and window wiring | `AiFeedColumn.set_cards()`, `set_live()`, `FeedCardWidget` | `core.desk_feed`, `core.desk_trades` | No |
-| MD-GUI-034.054.M32 | SRD-GUI-034.054 | `us_swing/src/us_swing/core/desk_feed.py`, `core/desk_floor.py`, `core/desk_trades.py`, `gui/ai_desk_hiring.py` | Feed cards from desk.db; shared approve and reject of a trade pick | `FeedCard`, `feed_cards()`, `approve_pick()`, `reject_pick()` | `core.desk_trades`, `core.desk_hiring` | No |
-| MD-GUI-034.059.M33 | SRD-GUI-034.059 | `us_swing/src/us_swing/gui/ai_desk.py`, `gui/main_window.py` | Grouped section list with Command badge; header chips and spend bar; chart signal to the window | `AiDeskWorkspace.set_ask_count()`, `chart_requested` | `core.desk_overview` | No |
-| MD-GUI-034.060.M34 | SRD-GUI-034.060 | `us_swing/src/us_swing/core/desk_overview.py` | Today's runs, last run, AI spend, team counts and next morning run from desk.db (SRD-GUI-034.069) | `todays_runs()`, `last_run()`, `spend()`, `team_counts()`, `next_morning_run()` | `core.desk_hiring`, `core.desk_ai_settings` | No |
-| MD-GUI-034.061.M35 | SRD-GUI-034.061 | `us_swing/src/us_swing/gui/ai_desk_chat.py` | Chat turns as left and right bubbles | `ChatPanel` | — | No |
-| MD-GUI-034.062.M36 | SRD-GUI-034.062 | `us_swing/src/us_swing/gui/ai_desk_hiring.py`, `gui/ai_desk_sections.py`, `gui/floor_feed.py`, `core/desk_feed.py` | Approval cards box, real Today's runs and Team now in Command; quantity on pick cards | `WaitingBox`, `approvals_box()`, `runs_box()`, `command_frame()`, `ask_cards()` | `core.desk_feed`, `core.desk_overview` | No |
-| MD-GUI-034.042.M37 | SRD-GUI-034.042 | `us_swing/src/us_swing/gui/floor_dialogs.py`, `gui/market_floor.py` | Ask the desk for new data box in the Add panel catalog | `CatalogDialog`, `MarketFloor` | `core.desk_data_asks` | No |
-| MD-GUI-034.043.M38 | SRD-GUI-034.043 | `us_swing/src/us_swing/core/desk_feed.py`, `gui/floor_feed.py`, `gui/ai_desk_hiring.py` | Data product Ask cards with Approve and Reject, and failed request cards | `ask_cards()`, `failed_cards()`, `FeedCardWidget`, `WaitingBox` | `core.desk_data_asks`, `core.desk_recipes` | No |
-| MD-GUI-034.065.M39 | SRD-GUI-034.065 | `us_swing/src/us_swing/gui/ai_desk_console.py` | Console look helpers for the AI Desk header and sections | `stat_tile()`, `tile_row()`, `thin_bar()`, `bar_tone()`, `icon_card()`, `icon_badge()`, `primary()`, `danger()`, `seg_style()` | `gui.icons`, `gui.theme` | No |
-
-SRD coverage: .059 by M33; .060 by M33 and M34; .061 by M35; .062–.064 and the reopened .034–.036 by M36; .053, .055–.058 by M31; .054 and .056 by M32; .045–.046 by M28; .047–.051 by M27 and M29; .052 by M30; .039–.041 by M26; .037–.038 by M25; .034–.036 by M24; .002 and .003 by M02 and M09; .004 by M04; .005 by M05; .006 and .007 by M06; .008 by M07; .009 by M08; .010 by M03 and M09.
-
-## FO-GUI-035 — AI Desk Team at Work
-
-| ID | Parent SRD | File | Responsibility | Public API | Deps | MCP |
-|---|---|---|---|---|---|---|
-| MD-GUI-035.001.M01 | SRD-GUI-035.001 | `us_swing/src/us_swing/gui/ai_desk_team.py`, `gui/ai_desk.py` | Team at work section: run bar, tabs, Live pipeline and timeline, refresh; wiring in AI Desk | `TeamAtWork`, `PipelineView`, `TimelineView` | M02, M03, M04 | No |
-| MD-GUI-035.002.M02 | SRD-GUI-035.002 | `us_swing/src/us_swing/core/desk_team.py` | Team, runs, run states, events with calls, scorecard and history from desk.db and job files | `team()`, `levels()`, `runs()`, `run_view()`, `day_events()`, `scorecard()`, `history()` | `core.desk_contract`, `core.desk_steps` | No |
-| MD-GUI-035.006.M03 | SRD-GUI-035.006 | `us_swing/src/us_swing/gui/ai_desk_team_log.py` | Event log tab: day strip, filters, event tree with calls | `EventLogView`, `DayStrip` | M02 | No |
-| MD-GUI-035.007.M04 | SRD-GUI-035.008 | `us_swing/src/us_swing/gui/ai_desk_team_pane.py` | Team wheel, profile pane and scorecard table | `TeamWheel`, `ProfilePane`, `ScoreTable` | M02 | No |
-
-SRD coverage: .001, .003–.005, .009 and .010 by M01; .011 by MD-GUI-034.054.M32 (`core/desk_feed.py`, alert cards); .002 and .009 by M01 and M02; .004–.007 data by M02; .006 by M03; .007 and .008 by M04. Sample frames for Org chart, Employees, Task board, Activity and Schedule were removed from `ai_desk_sections.py`, `ai_desk_sections2.py` and `ai_desk_sample.py`.
-
-## FO-GUI-036 — AI Desk Team Setup
-
-| ID | Parent SRD | File | Responsibility | Public API | Deps | MCP |
-|---|---|---|---|---|---|---|
-| MD-GUI-036.001.M01 | SRD-GUI-036.001 | `us_swing/src/us_swing/gui/ai_desk_setup.py` | Team setup section: reporting tree (SRD-GUI-036.009–.010), tabbed form, save, history, test on yesterday | `TeamSetup` | `core.desk_employee`, `gui.ai_desk_team_pane` | No |
-
-Changed: MD-GUI-034.059.M33 (`gui/ai_desk.py`: Team setup tab, Edit link wiring), MD-GUI-035.007.M04 (`ai_desk_team_pane.py`: `ProfilePane` trimmed, `edit_requested`), MD-GUI-035.001.M01 (`ai_desk_team.py`: re-emits `edit_requested`).
-
-SRD coverage: .001–.007 by M01; .008 by MD-GUI-035.007.M04 and MD-GUI-034.059.M33.
-
-## FO-GUI-037: AI Desk Memory
-
-| ID | Parent SRD | File | Responsibility | Public API | Deps | MCP |
-|---|---|---|---|---|---|---|
-| MD-GUI-037.001.M01 | SRD-GUI-037.001 | `us_swing/src/us_swing/gui/ai_desk_memory.py`, `gui/ai_desk.py` | Memory section: filter, lessons table, Pin/Unpin/Edit/Retire/Delete, proof list; wiring in AI Desk | `MemoryView` | `core.desk_lessons` | No |
-
-SRD coverage: 037.001–.004 by M01.
-
-## FO-GUI-038: App Feeds for the Desk Watchers
-
-| ID | Parent SRD | File | Responsibility | Public API | Deps | MCP |
-|---|---|---|---|---|---|---|
-| MD-GUI-038.001.M01 | SRD-GUI-038.001 | `us_swing/src/us_swing/gui/app_service.py` | Desk stocks in the live bar feed; open trades published to desk.db | `live_symbols()`, `trade_rows()`, `AppService._publish_open_trades()` | `core.desk_watch` | No |
-
-SRD coverage: 038.001–.003 by M01.
-
-## FO-GUI-039: AI Desk Research
-
-| ID | Parent SRD | File | Responsibility | Public API | Deps | MCP |
-|---|---|---|---|---|---|---|
-| MD-GUI-039.001.M01 | SRD-GUI-039.001 | `us_swing/src/us_swing/gui/ai_desk_research.py` | Research section: lead research line, ticket table, Approve / Reject / Change cap, detail label, logs | `ResearchView`, `research_frame()` | `core.desk_research` | No |
-| MD-GUI-039.006.M02 | SRD-GUI-039.006 | `us_swing/src/us_swing/core/desk_books.py` | Book types, adding a chosen book and listing books with chapters read (SRD-GUI-039.008) | `BOOK_TYPES`, `add_book()`, `safe_name()`, `list_books()`, `BookRow`, `BookAddError` | — | No |
-
-Changed: MD-GUI-034.009.M08 (`gui/ai_desk.py`: "Research" section in the TEAM group, live refresh).
-
-SRD coverage: 039.001–.008 by M01; .006 and .008 by M02. Cross-tool note: `market/book_text.py` and `market/book_cards.py` now import `BOOK_TYPES` from `core/desk_books.py`.
-
-## FO-GUI-040: AI Desk Strategy Cards
-
-| ID | Parent SRD | File | Responsibility | Public API | Deps | MCP |
-|---|---|---|---|---|---|---|
-| MD-GUI-040.001.M01 | SRD-GUI-040.001 | `us_swing/src/us_swing/gui/ai_desk_cards.py` | Cards section: card table with latest test, detail, Test button and its log | `CardsView`, `cards_frame`, `result_label`, `card_detail` | `core.desk_cards`, `core.desk_research`, `gui.ai_desk_sections` | No |
-
-SRD coverage: 040.001–.004 by M01. Changed: MD-GUI-034.009.M08 (`gui/ai_desk.py`: "Cards" section in the REVIEW group, live refresh).
-
-## FO-GUI-035 (AI Desk v3 M1): Message Log and Threads View
-
-| ID | Parent SRD | File | Responsibility | Public API | Deps | MCP |
-|---|---|---|---|---|---|---|
-| MD-GUI-035.016.M05 | SRD-GUI-035.016 | `us_swing/src/us_swing/gui/ai_desk_threads.py` | Threads tab: today's threads table and the selected thread's messages | `ThreadsView` (`show_threads()`) | DSK `core/desk_messages.py`, theme | No |
-
-Changed: MD-GUI-034.016.M15 (`gui/ai_desk_settings.py`: Agent messages card — SRD-GUI-034.070), MD-GUI-035.002.M02 (`core/desk_team.py`: `DeskEvent.target`, `detail` — 035.015), MD-GUI-035.006.M03 (`gui/ai_desk_team_log.py`: message rows — 035.015), MD-GUI-035.001.M01 (`gui/ai_desk_team.py`: Threads tab — 035.016).
-
-## FO-GUI-034 / 035 / 036 (AI Desk v3 M2): Escalation Switch, Threads Lines, Deputy Picker
-
-No new module. Changed: MD-GUI-034.016.M15 (`gui/ai_desk_settings.py`: Escalation switch — SRD-GUI-034.071), MD-GUI-035.016.M05 (`gui/ai_desk_threads.py`: blocked reason lines — 035.017), MD-GUI-036.001.M01 (`gui/ai_desk_setup.py`: Deputy picker — 036.011).
-
-## FO-GUI-034 / 037 (AI Desk v3 M3): Memory v2 Switch, Notes and Views
-
-No new module. Changed: MD-GUI-037.001.M01 (`gui/ai_desk_memory.py`: Kind and Employee filters, notes and views table, core block box, note Pin/Unpin/Retire — SRD-GUI-037.005–.008), MD-GUI-034.016.M15 (`gui/ai_desk_settings.py`: Memory v2 switch — SRD-GUI-034.072).
-
-## FO-GUI-034 (AI Desk v3 M4): Chat Sessions
-
-No new module. Changed: MD-GUI-034.039.M26 (`gui/ai_desk_chat.py`: session list, New discussion, Update bubbles, team note — SRD-GUI-034.074–.076), MD-GUI-034.016.M15 (`gui/ai_desk_settings.py`: Chat sessions switch — SRD-GUI-034.073).
-
-## FO-GUI-034 / 035 (AI Desk v3 M5): Company Day
-
-| MD ID | Parent SRD | File | Purpose | Public API | Depends on | MCP |
-|---|---|---|---|---|---|---|
-| MD-GUI-034.078.M40 | SRD-GUI-034.078 | `us_swing/src/us_swing/gui/ai_desk_day.py`, `gui/ai_desk.py`, `gui/ai_desk_team.py` | Day call and Handover tiles in the Command header | `day_tiles()` | MKT `core/desk_day.py`, `gui/ai_desk_console.py`, theme | No |
-| MD-GUI-034.092.M41 | SRD-GUI-034.092 | `us_swing/src/us_swing/gui/ai_desk_day.py`, `gui/floor_feed.py`, `gui/market_floor.py`, `gui/ai_desk.py` | Today block at the top of the AI feed | `DayTiles`, `AiFeedColumn.day_block` | MKT `core/desk_day.py` | No |
-| MD-GUI-035.018.M06 | SRD-GUI-035.018 | `us_swing/src/us_swing/gui/ai_desk_day.py`, `gui/ai_desk_team.py` | Day strip in Team at work: five phases with time or state | `DayStrip` | MKT `core/desk_day.py`, theme | No |
-
-Changed: MD-GUI-034.016.M15 (`gui/ai_desk_settings.py`: Company day switch — SRD-GUI-034.077), MD-GUI-035.001.M01 (`gui/ai_desk_team.py`: day strip placed above the view switch — SRD-GUI-035.018).
-
-## FO-GUI-041 / 034 (AI Desk v3 M6): Tools, Chat Table, Task Cards Switch
-
-| MD ID | Parent SRD | File | Purpose | Public API | Depends on | MCP |
-|---|---|---|---|---|---|---|
-| MD-GUI-041.001.M01 | SRD-GUI-041.001 | `us_swing/src/us_swing/gui/ai_desk_tools.py` | Tools section: tools, table formats with plan state, task cards with part detail, failure log | `ToolsView`, `tools_frame` | DSK `core/desk_registry.py`, `core/desk_tasks.py`, `core/desk_memory.py`, `gui.ai_desk_sections` | No |
-
-Changed: MD-GUI-034.009.M08 (`gui/ai_desk.py`: Tools section in the SETUP group — SRD-GUI-041.001), MD-GUI-034.039.M26 (`gui/ai_desk_chat.py`: `table_html()` — SRD-GUI-034.079), MD-GUI-034.016.M15 (`gui/ai_desk_settings.py`: Task cards switch — SRD-GUI-034.080).
-
-SRD coverage: SRD-GUI-041.001–.005 by MD-GUI-041.001.M01 (.001 also by MD-GUI-034.009.M08); SRD-GUI-034.079 by MD-GUI-034.039.M26; SRD-GUI-034.080 by MD-GUI-034.016.M15.
-
-## FO-GUI-034 (AI Desk v3 M7a): Hire Proposals
-
-No new module.
-
-Changed: MD-GUI-034.054.M32 (`core/desk_feed.py`: proposal Ask cards — SRD-GUI-034.081), MD-GUI-034.053.M31 (`gui/floor_feed.py`: Approve and Reject on proposal cards — .082), MD-GUI-034.027.M21 (`gui/ai_desk_hiring.py`: Proposals list — .083), MD-GUI-034.016.M15 (`gui/ai_desk_settings.py`: Hire proposals switch — .084).
-
-SRD coverage: SRD-GUI-034.081 by MD-GUI-034.054.M32; .082 by MD-GUI-034.053.M31; .083 by MD-GUI-034.027.M21; .084 by MD-GUI-034.016.M15.
-
-## FO-GUI-041 / 034 (AI Desk v3 M7b): Tool Requests, Built Tools Review, Tool Builder Switch
-
-No new module.
-
-Changed: MD-GUI-041.001.M01 (`gui/ai_desk_tools.py`: request box, requests list, built tools list, review detail with the code, Enable and Disable — SRD-GUI-041.006–.010), MD-GUI-034.016.M15 (`gui/ai_desk_settings.py`: Tool builder switch — SRD-GUI-034.085).
-
-SRD coverage: SRD-GUI-041.006–.010 by MD-GUI-041.001.M01; SRD-GUI-034.085 by MD-GUI-034.016.M15.
