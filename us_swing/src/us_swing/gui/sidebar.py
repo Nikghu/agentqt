@@ -210,7 +210,8 @@ class _ConnectionsPanel(QWidget):
         detail = QLabel()
         detail.setObjectName("side_footer")
         detail.setContentsMargins(15, 0, 0, 0)
-        detail.setVisible(with_detail)
+        if not with_detail:
+            detail.hide()
         parent.addWidget(detail)
         return dot, value, detail
 

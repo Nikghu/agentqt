@@ -861,7 +861,8 @@ class ListDetailView(QWidget):
         self.chart_slot.setMinimumHeight(260)
         self._chart_layout = QVBoxLayout(self.chart_slot)
         self._chart_layout.setContentsMargins(1, 1, 1, 1)
-        self.chart_slot.setVisible(chart_factory is not None)
+        if chart_factory is None:
+            self.chart_slot.hide()
         body.addWidget(self.chart_slot)
 
         plan = QFrame()

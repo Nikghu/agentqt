@@ -837,6 +837,9 @@ Test files:
 | UT-GUI-000.009.M01.T02 | MD-GUI-000.009.M01 | Positive | notify has one OK button | error message | one frameless popup; only OK | Pass |
 | UT-GUI-000.009.M02.T01 | MD-GUI-000.009.M02 | Negative | No native message box left | scan gui/*.py for `QMessageBox.` / `QMessageBox(` | none found | Pass |
 | UT-GUI-000.009.M02.T02 | MD-GUI-000.009.M02 | Negative | Delete Preset names the preset | preset row widget "Momentun_Price"; answer Cancel | question names it; nothing deleted | Pass |
+| UT-GUI-000.010.M01.T01 | MD-GUI-000.010.M01 | Negative | Sidebar shows no stray window | build the sidebar; watch Show events | no window shown | Pass |
+| UT-GUI-000.010.M01.T02 | MD-GUI-000.010.M01 | Negative | List view chart box shows no stray window | build list view with a chart | no window shown; chart box not hidden | Pass |
+| UT-GUI-000.010.M01.T03 | MD-GUI-000.010.M01 | Negative | Edit Preset shows no stray Save As window | open the dialog for a saved preset | no window shown; Save As not hidden | Pass |
 
 ## FO-GUI-027 — Settings Dialog
 
