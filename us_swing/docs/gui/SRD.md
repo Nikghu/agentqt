@@ -191,6 +191,7 @@
 | SRD-GUI-000.007 | FO-GUI-000 | Must | On Windows the app starts without any console window flashing; Python's Windows-version check is answered without running cmd.exe. | app start | no child process | Reported version unchanged; installed by `run_gui.py` and a PyInstaller runtime hook | Implemented |
 | SRD-GUI-000.008 | FO-GUI-000 | Must | The app stays responsive while live ticks stream: tick-driven view refreshes go out at most every 250 ms, hidden lists do not rebuild on ticks, and theme colours are not read from disk on each use. | live ticks | batched view signals | Non-tick refreshes (fills, user actions) stay immediate | Implemented |
 | SRD-GUI-000.009 | FO-GUI-000 | Should | Every confirm and message popup uses the app's frameless style (title bar, accent bar, Cancel / confirm or one OK button), never the native Windows message box. | title, text | user choice | Replaces 27 `QMessageBox` calls in 7 panels (ISS-GUI-0016) | Implemented |
+| SRD-GUI-000.010 | FO-GUI-000 | Must | No part of a screen ever shows for a moment as its own small window while the app starts or a dialog opens. | app start, dialog open | no stray window | Found in sidebar, screener list view and preset dialog (ISS-GUI-0020) | Draft |
 
 ---
 

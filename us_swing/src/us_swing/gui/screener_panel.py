@@ -1115,7 +1115,8 @@ class _PresetBuilderDialog(_FramelessDialog):
 
         self._save_as_btn = QPushButton("Save As…")
         set_icon(self._save_as_btn, "copy")
-        self._save_as_btn.setVisible(preset is not None)
+        if preset is None:
+            self._save_as_btn.hide()
         self._save_as_btn.setToolTip("Save a copy of this preset with a new name")
         self._save_as_btn.clicked.connect(self._on_save_as)
 

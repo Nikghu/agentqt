@@ -340,6 +340,7 @@ us_swing/src/us_swing/gui/
 | MD-GUI-000.008.M03 | SRD-GUI-000.008 | `us_swing/src/us_swing/gui/app_service.py` | Tick slots mark view signals dirty; a 250 ms single-shot timer emits each once | `_queue_tick_refresh()`, `_flush_tick_refresh()` | QTimer | No | Implemented |
 | MD-GUI-000.009.M01 | SRD-GUI-000.009 | `us_swing/src/us_swing/gui/popups.py` | Frameless confirm and message popups on the shared `_ConfirmDialog` | `confirm()`, `notify()` | `active_cycles_panel`, `theme` | No | Implemented |
 | MD-GUI-000.009.M02 | SRD-GUI-000.009 | `gui/settings_panel.py`, `execution_panel.py`, `strategies_pane.py`, `screener_panel.py`, `position_monitor_panel.py`, `dashboard_panel.py`, `sidebar.py` | Popups call `confirm()` / `notify()`; Delete Preset reads the name from the row widget | `_on_delete_preset()` | `popups` | No | Implemented |
+| MD-GUI-000.010.M01 | SRD-GUI-000.010 | `gui/sidebar.py`, `gui/screener_views.py`, `gui/screener_panel.py` | New widgets are only hidden when needed, never shown before they have a parent | `Sidebar._add_row`, `ListDetailView.__init__`, `_PresetBuilderDialog.__init__` | — | No | Implemented |
 
 ## FO-GUI-026 — Charts Workspace (Focus + Inspector)
 

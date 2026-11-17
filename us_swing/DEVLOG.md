@@ -2,6 +2,17 @@
 
 ---
 
+## [20261117] GUI — No small windows flash at start (ISS-GUI-0020, FO-GUI-000)
+
+- Type: Bug
+- FO(s): FO-GUI-000
+- RN: none (small fix; ISS file holds the detail)
+- Artifacts updated: SRD-GUI-000.010 (Draft), MD-GUI-000.010.M01, UTCD (3 cases Pass), TRACE, ISS-GUI-0020, TODO T191, CONTEXT. Branch fix/gui-startup-flash.
+- Decisions: hide a new widget only when needed, never `setVisible(cond)` before it has a parent (same as 982d38e5); keep `pyi_rth_quiet_platform.py` while on Python 3.11.
+- Known: pre-existing ruff unused imports and mypy errors in `screener_panel.py` left alone; PR #153 merged before this work.
+
+---
+
 ## [20261116] DSK — AI Desk review fixes, Command redesign, AI feed button, rotation map, sectors vs RSP (FO-DSK-004, FO-GUI-034, FO-MKT-002, FO-MKT-010)
 
 - Type: Feature
