@@ -486,6 +486,7 @@
 | SRD-GUI-019.008 | FO-GUI-019 | Should | Open in Chart switches to the Chart screen and loads the selected symbol. | click | chart | Uses the chart's own load path | Implemented |
 | SRD-GUI-019.009 | FO-GUI-019 | Must | On every screen, a right panel button click shrinks the sidebar to mini before the panel slides in, and the sidebar stays mini while the panel is open. | right panel click | sidebar mini | Window must not grow past the screen; Expand waits until the panel closes | Implemented |
 | SRD-GUI-019.010 | FO-GUI-019 | Must | No screen's content can make the main window wider than the screen; a screen that needs more room scrolls inside its own area. | any screen, right panel open or closed | window, ✕, right panel and icon strip stay on screen | Found with live data at 1962 px on a 1920 px screen (ISS-GUI-0015) | Implemented |
+| SRD-GUI-019.011 | FO-GUI-019 | Must | Every screen gets exactly the window height, so its top section never scrolls away; tables and panels scroll inside the screen. | any screen, window shorter than the screen's content | no up-down scroll bar on the window; header stays on top | Found on Backtest and AI Desk (ISS-GUI-0019) | Draft |
 
 ## FO-GUI-020 — Charts Workspace
 
@@ -839,6 +840,7 @@
 | SRD-GUI-034.089 | FO-GUI-034 | Should | The AI feed is 400 px wide and is shown or hidden by an AI feed button in the right icon strip, which shows only while Market Floor is open. | click, page | feed shown or hidden | Folded state is kept as before | Implemented |
 | SRD-GUI-034.090 | FO-GUI-034 | Should | The sector rotation panel shows sector names with a colour per quadrant, names moved apart, a dashed tail from 5 trading days ago and numbers on hover; a Map / List switch shows strength bars instead. | rotation rows | map or bars | Switch choice kept while the app runs | Implemented |
 | SRD-GUI-034.091 | FO-GUI-034 | Should | The rotation panel shows strength as a % and a line under each view says what the numbers mean; hover text gives % values without fund codes. | rotation rows | note, % values | Sector lines are equal-weight S&P 500 stocks, not funds | Implemented |
+| SRD-GUI-034.092 | FO-GUI-034 | Should | The Day call and Handover move from the AI Desk Command header to a Today block at the top of the Market Floor AI feed; a long handover shows 2 lines with More / Less. | `decisions`, `day_brief` | Today block | Hidden when company day is off; replaces the header tiles of SRD-GUI-034.078 | Draft |
 
 ## FO-GUI-035: AI Desk Team at Work
 

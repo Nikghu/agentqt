@@ -134,6 +134,8 @@ class MarketFloorWorkspace(QWidget):
     def _reload_feed(self) -> None:
         cards = getattr(self._data, "feed_cards", None)
         self.feed.set_cards(cards() if callable(cards) else None)
+        if self.feed.context.home is not None:
+            self.feed.day_block.refresh(self.feed.context.home)
 
     def showEvent(self, event: QShowEvent | None) -> None:  # noqa: N802
         """Read the feed again each time the page is shown."""

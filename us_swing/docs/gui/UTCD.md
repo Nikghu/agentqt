@@ -623,6 +623,8 @@ Test files:
 | UT-GUI-019.009.M03.T02 | MD-GUI-019.009.M03 | Negative | Expand while a right panel is open keeps the sidebar mini | panel open, user expands, page change | `want_mini` stays True | Pass |
 | UT-GUI-019.010.M03.T01 | MD-GUI-019.010.M03 | Positive | Screens sit in a resizable scroll area | stack of screens | scroll area holds the stack, widget resizable | Pass |
 | UT-GUI-019.010.M03.T02 | MD-GUI-019.010.M03 | Negative | A too-wide screen does not raise the minimum width | screen minimum 2400 px | scroll area minimum width < 1920 | Pass |
+| UT-GUI-019.011.M03.T01 | MD-GUI-019.011.M03 | Positive | A screen taller than the window gets the window height | screen body 3000 px, window 700 px | no up-down bar, scroll range 0, screen height = window area height | Pass |
+| UT-GUI-019.011.M04.T01 | MD-GUI-019.011.M04 | Positive | An AI Desk section scrolls inside its card | Desk settings section | section in an up-down scroll area, no side bar | Pass |
 | UT-GUI-019.004.M02.T01 | MD-GUI-019.006.M02 | Positive | Watchlist box suggests S&P 500 stocks | universe loads after the panel; type "a" | popup list; first match "AAPL - Apple Inc." | Pass |
 | UT-GUI-019.004.M02.T02 | MD-GUI-019.006.M02 | Positive | Picked suggestion adds the symbol | "AAPL - Apple Inc."; Add | `add_to_watchlist("AAPL")` | Pass |
 | UT-GUI-019.004.M02.T03 | MD-GUI-019.006.M02 | Negative | Non-S&P 500 symbol shows the app notice | "AA"; Add | frameless "NOT IN S&P 500" notice, OK only; nothing added | Pass |
@@ -1397,6 +1399,8 @@ Test files:
 | UT-GUI-034.078.M40.T01 | MD-GUI-034.078.M40 | Positive | Day call tile (SRD-GUI-034.078) | on; call Uptrend IT, regime view disagreed, huddle, checked right | tile text has market, sectors, agreed and disagreed names, Huddle and right | Pass |
 | UT-GUI-034.078.M40.T02 | MD-GUI-034.078.M40 | Positive | Handover tile (SRD-GUI-034.078) | on; handover of 2 lines yesterday | tile shows both lines and the day | Pass |
 | UT-GUI-034.078.M40.T03 | MD-GUI-034.078.M40 | Negative | Tiles hidden (SRD-GUI-034.078) | company day off | no Day call or Handover tile | Pass |
+| UT-GUI-034.092.M41.T01 | MD-GUI-034.092.M41 | Positive | Long handover folds (SRD-GUI-034.092) | on; handover of 4 lines | 2 lines and More; More shows all, Less folds again | Pass |
+| UT-GUI-034.092.M41.T02 | MD-GUI-034.092.M41 | Negative | Block moved out of the AI Desk header (SRD-GUI-034.092) | AI feed and AI Desk page | feed has the block; AI Desk page has none | Pass |
 | UT-GUI-035.018.M06.T01 | MD-GUI-035.018.M06 | Positive | Day strip (SRD-GUI-035.018) | on; stand-up 08:10, no huddle, plan 08:12, 11:00 NY, no day-end | Stand-up 08:10, Huddle skipped, Plan 08:12, Market hours waiting, Day-end waiting | Pass |
 | UT-GUI-035.018.M06.T02 | MD-GUI-035.018.M06 | Negative | Strip hidden (SRD-GUI-035.018) | company day off | strip not shown | Pass |
 

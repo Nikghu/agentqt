@@ -1,10 +1,11 @@
 """
 Module: MD-GUI-034.078.M40 — gui/ai_desk_day.py
 Parent SRD: SRD-GUI-034.078
+Also: MD-GUI-034.092.M41 — Today block moved to the AI feed (SRD-GUI-034.092)
 Also: MD-GUI-035.018.M06 — SRD-GUI-035.018 (day strip in Team at work)
 
-Company day views (AI Desk v3 M5): the Day call and Handover tiles in the Command header
-and the day strip of phases in Team at work. Read-only; data from ``core/desk_day.py``.
+Company day views (AI Desk v3 M5): the Today block (Day call and Handover) at the top of
+the AI feed (SRD-GUI-034.092) and the day strip of phases in Team at work. Read-only; data from ``core/desk_day.py``.
 Both hide themselves while the company day is off.
 """
 from __future__ import annotations
@@ -14,13 +15,13 @@ from html import escape
 from pathlib import Path
 
 from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QFrame, QHBoxLayout, QLabel, QWidget
+from PyQt6.QtWidgets import QFrame, QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
 
 from us_swing.core.desk_ai_settings import load_settings
 from us_swing.core.desk_day import DayView, day_phases, day_view, plan_day, skill_names
-from us_swing.gui.ai_desk_console import stat_tile
 from us_swing.gui.theme import C
 
+_PLAIN = "background: transparent; border: none;"
 _RESULT_TONE = {"right": C.GREEN, "wrong": C.RED, "neutral": C.SUBTEXT}
 
 
@@ -44,43 +45,98 @@ def call_text(view: DayView, names: dict[str, str]) -> str:
     return f"{head}<br><span style='font-size: 11px; font-weight: normal;'>{small}</span>"
 
 
-def handover_text(view: DayView) -> str:
-    """Rich text for the Handover tile."""
+def handover_text(view: DayView, limit: int | None = None) -> str:
+    """Rich text for the Handover; ``limit`` keeps only the first lines, with an ellipsis."""
     if not view.handover:
         return "No handover note yet"
-    lines = "<br>".join(escape(line) for line in view.handover)
-    return (f"<span style='font-size: 12px; font-weight: normal;'>{lines}</span><br>"
+    lines = list(view.handover)
+    if limit is not None and len(lines) > limit:
+        lines = lines[:limit]
+        lines[-1] += " …"
+    body = "<br>".join(escape(line) for line in lines)
+    return (f"<span style='font-size: 12px; font-weight: normal;'>{body}</span><br>"
             f"<span style='font-size: 11px; font-weight: normal; color: {C.SUBTEXT};'>"
             f"plan of {view.handover_day}</span>")
 
 
-class DayTiles(QWidget):
-    """The Day call and Handover tiles for the Command header (SRD-GUI-034.078)."""
+class DayTiles(QFrame):
+    """The Today block at the top of the AI feed: Day call and Handover (SRD-GUI-034.092)."""
+
+    FOLDED_LINES = 2
 
     def __init__(self, parent: QWidget | None = None) -> None:
-        """Build both tiles; they stay hidden until ``refresh`` finds the company day on."""
+        """Build the block; it stays hidden until ``refresh`` finds the company day on."""
         super().__init__(parent)
-        row = QHBoxLayout(self)
-        row.setContentsMargins(0, 0, 0, 0)
-        row.setSpacing(10)
-        call_tile, _head, self.call_label = stat_tile("Day call")
-        hand_tile, _head, self.handover_label = stat_tile("Handover")
-        for label in (self.call_label, self.handover_label):
-            label.setWordWrap(True)
-            label.setTextFormat(Qt.TextFormat.RichText)
-        row.addWidget(call_tile, 1)
-        row.addWidget(hand_tile, 2)
+        self.setObjectName("day_block")
+        self.setStyleSheet(f"QFrame#day_block {{ background: {C.SURFACE};"
+                           f" border: 1px solid {C.OVERLAY2}; border-radius: 8px; }}")
+        box = QVBoxLayout(self)
+        box.setContentsMargins(10, 8, 10, 8)
+        box.setSpacing(4)
+        self._view: DayView | None = None
+        self._open = False
+        self.call_label = self._section(box, "Day call")
+        head = self._section_head("Handover")
+        self.more_btn = QPushButton("More")
+        self.more_btn.setFlat(True)
+        self.more_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.more_btn.setStyleSheet(f"QPushButton {{ color: {C.BLUE}; {_PLAIN}"
+                                    " padding: 0 4px; outline: none; }"
+                                    f"QPushButton:hover {{ color: {C.TEXT}; }}")
+        # more button → clicked → block → toggle the full handover
+        self.more_btn.clicked.connect(self._toggle)
+        row = QHBoxLayout()
+        row.setContentsMargins(0, 4, 0, 0)
+        row.addWidget(head)
+        row.addStretch(1)
+        row.addWidget(self.more_btn)
+        box.addLayout(row)
+        self.handover_label = self._value()
+        box.addWidget(self.handover_label)
         self.hide()
+
+    @staticmethod
+    def _section_head(title: str) -> QLabel:
+        head = QLabel(title)
+        head.setStyleSheet(f"color: {C.MUTED}; font-size: 11px; {_PLAIN}")
+        return head
+
+    @staticmethod
+    def _value() -> QLabel:
+        label = QLabel("")
+        label.setWordWrap(True)
+        label.setTextFormat(Qt.TextFormat.RichText)
+        label.setStyleSheet(f"font-size: 13px; font-weight: bold; {_PLAIN}")
+        return label
+
+    def _section(self, box: QVBoxLayout, title: str) -> QLabel:
+        box.addWidget(self._section_head(title))
+        label = self._value()
+        box.addWidget(label)
+        return label
 
     def refresh(self, home: Path) -> None:
         """Read the latest day call and handover again; hide while the company day is off."""
         if not load_settings(home).company_day_on:
             self.hide()
             return
-        view = day_view(home)
-        self.call_label.setText(call_text(view, skill_names(home)))
-        self.handover_label.setText(handover_text(view))
+        self._view = day_view(home)
+        self.call_label.setText(call_text(self._view, skill_names(home)))
+        self._show_handover()
         self.show()
+
+    def _toggle(self) -> None:
+        self._open = not self._open
+        self._show_handover()
+
+    def _show_handover(self) -> None:
+        if self._view is None:
+            return
+        long = len(self._view.handover) > self.FOLDED_LINES
+        self.more_btn.setVisible(long)
+        self.more_btn.setText("Less" if self._open else "More")
+        limit = None if self._open else self.FOLDED_LINES
+        self.handover_label.setText(handover_text(self._view, limit))
 
 
 class DayStrip(QFrame):

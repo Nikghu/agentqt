@@ -68,6 +68,7 @@
 | FO-GUI-019 | SRD-GUI-019.001–008 | DD-GUI-019.001.D01 | MD-GUI-019.001.M01, MD-GUI-019.006.M02, MD-GUI-019.002.M03 | UT-GUI-019.* (10 tests) | `gui/side_panels.py`, `gui/dashboard_panel.py`, `gui/main_window.py` | Implemented | RN-GUI-1.11.0-20261023 |
 | FO-GUI-019 | SRD-GUI-019.009 | — | MD-GUI-019.009.M03 | UT-GUI-019.009.M03.T01–T02 | `gui/main_window.py` | Implemented | RN-GUI-1.37.3-20261027 |
 | FO-GUI-019 | SRD-GUI-019.010 | — | MD-GUI-019.010.M03 | UT-GUI-019.010.M03.T01–T02 | `gui/main_window.py` | Implemented | RN-GUI-1.56.4-20261103 |
+| FO-GUI-019 | SRD-GUI-019.011 | — | MD-GUI-019.011.M03, MD-GUI-019.011.M04 | UT-GUI-019.011.M03.T01, UT-GUI-019.011.M04.T01 | `gui/main_window.py`, `gui/ai_desk.py` | Draft | — |
 | FO-GUI-020 | SRD-GUI-020.001–005 | DD-GUI-020.001.D01 | MD-GUI-020.001.M01 | UT-GUI-020.001.M01.T01–T02, .002.M01.T01, .003.M01.T01–T02, .004.M01.T01 | `gui/chart_workspace.py`, `gui/chart_panel.py`, `gui/screener_panel.py`, `gui/main_window.py` | Implemented | RN-GUI-1.12.0-20261023 |
 | FO-GUI-021 | SRD-GUI-021.001–004 | DD-GUI-021.001.D01 | MD-GUI-021.001.M01 | UT-GUI-021.001.M01.T01–T02, .002.M01.T01–T02, .003.M01.T01, .003.M02.T01, .004.M01.T01–T04, .004.M02.T01–T02 | `gui/settings_panel.py`, `gui/theme.py`, `gui/side_panels.py`, `gui/main_window.py` | Implemented | RN-GUI-1.15.0-20261023 |
 | FO-GUI-022 | SRD-GUI-022.001–012 | DD-GUI-022.001.D01 | MD-GUI-022.001.M01, MD-GUI-003.001.M01 | UT-GUI-022.001.M01.T01–T02, .002.M01.T01–T05, .003.M01.T01–T02, .004.M01.T01, .005.M01.T01, .006.M01.T01, .007.M01.T01–T02, .008.M01.T01, .009.M01.T01–T02, .010.M01.T01–T02, .011.M01.T01–T07 | `gui/screener_views.py`, `gui/screener_panel.py`, `gui/theme.py`, `gui/chart_panel.py`, `gui/ai_transcript_panel.py`, `assets/icons` | Implemented | RN-GUI-1.18.0-20261023, RN-GUI-1.57.0-20261103 |
@@ -180,6 +181,7 @@
 | FO-GUI-034 | SRD-GUI-034.089 | DD-GUI-034.001.D01 | MD-GUI-034.004.M04 | UT-GUI-034.089.M04.T01 (1, Pass) | `gui/market_floor.py`, `gui/floor_feed.py` | Implemented | RN-DSK-0.22.0-20261116 |
 | FO-GUI-034 | SRD-GUI-034.090 | DD-GUI-034.001.D01 | MD-GUI-034.012.M11, MD-GUI-034.047.M27 | UT-GUI-034.090.M11.T01, .090.M27.T01–T02 (3, Pass) | `core/desk_floor.py`, `gui/floor_charts.py` | Implemented | RN-DSK-0.22.0-20261116 |
 | FO-GUI-034 | SRD-GUI-034.091 | DD-GUI-034.001.D01 | MD-GUI-034.047.M27 | UT-GUI-034.091.M27.T01 (1, Pass) | `gui/floor_charts.py` | Implemented | RN-DSK-0.22.0-20261116 |
+| FO-GUI-034 | SRD-GUI-034.092 | — | MD-GUI-034.092.M41 | UT-GUI-034.092.M41.T01–T02 (2, Pass) | `gui/ai_desk_day.py`, `gui/floor_feed.py`, `gui/market_floor.py`, `gui/ai_desk.py` | Draft | — |
 
 ---
 

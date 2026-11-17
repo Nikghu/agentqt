@@ -155,3 +155,34 @@ def test_task_cards_needs_messages(qtbot: QtBot, tmp_path: Path) -> None:
     assert form.task_cards_on.isEnabled()
     form.messages_on.setChecked(False)
     assert not form.task_cards_on.isEnabled()
+
+
+def test_today_block_folds_long_handover(qtbot: QtBot, tmp_path: Path) -> None:
+    """UT-GUI-034.092.M41.T01: A long handover shows 2 lines and More; More shows all, Less folds."""
+    _on(tmp_path)
+    save_day_end(tmp_path, DAY, ["One", "Two", "Three", "Four"], [], "s", NOW)
+    block = DayTiles()
+    qtbot.addWidget(block)
+    block.refresh(tmp_path)
+    assert "One<br>Two …" in block.handover_label.text()
+    assert "Three" not in block.handover_label.text()
+    assert not block.more_btn.isHidden() and block.more_btn.text() == "More"
+    block.more_btn.click()
+    assert "Three<br>Four" in block.handover_label.text()
+    assert block.more_btn.text() == "Less"
+    block.more_btn.click()
+    assert "Three" not in block.handover_label.text()
+
+
+def test_today_block_in_feed_not_desk_header(qtbot: QtBot, tmp_path: Path) -> None:
+    """UT-GUI-034.092.M41.T02: The Today block sits in the AI feed; the AI Desk has no day tiles."""
+    from us_swing.gui.ai_desk import AiDeskWorkspace
+    from us_swing.gui.desk_control import DeskPoller
+    from us_swing.gui.floor_feed import AiFeedColumn
+
+    feed = AiFeedColumn()
+    qtbot.addWidget(feed)
+    assert isinstance(feed.day_block, DayTiles)
+    page = AiDeskWorkspace(DeskPoller(tmp_path))
+    qtbot.addWidget(page)
+    assert not page.findChildren(DayTiles)
