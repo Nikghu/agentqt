@@ -1,7 +1,7 @@
 # Module Decomposition — GUI Module (GUI)
 
 **Document ID:** MD-GUI
-**Version:** 1.55.1
+**Version:** 1.56.0
 **Traces To:** SRD-GUI v2.16.0 / DD-GUI v1.7.0
 **Status:** Draft
 **Last Updated:** 2026-09-17
@@ -335,6 +335,8 @@ us_swing/src/us_swing/gui/
 | MD-GUI-025.016.M04 | SRD-GUI-025.016 | `us_swing/src/us_swing/gui/position_table_model.py` | Side column; "No stop" / "—" for unset stop and target (extends MD-GUI-002.001.M02) | `PositionTableModel.COLUMNS`, `data()` | PyQt6 | No |
 | MD-GUI-025.013.M03 | SRD-GUI-025.013 | `us_swing/src/us_swing/gui/performance_band.py` | Equity band and chart; exposure bars, totals and chart | `PerformanceBand`, `EquityChart`, `change_text()`, `ExposureView`, `ExposureChart`, `exposure_bars()`, `market_value()`, `RANGES`, `MAX_BARS` | strategy_pnl_chart (`money`, `nice_ticks`), screener_views (`ChipGroup`), PyQt6 | No |
 | MD-GUI-025.019.M05 | SRD-GUI-025.019 | `us_swing/src/us_swing/gui/watchlist_store.py` | Per-user saved lists (watchlist, Market Watch tile), one file each, atomic write; `AppService` loads both at start and saves on add and remove | `load_watchlist()`, `save_watchlist()` | json, os, logging | No | Implemented |
+| MD-GUI-025.022.M06 | SRD-GUI-025.022 | `us_swing/src/us_swing/gui/sector_rotation.py` | Sector moves against RSP and the ranked bar view | `SectorRotationView`, `sector_moves()`, `SectorMove`, `SECTOR_ETFS`, `SECTOR_SYMBOLS`, `RANGE_DAYS` | dashboard_tiles (`PnlBar`), PyQt6 | No | Implemented |
+| MD-GUI-025.023.M07 | SRD-GUI-025.023 | `us_swing/src/us_swing/gui/app_service.py` | Daily closes read for sectors; candle download fetches RSP and sector ETFs after SPY | `AppService.get_daily_closes()`, `_CandleDownloadWorker(sector_symbols=...)` | sqlite3, sector_rotation | No | Implemented |
 | MD-GUI-000.007.M01 | SRD-GUI-000.007 | `us_swing/src/us_swing/gui/quiet_platform.py` | Replaces `platform._syscmd_ver` with a `sys.getwindowsversion()` answer; called from `run_gui.py` (PyInstaller hook removed 2026-11-17, ISS-GUI-0020) | `install()` | platform, sys | No | Implemented |
 | MD-GUI-000.008.M01 | SRD-GUI-000.008 | `us_swing/src/us_swing/gui/theme.py` | Theme id read from disk once and kept in memory; `save_theme_id` updates it | `load_theme_id()`, `save_theme_id()` | pathlib | No | Implemented |
 | MD-GUI-000.008.M02 | SRD-GUI-000.008 | `us_swing/src/us_swing/gui/chart_source_list.py` | `SourceList` skips tick refreshes while hidden and catches up in `showEvent` | `_refresh_if()`, `showEvent()` | AppService | No | Implemented |

@@ -126,6 +126,7 @@ from us_swing.backtest.planner import Job, plan
 from us_swing.backtest.schedule import delta_due
 from us_swing.backtest.settings import BacktestDataSettings, DownloadState
 from us_swing.backtest.steps.stocks import BENCHMARK
+from us_swing.gui.sector_rotation import SECTOR_SYMBOLS
 from us_swing.backtest.store import BacktestStore
 from us_swing.gui.manual_picks_store import load_manual_picks, save_manual_picks
 from us_swing.gui.user_store import load_users, next_user_id, save_users
@@ -734,6 +735,10 @@ class _CandleDbStatusWorker(QThread):
             syms_1d, total_1d, first_1d, _ = _stats("price_1d")
             syms_1w, total_1w, first_1w, last_1w = _stats("price_1w")
             last_1d = _oldest_last_candle_date(conn, self._symbols)
+            have = {row[0] for row in conn.execute("SELECT DISTINCT symbol FROM price_1d")}
+            sectors_missing = any(  # SRD-GUI-025.023: a missing sector ETF needs an update
+                sym in self._symbols and sym not in have for sym in SECTOR_SYMBOLS
+            )
             conn.close()
 
             # Aggregate across both timeframes
@@ -749,6 +754,7 @@ class _CandleDbStatusWorker(QThread):
                     and total_syms / self._universe_size >= _CANDLE_COVERAGE_THRESHOLD
                 )
                 date_ok = last_date == ltd_str if last_date else False
+                date_ok = date_ok and not sectors_missing
                 status = CandleDbStatus.CURRENT if (coverage_ok and date_ok) else CandleDbStatus.PARTIAL
 
             self.done.emit(CandleDbInfo(
@@ -835,6 +841,7 @@ class _CandleDownloadWorker(QThread):
         ibkr_port:        int,
         ibkr_client_id:   int,
         benchmark_symbol: str = "SPY",
+        sector_symbols:   tuple[str, ...] = SECTOR_SYMBOLS,
     ) -> None:
         super().__init__()
         self._symbols          = symbols
@@ -845,6 +852,7 @@ class _CandleDownloadWorker(QThread):
         self._ibkr_port        = ibkr_port
         self._ibkr_client_id   = ibkr_client_id
         self._benchmark_symbol = benchmark_symbol
+        self._sector_symbols   = sector_symbols
         self._stop_flag        = False
 
     def request_stop(self) -> None:
@@ -944,10 +952,13 @@ class _CandleDownloadWorker(QThread):
         _ensure_candle_tables(conn)
         conn.close()
 
-        # ── Benchmark symbol (SPY) — downloaded first, before the universe loop ─
+        # ── Benchmark (SPY), RSP and sector ETFs — before the universe loop ───
         if self._mode in ("full", "delta"):
-            if self._benchmark_symbol:
-                await self._download_benchmark(ib, self._benchmark_symbol)
+            extra = (self._benchmark_symbol, *self._sector_symbols)  # SRD-GUI-025.023
+            for symbol in dict.fromkeys(s for s in extra if s):
+                if self._stop_flag:
+                    return
+                await self._download_benchmark(ib, symbol)
 
         # Duration strings for IBKR reqHistoricalData
         # IBKR rule: durations > 365 days must be expressed in years.
@@ -4121,6 +4132,34 @@ class AppService(QObject):
         except Exception:
             return {}
 
+    def get_daily_closes(
+        self, symbols: tuple[str, ...], count: int
+    ) -> dict[str, dict[str, float]]:
+        """Last ``count`` daily closes per symbol, keyed by ISO date (SRD-GUI-025.022).
+
+        A symbol without candles is left out; an unreadable database gives an empty dict.
+        """
+        if not _CANDLE_DB_PATH.exists():
+            return {}
+        closes: dict[str, dict[str, float]] = {}
+        try:
+            conn = sqlite3.connect(str(_CANDLE_DB_PATH))
+            try:
+                for symbol in symbols:
+                    rows = conn.execute(
+                        "SELECT datetime, close FROM price_1d WHERE symbol = ? "
+                        "ORDER BY datetime DESC LIMIT ?",
+                        (symbol, count),
+                    ).fetchall()
+                    if rows:
+                        closes[symbol] = {dt[:10]: float(close) for dt, close in rows}
+            finally:
+                conn.close()
+        except sqlite3.Error:
+            _log.warning("[Sectors] Could not read sector candles from the local database")
+            return {}
+        return closes
+
     def get_candle_symbols(self) -> list[str]:
         """Return sorted list of all symbols that have data in price_1d."""
         if not _CANDLE_DB_PATH.exists():
@@ -4456,12 +4495,13 @@ class AppService(QObject):
             # Delta mode: only stocks behind the last trading day (SRD-GUI-006.023)
             if mode == "delta":
                 behind = self._candle_stocks_behind(all_symbols, end_date)
-                if not behind:
+                sectors_behind = self._candle_stocks_behind(list(SECTOR_SYMBOLS), end_date)
+                if not behind and not sectors_behind:
                     self.log_message.emit(
                         "INFO", "[CandleDB] All stocks are already up to date"
                     )
                     return
-                all_symbols, last = behind
+                all_symbols, last = behind or ([], None)  # sectors: SRD-GUI-025.023
                 if last:
                     start_date = last + datetime.timedelta(days=1)
 
@@ -4568,13 +4608,16 @@ class AppService(QObject):
         return behind, datetime.date.fromisoformat(last) if last else None
 
     def _candle_check_symbols(self) -> list[str]:
-        """Index stocks that decide whether candles are current (SRD-GUI-006.020).
+        """Index stocks and sector ETFs that decide whether candles are current.
+
+        SRD-GUI-006.020; sector ETFs and RSP per SRD-GUI-025.023.
 
         Stocks in the failed list are left out so one stock IBKR no longer
         knows cannot keep the database behind forever.
         """
         failed = set(self.get_failed_symbols())
-        return [r.symbol for r in self._sp500 if r.symbol not in failed]
+        symbols = [r.symbol for r in self._sp500] + list(SECTOR_SYMBOLS)
+        return [s for s in symbols if s not in failed]
 
     def _on_candle_status_done(self, info: object) -> None:
         self.candle_db_status_changed.emit(info)

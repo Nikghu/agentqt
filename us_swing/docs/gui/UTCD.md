@@ -772,6 +772,16 @@ Test files:
 | UT-GUI-025.020.M02.T01 | MD-GUI-025.001.M02 | Positive | Tile and right panel separate | tile TSLA; watchlist AAPL, NVDA | tile 1 row; right panel 2 rows | Pass |
 | UT-GUI-025.020.M02.T02 | MD-GUI-025.001.M02 | Positive | Tile accepts any stock | type pltr on tile | added to tile list, not watchlist | Pass |
 | UT-GUI-025.020.M02.T03 | MD-GUI-025.001.M02 | Positive | Screener add goes to watchlist | Screener add AAPL | watchlist add; tile list unchanged | Pass |
+| UT-GUI-025.021.M02.T01 | MD-GUI-025.001.M02 | Positive | Sector Rotation tab swaps view and tools | click Sector Rotation, then 1W, then Market Watch | sector view shown; range chips shown, watch tools hidden; reads 26 then 10 closes; back restores tools | Pass |
+| UT-GUI-025.022.M06.T01 | MD-GUI-025.022.M06 | Positive | Moves ranked against RSP | RSP +2%, XLK +5%, XLE −1% | XLK +3.00, XLE −3.00; end date returned | Pass |
+| UT-GUI-025.022.M06.T02 | MD-GUI-025.022.M06 | Negative | Too few RSP closes | 3 closes, range 3; no data | no moves, empty date | Pass |
+| UT-GUI-025.022.M06.T03 | MD-GUI-025.022.M06 | Edge | Sector missing the start day | XLF without start close | XLF left out | Pass |
+| UT-GUI-025.022.M06.T04 | MD-GUI-025.022.M06 | Positive | Bars and date shown | +4.0, −1.0; 2026-11-12 | fractions 1.0, −0.25; "12-11-2026" in note | Pass |
+| UT-GUI-025.022.M06.T05 | MD-GUI-025.022.M06 | Edge | No moves | [] | empty text shown; no bars | Pass |
+| UT-GUI-025.022.M07.T01 | MD-GUI-025.023.M07 | Positive | Daily closes read | RSP 3 closes, ask 2; XLK missing | last 2 RSP closes by date; XLK left out | Pass |
+| UT-GUI-025.023.M07.T01 | MD-GUI-025.023.M07 | Positive | Candle update fetches sectors | delta run, benchmark SPY | SPY, RSP and 11 ETFs fetched, 13 in all | Pass |
+| UT-GUI-025.023.M07.T02 | MD-GUI-025.023.M07 | Negative | Missing sector ETF is not up to date | stocks current, no sector candles | status PARTIAL (Update now enabled) | Pass |
+| UT-GUI-025.023.M07.T03 | MD-GUI-025.023.M07 | Positive | Stocks and sector ETFs current | all on last trading day | status CURRENT | Pass |
 
 ## FO-GUI-026 — Charts Workspace (Focus + Inspector)
 

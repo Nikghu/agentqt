@@ -2,6 +2,17 @@
 
 ---
 
+## [20261117] GUI — Sector Rotation tab in the Market Watch tile (FO-GUI-025)
+
+- Type: Feature
+- FO(s): FO-GUI-025 (SRD-GUI-025.021–.023)
+- RN: RN-GUI-2.1.0-20261117
+- Artifacts updated: SRD (3 rows), DD-GUI-025.001.D01 paragraph, MD-GUI-025.022.M06 and .023.M07, UTCD 8 rows, TRACE, TODO T199
+- Decisions (user): tab beside Market Watch; ranked bars; benchmark RSP equal-weight; sector ETFs added to the daily candle update. Range 1W/1M/3M with 1M default chosen by Claude.
+- Known: tab is empty until a TWS candle update; 12 more IBKR history requests per update
+
+---
+
 ## [20261117] GUI — P&L by Strategy tile: hide empty rows, fix cut-off text (FO-GUI-025)
 
 - Type: Bug
