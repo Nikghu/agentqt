@@ -1,12 +1,13 @@
 # Functional Objectives — Execution & Risk Management (EXE)
 
 **Document ID:** FO-EXE
-**Version:** 1.14.0
+**Version:** 1.17.0
 **Status:** Draft
 **Last Updated:** 2026-10-23
 **Project:** US Swing Trading System
 
 > Traces to: `us_swing/requirements.md` §10, §11, §12, §13, §21.4, §22, §23, §25
+> v1.17.0: AI Desk and Market Floor removed (user, 2026-11-17; docs/audit/DESK_REMOVAL_2026-11-17.md): FO-EXE-021 removed.
 > v1.9.0: FO-EXE-014 added — Broker Order State Machine (Final_Execution.md Phase 3 split of `PositionState` into `BuyOrderState` + `SellOrderState`; `trades.pnl` and `positions.state` removed).
 > v1.10.0: FO-EXE-015 added — Broker-Agnostic Order Ingestion & Adapter (Broker_fix.md Phases 2/5/6).
 > v1.15.0: FO-EXE-020 added — Account Equity Snapshots (approved by user 2026-10-24).
@@ -675,28 +676,3 @@ The system shall save each user's account equity every 5 minutes while the marke
 2. Saving twice in the same slot keeps one row with the latest values.
 3. Reading "all users" returns one point per slot with summed equity.
 
----
-
-## FO-EXE-021: AI Desk Signal Intake
-
-**Status:** Implemented (RN-MKT-0.9.0-20261106)
-**Priority:** Should
-**Depends on:** FO-EXE-011 (Strategy Engine pending signals), FO-EXE-017 (capital-max sizing), FO-EXE-018 (short direction)
-**Source:** User chose (2026-11-06) that an approved AI Desk pick becomes a pending signal under one fixed "AI Desk" strategy, sized by Capital Max, with a 2R target.
-**Cross-tool impact (notes, not EXE IDs):** MKT — trade picks and approvals (FO-MKT-008); GUI — Approve / Reject rows in AI Desk Command (FO-GUI-034).
-
-The system shall take a pick the Master user approved in AI Desk and add it to Execution as a pending entry signal. The user still places the order with the Execute action.
-
-- The system shall keep one fixed strategy, "AI Desk", that owns every signal from approved picks and never makes signals by itself.
-- The system shall build one pending entry signal from an approved pick with its direction, entry, stop and target.
-- The system shall size the signal with the AI Desk strategy's Capital Max, as for other strategies.
-- The system shall keep only one signal when the same pick is sent twice.
-- The system shall remove a desk signal that is not executed by the close of its trading day.
-
-### Acceptance Criteria
-
-1. Approving a long pick adds one pending entry signal owned by AI Desk with quantity from Capital Max sizing.
-2. Approving a short pick adds one pending SHORT entry signal.
-3. Sending the same pick twice leaves one signal.
-4. At the close of the trading day, desk signals that were not executed are gone.
-5. AI Desk shows in Strategies with auto trade off and an editable Capital Max.

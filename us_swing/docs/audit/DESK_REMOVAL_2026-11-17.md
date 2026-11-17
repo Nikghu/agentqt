@@ -38,11 +38,11 @@ The user approved removing these FOs and all their SRDs, including the Approved,
 | Step | Work | PR |
 |---|---|---|
 | 0 | Tag `desk-final`; back up `~/.usswing/desk` to `~/.usswing/desk_backup_20261117` | Done (no PR) |
-| 1 | This note + TODO rows | `chore/desk-removal-requirements` |
-| 2 | Cut desk and Floor links from `main_window`, `app_service`, `broker_adapter`, `strategy_engine/_engine`, `__main__` | — |
-| 3 | Delete `desk/`, `market/`, `core/desk_*`, GUI desk and Floor files, `execution/desk_signals.py`, and their tests | — |
-| 4 | Clean `USSwing.spec`, installer files, `pyproject.toml` (`pypdf`), MODULE_MAP files | — |
-| 5 | Delete `docs/desk`, `docs/market`, `docs/agt`; remove the GUI and EXE rows above and TRACE rows; write the RN | — |
+| 1 | This note + TODO rows | #155 |
+| 2 | Cut desk and Floor links from `main_window`, `app_service`, `broker_adapter`, `strategy_engine/_engine`, `__main__` | #156 |
+| 3 | Delete `desk/`, `market/`, `core/desk_*`, GUI desk and Floor files, `execution/desk_signals.py`, and their tests | #157 |
+| 4 | Clean `USSwing.spec`, installer files, `pyproject.toml` (`pypdf`), MODULE_MAP files | #158 |
+| 5 | Delete `docs/desk`, `docs/market`, `docs/agt`; remove the GUI and EXE rows above and TRACE rows; write the RN (RN-GUI-2.0.0-20261117) | #159 |
 | 6 | Delete the "AI Desk" strategy, its cycles and pending signals, and the `~/.usswing/desk` folder | — |
 
 Each step must pass ruff, mypy --strict, the full pytest run, and an app start check before its PR.
