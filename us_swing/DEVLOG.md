@@ -6,7 +6,7 @@
 
 - Type: Bug
 - FO(s): FO-GUI-000
-- RN: none (small fix; ISS file holds the detail)
+- RN: RN-GUI-1.65.1-20261117
 - Artifacts updated: SRD-GUI-000.010 (Draft), MD-GUI-000.010.M01, UTCD (3 cases Pass), TRACE, ISS-GUI-0020, TODO T191, CONTEXT. Branch fix/gui-startup-flash.
 - Decisions: hide a new widget only when needed, never `setVisible(cond)` before it has a parent (same as 982d38e5); `pyi_rth_quiet_platform.py` removed on user's call (installer console-flash check T192).
 - Known: pre-existing ruff unused imports and mypy errors in `screener_panel.py` left alone; PR #153 merged before this work.
