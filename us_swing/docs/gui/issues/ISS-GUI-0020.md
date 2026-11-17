@@ -32,7 +32,7 @@ Same kind of flash as the AI feed fix (982d38e5): small windows show for a split
 
 ## Console flash hook (`pyi_rth_quiet_platform.py`)
 
-Checked and kept. It stops a different flash: a console window from Python's Windows-version check. Python 3.11 (the app's version) still runs `cmd /c ver` in `platform.win32_ver()`; only Python 3.12+ reads the version without it. Remove the hook only after moving to Python 3.12+.
+Removed on the user's call (2026-11-17), with its entries in `USSwing.spec` and `usswing_installer.yaml`. `run_gui.py` still calls `quiet_platform.install()`. Risk: in the built app the bundled setuptools hook runs before `run_gui.py`, and Python 3.11 still runs `cmd /c ver` in `platform.win32_ver()`, so a console flash at start may return (ISS-GUI-0008). Check with a built installer (T192); if it flashes, restore the hook from git. SRD-GUI-000.007 (Implemented) left as is.
 
 ## User step
 
