@@ -23,8 +23,8 @@ The AI Desk and the Market Floor were removed, because the AI Desk was not built
 | 2 | Cut desk and Floor links from the app | #156 |
 | 3 | Delete desk and Floor code and tests (295 files) | #157 |
 | 4 | Clean the PyInstaller spec, `pyproject.toml` and MODULE_MAP files | #158 |
-| 5 | Remove the desk docs and rows (this note) | this PR |
-| 6 | Delete the AI Desk strategy, its trades and the desk data folder | next |
+| 5 | Remove the desk docs and rows (this note) | #159 |
+| 6 | Delete the AI Desk strategy row (no cycles or saved signals existed), `~/.usswing/desk` and `floor_layouts.json`; backups in `desk_backup_20261117` | #160 |
 
 ---
 

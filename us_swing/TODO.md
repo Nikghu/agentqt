@@ -2,7 +2,7 @@
 
 **Document:** TODO.md
 **Project:** us_swing
-**Last Updated:** 2026-11-17 (Session 153)
+**Last Updated:** 2026-11-17 (Session 154)
 
 ---
 
@@ -206,4 +206,4 @@ Short, living task list. Keep each description ≤ 50 words; cite module + prior
 | T194 | DSK — AI Desk removal step 3: delete desk, market, core desk modules, GUI desk and Floor files, desk signals, and their tests. | `desk/`, `market/`, `core/desk_*`, `gui/` | High | Done |
 | T195 | DSK — AI Desk removal step 4: clean the PyInstaller spec, installer files, pypdf dependency and MODULE_MAP files; build and start the installed app. | `USSwing.spec`, `pyproject.toml` | Medium | Done |
 | T196 | DSK — AI Desk removal step 5: delete desk, market and agt docs; remove FO-GUI-034..041 and FO-EXE-021 rows and TRACE rows; write the RN. | `docs/` | Medium | Done |
-| T197 | DSK — AI Desk removal step 6: delete the AI Desk strategy, its cycles and pending signals, and the desk data folder (backup kept at desk_backup_20261117). | `user data` | Medium | Open |
+| T197 | DSK — AI Desk removal step 6: delete the AI Desk strategy, its cycles and pending signals, and the desk data folder (backup kept at desk_backup_20261117). | `user data` | Medium | Done |
