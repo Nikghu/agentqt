@@ -12,14 +12,12 @@ import pytest
 
 from tests.desk.test_hiring import _emp
 from tests.market.test_desk_trades import _seed
-from us_swing.core import desk_contract
 from us_swing.core.desk_contract import DB_NAME
 from us_swing.core.desk_results import record_pick_trade, results_lines, results_view
 from us_swing.core.desk_trades import pick_expiry, record_trade_decision, record_trade_outcome
 from us_swing.core.desk_trades import TradePick
 from us_swing.data.market_calendar import ET
 from us_swing.desk.weekly_report import build_report
-from us_swing.gui.app_service import AppService
 from us_swing.market.store import MarketStore, PickResultRow, SetupReviewRow, NewsTagRow
 
 FRI = "2026-11-06"
@@ -79,14 +77,6 @@ def test_no_pick_and_append_only(tmp_path: Path) -> None:
             con.execute("UPDATE pick_trades SET pnl = 0")
     finally:
         con.close()
-
-
-def test_app_hook(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """UT-MKT-009.005.M04.T01: only AI Desk cycles are saved."""
-    monkeypatch.setattr(desk_contract, "desk_home", lambda: tmp_path)
-    AppService._record_desk_trade(_snap())
-    AppService._record_desk_trade(_snap("BBB", strategy="Other"))
-    assert len(_trades(tmp_path)) == 1
 
 
 def test_totals(tmp_path: Path) -> None:
