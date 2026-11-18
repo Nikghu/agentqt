@@ -27,6 +27,7 @@ _VALID_STYLES:     frozenset[str] = frozenset({"swing", "day", "position"})
 _VALID_TIMEFRAMES: frozenset[str] = frozenset({"1d", "1w"})
 _AI_QUERY_MAX_LEN: int = 500
 _MODEL_RE = re.compile(r"^[a-z0-9_.\-]+/[a-z0-9_.\-]+$")
+_AI_PROVIDERS: frozenset[str] = frozenset({"openrouter", "claude"})
 
 
 class PresetType(str, Enum):
@@ -102,6 +103,8 @@ class Preset:
     # legacy hardcoded-prompt path for backward compatibility.
     ai_query: str = ""
     ai_model: str = _DEFAULT_AI_MODEL
+    # SRD-SCR-013.010: "openrouter" or "claude" (Claude Code CLI).
+    ai_provider: str = "openrouter"
 
     # ------------------------------------------------------------------
     # Serialization
@@ -128,6 +131,7 @@ class Preset:
             "top_n": self.top_n,
             "ai_query": self.ai_query,
             "ai_model": self.ai_model,
+            "ai_provider": self.ai_provider,
         }
 
     @classmethod
@@ -151,7 +155,8 @@ class Preset:
             enable_llm_ranking=data.get("enable_llm_ranking", False),
             top_n=data.get("top_n", 5),
             ai_query=data.get("ai_query", ""),
-            ai_model=_migrate_ai_model(data.get("ai_model", _DEFAULT_AI_MODEL)),
+            ai_model=_load_ai_model(data),
+            ai_provider=data.get("ai_provider", "openrouter"),
         )
 
     # ------------------------------------------------------------------
@@ -171,7 +176,9 @@ class Preset:
                 f"Must be one of {sorted(_VALID_TIMEFRAMES)}."
             )
         _validate_ai_query(self.ai_query)
-        _validate_ai_model(self.ai_model)
+        _validate_ai_provider(self.ai_provider)
+        if self.ai_provider == "openrouter":
+            _validate_ai_model(self.ai_model)
         if self.preset_type == PresetType.COMPOSITE:
             _validate_composite(self)
         elif self.preset_type == PresetType.WEIGHTED:
@@ -249,6 +256,21 @@ def _validate_ai_model(model: str) -> None:
         raise PresetValidationError(
             f"ai_model must be 'provider/model-name' format, got {model!r}."
         )
+
+
+def _validate_ai_provider(provider: str) -> None:
+    if provider not in _AI_PROVIDERS:
+        raise PresetValidationError(
+            f"ai_provider must be one of {sorted(_AI_PROVIDERS)}, got {provider!r}."
+        )
+
+
+def _load_ai_model(data: dict[str, Any]) -> str:
+    """Saved model; OpenRouter presets get old Anthropic-native IDs rewritten."""
+    raw = str(data.get("ai_model", _DEFAULT_AI_MODEL))
+    if data.get("ai_provider", "openrouter") != "openrouter":
+        return raw
+    return _migrate_ai_model(raw)
 
 
 def _migrate_ai_model(raw: str) -> str:

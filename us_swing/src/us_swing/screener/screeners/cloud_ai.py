@@ -1,6 +1,6 @@
 """
 Module: MD-SCR-002.003.M06 — screeners/cloud_ai.py
-Parent SRD: SRD-SCR-002.005, SRD-SCR-013.005
+Parent SRD: SRD-SCR-002.005, SRD-SCR-013.005, SRD-SCR-013.011
 
 Provider-agnostic Cloud AI ranking screener (Stage 3).
 
@@ -10,7 +10,8 @@ is empty, a single-shot ranking prompt runs (legacy behaviour).  When
 non-empty, a tool-augmented multi-turn agentic loop runs: the model can
 call ``get_candle_data`` via ``CandleToolExecutor`` to inspect daily/weekly
 OHLCV before scoring, and returns per-symbol reasoning (≤ 50 words)
-alongside scores.
+alongside scores.  When ``config['ai_provider'] == "claude"``, one Claude Code
+CLI request ranks the stocks instead (no tool calls).
 
 The API key is loaded from the OS keychain at call time — never read from
 ``config`` and never serialised to disk.
@@ -33,6 +34,7 @@ except ImportError:  # pragma: no cover
     APIStatusError = Exception  # type: ignore[misc,assignment]  # sentinel for except clause
     RateLimitError = Exception  # type: ignore[misc,assignment]  # sentinel for except clause
 
+from us_swing.core.notifications import AiConfig, ask_ai
 from us_swing.screener.screeners import _api_key_store
 from us_swing.screener.screeners._cloud_ai_models import (
     DEFAULT_MODEL,
@@ -54,6 +56,7 @@ _AGENTIC_MAX_TURNS: Final[int] = 8
 _REQUEST_TIMEOUT_S: Final[float] = 60.0
 _RETRY_DELAYS_S: Final[tuple[float, ...]] = (1.0, 3.0, 7.0)
 _RETRY_STATUSES: Final[frozenset[int]] = frozenset({429, 502, 503, 504})
+_CLAUDE_TIMEOUT_S: Final[float] = 180.0
 
 _RSLP_ENC: Final[dict[str, str]] = {"rising": "R", "falling": "F", "flat": "="}
 _VOL_ENC: Final[dict[str, str]] = {"expanding": "EXP", "contracting": "CON", "neutral": "NEU"}
@@ -385,6 +388,8 @@ class CloudAIScreener:
         self.last_plan = {}
         self.last_transcript = []
         ai_query = str(config.get("ai_query", "")).strip()
+        if config.get("ai_provider") == "claude":
+            return self._apply_claude(symbols, bars, config, ai_query)
         if ai_query:
             return self._apply_with_tools(symbols, bars, config, ai_query)
         return self._apply_legacy(symbols, bars, config)
@@ -540,6 +545,59 @@ class CloudAIScreener:
             return fallback
 
         return _scores_to_results(symbols, raw_scores)
+
+    # ------------------------------------------------------------------
+    # Claude Code CLI single-request path
+    # ------------------------------------------------------------------
+
+    def _apply_claude(
+        self,
+        symbols: list[str],
+        bars: dict[str, list[OHLCVBar]],
+        config: dict[str, Any],
+        ai_query: str,
+    ) -> dict[str, tuple[bool, float]]:
+        """Rank in one Claude Code CLI request; the CLI has no tool loop (SRD-SCR-013.011)."""
+        ai_config = AiConfig(claude_model=str(config.get("ai_model") or AiConfig().claude_model))
+        instruction = _claude_instruction(ai_query)
+        facts = (
+            f"Symbols passing Stage 2: {', '.join(symbols)}\n\n"
+            f"Pre-extracted features:\n{_features_to_table(self.batch_features(symbols, bars))}"
+        )
+        fallback = {sym: (True, 0.0) for sym in symbols}
+        sent_iso = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        self.last_transcript = [
+            AITranscriptTurn(role="system", content=instruction),
+            AITranscriptTurn(
+                role="user",
+                content=f"Analysing technical data for: {', '.join(symbols)}",
+                sent_at=sent_iso,
+            ),
+        ]
+        answer = ask_ai(ai_config, instruction, facts, _CLAUDE_TIMEOUT_S)
+        if answer.error:
+            _log.warning("[Screener] AI ranking by Claude Code CLI failed: %s", answer.error)
+            self.last_transcript.append(AITranscriptTurn(
+                role="system",
+                content=f"AI ranking unavailable: {answer.error}. "
+                        f"Falling back to Stage 2 results.",
+            ))
+            return fallback
+        self.last_transcript.append(AITranscriptTurn(
+            role="assistant",
+            content=_strip_codefence(answer.text),
+            sent_at=sent_iso,
+            received_at=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            response_time_ms=int(answer.seconds * 1000),
+        ))
+        result = self._parse_ranking(answer.text, symbols, fallback)
+        if result is fallback:
+            self.last_transcript.append(AITranscriptTurn(
+                role="system",
+                content="AI ranking unavailable: the answer was not a valid ranking. "
+                        "Falling back to Stage 2 results.",
+            ))
+        return result
 
     # ------------------------------------------------------------------
     # Tool-augmented multi-turn path
@@ -798,13 +856,30 @@ def _tool_system_prompt(ai_query: str) -> str:
         f"according to the user's query: {ai_query!r}.\n\n"
         "Use the get_candle_data tool to inspect daily or weekly bars "
         "when the pre-extracted features are insufficient.  When ready, "
-        "respond with ONLY a JSON array (no prose) of the form:\n"
-        '[{"symbol": "TICK", "score": 0.0..1.0, '
-        '"reasoning": "≤ 50 words", '
-        '"entry": price, "stop": price, "target": price}, ...]\n'
-        "entry, stop and target are optional trade-plan prices; "
-        "omit all three when there is no clear setup."
+        + _RANKING_FORMAT
     )
+
+
+def _claude_instruction(ai_query: str) -> str:
+    """Return the one-request ranking prompt for Claude Code CLI (no tools)."""
+    goal = (
+        f"according to the user's query: {ai_query!r}" if ai_query
+        else "by swing-trade suitability"
+    )
+    return (
+        f"You are a swing-trade analyst.  Rank the supplied stocks {goal}, "
+        "using the pre-extracted features given.  " + _RANKING_FORMAT
+    )
+
+
+_RANKING_FORMAT: Final[str] = (
+    "respond with ONLY a JSON array (no prose) of the form:\n"
+    '[{"symbol": "TICK", "score": 0.0..1.0, '
+    '"reasoning": "≤ 50 words", '
+    '"entry": price, "stop": price, "target": price}, ...]\n'
+    "entry, stop and target are optional trade-plan prices; "
+    "omit all three when there is no clear setup."
+)
 
 
 def _plan_from_entry(entry: dict[str, Any]) -> dict[str, float]:

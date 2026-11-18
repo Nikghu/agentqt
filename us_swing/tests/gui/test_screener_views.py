@@ -301,6 +301,28 @@ def test_side_drawer_opens_and_closes(qtbot):
     assert not drawer.is_open and closed == [True]
 
 
+_ACC_DIST = {"PGR": {"score": 1.0, "details": {"RallyVol": 1.34, "DropVol": 1.67, "UD": 0.77}}}
+
+
+def test_numeric_details_get_plain_names():
+    """UT-GUI-022.013.M01.T01: Acc / Dist numbers show plain names, units and tooltips."""
+    row = rows_from_result(_ACC_DIST)[0]
+    assert [(r.name, r.value) for r in row.rules] == [
+        ("Rally volume", "1.34×"), ("Drop volume", "1.67×"), ("Up/down ratio", "0.77")]
+    assert all(r.passed is None and r.tip for r in row.rules)
+    assert row.rule_count == 0 and row.rules_text == ""
+
+
+def test_numbers_only_show_details_heading(qtbot):
+    """UT-GUI-022.013.M01.T02: A stock with only numbers shows "DETAILS", not "0 OF 3"."""
+    view = ListDetailView()
+    qtbot.addWidget(view)
+    view.load(rows_from_result(_ACC_DIST))
+    assert view.rules_head.text() == "DETAILS"
+    mixed = rows_from_result({"X": {"score": 0.5, "details": {"UD": 0.9, "NR7_x": True}}})[0]
+    assert mixed.rule_count == 1 and mixed.rules_text == "1/1"
+
+
 def test_list_row_and_plan_details(qtbot):
     """UT-GUI-022.011.M01.T01: Company name, rules count and risk / reward lines."""
     rows = rows_from_result(_RESULTS, {"NVDA": "NVIDIA Corp"})
@@ -309,7 +331,7 @@ def test_list_row_and_plan_details(qtbot):
     qtbot.addWidget(view)
     view.load(rows)
     assert view.meta_lbl.text().startswith("NVIDIA Corp · rank 1 of 3")
-    assert view.rules_head.text() == "RULES · 1 OF 3"
+    assert view.rules_head.text() == "RULES · 1 OF 2"  # RSI is a number, not a rule
     assert view.risk_lbl.text() == "Risk $10.00 per share"
     assert view.reward_lbl.text() == "Reward $33.00 per share"
     assert not view.rr_bar.isHidden() and abs(view.rr_bar.risk_share - 10 / 43) < 1e-9

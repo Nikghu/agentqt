@@ -1,6 +1,6 @@
 """
 Module: MD-GUI-003.001.M01 — screener_panel.py  (v2 — Phase 5 GUI integration)
-Parent SRD: SRD-SCR-007.001–012, SRD-SCR-004.007
+Parent SRD: SRD-SCR-007.001–012, SRD-SCR-004.007, SRD-GUI-022.014
 
 Screener Panel — Preset-based v2 (layout: SRD-GUI-022.008–.012):
   ┌──────────────────────┬───────────────────────────────────────────────────┐
@@ -37,6 +37,7 @@ from PyQt6.QtWidgets import (
     QButtonGroup,
     QCheckBox,
     QComboBox,
+    QCompleter,
     QDialog,
     QDialogButtonBox,
     QDoubleSpinBox,
@@ -60,8 +61,11 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from us_swing.gui.ai_model_store import all_model_rows
+from us_swing.gui.ai_settings_block import CLAUDE_MODELS
 from us_swing.gui.ai_transcript_panel import AITranscriptPanel
 from us_swing.core.indicator_rules import config_summary
+from us_swing.core.notifications import AiConfig, ask_ai
 from us_swing.core.price_patterns import pattern_config_summary
 from us_swing.gui.app_service import AppService
 from us_swing.gui.cards import GAP, card, gutter
@@ -97,6 +101,23 @@ from us_swing.screener.screeners._cloud_ai_models import (
     ALL_MODEL_PRESETS as _CLOUD_AI_ALL_MODELS,
     DEFAULT_MODEL as _CLOUD_AI_DEFAULT_MODEL,
 )
+
+# AI Ranking provider id → default model and model hint (SRD-GUI-022.014).
+_AI_DEFAULT_MODELS: dict[str, str] = {
+    "openrouter": _CLOUD_AI_DEFAULT_MODEL,
+    "claude": AiConfig().claude_model,
+}
+_AI_MODEL_HINTS: dict[str, str] = {
+    "openrouter": "e.g. google/gemini-2-flash-preview",
+    "claude": "e.g. claude-sonnet-5-5",
+}
+
+
+def _ai_model_choices(provider: str) -> list[tuple[str, str]]:
+    """(model id, shown name) pairs the Model box lists for a provider (SRD-GUI-022.015)."""
+    if provider == "claude":
+        return [(model_id, name) for name, model_id in CLAUDE_MODELS]
+    return [(model_id, f"{name} · {tier}") for tier, _p, name, model_id, _t, _c in all_model_rows()]
 
 # Trading-style filter options (label → style_filter value or None).
 _STYLE_OPTIONS: list[tuple[str, str | None]] = [
@@ -270,11 +291,16 @@ class _PresetRunWorker(QThread):
 class _ModelValidateWorker(QThread):
     done = pyqtSignal(bool, str)   # (ok, message)
 
-    def __init__(self, model_id: str, parent: Any = None) -> None:
+    def __init__(self, model_id: str, provider: str = "openrouter", parent: Any = None) -> None:
         super().__init__(parent)
         self._model_id = model_id
+        self._provider = provider
 
     def run(self) -> None:
+        if self._provider == "claude":
+            answer = ask_ai(AiConfig(claude_model=self._model_id), "Reply with OK.", "Check", 60.0)
+            self.done.emit(not answer.error, answer.error or "available")
+            return
         from us_swing.gui.ai_model_store import validate_model
         ok, msg = validate_model(self._model_id)
         self.done.emit(ok, msg)
@@ -321,12 +347,13 @@ class _GroupWidget(QFrame):
 
         self._T = active_palette()
         _T = self._T
+        body_bg = QColor(_T.SURFACE).lighter(135).name()
         self.setObjectName("group_frame")
         self.setStyleSheet(
             f"QFrame#group_frame {{"
-            f"  border: 1px solid {_T.BLUE}55;"
+            f"  border: 1px solid {_T.OVERLAY2};"
             f"  border-radius: 6px;"
-            f"  background: {_T.SURFACE};"
+            f"  background: {body_bg};"
             f"  margin-bottom: 8px;"
             f"}}"
         )
@@ -394,7 +421,7 @@ class _GroupWidget(QFrame):
         self._empty_lbl.setFixedHeight(48)
         self._empty_lbl.setStyleSheet(
             f"color: {_T.MUTED}; font-size: 8pt; font-style: italic;"
-            f" background: {_T.BG}; border: none;"
+            f" background: {body_bg}; border: none;"
         )
         root.addWidget(self._empty_lbl)
 
@@ -406,7 +433,7 @@ class _GroupWidget(QFrame):
         self._list.setDragDropMode(QAbstractItemView.DragDropMode.InternalMove)
         self._list.setDefaultDropAction(Qt.DropAction.MoveAction)
         self._list.setStyleSheet(
-            f"QListWidget {{ border: none; background: {_T.BG}; padding: 4px; outline: none; }}"
+            f"QListWidget {{ border: none; background: {body_bg}; padding: 4px; outline: none; }}"
             f"QListWidget::item {{ padding: 5px 10px; color: {_T.TEXT}; font-size: 9pt;"
             f"  border-radius: 3px; margin-bottom: 2px; }}"
             f"QListWidget::item:selected {{ background: {_T.OVERLAY}; color: {_T.BLUE}; }}"
@@ -541,7 +568,7 @@ class _GroupWidget(QFrame):
             self.changed.emit()
 
     def _open_acc_dist_config(self, sid: str) -> None:
-        dlg = AccDistSettingsDialog(self._configs.get(sid), parent=self)
+        dlg = AccDistSettingsDialog(self._configs.get(sid), parent=self.window())
         if dlg.exec() == QDialog.DialogCode.Accepted:
             self._configs[sid] = dlg.get_config()
             self.changed.emit()
@@ -666,7 +693,7 @@ class _WeightedRow(QFrame):
         if self._sid == _PRICE_ACTION_SCREENER_ID:
             dlg = PriceActionRulesDialog(self._config or None, parent=self)
         elif self._sid == _ACC_DIST_SCREENER_ID:
-            dlg = AccDistSettingsDialog(self._config or None, parent=self)
+            dlg = AccDistSettingsDialog(self._config or None, parent=self.window())
         else:
             dlg = IndicatorRulesDialog(self._config or None, parent=self)
         if dlg.exec() == QDialog.DialogCode.Accepted:
@@ -1040,6 +1067,8 @@ class _PresetBuilderDialog(_FramelessDialog):
 
         # ── AI Ranking (Stage 3) ──────────────────────────────────────────
         ai_box = QGroupBox("AI Ranking  (Stage 3)")
+        self._ai_box = ai_box
+        self._ai_grown = 0
         ai_box.setStyleSheet(_gb_style)
         ai_vl = QVBoxLayout(ai_box)
         ai_vl.setContentsMargins(8, 12, 8, 8)
@@ -1047,9 +1076,7 @@ class _PresetBuilderDialog(_FramelessDialog):
 
         ai_header_hl = QHBoxLayout()
         ai_header_hl.setContentsMargins(0, 0, 0, 0)
-        self._ai_ranking_chk = QCheckBox(
-            "Enable AI Ranking — let an AI model score and sort your filtered results"
-        )
+        self._ai_ranking_chk = QCheckBox("Enable AI Ranking")
         self._ai_ranking_chk.setStyleSheet(f"color: {_T.TEXT}; font-size: 9pt;")
         ai_header_hl.addWidget(self._ai_ranking_chk)
         ai_header_hl.addStretch()
@@ -1062,8 +1089,12 @@ class _PresetBuilderDialog(_FramelessDialog):
         ai_vl.addLayout(ai_header_hl)
 
         self._ai_ranking_row = QWidget()
-        ai_fields_hl = QHBoxLayout(self._ai_ranking_row)
-        ai_fields_hl.setContentsMargins(0, 2, 0, 0)
+        ai_rows_vl = QVBoxLayout(self._ai_ranking_row)
+        ai_rows_vl.setContentsMargins(0, 2, 0, 0)
+        ai_rows_vl.setSpacing(6)
+        ai_fields_row = QWidget()
+        ai_fields_hl = QHBoxLayout(ai_fields_row)
+        ai_fields_hl.setContentsMargins(0, 0, 0, 0)
         ai_fields_hl.setSpacing(12)
 
         top_n_vl = QVBoxLayout()
@@ -1077,19 +1108,44 @@ class _PresetBuilderDialog(_FramelessDialog):
         top_n_vl.addStretch()
         ai_fields_hl.addLayout(top_n_vl)
 
+        provider_vl = QVBoxLayout()
+        provider_vl.setSpacing(2)
+        provider_vl.addWidget(self._lbl("AI Provider"))
+        self._ai_provider = QComboBox()
+        for label, provider in (("OpenRouter", "openrouter"), ("Claude Code CLI", "claude")):
+            self._ai_provider.addItem(label, provider)
+        self._ai_provider.setFixedWidth(160)
+        self._ai_provider.currentIndexChanged.connect(self._on_ai_provider_changed)
+        provider_vl.addWidget(self._ai_provider)
+        provider_vl.addStretch()
+        ai_fields_hl.addLayout(provider_vl)
+
         model_vl = QVBoxLayout()
         model_vl.setSpacing(2)
         model_vl.addWidget(self._lbl("Model"))
-        self._ai_model_edit = QLineEdit()
-        self._ai_model_edit.setPlaceholderText("e.g. google/gemini-2-flash-preview")
-        self._ai_model_edit.setText(_CLOUD_AI_DEFAULT_MODEL)
-        self._ai_model_edit.textChanged.connect(self._on_model_text_changed)
-        model_vl.addWidget(self._ai_model_edit)
+        self._ai_model_combo = QComboBox()
+        self._ai_model_combo.setEditable(True)
+        self._ai_model_combo.setInsertPolicy(QComboBox.InsertPolicy.NoInsert)
+        self._fill_ai_models("openrouter", _CLOUD_AI_DEFAULT_MODEL)
+        completer = self._ai_model_combo.completer()
+        if completer is not None:
+            completer.setFilterMode(Qt.MatchFlag.MatchContains)
+            completer.setCompletionMode(QCompleter.CompletionMode.PopupCompletion)
+        self._ai_model_list_action = QAction(make_icon("chevron-down"), "Show models", self)
+        self._ai_model_list_action.triggered.connect(lambda: self._ai_model_combo.showPopup())
+        model_line = self._ai_model_combo.lineEdit()
+        if model_line is not None:
+            model_line.addAction(
+                self._ai_model_list_action, QLineEdit.ActionPosition.TrailingPosition
+            )
+        self._ai_model_combo.editTextChanged.connect(self._on_model_text_changed)
+        model_vl.addWidget(self._ai_model_combo)
         self._ai_model_status_lbl = QLabel("")
         self._ai_model_status_lbl.setStyleSheet(f"font-size: 8pt; color: {_T.MUTED};")
         model_vl.addWidget(self._ai_model_status_lbl)
         model_vl.addStretch()
-        ai_fields_hl.addLayout(model_vl, 2)
+        ai_fields_hl.addLayout(model_vl, 1)
+        ai_rows_vl.addWidget(ai_fields_row)
 
         query_vl = QVBoxLayout()
         query_vl.setSpacing(2)
@@ -1100,13 +1156,12 @@ class _PresetBuilderDialog(_FramelessDialog):
         )
         self._ai_query_field.setMaxLength(500)
         query_vl.addWidget(self._ai_query_field)
-        query_vl.addStretch()
-        ai_fields_hl.addLayout(query_vl, 3)
+        ai_rows_vl.addLayout(query_vl)
 
         ai_vl.addWidget(self._ai_ranking_row)
         self._ai_ranking_row.setVisible(False)
-        self._ai_ranking_chk.toggled.connect(self._ai_ranking_row.setVisible)
-        self._ai_ranking_chk.toggled.connect(self._ai_model_validate_btn.setVisible)
+        # _ai_ranking_chk → toggled → dialog → _on_ai_ranking_toggled (show fields, grow dialog)
+        self._ai_ranking_chk.toggled.connect(self._on_ai_ranking_toggled)
         root.addWidget(ai_box)
 
         # ── Button row ────────────────────────────────────────────────────
@@ -1142,6 +1197,27 @@ class _PresetBuilderDialog(_FramelessDialog):
 
         self._refresh_preview()
 
+    def _on_ai_ranking_toggled(self, on: bool) -> None:
+        """Show the AI fields and grow the dialog by their height, so the builder keeps its room."""
+        box_before = self._ai_box.height()
+        self._ai_ranking_row.setVisible(on)
+        self._ai_model_validate_btn.setVisible(on)
+        if not self.isVisible():
+            return
+        if not on:
+            self.resize(self.width(), self.height() - self._ai_grown)
+            self._ai_grown = 0
+            return
+        box_layout = self._ai_box.layout()
+        if box_layout is not None:
+            box_layout.invalidate()
+        extra = max(0, self._ai_box.sizeHint().height() - box_before)
+        screen = self.screen()
+        max_h = screen.availableGeometry().height() if screen else self.height() + extra
+        new_h = min(max_h, self.height() + extra)
+        self._ai_grown = new_h - self.height()
+        self.resize(self.width(), new_h)
+
     # ── Composite area ────────────────────────────────────────────────────
 
     def _build_composite_area(self) -> QWidget:
@@ -1153,7 +1229,7 @@ class _PresetBuilderDialog(_FramelessDialog):
 
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
-        scroll.setMinimumHeight(80)
+        scroll.setMinimumHeight(150)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         scroll.setStyleSheet(
             f"QScrollArea {{ border: none; background: {_T.BG}; }}"
@@ -1355,8 +1431,10 @@ class _PresetBuilderDialog(_FramelessDialog):
         # AI Ranking (Stage 3) fields
         self._ai_ranking_chk.setChecked(getattr(preset, "enable_llm_ranking", False))
         self._ai_top_n.setValue(getattr(preset, "top_n", 5))
+        provider_idx = self._ai_provider.findData(getattr(preset, "ai_provider", "openrouter"))
+        self._ai_provider.setCurrentIndex(max(provider_idx, 0))
         _preset_model = getattr(preset, "ai_model", _CLOUD_AI_DEFAULT_MODEL) or _CLOUD_AI_DEFAULT_MODEL
-        self._ai_model_edit.setText(_preset_model)
+        self._ai_model_combo.setEditText(_preset_model)
         self._ai_query_field.setText(getattr(preset, "ai_query", "") or "")
 
         from us_swing.screener.preset import PresetType
@@ -1395,7 +1473,10 @@ class _PresetBuilderDialog(_FramelessDialog):
 
         enable_llm_ranking = self._ai_ranking_chk.isChecked()
         top_n              = self._ai_top_n.value()
-        ai_model_stage3    = self._ai_model_edit.text().strip() or _CLOUD_AI_DEFAULT_MODEL
+        ai_provider        = self._ai_provider.currentData()
+        ai_model_stage3    = (
+            self._ai_model_combo.currentText().strip() or _AI_DEFAULT_MODELS[ai_provider]
+        )
         ai_query_stage3    = self._ai_query_field.text().strip()
 
         if self._is_composite():
@@ -1425,6 +1506,7 @@ class _PresetBuilderDialog(_FramelessDialog):
                 top_n=top_n,
                 ai_model=ai_model_stage3,
                 ai_query=ai_query_stage3,
+                ai_provider=ai_provider,
             )
         else:
             refs = [
@@ -1448,6 +1530,7 @@ class _PresetBuilderDialog(_FramelessDialog):
                 top_n=top_n,
                 ai_model=ai_model_stage3,
                 ai_query=ai_query_stage3,
+                ai_provider=ai_provider,
             )
 
     def _validate(self) -> str | None:
@@ -1519,9 +1602,32 @@ class _PresetBuilderDialog(_FramelessDialog):
     def _on_model_text_changed(self) -> None:
         self._ai_model_status_lbl.setText("")
 
+    def _on_ai_provider_changed(self) -> None:
+        """Swap in the new provider's default model unless the user typed their own."""
+        provider = self._ai_provider.currentData()
+        model = self._ai_model_combo.currentText().strip()
+        if model in ("", *_AI_DEFAULT_MODELS.values()):
+            model = _AI_DEFAULT_MODELS[provider]
+        self._fill_ai_models(provider, model)
+        self._ai_model_status_lbl.setText("")
+
+    def _fill_ai_models(self, provider: str, model: str) -> None:
+        """List the provider's models (name as tooltip) and show ``model`` in the box."""
+        combo = self._ai_model_combo
+        combo.blockSignals(True)
+        combo.clear()
+        for model_id, name in _ai_model_choices(provider):
+            combo.addItem(model_id)
+            combo.setItemData(combo.count() - 1, name, Qt.ItemDataRole.ToolTipRole)
+        combo.setEditText(model)
+        line_edit = combo.lineEdit()
+        if line_edit is not None:
+            line_edit.setPlaceholderText(_AI_MODEL_HINTS[provider])
+        combo.blockSignals(False)
+
     def _on_validate_model(self) -> None:
         _T = active_palette()
-        model_id = self._ai_model_edit.text().strip()
+        model_id = self._ai_model_combo.currentText().strip()
         if not model_id:
             self._ai_model_status_lbl.setStyleSheet(f"font-size: 8pt; color: {_T.MUTED};")
             self._ai_model_status_lbl.setText("Enter a model ID first.")
@@ -1530,7 +1636,9 @@ class _PresetBuilderDialog(_FramelessDialog):
         self._ai_model_validate_btn.setText("…")
         self._ai_model_status_lbl.setStyleSheet(f"font-size: 8pt; color: {_T.MUTED};")
         self._ai_model_status_lbl.setText("Checking…")
-        self._validate_worker = _ModelValidateWorker(model_id, parent=self)
+        self._validate_worker = _ModelValidateWorker(
+            model_id, self._ai_provider.currentData(), parent=self
+        )
         self._validate_worker.done.connect(self._on_validate_done)
         self._validate_worker.start()
 

@@ -58,8 +58,15 @@ def _tint(hex_colour: str, alpha: float) -> str:
     return f"rgba({c.red()}, {c.green()}, {c.blue()}, {alpha})"
 
 
+def _chip_qss(colour: str) -> str:
+    """Soft filled tag: tinted fill, coloured text, no outline."""
+    return (f"color: {colour}; background: {_tint(colour, 0.16)}; border: none;"
+            " border-radius: 4px; padding: 0 8px; font-size: 8pt; font-weight: 600;")
+
+
 def _qss() -> str:
     return (
+        "QWidget#dlg_title_bar QLabel { background: transparent; }"
         f"QFrame#acc_tabs {{ background: {C.BG}; border: 1px solid {C.OVERLAY2};"
         " border-radius: 8px; }"
         f"QPushButton#acc_tab {{ background: {C.INPUT}; color: {C.SUBTEXT};"
@@ -376,15 +383,11 @@ class AccDistSettingsDialog(FramelessDialog):
                     style.polish(widget)
 
         self.mode_chip.setText(self.mode_combo.currentText())
-        self.mode_chip.setStyleSheet(
-            f"color: {C.BLUE}; background: transparent; border: 1px solid {_tint(C.BLUE, 0.5)};"
-            " border-radius: 9px; padding: 0 8px; font-size: 8pt;")
+        self.mode_chip.setStyleSheet(_chip_qss(C.BLUE))
         rating = strictness(cfg)
         colour = _level_colour(rating.level)
         self.strict_chip.setText(f"Rules: {rating.level}")
-        self.strict_chip.setStyleSheet(
-            f"color: {colour}; background: transparent; border: 1px solid {_tint(colour, 0.5)};"
-            " border-radius: 9px; padding: 0 8px; font-size: 8pt;")
+        self.strict_chip.setStyleSheet(_chip_qss(colour))
         tightest = ", ".join(LABELS[k] for k in rating.tightest) or "none"
         self.strict_chip.setToolTip(
             "How strict the rules are overall, from every setting in use.\n"

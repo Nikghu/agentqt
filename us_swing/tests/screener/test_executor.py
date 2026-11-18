@@ -738,6 +738,31 @@ def test_stage3_passes_db_and_ai_fields_to_llm(tmp_path: Path):
     assert cfg["db"] is fake_db
     assert isinstance(cfg["passing_symbols"], set)
     assert cfg["passing_symbols"].issubset(set(SYMBOLS_3))
+    assert cfg["ai_provider"] == "openrouter"
+
+
+def test_stage3_passes_ai_provider(tmp_path: Path):
+    """UT-SCR-013.011.M10.T01: Executor passes provider."""
+    llm = MagicMock()
+    llm.apply.side_effect = lambda syms, bars, cfg: {s: (True, 0.7) for s in syms}
+    llm.last_reasoning = {}
+    registry = ScreenerRegistry()
+    registry.register("ind_a", _make_screener)
+    registry.register("llm_claude_ranking", lambda: llm)
+    preset = Preset(
+        id="ai_cli", name="AI CLI", preset_type=PresetType.WEIGHTED,
+        screeners=[ScreenerRef(screener_id="ind_a", enabled=True, weight=1.0)],
+        threshold=0.5, enable_llm_ranking=True, top_n=3,
+        ai_provider="claude", ai_model="claude-sonnet-5-5",
+    )
+    executor = PresetExecutor(
+        db=MagicMock(name="fake_db"),
+        preset_manager=_mock_preset_manager(preset),
+        storage=_mock_storage(tmp_path),
+        registry=registry,
+    )
+    executor.run_preset("ai_cli", "u", symbols=SYMBOLS_3, bars=BARS_3)
+    assert llm.apply.call_args[0][2]["ai_provider"] == "claude"
 
 
 # ---------------------------------------------------------------------------

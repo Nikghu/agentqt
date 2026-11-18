@@ -12,6 +12,7 @@ ENV_API_KEY: Final[str] = "OPENROUTER_API_KEY"
 
 # Top paid models by OpenRouter usage (April 2026 rankings) — (display_label, openrouter_model_id, supports_tool_use).
 MODEL_PRESETS: Final[list[tuple[str, str, bool]]] = [
+    ("Gemini 3 Flash    (fast, user pick)",      "google/gemini-3-flash-preview",     True),
     # Top 5 by usage
     ("Kimi K2.6         (#1 usage, balanced)",   "moonshotai/kimi-k2",                True),
     ("Claude Sonnet 4.6 (#2 usage, balanced)",   "anthropic/claude-sonnet-4-6",       True),
