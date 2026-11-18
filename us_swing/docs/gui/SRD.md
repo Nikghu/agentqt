@@ -4,7 +4,9 @@
 **Version:** 2.128.0
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
-**Last Updated:** 2026-11-17
+**Last Updated:** 2026-11-18
+> v2.130.1: SRD-GUI-042.001–.006 approved by user 2026-11-18 (amber dot warns only; AI fields greyed out when AI Ranking is off).
+> v2.130.0: SRD-GUI-042.001–.006 added as Draft — Edit Preset side navigation (FO-GUI-042, user request 2026-11-18).
 > v2.129.2: SRD-GUI-022.020–.021 Implemented (RN-SCR-2.13.0-20261118).
 > v2.129.1: SRD-GUI-022.020–.021 approved by user 2026-11-18.
 > v2.129.0: SRD-GUI-022.020–.021 added as Draft — company data and Bull vs bear ticks and detail (FO-SCR-018, user request 2026-11-18).
@@ -775,4 +777,15 @@
 | SRD-GUI-033.005 | FO-GUI-033 | Must | AI settings are saved per user on Apply and shown again when Settings opens. | AI block | users.json, OS keychain | The OpenRouter key is the Cloud AI screener key in the OS keychain, never in users.json; a blank field never deletes it | Implemented |
 | SRD-GUI-033.006 | FO-GUI-033 | Should | The Telegram dot shows warn when AI notes are on and the default AI is not ready. | saved settings | dot, status lines | Ready means the claude program is found, or the OpenRouter key and model are set; checked when Settings opens | Implemented |
 | SRD-GUI-033.007 | FO-GUI-033 | Should | Test AI sends a one-line request to the shown settings in a worker thread and shows the answer, provider and time, or the error. | AI block | note line | Button off while running; uses `ask_ai` (SRD-INF-011.003) | Removed (user, 2026-11-05) |
+
+## FO-GUI-042 — Edit Preset Side Navigation
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-GUI-042.001 | FO-GUI-042 | Must | The preset dialog shows a list of General, Screeners, AI Ranking and AI Context on the left and one section page on the right. | list click | shown page | Opens on General; frameless title bar and Save As, Cancel, Save footer kept | Implemented |
+| SRD-GUI-042.002 | FO-GUI-042 | Must | General holds name, description, timeframe, trading style and Assign Users. | — | General page | Style ticks and Assign Users keep today's admin-preset rules | Implemented |
+| SRD-GUI-042.003 | FO-GUI-042 | Must | Screeners holds the builder and preview; AI Ranking holds the enable tick, Top N, provider, model, query and Validate; AI Context holds the context ticks and red-flag note. | — | pages | AI fields and context ticks are disabled, not hidden, while AI Ranking is off | Implemented |
+| SRD-GUI-042.004 | FO-GUI-042 | Should | Each list item shows a one-line summary that updates when its fields change. | page fields | summary text | e.g. "Daily · Swing", "1 group · AND", "Top 5 · claude-opus-5-5", "7 data · 2 top picks"; "Off" when AI is off | Implemented |
+| SRD-GUI-042.005 | FO-GUI-042 | Should | Each list item shows a dot: green when set, amber when something is missing, grey when off. | page fields | dot state | Amber: no name, no screener, or AI on with no model; amber only warns, Save checks stay as today | Implemented |
+| SRD-GUI-042.006 | FO-GUI-042 | Must | Saving gives the same preset as before for the same choices. | page fields | saved preset | Existing widget names and populate, build and validate steps unchanged | Implemented |
 

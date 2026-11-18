@@ -2,7 +2,7 @@
 
 **Document:** TODO.md
 **Project:** us_swing
-**Last Updated:** 2026-11-17 (Session 154)
+**Last Updated:** 2026-11-18 (Session 157)
 
 ---
 
@@ -219,3 +219,4 @@ Short, living task list. Keep each description ≤ 50 words; cite module + prior
 | T204 | GUI — App check (SRD-GUI-022.013 approved 2026-11-18): Acc / Dist result detail shows "Details" with Rally volume / Drop volume / Up/down ratio and tooltips; list row shows no "0/3". | `gui/screener_views.py` | Low | Open |
 | T203 | SCR — App check (SRD-SCR-017.017–.018 approved 2026-11-18): Acc / Dist Configure shows 4 tabs, tip panel follows clicks and mode, Result tab summary, "Rules:" level in the title bar. | `gui/acc_dist_settings_dialog.py`, `gui/acc_dist_tips.py` | Medium | Open |
 | T202 | SCR — App check (SRD-SCR-017.014–.016 approved 2026-11-18): Acc / Dist Configure shows Move rule; "Stock's own move" enables Move factor only; saved Distribution preset opens as "Fixed %". | `screener/screeners/acc_dist.py`, `gui/acc_dist_settings_dialog.py` | Medium | Open |
+| T210 | GUI — App check of Edit Preset side navigation (FO-GUI-042, RN-GUI-2.3.0-20261118): restart the app; Screener → Edit Preset shows the left list (General, Screeners, AI Ranking, AI Context) with summaries and dots; AI fields grey while AI Ranking is off; a failed Save shows the reason in the red footer; saved presets unchanged. | `gui/screener_panel.py` | Medium | Open |

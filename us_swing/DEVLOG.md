@@ -2,6 +2,17 @@
 
 ---
 
+## [20261118] GUI — Edit Preset side navigation (FO-GUI-042)
+
+- Type: Feature (branch `feat/gui-preset-side-nav`, not committed)
+- FO(s): FO-GUI-042 (SRD-GUI-042.001–.006) — approved by user and Implemented
+- RN: RN-GUI-2.3.0-20261118
+- Design (user pick): Option B, Trade settings moved into General; AI fields greyed (not hidden) while AI Ranking is off; failed Save shows the reason in a red footer
+- Artifacts: FO, SRD, DD, MD, UTCD (9 cases, Pass), TRACE, TODO T210 open
+- Decisions: new FO-GUI-042 (FO-GUI-034 is used by the removed AI Desk); saved preset data unchanged
+
+---
+
 ## [20261118] SCR + GUI — AI Ranking company data and bull vs bear review, phase 3 (FO-SCR-018)
 
 - Type: Feature (branch `feat/scr-ai-context`)
