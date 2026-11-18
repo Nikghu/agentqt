@@ -1,12 +1,13 @@
 # Functional Overview — GUI Module (GUI)
 
 **Document ID:** FO-GUI
-**Version:** 2.31.0
+**Version:** 2.32.0
 **Traces To:** requirements.md §21, §22, §23.3, §24, §25, §28.1, §29.1, §32
 **Status:** Draft
-**Last Updated:** 2026-05-22
+**Last Updated:** 2026-11-18
 **Project:** US Swing Trading System
 
+> v2.32.0: FO-GUI-042 Edit Preset side navigation added as Draft (user, 2026-11-18). FO-GUI-034 is not reused because the removed AI Desk used it.
 > v2.31.0: AI Desk and Market Floor removed (user, 2026-11-17; docs/audit/DESK_REMOVAL_2026-11-17.md): FO-GUI-034 to FO-GUI-041 removed.
 > v2.30.2: The FO-GUI-041 M7b part and the FO-GUI-034 Tool builder bullet Implemented 2026-11-16.
 > v2.30.1: The FO-GUI-041 M7b part and the FO-GUI-034 Tool builder bullet approved by user 2026-11-15.
@@ -987,4 +988,26 @@ The system shall let the user set up AI notes for Telegram messages on the Setti
 1. With one provider ticked, AI Fallback is off and cannot be ticked.
 2. With OpenRouter ticked and no API key, Apply and OK are disabled and a line says what is missing.
 3. After Apply and a restart, the same AI settings are shown.
+
+---
+
+## FO-GUI-042: Edit Preset Side Navigation
+
+**Status:** Approved (user, 2026-11-18)
+**Priority:** Should
+**Depends on:** FO-GUI-022 (Screener result views, AI Ranking rows)
+**Source:** design page https://claude.ai/artifact/VghVzsoTPCsn1SCw2MhXh7 (Option B, Trade settings moved into General), picked by user 2026-11-18. Minimal requirements. Layout only.
+
+The system shall split the screener preset dialog into sections picked from a list on the left.
+
+- The system shall show four sections, General, Screeners, AI Ranking and AI Context, one at a time.
+- The system shall put the name, description, timeframe, trading style and users in General.
+- The system shall show a one-line summary and a status dot for each section in the list.
+- The system shall save the same preset as before for the same choices.
+
+### Acceptance Criteria
+
+1. The dialog opens on General, and clicking a list item shows that section.
+2. Changing the AI model updates the AI Ranking summary line at once.
+3. Saving an edited preset with no changes stores the same preset as before.
 

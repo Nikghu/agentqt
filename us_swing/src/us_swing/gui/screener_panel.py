@@ -31,7 +31,7 @@ from PyQt6.QtCore import (
     QThread,
     pyqtSignal,
 )
-from PyQt6.QtGui import QAction, QColor, QCursor, QFont
+from PyQt6.QtGui import QAction, QColor, QCursor, QFont, QTextCursor
 from PyQt6.QtWidgets import (
     QAbstractItemView,
     QButtonGroup,
@@ -44,7 +44,6 @@ from PyQt6.QtWidgets import (
     QFileDialog,
     QFrame,
     QGridLayout,
-    QGroupBox,
     QHBoxLayout,
     QLabel,
     QLineEdit,
@@ -125,6 +124,8 @@ def _ai_model_choices(provider: str) -> list[tuple[str, str]]:
     return [(model_id, f"{name} · {tier}") for tier, _p, name, model_id, _t, _c in all_model_rows()]
 
 # Trading-style filter options (label → style_filter value or None).
+_QUERY_MAX_LEN = 500
+
 _STYLE_OPTIONS: list[tuple[str, str | None]] = [
     ("All Styles",       None),
     ("Swing Trading",    "swing"),
@@ -849,24 +850,17 @@ class _AssignUsersWidget(QWidget):
             for u in self._all_users
         }
 
-        self._tag_row = QHBoxLayout()
-        self._tag_row.setSpacing(4)
-        self._tag_row.setContentsMargins(0, 0, 0, 0)
-        self._tag_row.addStretch()
-
         add_btn = QPushButton("Add User")
         set_icon(add_btn, "user-plus", "add")
         add_btn.setObjectName("btn_blue")
+        add_btn.setFixedWidth(120)
         add_btn.clicked.connect(self._on_open_picker)
 
-        vl = QVBoxLayout(self)
-        vl.setContentsMargins(0, 2, 0, 2)
-        vl.setSpacing(4)
-
-        tag_container = QWidget()
-        tag_container.setLayout(self._tag_row)
-        vl.addWidget(tag_container)
-        vl.addWidget(add_btn)
+        self._tag_row = QHBoxLayout(self)
+        self._tag_row.setSpacing(6)
+        self._tag_row.setContentsMargins(0, 2, 0, 2)
+        self._tag_row.addWidget(add_btn)
+        self._tag_row.addStretch()
 
     def load_existing(self, user_ids: list[str]) -> None:
         for uid in user_ids:
@@ -914,8 +908,8 @@ class _AssignUsersWidget(QWidget):
         tag = _UserTag(uid, label=label, valid=True, parent=self)
         tag.removed.connect(self._on_remove)
         self._tags.append(tag)
-        # Insert before the trailing stretch
-        self._tag_row.insertWidget(self._tag_row.count() - 1, tag)
+        # Tags sit left of the Add User button
+        self._tag_row.insertWidget(len(self._tags) - 1, tag)
 
 
 class _PresetBuilderDialog(_FramelessDialog):
@@ -945,51 +939,69 @@ class _PresetBuilderDialog(_FramelessDialog):
 
         self._content_layout.setContentsMargins(14, 10, 14, 12)
         root = self._content_layout
+        self._nav_rows: dict[str, PresetItem] = {}
+        self._nav_states: dict[str, str] = {}
 
-        # ── Row 1: name + description ────────────────────────────────────
-        row1 = QHBoxLayout()
-        row1.setSpacing(10)
-        col_name = QVBoxLayout()
-        col_name.addWidget(self._lbl("Preset Name *"))
+        from PyQt6.QtWidgets import QStackedWidget
+        _is_creator = preset is None or not preset.is_admin
+
+        # ── General: name, description and trade settings (SRD-GUI-042.002) ─
+        general, general_vl = self._section_page(
+            "General", "Name, timeframe, trading style and users."
+        )
+        general_vl.addWidget(self._lbl("Preset Name *"))
         self._name = QLineEdit()
         self._name.setPlaceholderText("e.g. Daily RSI Momentum")
         self._name.textChanged.connect(self._refresh_preview)
-        col_name.addWidget(self._name)
-        row1.addLayout(col_name, 2)
-
-        col_desc = QVBoxLayout()
-        col_desc.addWidget(self._lbl("Description (optional)"))
+        general_vl.addWidget(self._name)
+        general_vl.addWidget(self._lbl("Description (optional)"))
         self._desc = QLineEdit()
         self._desc.setPlaceholderText("Brief description")
-        col_desc.addWidget(self._desc)
-        row1.addLayout(col_desc, 3)
-        root.addLayout(row1)
+        general_vl.addWidget(self._desc)
 
-        _sep = QFrame()
-        _sep.setFrameShape(QFrame.Shape.HLine)
-        _sep.setFrameShadow(QFrame.Shadow.Sunken)
-        _sep.setStyleSheet(f"color: {_T.OVERLAY};")
-        root.addWidget(_sep)
+        general_vl.addSpacing(8)
+        general_vl.addWidget(self._lbl("Timeframe"))
+        self._tf_preset = QComboBox()
+        self._tf_preset.addItem("Daily",  "1d")
+        self._tf_preset.addItem("Weekly", "1w")
+        self._tf_preset.setFixedWidth(220)
+        self._tf_preset.currentIndexChanged.connect(self._refresh_nav)
+        general_vl.addWidget(self._tf_preset)
 
-        # ── Row 2: Type group box + Style/Users group box (horizontal) ───
-        from PyQt6.QtWidgets import QStackedWidget
-        _is_creator = preset is None or not preset.is_admin
-        _gb_style = (
-            f"QGroupBox {{ color: {_T.MUTED}; font-size: 8pt;"
-            f" border: 1px solid {_T.OVERLAY}; border-radius: 4px;"
-            f" padding: 6px 8px 6px 8px; margin-top: 8px; }}"
-            f"QGroupBox::title {{ subcontrol-origin: margin; left: 8px; padding: 0 2px; }}"
+        general_vl.addSpacing(8)
+        general_vl.addWidget(self._lbl("Trading Style"))
+        style_row = QHBoxLayout()
+        style_row.setSpacing(20)
+        self._style_checks: dict[str, QCheckBox] = {}
+        for lbl_text, style_val in _STYLE_OPTIONS[1:]:   # skip "All Styles"
+            cb = QCheckBox(lbl_text)
+            cb.setEnabled(_is_creator)
+            cb.setStyleSheet(f"color: {_T.TEXT}; font-size: 9pt;")
+            cb.toggled.connect(self._refresh_nav)
+            self._style_checks[style_val] = cb
+            style_row.addWidget(cb)
+        style_row.addStretch()
+        general_vl.addLayout(style_row)
+
+        # ── Assign Users (SRD-SCR-007.012) — user-owned presets only ────
+        self._assign_widget: _AssignUsersWidget | None = None
+        if _is_creator:
+            general_vl.addSpacing(8)
+            general_vl.addWidget(self._lbl("Assign Users"))
+            self._assign_widget = _AssignUsersWidget(
+                preset_id=preset.id if preset is not None else "",
+                mgr=mgr,
+                requestor_id=user_id,
+            )
+            if preset is not None:
+                self._assign_widget.load_existing(getattr(preset, "assigned_to", []))
+            general_vl.addWidget(self._assign_widget)
+        general_vl.addStretch()
+
+        # ── Screeners: builder and preview ────────────────────────────────
+        screeners, type_vl = self._section_page(
+            "Screeners", "Pick which screeners find the stocks."
         )
-        row2 = QHBoxLayout()
-        row2.setSpacing(10)
-
-        # ── Left: Type group box ──────────────────────────────────────────
-        type_box = QGroupBox("Screener Builder")
-        type_box.setStyleSheet(_gb_style)
-        type_vl = QVBoxLayout(type_box)
-        type_vl.setContentsMargins(8, 12, 8, 8)
-        type_vl.setSpacing(6)
-
         radio_row = QHBoxLayout()
         radio_row.setSpacing(16)
         self._btn_grp = QButtonGroup(self)
@@ -1029,60 +1041,11 @@ class _PresetBuilderDialog(_FramelessDialog):
             f" font-family: monospace; font-size: 9pt; padding: 4px; }}"
         )
         type_vl.addWidget(self._preview)
-        row2.addWidget(type_box, 1)
-
-        # ── Right: Trade Settings group box ───────────────────────────────
-        style_users_box = QGroupBox("Trade Settings")
-        style_users_box.setStyleSheet(_gb_style)
-        style_users_vl = QVBoxLayout(style_users_box)
-        style_users_vl.setContentsMargins(8, 12, 8, 8)
-        style_users_vl.setSpacing(6)
-
-        style_users_vl.addWidget(self._lbl("Timeframe"))
-        self._tf_preset = QComboBox()
-        self._tf_preset.addItem("Daily",  "1d")
-        self._tf_preset.addItem("Weekly", "1w")
-        style_users_vl.addWidget(self._tf_preset)
-
-        style_users_vl.addSpacing(8)
-        style_users_vl.addWidget(self._lbl("Trading Style"))
-        self._style_checks: dict[str, QCheckBox] = {}
-        for lbl_text, style_val in _STYLE_OPTIONS[1:]:   # skip "All Styles"
-            cb = QCheckBox(lbl_text)
-            cb.setEnabled(_is_creator)
-            cb.setStyleSheet(f"color: {_T.TEXT}; font-size: 9pt;")
-            self._style_checks[style_val] = cb
-            style_users_vl.addWidget(cb)
-
-        # ── Assign Users (SRD-SCR-007.012) — user-owned presets only ────
-        self._assign_widget: _AssignUsersWidget | None = None
-        if _is_creator:
-            style_users_vl.addSpacing(8)
-            style_users_vl.addWidget(self._lbl("Assign Users"))
-            self._assign_widget = _AssignUsersWidget(
-                preset_id=preset.id if preset is not None else "",
-                mgr=mgr,
-                requestor_id=user_id,
-            )
-            if preset is not None:
-                self._assign_widget.load_existing(getattr(preset, "assigned_to", []))
-            style_users_vl.addWidget(self._assign_widget)
-
-        style_users_vl.addStretch()
-        style_users_box.setMaximumWidth(210)
-        row2.addWidget(style_users_box)
-
-        root.addLayout(row2, 1)
 
         # ── AI Ranking (Stage 3) ──────────────────────────────────────────
-        ai_box = QGroupBox("AI Ranking  (Stage 3)")
-        self._ai_box = ai_box
-        self._ai_grown = 0
-        ai_box.setStyleSheet(_gb_style)
-        ai_vl = QVBoxLayout(ai_box)
-        ai_vl.setContentsMargins(8, 12, 8, 8)
-        ai_vl.setSpacing(6)
-
+        ai_page, ai_vl = self._section_page(
+            "AI Ranking", "Let the AI rank the stocks the screeners found."
+        )
         ai_header_hl = QHBoxLayout()
         ai_header_hl.setContentsMargins(0, 0, 0, 0)
         self._ai_ranking_chk = QCheckBox("Enable AI Ranking")
@@ -1092,7 +1055,6 @@ class _PresetBuilderDialog(_FramelessDialog):
         self._ai_model_validate_btn = QPushButton("Validate")
         set_icon(self._ai_model_validate_btn, "check-check", "go")
         self._ai_model_validate_btn.setFixedWidth(105)
-        self._ai_model_validate_btn.setVisible(False)
         self._ai_model_validate_btn.clicked.connect(self._on_validate_model)
         ai_header_hl.addWidget(self._ai_model_validate_btn)
         ai_vl.addLayout(ai_header_hl)
@@ -1113,6 +1075,7 @@ class _PresetBuilderDialog(_FramelessDialog):
         self._ai_top_n.setRange(1, 50)
         self._ai_top_n.setValue(5)
         self._ai_top_n.setFixedWidth(64)
+        self._ai_top_n.valueChanged.connect(self._refresh_nav)
         top_n_vl.addWidget(self._ai_top_n)
         top_n_vl.addStretch()
         ai_fields_hl.addLayout(top_n_vl)
@@ -1125,6 +1088,7 @@ class _PresetBuilderDialog(_FramelessDialog):
             self._ai_provider.addItem(label, provider)
         self._ai_provider.setFixedWidth(160)
         self._ai_provider.currentIndexChanged.connect(self._on_ai_provider_changed)
+        self._ai_provider.currentIndexChanged.connect(self._refresh_nav)
         provider_vl.addWidget(self._ai_provider)
         provider_vl.addStretch()
         ai_fields_hl.addLayout(provider_vl)
@@ -1148,6 +1112,7 @@ class _PresetBuilderDialog(_FramelessDialog):
                 self._ai_model_list_action, QLineEdit.ActionPosition.TrailingPosition
             )
         self._ai_model_combo.editTextChanged.connect(self._on_model_text_changed)
+        self._ai_model_combo.editTextChanged.connect(self._refresh_nav)
         model_vl.addWidget(self._ai_model_combo)
         self._ai_model_status_lbl = QLabel("")
         self._ai_model_status_lbl.setStyleSheet(f"font-size: 8pt; color: {_T.MUTED};")
@@ -1159,64 +1124,118 @@ class _PresetBuilderDialog(_FramelessDialog):
         query_vl = QVBoxLayout()
         query_vl.setSpacing(2)
         query_vl.addWidget(self._lbl("Query  (optional — blank = auto-rank by features)"))
-        self._ai_query_field = QLineEdit()
+        self._ai_query_field = QPlainTextEdit()
         self._ai_query_field.setPlaceholderText(
             "e.g. rank by strongest momentum with expanding volume"
         )
-        self._ai_query_field.setMaxLength(500)
+        self._ai_query_field.setFixedHeight(86)
+        self._ai_query_field.setStyleSheet(
+            f"QPlainTextEdit {{ background: {_T.OVERLAY}; color: {_T.TEXT};"
+            f" border: 1px solid {_T.OVERLAY2}; border-radius: 4px; padding: 4px 4px;"
+            f" outline: none; }}"
+            f"QPlainTextEdit:focus {{ border: 1px solid {_T.BLUE}; outline: none; }}"
+        )
+        self._ai_query_field.textChanged.connect(self._limit_query)
         query_vl.addWidget(self._ai_query_field)
         ai_rows_vl.addLayout(query_vl)
+        self._ai_ranking_row.setSizePolicy(
+            QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Maximum
+        )
+        ai_vl.addWidget(self._ai_ranking_row)
+        ai_vl.addStretch()
+        # _ai_ranking_chk → toggled → dialog → _on_ai_ranking_toggled (grey out AI fields)
+        self._ai_ranking_chk.toggled.connect(self._on_ai_ranking_toggled)
 
-        # Extra context for the AI (SRD-GUI-022.016, SRD-GUI-022.020)
-        ctx_vl = QVBoxLayout()
-        ctx_vl.setSpacing(4)
-        ctx_vl.addWidget(self._lbl("Extra context for the AI"))
+        # ── AI Context: extra data for the AI (SRD-GUI-022.016, SRD-GUI-022.020) ─
+        ctx_page, ctx_page_vl = self._section_page(
+            "AI Context", "Extra data the AI reads before it ranks."
+        )
+        self._ai_ctx_page = QWidget()
+        ctx_vl = QVBoxLayout(self._ai_ctx_page)
+        ctx_vl.setContentsMargins(0, 0, 0, 0)
+        ctx_vl.setSpacing(0)
         self._ai_ctx_checks: dict[str, QCheckBox] = {}
         groups = (
             ("Stock data", (
+                "Red flags: earnings within 5 days, an earnings miss, a sector in the bottom 3, "
+                "negative news, short interest above 20% or a downgrade this week."
+            ), (
                 ("earnings", "Earnings date"), ("surprise", "Earnings surprise"),
                 ("sector", "Sector strength"), ("news", "News tone"),
                 ("fundamentals", "Fundamentals"), ("short", "Short interest"),
                 ("analysts", "Analyst changes"),
             )),
-            ("Top picks only (Claude Code CLI, slower)", (
+            ("Top picks only", (
+                "Needs Claude Code CLI. Adds about a minute for every 3 top picks. Red flags: "
+                "a major risk found by web research, or a Wait / Avoid review."
+            ), (
                 ("research", "Web research for top picks"), ("review", "Bull vs bear review"),
             )),
         )
-        for title, ticks in groups:
+        for i_group, (title, tip, ticks) in enumerate(groups):
+            if i_group:
+                ctx_vl.addSpacing(18)
             group_lbl = QLabel(title)
             group_lbl.setStyleSheet(f"font-size: 8pt; color: {_T.SUBTEXT};")
+            group_lbl.setToolTip(tip)
             ctx_vl.addWidget(group_lbl)
+            ctx_vl.addSpacing(4)
             grid = QGridLayout()
             grid.setHorizontalSpacing(22)
-            grid.setVerticalSpacing(4)
+            grid.setVerticalSpacing(10)
             for i, (kind, label) in enumerate(ticks):
                 check = QCheckBox(label)
                 check.setStyleSheet(f"color: {_T.TEXT}; font-size: 9pt;")
-                grid.addWidget(check, i // 4, i % 4)
+                check.toggled.connect(self._refresh_nav)
+                grid.addWidget(check, i // 3, i % 3)
                 self._ai_ctx_checks[kind] = check
-            grid.setColumnStretch(4, 1)
+            grid.setColumnStretch(3, 1)
             ctx_vl.addLayout(grid)
         self._sync_research_tick()
-        ctx_hint = QLabel(
-            "Red flags: earnings within 5 days, an earnings miss, a sector in the bottom 3, "
-            "negative news, short interest above 20%, a downgrade this week, a major risk "
-            "found by web research, or a Wait / Avoid review. Top picks only adds about a "
-            "minute for every 3 top picks."
-        )
-        ctx_hint.setWordWrap(True)
-        ctx_hint.setStyleSheet(f"font-size: 8pt; color: {_T.MUTED};")
-        ctx_vl.addWidget(ctx_hint)
-        ai_rows_vl.addLayout(ctx_vl)
+        ctx_page_vl.addWidget(self._ai_ctx_page)
+        ctx_page_vl.addStretch()
 
-        ai_vl.addWidget(self._ai_ranking_row)
-        self._ai_ranking_row.setVisible(False)
-        # _ai_ranking_chk → toggled → dialog → _on_ai_ranking_toggled (show fields, grow dialog)
-        self._ai_ranking_chk.toggled.connect(self._on_ai_ranking_toggled)
-        root.addWidget(ai_box)
+        # ── Side list + one page at a time (SRD-GUI-042.001) ──────────────
+        self._nav = QListWidget()
+        self._nav.setObjectName("preset_list")
+        self._nav.setFixedWidth(220)
+        self._pages = QStackedWidget()
+        pages = {"general": general, "screeners": screeners, "ai": ai_page, "context": ctx_page}
+        for key, name in self._NAV_SECTIONS:
+            row = PresetItem(name, "")
+            item = QListWidgetItem()
+            item.setSizeHint(row.sizeHint())
+            self._nav.addItem(item)
+            self._nav.setItemWidget(item, row)
+            self._nav_rows[key] = row
+            scroll = QScrollArea()
+            scroll.setWidgetResizable(True)
+            scroll.setFrameShape(QFrame.Shape.NoFrame)
+            scroll.setWidget(pages[key])
+            self._pages.addWidget(scroll)
+        self._nav.currentRowChanged.connect(self._pages.setCurrentIndex)
+        self._nav.setCurrentRow(0)
+        body = QHBoxLayout()
+        body.setSpacing(12)
+        nav_panel = QFrame()
+        nav_panel.setObjectName("preset_nav_panel")
+        nav_panel.setStyleSheet(
+            f"QFrame#preset_nav_panel {{ background: {_T.SURFACE};"
+            f" border: 1px solid {_T.OVERLAY}; border-radius: 6px; }}"
+        )
+        nav_vl = QVBoxLayout(nav_panel)
+        nav_vl.setContentsMargins(0, 8, 0, 8)
+        nav_vl.addWidget(self._nav)
+        body.addWidget(nav_panel)
+        body.addWidget(self._pages, 1)
+        root.addLayout(body, 1)
+        self._on_ai_ranking_toggled(False)
 
         # ── Button row ────────────────────────────────────────────────────
         btn_row = QHBoxLayout()
+        self._save_error_lbl = QLabel("")
+        self._save_error_lbl.setStyleSheet(f"font-size: 9pt; color: {_T.RED};")
+        btn_row.addWidget(self._save_error_lbl)
         btn_row.addStretch()
 
         self._save_as_btn = QPushButton("Save As…")
@@ -1249,25 +1268,72 @@ class _PresetBuilderDialog(_FramelessDialog):
         self._refresh_preview()
 
     def _on_ai_ranking_toggled(self, on: bool) -> None:
-        """Show the AI fields and grow the dialog by their height, so the builder keeps its room."""
-        box_before = self._ai_box.height()
-        self._ai_ranking_row.setVisible(on)
-        self._ai_model_validate_btn.setVisible(on)
-        if not self.isVisible():
-            return
-        if not on:
-            self.resize(self.width(), self.height() - self._ai_grown)
-            self._ai_grown = 0
-            return
-        box_layout = self._ai_box.layout()
-        if box_layout is not None:
-            box_layout.invalidate()
-        extra = max(0, self._ai_box.sizeHint().height() - box_before)
-        screen = self.screen()
-        max_h = screen.availableGeometry().height() if screen else self.height() + extra
-        new_h = min(max_h, self.height() + extra)
-        self._ai_grown = new_h - self.height()
-        self.resize(self.width(), new_h)
+        """AI fields and context ticks stay in view but greyed out while AI is off."""
+        self._ai_ranking_row.setEnabled(on)
+        self._ai_ctx_page.setEnabled(on)
+        self._ai_model_validate_btn.setEnabled(on)
+        self._refresh_nav()
+
+    # ── Side list (SRD-GUI-042.001 / .004 / .005) ─────────────────────────
+
+    _NAV_SECTIONS = (
+        ("general", "General"), ("screeners", "Screeners"),
+        ("ai", "AI Ranking"), ("context", "AI Context"),
+    )
+
+    def _section_page(self, title: str, hint: str) -> tuple[QWidget, QVBoxLayout]:
+        """A page with its title and a one-line hint; callers add the fields."""
+        _T = active_palette()
+        page = QWidget()
+        vl = QVBoxLayout(page)
+        vl.setContentsMargins(4, 0, 4, 0)
+        vl.setSpacing(6)
+        head = QLabel(title)
+        head.setStyleSheet(f"color: {_T.TEXT}; font-size: 11pt; font-weight: 600;")
+        vl.addWidget(head)
+        vl.addWidget(self._lbl(hint))
+        vl.addSpacing(4)
+        return page, vl
+
+    def _nav_summary(self, key: str) -> tuple[str, str]:
+        """Summary line and dot state (ok / warn / off) for one section."""
+        if key == "general":
+            styles = [cb.text().split()[0] for cb in self._style_checks.values() if cb.isChecked()]
+            text = f"{self._tf_preset.currentText()} · {', '.join(styles) or 'no style'}"
+            return text, "ok" if self._name.text().strip() else "warn"
+        if key == "screeners":
+            if self._is_composite():
+                n = len(self._group_widgets)
+                logic = self._group_widgets[0].logic() if n == 1 else "OR"
+                text = f"{n} group{'' if n == 1 else 's'} · {logic}"
+                ok = n > 0 and all(w.screener_ids() for w in self._group_widgets)
+            else:
+                n = len(self._weighted_rows)
+                text = f"{n} screener{'' if n == 1 else 's'} · weighted"
+                ok = n > 0
+            return text, "ok" if ok else "warn"
+        if not self._ai_ranking_chk.isChecked():
+            return "Off", "off"
+        if key == "ai":
+            model = self._ai_model_combo.currentText().strip()
+            text = f"Top {self._ai_top_n.value()} · {model or 'no model'}"
+            return text, "ok" if model else "warn"
+        picked = [k for k, check in self._ai_ctx_checks.items() if check.isChecked()]
+        top = sum(k in ("research", "review") for k in picked)
+        return f"{len(picked) - top} data · {top} top picks", "ok"
+
+    def _refresh_nav(self, *_: object) -> None:
+        """Write each section's dot and summary into the side list."""
+        _T = active_palette()
+        colours = {"ok": _T.GREEN, "warn": _T.YELLOW, "off": _T.MUTED}
+        names = dict(self._NAV_SECTIONS)
+        for key, row in self._nav_rows.items():
+            text, state = self._nav_summary(key)
+            self._nav_states[key] = state
+            row.name_lbl.setText(
+                f'<span style="color: {colours[state]};">●</span>&nbsp; {names[key]}'
+            )
+            row.set_meta(text)
 
     # ── Composite area ────────────────────────────────────────────────────
 
@@ -1464,6 +1530,7 @@ class _PresetBuilderDialog(_FramelessDialog):
             text = " + ".join(parts) if parts else "(no screeners yet)"
             text += f"\nThreshold: ≥ {thr:.2f}"
             self._preview.setPlainText(text)
+        self._refresh_nav()
 
     # ── Populate from existing preset (edit mode) ─────────────────────────
 
@@ -1489,7 +1556,7 @@ class _PresetBuilderDialog(_FramelessDialog):
         self._ai_provider.setCurrentIndex(max(provider_idx, 0))
         _preset_model = getattr(preset, "ai_model", _CLOUD_AI_DEFAULT_MODEL) or _CLOUD_AI_DEFAULT_MODEL
         self._ai_model_combo.setEditText(_preset_model)
-        self._ai_query_field.setText(getattr(preset, "ai_query", "") or "")
+        self._ai_query_field.setPlainText(getattr(preset, "ai_query", "") or "")
 
         from us_swing.screener.preset import PresetType
         if preset.preset_type == PresetType.WEIGHTED:
@@ -1531,7 +1598,7 @@ class _PresetBuilderDialog(_FramelessDialog):
         ai_model_stage3    = (
             self._ai_model_combo.currentText().strip() or _AI_DEFAULT_MODELS[ai_provider]
         )
-        ai_query_stage3    = self._ai_query_field.text().strip()
+        ai_query_stage3    = self._ai_query_field.toPlainText().replace("\n", " ").strip()
         ai_context         = [k for k, check in self._ai_ctx_checks.items() if check.isChecked()]
 
         if self._is_composite():
@@ -1607,6 +1674,7 @@ class _PresetBuilderDialog(_FramelessDialog):
 
     def _on_save(self) -> None:
         err = self._validate()
+        self._save_error_lbl.setText(err or "")
         if err:
             self._name.setToolTip(err)
             self._name.setStyleSheet(
@@ -1642,6 +1710,7 @@ class _PresetBuilderDialog(_FramelessDialog):
     def _on_save_as(self) -> None:
         """Save a clone with a new name."""
         err = self._validate()
+        self._save_error_lbl.setText(err or "")
         if err:
             return
         import uuid as _uuid
@@ -1655,6 +1724,13 @@ class _PresetBuilderDialog(_FramelessDialog):
             self._name.setToolTip(str(exc))
 
     # ── Helpers ───────────────────────────────────────────────────────────
+
+    def _limit_query(self) -> None:
+        """Keep the query to 500 characters, as the one-line box did."""
+        text = self._ai_query_field.toPlainText()
+        if len(text) > _QUERY_MAX_LEN:
+            self._ai_query_field.setPlainText(text[:_QUERY_MAX_LEN])
+            self._ai_query_field.moveCursor(QTextCursor.MoveOperation.End)
 
     def _on_model_text_changed(self) -> None:
         self._ai_model_status_lbl.setText("")
@@ -1712,7 +1788,7 @@ class _PresetBuilderDialog(_FramelessDialog):
 
     def _on_validate_done(self, ok: bool, message: str) -> None:
         _T = active_palette()
-        self._ai_model_validate_btn.setEnabled(True)
+        self._ai_model_validate_btn.setEnabled(self._ai_ranking_chk.isChecked())
         self._ai_model_validate_btn.setText("Validate")
         if ok:
             self._ai_model_status_lbl.setStyleSheet(f"font-size: 8pt; color: {_T.GREEN};")

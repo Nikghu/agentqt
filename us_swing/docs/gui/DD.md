@@ -1,7 +1,7 @@
 # Design Document — GUI Module (GUI)
 
 **Document ID:** DD-GUI
-**Version:** 1.34.0
+**Version:** 1.35.0
 **Traces To:** SRD-GUI v2.16.0
 **Status:** Draft
 **Last Updated:** 2026-09-17
@@ -1844,3 +1844,24 @@ Layout "Library + slim table" was chosen by the user on 2026-10-22. All pattern 
 **Start tasks before open.** `scheduler_dialog.before_open_time(day, local) -> (HH:MM, day codes)`: 08:30 ET on `day` turned into the PC's time zone; Mon–Fri codes shift by the local date difference (no shift for zones west of +13:30 from ET such as IST). The table shows that time read-only (no step buttons) for Start TWS and Start USSwing with the tooltip "60 min before the 09:30 ET open, in this PC's time"; Close both stays editable. `_collect` saves the computed time. `load` marks a row Changed when the saved time differs, so Apply writes the new time. `day` is tomorrow, so a US clock change on the weekend is picked up on Friday.
 
 **Start-up sync.** `scheduler_dialog.sync_start_tasks(day, local) -> list[str]` runs in a daemon thread from `main_window` at start: for each switched-on start config with a program, read the task with `schtasks /query /tn NAME /xml` (`StartBoundary` time, `DaysOfWeek`), and when the time or days (weekdays mode) differ from `before_open_time`, save the config with the new time and re-create the task (TWS keeps its saved password). Each change logs `[Scheduler] Start task moved to HH:MM local time`. A missing task is left to the Settings pill (SRD-GUI-029.004).
+
+## DD-GUI-042.001.D01 — Edit Preset Side Navigation
+
+**Traces:** SRD-GUI-042.001–.006
+
+**Layout.** `_PresetBuilderDialog` body = `QHBoxLayout`: left `QListWidget#preset_list` (fixed width 220) of `PresetItem` rows (same as the Backtest setup window), right `QStackedWidget` of four pages, each in a frameless `QScrollArea` with a bold title and a muted hint line. `nav.currentRowChanged → pages.setCurrentIndex`; row 0 (General) is picked on open. Footer and title bar are unchanged.
+
+**Pages.** Existing widgets move as they are, keeping their attribute names. General: name, description, timeframe, trading style ticks, Assign Users. Screeners: Composite/Weighted radios, Add Group, builder stack, preview. AI Ranking: Enable tick, Validate, `_ai_ranking_row` (Top N, provider, model, status, query). The query is a 4-line wrapping `QPlainTextEdit` (user request 2026-11-18): text past 500 characters is cut, and line breaks are saved as spaces. AI Context: `_ai_ctx_page` with the Stock data and Top picks only tick groups, 18 px apart. The red-flag list and the top-pick cost line are tooltips on the two group labels, not a paragraph on the page (user request 2026-11-19). The old Trade Settings and AI group boxes go away.
+
+**AI off.** `_on_ai_ranking_toggled(on)` sets `_ai_ranking_row`, `_ai_ctx_page` and Validate enabled = `on` and refreshes the list. The old grow-the-dialog code (`_ai_box`, `_ai_grown`) is removed, since each page has its own scroll area.
+
+**Summaries and dots.** `_nav_summary(key) -> (text, state)`, state in `ok` / `warn` / `off`:
+
+| Key | Text | State |
+|---|---|---|
+| general | `Daily · Swing, Day` or `Daily · no style` | warn when the name is blank |
+| screeners | `1 group · AND`, `2 groups · OR`, `3 screeners · weighted` | warn when no screener is picked |
+| ai | `Top 5 · claude-opus-5-5`, or `Off` | off when AI is off; warn when the model is blank |
+| context | `7 data · 2 top picks`, or `Off` | off when AI is off |
+
+`_refresh_nav()` writes `● Name` in the dot colour (GREEN / YELLOW / MUTED) into each row's name label, sets the meta line, and keeps the state in `_nav_states` for tests. It is called at the end of `_refresh_preview` (covers name, groups, screeners, weights) and from timeframe, style ticks, Top N, provider, model text and context tick signals. `_nav_rows` starts empty, so calls made while pages are still being built do nothing. Save checks (`_validate`) are unchanged; the dot only warns. Because the failing field may sit on a page that is not shown, Save and Save As also write the `_validate` message into a red footer label (`_save_error_lbl`), cleared on the next successful check; the dialog does not change page.

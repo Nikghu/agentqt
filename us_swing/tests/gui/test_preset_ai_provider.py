@@ -92,6 +92,7 @@ def test_context_ticks_save_and_load(qtbot) -> None:  # type: ignore[no-untyped-
 def test_news_and_research_ticks(qtbot) -> None:  # type: ignore[no-untyped-def]
     """UT-GUI-022.018.M01.T01: News and research ticks; research only with Claude."""
     dlg = _dialog(qtbot)
+    dlg._ai_ranking_chk.setChecked(True)
     research = dlg._ai_ctx_checks["research"]
     assert not research.isEnabled()
     dlg._ai_provider.setCurrentIndex(dlg._ai_provider.findData("claude"))
@@ -111,6 +112,7 @@ def test_two_tick_groups_and_review_needs_claude(qtbot) -> None:  # type: ignore
         "earnings", "surprise", "sector", "news", "fundamentals", "short", "analysts",
         "research", "review",
     ]
+    dlg._ai_ranking_chk.setChecked(True)
     review = dlg._ai_ctx_checks["review"]
     assert not review.isEnabled()
     dlg._ai_provider.setCurrentIndex(dlg._ai_provider.findData("claude"))

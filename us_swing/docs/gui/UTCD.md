@@ -1,7 +1,7 @@
 # Unit Test Case Document â€” GUI Module (GUI)
 
 **Document ID:** UTCD-GUI
-**Version:** 1.52.0
+**Version:** 1.53.0
 **Traces To:** MD-GUI v1.7.0
 **Status:** Draft
 **Last Updated:** 2026-11-17
@@ -1112,4 +1112,19 @@ Test files:
 | UT-GUI-033.006.M02.T01 | MD-GUI-033.004.M02 | Negative | Dot warns when default not ready | Telegram ready; AI on; default Claude; claude not found | Telegram dot warn | Pass |
 | UT-GUI-033.007.M01.T01 | MD-GUI-033.001.M01 | Positive | Test AI shows the answer | fake `ask_ai` returning OK from Claude | note names Claude Code CLI and the time; button on again | Removed (user, 2026-11-05) |
 | UT-GUI-033.007.M01.T02 | MD-GUI-033.001.M01 | Negative | Test AI shows the error | fake `ask_ai` returning an error | note shows the error | Removed (user, 2026-11-05) |
+
+## FO-GUI-042 — Edit Preset Side Navigation
+
+| UT ID | MD | Type | Description | Input | Expected | Status |
+|---|---|---|---|---|---|---|
+| UT-GUI-042.001.M01.T01 | MD-GUI-042.001.M01 | Positive | Side list and pages | new dialog; click row 3 | rows General, Screeners, AI Ranking, AI Context; opens on General; row 3 shows AI Context page | Pass |
+| UT-GUI-042.002.M01.T01 | MD-GUI-042.001.M01 | Positive | General holds trade settings | new dialog | name, timeframe, style ticks and Assign Users sit on the General page | Pass |
+| UT-GUI-042.003.M01.T01 | MD-GUI-042.001.M01 | Positive | Pages hold their fields | new dialog | preview on Screeners; model on AI Ranking; context ticks on AI Context | Pass |
+| UT-GUI-042.003.M01.T02 | MD-GUI-042.001.M01 | Negative | AI fields greyed when off | AI off; then tick Enable | fields, ticks and Validate disabled but not hidden; then enabled | Pass |
+| UT-GUI-042.003.M01.T03 | MD-GUI-042.001.M01 | Edge | Query box shows several lines | 600 chars typed; text with a line break; build | 4-line box; text cut to 500; saved query is one line | Pass |
+| UT-GUI-042.004.M01.T01 | MD-GUI-042.001.M01 | Positive | Summaries follow changes | tick Swing; AI on, Top N 7, model typed | General "Daily · Swing"; AI Ranking "Top 7 · typed model" | Pass |
+| UT-GUI-042.005.M01.T01 | MD-GUI-042.001.M01 | Negative | Amber when missing | blank name; no screener; AI on with blank model | General, Screeners and AI Ranking warn | Pass |
+| UT-GUI-042.005.M01.T03 | MD-GUI-042.001.M01 | Negative | Save reason in footer | name set, no group; on AI Context page; Save, then Save As | footer reads "Add at least one group."; dialog stays open | Pass |
+| UT-GUI-042.005.M01.T02 | MD-GUI-042.001.M01 | Edge | Grey when AI off | AI off | AI Ranking and AI Context state off, text "Off" | Pass |
+| UT-GUI-042.006.M01.T01 | MD-GUI-042.001.M01 | Positive | Same preset saved | edit a saved composite preset with AI on; build without changes | built preset fields equal the saved ones | Pass |
 

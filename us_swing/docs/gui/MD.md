@@ -1,10 +1,10 @@
 # Module Decomposition — GUI Module (GUI)
 
 **Document ID:** MD-GUI
-**Version:** 1.62.0
+**Version:** 1.63.0
 **Traces To:** SRD-GUI v2.16.0 / DD-GUI v1.7.0
 **Status:** Draft
-**Last Updated:** 2026-11-17
+**Last Updated:** 2026-11-18
 **Project:** US Swing Trading System
 
 > v1.63.0: MD-GUI-022.001.M01 — Stock data / Top picks only tick groups with 5 new ticks; company tags, Fundamentals line, Analyst changes list, Bull vs bear box (SRD-GUI-022.020–.021).
@@ -438,4 +438,10 @@ us_swing/src/us_swing/gui/
 | MD-GUI-033.001.M01 | SRD-GUI-033.001 | `us_swing/src/us_swing/gui/ai_settings_block.py` | Enable AI notes tick, Claude and OpenRouter cards, fallback, validity and readiness rules | `AiSettingsBlock`, `AiSettings`, `ai_problem()`, `ai_ready()`, `claude_found()` | `screener._cloud_ai_models`, `theme` | No |
 | MD-GUI-033.004.M02 | SRD-GUI-033.004 | `us_swing/src/us_swing/gui/settings_panel.py`, `gui/settings_dialog.py` | AI block on the Telegram page, save and load, dot, Apply and OK gate | `SettingsPanel.valid_changed`, `is_valid`, `telegram_state()` | `ai_settings_block`, `screener._api_key_store` | No |
 | MD-GUI-033.005.M03 | SRD-GUI-033.005 | `us_swing/src/us_swing/data/models.py`, `gui/user_store.py` | Per-user AI fields with defaults | `UserProfile.ai_*` | — | No |
+
+## FO-GUI-042 — Edit Preset Side Navigation
+
+| MD ID | SRD | File | Purpose | Public API | Depends on | Async |
+|---|---|---|---|---|---|---|
+| MD-GUI-042.001.M01 | SRD-GUI-042.001 | `us_swing/src/us_swing/gui/screener_panel.py` | Preset dialog side list, four section pages, summaries and dots | `_PresetBuilderDialog._nav`, `_pages`, `_refresh_nav()`, `_nav_summary()`, `_nav_states` | `screener_views.PresetItem`, `theme` | No |
 
