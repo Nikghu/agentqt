@@ -850,24 +850,17 @@ class _AssignUsersWidget(QWidget):
             for u in self._all_users
         }
 
-        self._tag_row = QHBoxLayout()
-        self._tag_row.setSpacing(4)
-        self._tag_row.setContentsMargins(0, 0, 0, 0)
-        self._tag_row.addStretch()
-
         add_btn = QPushButton("Add User")
         set_icon(add_btn, "user-plus", "add")
         add_btn.setObjectName("btn_blue")
+        add_btn.setFixedWidth(120)
         add_btn.clicked.connect(self._on_open_picker)
 
-        vl = QVBoxLayout(self)
-        vl.setContentsMargins(0, 2, 0, 2)
-        vl.setSpacing(4)
-
-        tag_container = QWidget()
-        tag_container.setLayout(self._tag_row)
-        vl.addWidget(tag_container)
-        vl.addWidget(add_btn)
+        self._tag_row = QHBoxLayout(self)
+        self._tag_row.setSpacing(6)
+        self._tag_row.setContentsMargins(0, 2, 0, 2)
+        self._tag_row.addWidget(add_btn)
+        self._tag_row.addStretch()
 
     def load_existing(self, user_ids: list[str]) -> None:
         for uid in user_ids:
@@ -915,8 +908,8 @@ class _AssignUsersWidget(QWidget):
         tag = _UserTag(uid, label=label, valid=True, parent=self)
         tag.removed.connect(self._on_remove)
         self._tags.append(tag)
-        # Insert before the trailing stretch
-        self._tag_row.insertWidget(self._tag_row.count() - 1, tag)
+        # Tags sit left of the Add User button
+        self._tag_row.insertWidget(len(self._tags) - 1, tag)
 
 
 class _PresetBuilderDialog(_FramelessDialog):
@@ -1002,7 +995,6 @@ class _PresetBuilderDialog(_FramelessDialog):
             )
             if preset is not None:
                 self._assign_widget.load_existing(getattr(preset, "assigned_to", []))
-            self._assign_widget.setMaximumWidth(360)
             general_vl.addWidget(self._assign_widget)
         general_vl.addStretch()
 
@@ -1225,7 +1217,16 @@ class _PresetBuilderDialog(_FramelessDialog):
         self._nav.setCurrentRow(0)
         body = QHBoxLayout()
         body.setSpacing(12)
-        body.addWidget(self._nav)
+        nav_panel = QFrame()
+        nav_panel.setObjectName("preset_nav_panel")
+        nav_panel.setStyleSheet(
+            f"QFrame#preset_nav_panel {{ background: {_T.SURFACE};"
+            f" border: 1px solid {_T.OVERLAY}; border-radius: 6px; }}"
+        )
+        nav_vl = QVBoxLayout(nav_panel)
+        nav_vl.setContentsMargins(0, 8, 0, 8)
+        nav_vl.addWidget(self._nav)
+        body.addWidget(nav_panel)
         body.addWidget(self._pages, 1)
         root.addLayout(body, 1)
         self._on_ai_ranking_toggled(False)
