@@ -321,12 +321,13 @@ class _GroupWidget(QFrame):
 
         self._T = active_palette()
         _T = self._T
+        body_bg = QColor(_T.SURFACE).lighter(135).name()
         self.setObjectName("group_frame")
         self.setStyleSheet(
             f"QFrame#group_frame {{"
-            f"  border: 1px solid {_T.BLUE}55;"
+            f"  border: 1px solid {_T.OVERLAY2};"
             f"  border-radius: 6px;"
-            f"  background: {_T.SURFACE};"
+            f"  background: {body_bg};"
             f"  margin-bottom: 8px;"
             f"}}"
         )
@@ -394,7 +395,7 @@ class _GroupWidget(QFrame):
         self._empty_lbl.setFixedHeight(48)
         self._empty_lbl.setStyleSheet(
             f"color: {_T.MUTED}; font-size: 8pt; font-style: italic;"
-            f" background: {_T.BG}; border: none;"
+            f" background: {body_bg}; border: none;"
         )
         root.addWidget(self._empty_lbl)
 
@@ -406,7 +407,7 @@ class _GroupWidget(QFrame):
         self._list.setDragDropMode(QAbstractItemView.DragDropMode.InternalMove)
         self._list.setDefaultDropAction(Qt.DropAction.MoveAction)
         self._list.setStyleSheet(
-            f"QListWidget {{ border: none; background: {_T.BG}; padding: 4px; outline: none; }}"
+            f"QListWidget {{ border: none; background: {body_bg}; padding: 4px; outline: none; }}"
             f"QListWidget::item {{ padding: 5px 10px; color: {_T.TEXT}; font-size: 9pt;"
             f"  border-radius: 3px; margin-bottom: 2px; }}"
             f"QListWidget::item:selected {{ background: {_T.OVERLAY}; color: {_T.BLUE}; }}"
