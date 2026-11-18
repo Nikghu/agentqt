@@ -1121,6 +1121,7 @@ Test files:
 | UT-GUI-042.002.M01.T01 | MD-GUI-042.001.M01 | Positive | General holds trade settings | new dialog | name, timeframe, style ticks and Assign Users sit on the General page | Pass |
 | UT-GUI-042.003.M01.T01 | MD-GUI-042.001.M01 | Positive | Pages hold their fields | new dialog | preview on Screeners; model on AI Ranking; context ticks on AI Context | Pass |
 | UT-GUI-042.003.M01.T02 | MD-GUI-042.001.M01 | Negative | AI fields greyed when off | AI off; then tick Enable | fields, ticks and Validate disabled but not hidden; then enabled | Pass |
+| UT-GUI-042.003.M01.T03 | MD-GUI-042.001.M01 | Edge | Query box shows several lines | 600 chars typed; text with a line break; build | 4-line box; text cut to 500; saved query is one line | Pass |
 | UT-GUI-042.004.M01.T01 | MD-GUI-042.001.M01 | Positive | Summaries follow changes | tick Swing; AI on, Top N 7, model typed | General "Daily · Swing"; AI Ranking "Top 7 · typed model" | Pass |
 | UT-GUI-042.005.M01.T01 | MD-GUI-042.001.M01 | Negative | Amber when missing | blank name; no screener; AI on with blank model | General, Screeners and AI Ranking warn | Pass |
 | UT-GUI-042.005.M01.T03 | MD-GUI-042.001.M01 | Negative | Save reason in footer | name set, no group; on AI Context page; Save, then Save As | footer reads "Add at least one group."; dialog stays open | Pass |

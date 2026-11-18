@@ -106,6 +106,17 @@ def test_grey_when_ai_off(qtbot) -> None:  # type: ignore[no-untyped-def]
         assert dlg._nav_rows[key].meta_lbl.text() == "Off"
 
 
+def test_query_box_wraps_and_keeps_limit(qtbot) -> None:  # type: ignore[no-untyped-def]
+    """UT-GUI-042.003.M01.T03: Query box shows several lines, keeps 500 chars, saves one line."""
+    dlg = _dialog(qtbot)
+    assert dlg._ai_query_field.height() >= 80
+    dlg._ai_query_field.setPlainText("x" * 600)
+    assert len(dlg._ai_query_field.toPlainText()) == 500
+    dlg._ai_query_field.setPlainText("near support\nwith volume")
+    dlg._name.setText("AI preset")
+    assert dlg._build_preset_from_ui().ai_query == "near support with volume"
+
+
 def test_same_preset_saved(qtbot) -> None:  # type: ignore[no-untyped-def]
     """UT-GUI-042.006.M01.T01: An edited preset with no changes builds the same preset."""
     saved = replace(

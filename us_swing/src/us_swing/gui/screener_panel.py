@@ -31,7 +31,7 @@ from PyQt6.QtCore import (
     QThread,
     pyqtSignal,
 )
-from PyQt6.QtGui import QAction, QColor, QCursor, QFont
+from PyQt6.QtGui import QAction, QColor, QCursor, QFont, QTextCursor
 from PyQt6.QtWidgets import (
     QAbstractItemView,
     QButtonGroup,
@@ -124,6 +124,8 @@ def _ai_model_choices(provider: str) -> list[tuple[str, str]]:
     return [(model_id, f"{name} · {tier}") for tier, _p, name, model_id, _t, _c in all_model_rows()]
 
 # Trading-style filter options (label → style_filter value or None).
+_QUERY_MAX_LEN = 500
+
 _STYLE_OPTIONS: list[tuple[str, str | None]] = [
     ("All Styles",       None),
     ("Swing Trading",    "swing"),
@@ -1130,11 +1132,18 @@ class _PresetBuilderDialog(_FramelessDialog):
         query_vl = QVBoxLayout()
         query_vl.setSpacing(2)
         query_vl.addWidget(self._lbl("Query  (optional — blank = auto-rank by features)"))
-        self._ai_query_field = QLineEdit()
+        self._ai_query_field = QPlainTextEdit()
         self._ai_query_field.setPlaceholderText(
             "e.g. rank by strongest momentum with expanding volume"
         )
-        self._ai_query_field.setMaxLength(500)
+        self._ai_query_field.setFixedHeight(86)
+        self._ai_query_field.setStyleSheet(
+            f"QPlainTextEdit {{ background: {_T.OVERLAY}; color: {_T.TEXT};"
+            f" border: 1px solid {_T.OVERLAY2}; border-radius: 4px; padding: 4px 4px;"
+            f" outline: none; }}"
+            f"QPlainTextEdit:focus {{ border: 1px solid {_T.BLUE}; outline: none; }}"
+        )
+        self._ai_query_field.textChanged.connect(self._limit_query)
         query_vl.addWidget(self._ai_query_field)
         ai_rows_vl.addLayout(query_vl)
         self._ai_ranking_row.setSizePolicy(
@@ -1152,26 +1161,36 @@ class _PresetBuilderDialog(_FramelessDialog):
         self._ai_ctx_page = QWidget()
         ctx_vl = QVBoxLayout(self._ai_ctx_page)
         ctx_vl.setContentsMargins(0, 0, 0, 0)
-        ctx_vl.setSpacing(4)
+        ctx_vl.setSpacing(0)
         self._ai_ctx_checks: dict[str, QCheckBox] = {}
         groups = (
             ("Stock data", (
+                "Red flags: earnings within 5 days, an earnings miss, a sector in the bottom 3, "
+                "negative news, short interest above 20% or a downgrade this week."
+            ), (
                 ("earnings", "Earnings date"), ("surprise", "Earnings surprise"),
                 ("sector", "Sector strength"), ("news", "News tone"),
                 ("fundamentals", "Fundamentals"), ("short", "Short interest"),
                 ("analysts", "Analyst changes"),
             )),
-            ("Top picks only (Claude Code CLI, slower)", (
+            ("Top picks only", (
+                "Needs Claude Code CLI. Adds about a minute for every 3 top picks. Red flags: "
+                "a major risk found by web research, or a Wait / Avoid review."
+            ), (
                 ("research", "Web research for top picks"), ("review", "Bull vs bear review"),
             )),
         )
-        for title, ticks in groups:
+        for i_group, (title, tip, ticks) in enumerate(groups):
+            if i_group:
+                ctx_vl.addSpacing(18)
             group_lbl = QLabel(title)
             group_lbl.setStyleSheet(f"font-size: 8pt; color: {_T.SUBTEXT};")
+            group_lbl.setToolTip(tip)
             ctx_vl.addWidget(group_lbl)
+            ctx_vl.addSpacing(4)
             grid = QGridLayout()
             grid.setHorizontalSpacing(22)
-            grid.setVerticalSpacing(4)
+            grid.setVerticalSpacing(10)
             for i, (kind, label) in enumerate(ticks):
                 check = QCheckBox(label)
                 check.setStyleSheet(f"color: {_T.TEXT}; font-size: 9pt;")
@@ -1180,17 +1199,7 @@ class _PresetBuilderDialog(_FramelessDialog):
                 self._ai_ctx_checks[kind] = check
             grid.setColumnStretch(3, 1)
             ctx_vl.addLayout(grid)
-            ctx_vl.addSpacing(6)
         self._sync_research_tick()
-        ctx_hint = QLabel(
-            "Red flags: earnings within 5 days, an earnings miss, a sector in the bottom 3, "
-            "negative news, short interest above 20%, a downgrade this week, a major risk "
-            "found by web research, or a Wait / Avoid review. Top picks only adds about a "
-            "minute for every 3 top picks."
-        )
-        ctx_hint.setWordWrap(True)
-        ctx_hint.setStyleSheet(f"font-size: 8pt; color: {_T.MUTED};")
-        ctx_vl.addWidget(ctx_hint)
         ctx_page_vl.addWidget(self._ai_ctx_page)
         ctx_page_vl.addStretch()
 
@@ -1546,7 +1555,7 @@ class _PresetBuilderDialog(_FramelessDialog):
         self._ai_provider.setCurrentIndex(max(provider_idx, 0))
         _preset_model = getattr(preset, "ai_model", _CLOUD_AI_DEFAULT_MODEL) or _CLOUD_AI_DEFAULT_MODEL
         self._ai_model_combo.setEditText(_preset_model)
-        self._ai_query_field.setText(getattr(preset, "ai_query", "") or "")
+        self._ai_query_field.setPlainText(getattr(preset, "ai_query", "") or "")
 
         from us_swing.screener.preset import PresetType
         if preset.preset_type == PresetType.WEIGHTED:
@@ -1588,7 +1597,7 @@ class _PresetBuilderDialog(_FramelessDialog):
         ai_model_stage3    = (
             self._ai_model_combo.currentText().strip() or _AI_DEFAULT_MODELS[ai_provider]
         )
-        ai_query_stage3    = self._ai_query_field.text().strip()
+        ai_query_stage3    = self._ai_query_field.toPlainText().replace("\n", " ").strip()
         ai_context         = [k for k, check in self._ai_ctx_checks.items() if check.isChecked()]
 
         if self._is_composite():
@@ -1714,6 +1723,13 @@ class _PresetBuilderDialog(_FramelessDialog):
             self._name.setToolTip(str(exc))
 
     # ── Helpers ───────────────────────────────────────────────────────────
+
+    def _limit_query(self) -> None:
+        """Keep the query to 500 characters, as the one-line box did."""
+        text = self._ai_query_field.toPlainText()
+        if len(text) > _QUERY_MAX_LEN:
+            self._ai_query_field.setPlainText(text[:_QUERY_MAX_LEN])
+            self._ai_query_field.moveCursor(QTextCursor.MoveOperation.End)
 
     def _on_model_text_changed(self) -> None:
         self._ai_model_status_lbl.setText("")
