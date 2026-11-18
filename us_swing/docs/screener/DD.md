@@ -1659,7 +1659,7 @@ The registry id stays `price_action`. The module no longer imports `us_swing.ana
 ## DD-SCR-017.002.D01 — Accumulation / Distribution Screener
 - **Status:** Draft
 
-**Parent SRDs:** SRD-SCR-017.001 through SRD-SCR-017.016
+**Parent SRDs:** SRD-SCR-017.001 through SRD-SCR-017.018
 
 ### Settings (`SETTINGS`, key → default, min, max)
 
@@ -1694,6 +1694,20 @@ Symbols with fewer than `lookback + volume_period + 1` bars are left out. `scree
 
 ### Settings dialog
 `AccDistSettingsDialog(config)` is a `FramelessDialog` with a mode combo, a Move rule combo ("Stock's own move" / "Fixed %"; only `move_factor` or only `min_move_pct` is enabled to match) and one input per `SETTINGS` key: a checkbox for on/off keys, a range-limited spin box for the others. A config that fails `read_config()` opens with defaults. Reset restores defaults; `get_config()` returns `read_config()` of the inputs.
+
+**Layout (SRD-SCR-017.017, from 2026-11-18).** Tab strip (`QButtonGroup` of 4 checkable buttons) over a `QStackedWidget`; each page is `TABS[i].rows` from `gui/acc_dist_tips.py`, one `acc_pair` frame per row holding two `acc_field` frames (label + input). The Range Zone & Close Zone tab has column headings. Right: a 260 px tip panel. An event filter on each field and input shows its tip on focus or click (a click on a disabled field still shows its tip). `_refresh()` runs on every input change: enables only inputs in use (move factor vs minimum move by rule, Acc vs Dist ratio by mode, zone inputs by their switch), marks the active field (`on` property), and refills the intro line, tip panel, summary and title chips. Tip text, intros and the summary live in `acc_dist_tips.py` (`tip(key, cfg)`, `tab_intro(i, cfg)`, `summary(cfg)`), worded per mode and using current values.
+
+**Rules level (SRD-SCR-017.018).** `strictness(config)` in `acc_dist.py`. Each setting in use scores `clip((value − wide) / (strict − wide), 0, 1)` with these anchors:
+
+| Setting | Wide | Strict | Setting | Wide | Strict |
+|---|---|---|---|---|---|
+| `high_factor` | 1.0 | 1.6 | `min_ud_ratio` (Acc) | 1.0 | 1.6 |
+| `low_factor` | 1.0 | 0.7 | `max_ud_ratio` (Dist) | 1.0 | 0.6 |
+| `move_factor` (own) | 0.2 | 1.0 | `zone_pct` | 50 | 10 |
+| `min_move_pct` (fixed) | 0.2 | 1.5 | `close_zone_pct` | 50 | 10 |
+| `min_rally_days`, `min_drop_days` | 1 | 6 | `min_score` | 0.2 | 0.8 |
+
+A switched-off Range Zone or Close Zone scores 0. Value = mean of the 9 scores, rounded to 2 places; level: < 0.25 Wide, < 0.55 Balanced, < 0.75 Strict, else Very strict (defaults ≈ 0.46). `tightest` = up to two settings scoring ≥ 0.5, strictest first. The title bar shows "Rules: <level>" (colour by level) and the mode; the tooltip names the tightest settings.
 
 ---
 

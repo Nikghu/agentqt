@@ -2,6 +2,17 @@
 
 ---
 
+## [20261118] SCR — Acc / Dist settings: tabs, tips and rules level (FO-SCR-015)
+
+- Type: Feature
+- FO(s): FO-SCR-015 (SRD-SCR-017.017–.018, Draft)
+- RN: RN-SCR-2.9.0-20261118
+- Artifacts updated: SRD (2 rows), DD-SCR-017.002.D01 (layout + rules level), MD (M34 new; M32, M33), UTCD 7 rows, TRACE, TODO T203; T201 closed
+- Decisions (user): tab strip on top + rows of two settings (user's sketch) on the option C tip-panel base; add a "how strict" indicator by the mode chip. Claude chose the strictness anchors and the 4 levels (defaults read Balanced)
+- Checked by screenshot with the app theme (tabs 1, 3, 4); fixed "&" in tab names, active-field highlight, title chip height, greyed unused inputs
+
+---
+
 ## [20261118] SCR — Acc / Dist move rule: stock's own move or fixed % (FO-SCR-015)
 
 - Type: Feature

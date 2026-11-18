@@ -15,6 +15,7 @@ from us_swing.screener.screeners.acc_dist import (
     AccDistScreener,
     default_config,
     read_config,
+    strictness,
 )
 
 # 20 lookback days: 8 rallies (R), 7 drops (D), 5 flat days (F).
@@ -186,6 +187,30 @@ def test_old_config_keeps_fixed_rule() -> None:
     passed, score = _run(_bars(), move_rule="fixed")
     assert passed is True
     assert score == pytest.approx((6 / 8 + 6 / 7) / 2, abs=1e-3)
+
+
+def test_strictness_levels() -> None:
+    """UT-SCR-017.018.M32.T01: Defaults read Balanced; loose and tight configs read Wide and Very strict."""
+    assert strictness({}).level == "Balanced"
+    loose = {"min_score": 0.2, "high_factor": 1.0, "low_factor": 1.0, "min_rally_days": 1,
+             "min_drop_days": 1, "min_ud_ratio": 1.0, "move_factor": 0.2,
+             "location_filter": False, "close_position": False}
+    tight = {"min_score": 0.8, "high_factor": 1.8, "low_factor": 0.6, "min_rally_days": 8,
+             "min_drop_days": 8, "min_ud_ratio": 2.0, "move_factor": 1.2,
+             "zone_pct": 10.0, "close_zone_pct": 10.0}
+    assert strictness(loose).level == "Wide" and strictness(loose).value == 0.0
+    assert strictness(tight).level == "Very strict" and strictness(tight).value == 1.0
+
+
+def test_strictness_follows_settings() -> None:
+    """UT-SCR-017.018.M32.T02: Switching a zone off loosens; the strictest settings are named."""
+    base = {"zone_pct": 10.0, "min_score": 0.7}
+    on, off = strictness(base), strictness({**base, "location_filter": False})
+    assert off.value < on.value
+    assert on.tightest == ("zone_pct", "min_score")
+    assert strictness({"mode": "distribution"}).level == "Balanced"
+    dist = strictness({"mode": "distribution", "max_ud_ratio": 0.6, "min_ud_ratio": 1.0})
+    assert "max_ud_ratio" in dist.tightest
 
 
 def test_min_days_and_short_history() -> None:

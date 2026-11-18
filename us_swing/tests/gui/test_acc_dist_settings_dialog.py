@@ -67,6 +67,34 @@ def test_move_rule_input(qtbot: QtBot) -> None:
     assert dlg.get_config()["move_rule"] == "own"
 
 
+def test_tabs_and_tip_panel(qtbot: QtBot) -> None:
+    """UT-SCR-017.017.M33.T01: Four tabs switch pages; a clicked setting fills the tip panel."""
+    dlg = _dialog(qtbot, {"mode": "distribution", "zone_pct": 25.0})
+    assert len(dlg.tab_group.buttons()) == 4
+    dlg.tab_group.button(2).click()  # type: ignore[union-attr]
+    assert dlg.pages.currentIndex() == 2
+    dlg.show_tip("zone_pct")
+    assert dlg.tip_title_lbl.text() == "How near the high"
+    assert "$95.00" in dlg.tip_example_lbl.text()
+    dlg.mode_combo.setCurrentIndex(0)
+    assert dlg.tip_title_lbl.text() == "How near the low"
+    assert dlg.mode_chip.text() == "Accumulation"
+
+
+def test_rules_chip_and_mode_enabling(qtbot: QtBot) -> None:
+    """UT-SCR-017.018.M33.T01: The rules chip follows the values; unused inputs are disabled."""
+    dlg = _dialog(qtbot, {"mode": "distribution"})
+    assert dlg.strict_chip.text() == "Rules: Balanced"
+    assert not dlg.inputs["min_ud_ratio"].isEnabled() and dlg.inputs["max_ud_ratio"].isEnabled()
+    for key, value in (("min_score", 0.2), ("min_rally_days", 1), ("min_drop_days", 1)):
+        dlg.inputs[key].setValue(value)  # type: ignore[union-attr]
+    dlg.inputs["location_filter"].setChecked(False)  # type: ignore[union-attr]
+    dlg.inputs["close_position"].setChecked(False)  # type: ignore[union-attr]
+    assert dlg.strict_chip.text() == "Rules: Wide"
+    assert not dlg.inputs["zone_pct"].isEnabled()
+    assert "Rules overall: <b>Wide</b>" in dlg.summary_lbl.text()
+
+
 @pytest.fixture
 def panel_module(monkeypatch: pytest.MonkeyPatch) -> Iterator[types.ModuleType]:
     """Import screener_panel, stubbing QtWebEngineWidgets when its DLL cannot load."""
