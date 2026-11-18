@@ -2,6 +2,16 @@
 
 ---
 
+## [20261118] SCR + GUI — AI Provider choice for AI Ranking (FO-SCR-011, FO-GUI-022)
+
+- Type: Feature (batch branch `fix/bugfix-batch-20261118`, commit 0d4a83be)
+- FO(s): FO-SCR-011 (SRD-SCR-013.010–.011), FO-GUI-022 (SRD-GUI-022.014) — approved by user and Implemented
+- RN: RN-SCR-2.10.0-20261118
+- Artifacts updated: SRD rows, DD section, MD notes, UTCD 7 rows, TRACE rows, TODO T205
+- Note: Claude Code CLI has no tool loop, so the Query only shapes the one-request prompt
+
+---
+
 ## [20261118] GUI — Plain names for number-only screener details (FO-GUI-022)
 
 - Type: Improvement (batch branch `fix/bugfix-batch-20261118`)
