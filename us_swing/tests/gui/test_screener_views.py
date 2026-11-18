@@ -445,7 +445,7 @@ def test_context_chips_flags_and_count(qtbot):
     qtbot.addWidget(view)
     view.load([row])
     assert view.list.itemWidget(view.list.item(0)).flag_lbl.text() == "⚑ 1"
-    assert [view._chips_box.itemAt(i).widget().text() for i in range(3)] == [
+    assert [view._chips_box.itemAt(i).widget().accessibleName() for i in range(3)] == [
         c.text for c in row.chips]
     assert not view.flags_head.isHidden()
     assert view._flags_box.itemAt(0).widget().text() == "Earnings in 3 days"

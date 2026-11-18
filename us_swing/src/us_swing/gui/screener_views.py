@@ -474,12 +474,15 @@ def _rule_chip(rule: RuleCheck) -> QLabel:
 
 
 def _context_chip(chip: ContextChip) -> QLabel:
+    """Neutral filled tag; only a small dot carries the level colour."""
     _T: Any = active_palette()
-    fg = {"red": _T.RED, "yellow": _T.YELLOW, "green": _T.GREEN}.get(chip.level, _T.SUBTEXT)
-    label = QLabel(chip.text)
+    dot = {"red": _T.RED, "yellow": _T.YELLOW, "green": _T.GREEN}.get(chip.level, _T.MUTED)
+    label = QLabel(f'<span style="color:{dot};">●</span>&nbsp;&nbsp;{html.escape(chip.text)}')
+    label.setTextFormat(Qt.TextFormat.RichText)
+    label.setAccessibleName(chip.text)
     label.setStyleSheet(
-        f"color: {fg}; background: transparent; border: 1px solid {fg};"
-        " border-radius: 10px; padding: 2px 9px; font-size: 8pt;"
+        f"color: {_T.TEXT}; background: {_T.OVERLAY}; border: none;"
+        " border-radius: 4px; padding: 3px 9px; font-size: 8pt;"
     )
     return label
 
