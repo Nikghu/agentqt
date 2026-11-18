@@ -71,7 +71,7 @@ Package `src/us_swing/core/price_patterns/__init__.py` re-exports the public API
 | Module ID | Parent SRD | File | Responsibility | Public API | Deps | Status |
 |---|---|---|---|---|---|---|
 | MD-SCR-017.001.M32 | SRD-SCR-017.001–.012, .014–.015, .018 | `src/us_swing/screener/screeners/acc_dist.py` | Settings, move rule, rally / drop volume checks, location and close-position filters, score, rules level. | `AccDistScreener`, `SETTINGS`, `default_config()`, `read_config()`, `strictness()` | `core.indicator_rules` (`BarArrays`, `volume_ratio`), `base.py` | Implemented |
-| MD-SCR-017.017.M34 | SRD-SCR-017.017 | `src/us_swing/gui/acc_dist_tips.py` | Tab layout, field labels, mode-aware tips, tab intros and the plain-words summary. | `LABELS`, `TABS`, `tip()`, `tab_intro()`, `summary()` | `acc_dist.py` | Draft |
+| MD-SCR-017.017.M34 | SRD-SCR-017.017 | `src/us_swing/gui/acc_dist_tips.py` | Tab layout, field labels, mode-aware tips, tab intros and the plain-words summary. | `LABELS`, `TABS`, `tip()`, `tab_intro()`, `summary()` | `acc_dist.py` | Implemented |
 | MD-SCR-017.013.M33 | SRD-SCR-017.013, .016–.018 | `src/us_swing/gui/acc_dist_settings_dialog.py` | Frameless form that edits every setting. | `AccDistSettingsDialog`, `get_config()` | `frameless_dialog.py`, `acc_dist.py` | Implemented |
 
 Registered as `acc_dist` in `src/us_swing/screener/__init__.py`. M33 opens from the builder's configure button and context menu in `gui/screener_panel.py` (display name "Acc / Dist").

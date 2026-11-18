@@ -530,8 +530,8 @@ FO-011
 | SRD-017.014 | DD-SCR-017.002.D01 | MD-SCR-017.001.M32 | tests/screener/test_acc_dist_screener.py | UT-SCR-017.014.M32.T01–T02 | Implemented |
 | SRD-017.015 | DD-SCR-017.002.D01 | MD-SCR-017.001.M32 | tests/screener/test_acc_dist_screener.py | UT-SCR-017.015.M32.T01 | Implemented |
 | SRD-017.016 | DD-SCR-017.002.D01 | MD-SCR-017.013.M33 | tests/gui/test_acc_dist_settings_dialog.py | UT-SCR-017.016.M33.T01 | Implemented |
-| SRD-017.017 | DD-SCR-017.002.D01 | MD-SCR-017.017.M34, MD-SCR-017.013.M33 | tests/gui/test_acc_dist_tips.py, tests/gui/test_acc_dist_settings_dialog.py | UT-SCR-017.017.M34.T01–T03, UT-SCR-017.017.M33.T01 | Draft (code done) |
-| SRD-017.018 | DD-SCR-017.002.D01 | MD-SCR-017.001.M32, MD-SCR-017.013.M33 | tests/screener/test_acc_dist_screener.py, tests/gui/test_acc_dist_settings_dialog.py | UT-SCR-017.018.M32.T01–T02, UT-SCR-017.018.M33.T01 | Draft (code done) |
+| SRD-017.017 | DD-SCR-017.002.D01 | MD-SCR-017.017.M34, MD-SCR-017.013.M33 | tests/gui/test_acc_dist_tips.py, tests/gui/test_acc_dist_settings_dialog.py | UT-SCR-017.017.M34.T01–T03, UT-SCR-017.017.M33.T01 | Implemented |
+| SRD-017.018 | DD-SCR-017.002.D01 | MD-SCR-017.001.M32, MD-SCR-017.013.M33 | tests/screener/test_acc_dist_screener.py, tests/gui/test_acc_dist_settings_dialog.py | UT-SCR-017.018.M32.T01–T02, UT-SCR-017.018.M33.T01 | Implemented |
 
 **RN:** RN-SCR-2.7.0-20261023 (2026-10-23); SRD-017.014–.016: RN-SCR-2.8.0-20261118; SRD-017.017–.018: RN-SCR-2.9.0-20261118.
 

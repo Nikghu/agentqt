@@ -28,8 +28,8 @@ The Accumulation / Distribution settings dialog is rebuilt as four tabs (Basics,
 
 | SRD ID | Description | Status |
 |---|---|---|
-| SRD-SCR-017.017 | Tabs, two-field rows, tip panel, summary | Draft (code done; needs user approval) |
-| SRD-SCR-017.018 | Rules level in the title bar | Draft (code done; needs user approval) |
+| SRD-SCR-017.017 | Tabs, two-field rows, tip panel, summary | Implemented (approved by user 2026-11-18) |
+| SRD-SCR-017.018 | Rules level in the title bar | Implemented (approved by user 2026-11-18) |
 
 ---
 
