@@ -704,9 +704,9 @@ Test files:
 | UT-GUI-022.016.M01.T01 | MD-GUI-022.001.M01 | Positive | Context ticks save and load | tick Earnings and Sector; reopen preset | `ai_context == ["earnings", "sector"]`; both ticked again | Pass |
 | UT-GUI-022.017.M01.T01 | MD-GUI-022.001.M01 | Positive | Chips, flags and ⚑ count | result with earnings red, sector green, market risk-on, 1 flag | row flags 1; list shows "⚑ 1"; chips coloured; Red flags lists it | Pass |
 | UT-GUI-022.017.M01.T02 | MD-GUI-022.001.M01 | Negative | Old result without context | no `ai_context` | no chips, empty ⚑ label, Red flags hidden | Pass |
-| UT-GUI-022.018.M01.T01 | MD-GUI-022.001.M01 | Positive | News and research ticks; research only with Claude | tick both on Claude; switch to OpenRouter | saved `[..., "news", "research"]`; research unticked and disabled | Not Run |
-| UT-GUI-022.019.M01.T01 | MD-GUI-022.001.M01 | Positive | News chip, News list and Web research box | tone -0.6 with 2 headlines; research with risk and 2 links | chip "News tone -0.6 · 2 headlines" red; 2 news lines; summary and 2 links shown | Not Run |
-| UT-GUI-022.019.M01.T02 | MD-GUI-022.001.M01 | Negative | Nothing to show | no news, no research | News and Web research sections hidden | Not Run |
+| UT-GUI-022.018.M01.T01 | MD-GUI-022.001.M01 | Positive | News and research ticks; research only with Claude | tick both on Claude; switch to OpenRouter | saved `[..., "news", "research"]`; research unticked and disabled | Pass |
+| UT-GUI-022.019.M01.T01 | MD-GUI-022.001.M01 | Positive | News chip, News list and Web research box | tone -0.6 with 2 headlines; research with risk and 2 links | chip "News tone -0.6 · 2 headlines" red; 2 news lines; summary and 2 links shown | Pass |
+| UT-GUI-022.019.M01.T02 | MD-GUI-022.001.M01 | Negative | Nothing to show | no news, no research | News and Web research sections hidden | Pass |
 ## FO-GUI-023 — Card Layout
 
 | ID | Module | Type | Description | Input | Expected | Status |

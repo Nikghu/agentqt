@@ -610,16 +610,16 @@ Test files:
 
 | ID | Module | Type | Objective | Input | Expected Output | Status |
 |---|---|---|---|---|---|---|
-| UT-SCR-019.001.M01.T01 | MD-SCR-001.001.M01 | Positive | News and research choices round-trip | claude preset with `["news","research"]` | same list after round-trip; validates | Not Run |
-| UT-SCR-019.001.M01.T02 | MD-SCR-001.001.M01 | Negative | Research needs Claude Code CLI | openrouter preset with `["research"]` | `PresetValidationError` | Not Run |
-| UT-SCR-019.002.M38.T01 | MD-SCR-019.002.M38 | Positive | Newest 8 from last 5 days, one fetch a day | 12 items, 3 older than 5 days; two calls | 8 newest within 5 days; fetch once | Not Run |
-| UT-SCR-019.002.M38.T02 | MD-SCR-019.002.M38 | Negative | Failed lookup gives no headlines | fetch raises | empty list; run continues; retried next call | Not Run |
-| UT-SCR-019.002.M38.T03 | MD-SCR-019.002.M38 | Edge | Both Yahoo formats read | new `content` item; old item with epoch time | same `Headline` fields | Not Run |
-| UT-SCR-019.003.M37.T01 | MD-SCR-018.003.M37 | Positive | Headlines in the context block | context with 2 headlines | two indented `news` lines with age and source | Not Run |
-| UT-SCR-019.003.M06.T01 | MD-SCR-002.003.M06 | Positive | Tone read from the ranking answer | array with news_tone 0.5, 2.0, "x" | last_news_tone 0.5 and 1.0; bad value skipped; rule asks for news_tone | Not Run |
-| UT-SCR-019.003.M06.T02 | MD-SCR-002.003.M06 | Positive | Legacy path uses array format with context | OpenRouter no query, context set | prompt asks for JSON array; reasoning parsed | Not Run |
-| UT-SCR-019.004.M37.T01 | MD-SCR-018.003.M37 | Edge | News level boundaries and flag | tone -0.3, -0.1, 0.0, 0.3, None | red + "Negative news", yellow, neutral, green, none | Not Run |
-| UT-SCR-019.005.M39.T01 | MD-SCR-019.005.M39 | Positive | Research runs 3 at a time with only web search | 5 picks, fake ask | max 3 at once; tools ("WebSearch",); model passed; summary ≤ 60 words; ≤ 3 links | Not Run |
-| UT-SCR-019.006.M39.T01 | MD-SCR-019.005.M39 | Negative | Failed or unreadable research skipped | ask error; non-JSON text | those picks missing; others kept | Not Run |
-| UT-SCR-019.007.M10.T01 | MD-SCR-003.001.M10 | Positive | Executor saves tone, news and research | news + research ticked; fakes | `news_tone`, level, headlines in `ai_context`; `ai_research`; risk flag added | Not Run |
-| UT-SCR-019.007.M10.T02 | MD-SCR-003.001.M10 | Negative | Research not run unless ticked | news only | research runner not called; no `ai_research` | Not Run |
+| UT-SCR-019.001.M01.T01 | MD-SCR-001.001.M01 | Positive | News and research choices round-trip | claude preset with `["news","research"]` | same list after round-trip; validates | Pass |
+| UT-SCR-019.001.M01.T02 | MD-SCR-001.001.M01 | Negative | Research needs Claude Code CLI | openrouter preset with `["research"]` | `PresetValidationError` | Pass |
+| UT-SCR-019.002.M38.T01 | MD-SCR-019.002.M38 | Positive | Newest 8 from last 5 days, one fetch a day | 12 items, 3 older than 5 days; two calls | 8 newest within 5 days; fetch once | Pass |
+| UT-SCR-019.002.M38.T02 | MD-SCR-019.002.M38 | Negative | Failed lookup gives no headlines | fetch raises | empty list; run continues; retried next call | Pass |
+| UT-SCR-019.002.M38.T03 | MD-SCR-019.002.M38 | Edge | Both Yahoo formats read | new `content` item; old item with epoch time | same `Headline` fields | Pass |
+| UT-SCR-019.003.M37.T01 | MD-SCR-018.003.M37 | Positive | Headlines in the context block | context with 2 headlines | two indented `news` lines with age and source | Pass |
+| UT-SCR-019.003.M06.T01 | MD-SCR-002.003.M06 | Positive | Tone read from the ranking answer | array with news_tone 0.5, 2.0, "x" | last_news_tone 0.5 and 1.0; bad value skipped; rule asks for news_tone | Pass |
+| UT-SCR-019.003.M06.T02 | MD-SCR-002.003.M06 | Positive | Legacy path uses array format with context | OpenRouter no query, context set | prompt asks for JSON array; reasoning parsed | Pass |
+| UT-SCR-019.004.M37.T01 | MD-SCR-018.003.M37 | Edge | News level boundaries and flag | tone -0.3, -0.1, 0.0, 0.3, None | red + "Negative news", yellow, neutral, green, none | Pass |
+| UT-SCR-019.005.M39.T01 | MD-SCR-019.005.M39 | Positive | Research runs 3 at a time with only web search | 5 picks, fake ask | max 3 at once; tools ("WebSearch",); model passed; summary ≤ 60 words; ≤ 3 links | Pass |
+| UT-SCR-019.006.M39.T01 | MD-SCR-019.005.M39 | Negative | Failed or unreadable research skipped | ask error; non-JSON text | those picks missing; others kept | Pass |
+| UT-SCR-019.007.M10.T01 | MD-SCR-003.001.M10 | Positive | Executor saves tone, news and research | news + research ticked; fakes | `news_tone`, level, headlines in `ai_context`; `ai_research`; risk flag added | Pass |
+| UT-SCR-019.007.M10.T02 | MD-SCR-003.001.M10 | Negative | Research not run unless ticked | news only | research runner not called; no `ai_research` | Pass |

@@ -5,6 +5,7 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-11-17
+> v2.128.1: SRD-GUI-022.018–.019 approved by user 2026-11-18 and Implemented (RN-SCR-2.12.0-20261118).
 > v2.128.0: SRD-GUI-022.018–.019 added as Draft — News tone and Web research ticks, news chip, News and Web research sections (FO-SCR-017, user request 2026-11-18).
 > v2.127.1: SRD-GUI-022.016–.017 approved by user 2026-11-18 and Implemented (RN-SCR-2.11.0).
 > v2.127.0: SRD-GUI-022.016–.017 added as Draft — AI context tick boxes and context chips / red flags in screener results (FO-SCR-016, user request 2026-11-18).
@@ -543,8 +544,8 @@
 | SRD-GUI-022.015 | FO-GUI-022 | Should | The Model box is a dropdown of the chosen provider's models (OpenRouter list plus the user's custom models, or the Claude models) and still accepts a typed model ID. | provider | model list | Model name shown as tooltip; list refills on provider switch; a chevron in the box opens the list and typing shows matching models | Implemented |
 | SRD-GUI-022.016 | FO-GUI-022 | Should | The Edit Preset AI Ranking box shows an "Extra context for the AI" row with tick boxes Earnings date and Sector strength, saved per preset. | ticks | `Preset.ai_context` | Row shown only when AI Ranking is on; short hint below the ticks | Implemented |
 | SRD-GUI-022.017 | FO-GUI-022 | Should | Result rows with context show green / yellow / red chips for earnings, sector and market under the stock name, a Red flags section in the detail, and a ⚑ count in the list and on cards. | `ai_context`, `ai_flags`, regime | chips, flag count | Nothing shown for runs without context | Implemented |
-| SRD-GUI-022.018 | FO-GUI-022 | Should | The context row adds tick boxes News tone and Web research for top picks; Web research is enabled only when the provider is Claude Code CLI. | ticks, provider | `Preset.ai_context` | Switching to OpenRouter clears and disables Web research | Approved |
-| SRD-GUI-022.019 | FO-GUI-022 | Should | The detail shows a news chip, a "News, last 5 days" list with each title's source and age, and a Web research box with the summary and source links. | `ai_context`, `ai_research` | chips, lists | Sections hidden when empty; links open in the browser | Approved |
+| SRD-GUI-022.018 | FO-GUI-022 | Should | The context row adds tick boxes News tone and Web research for top picks; Web research is enabled only when the provider is Claude Code CLI. | ticks, provider | `Preset.ai_context` | Switching to OpenRouter clears and disables Web research | Implemented |
+| SRD-GUI-022.019 | FO-GUI-022 | Should | The detail shows a news chip, a "News, last 5 days" list with each title's source and age, and a Web research box with the summary and source links. | `ai_context`, `ai_research` | chips, lists | Sections hidden when empty; links open in the browser | Implemented |
 ## FO-GUI-023 — Card Layout
 
 | ID | Parent | Priority | Description | Input | Output | Constraints | Status |

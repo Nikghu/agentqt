@@ -11,6 +11,7 @@
 > v1.6.0: SRD-INF-009.007 added (ISS-INF-0002) — SimBroker fills MARKET orders at an injected live-price provider so paper fills mirror a real broker instead of echoing a caller-supplied reference price.
 > v1.7.0: Section 10 added — SRD-INF-010.001–.009 (Telegram Notification Integration; scalable business-event notification service).
 > v1.8.0: SRD-INF-010.010 (producer emit points) + .011 (bot token in OS keychain) added for the app wiring.
+> v1.12.1: SRD-INF-011.004 approved by user 2026-11-18 and Implemented (RN-SCR-2.12.0-20261118).
 > v1.12.0: Section 12 added — SRD-INF-012.001–.006 (Daily Telegram Briefs), Draft 2026-11-05.
 > v1.12.0: SRD-INF-011.004 added as Draft — optional web search tool for one Claude Code CLI request (FO-SCR-017, user request 2026-11-18).
 > v1.11.0: Section 11 added — SRD-INF-011.001–.003 (AI Notes Client), Draft 2026-11-05.
@@ -187,7 +188,7 @@
 | SRD-INF-011.001 | FO-INF-011 | Must | `ask_ai(config, instruction, facts)` runs the Claude Code CLI headless and returns its answer text. | AI config, text | `AiAnswer` | No tools, no session saved, empty work folder, no API key in env, no console window; timeout | Implemented |
 | SRD-INF-011.002 | FO-INF-011 | Must | `ask_ai` calls OpenRouter chat completions with the user's key and model when OpenRouter is the provider. | AI config, text | `AiAnswer` | Key passed in by the caller; never logged | Implemented |
 | SRD-INF-011.003 | FO-INF-011 | Must | The default provider is tried first; the other is tried only when fallback is on and both providers are ticked. | AI config | `AiAnswer` | Never raises; all failures go into `AiAnswer.error` | Implemented |
-| SRD-INF-011.004 | FO-INF-011 | Should | `ask_ai` shall let a caller allow only the Claude web search tool for one request; by default the CLI still runs with no tools. | tool list | answer text | Only built-in WebSearch is allowed; no file, command or fetch tools | Approved |
+| SRD-INF-011.004 | FO-INF-011 | Should | `ask_ai` shall let a caller allow only the Claude web search tool for one request; by default the CLI still runs with no tools. | tool list | answer text | Only built-in WebSearch is allowed; no file, command or fetch tools | Implemented |
 
 ---
 

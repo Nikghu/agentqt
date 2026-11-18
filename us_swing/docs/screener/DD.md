@@ -1774,7 +1774,7 @@ COF | earnings in 3 days (red) | Financials #10 of 11, -2.1% vs RSP (red) | flag
 # FO-SCR-017 — AI Ranking News Tone and Web Research (Phase 2)
 
 ## DD-SCR-019.001.D01 — Headlines, tone, research and wiring
-- **Status:** Draft
+- **Status:** Implemented
 
 **Parent SRDs:** SRD-SCR-019.001 through SRD-SCR-019.007, SRD-INF-011.004
 
@@ -1787,7 +1787,7 @@ COF | earnings in 3 days (red) | Financials #10 of 11, -2.1% vs RSP (red) | flag
 | `_research.py` | `Research(summary, sources, risk)`; `research_picks(symbols, model, today, ask=ask_ai, workers=3)` runs one Claude Code CLI request per symbol with `AiConfig(claude_model=model, claude_tools=("WebSearch",))` in a 3-thread pool; parses `{"summary", "risk", "sources"}`; summary cut to 60 words, sources to 3; a failed or unreadable answer leaves the symbol out and is counted in one WARNING. |
 
 ### Changes
-- `_context.py`: `StockContext` gains `news` (tuple of `Headline`), `news_tone`, `news_level`; `build_context(..., headlines=...)` fills `news` when "news" is ticked; `context_text()` adds one indented line per title (`news 2d · Reuters · <title>`); `news_level(tone)` (≤ -0.3 red, < 0 yellow, ≥ 0.3 green, else neutral) and `apply_news_tone(ctx, tone)` set the level and the "Negative news" flag.
+- `_context.py`: `StockContext` gains `news` (tuple of `Headline`), `news_tone`, `news_level`; `build_context(..., headlines=...)` fills `news` when "news" is ticked; `context_text()` adds one indented line per title (`news 11-17 · Reuters · <title>`, month-day of publication); `news_level(tone)` (≤ -0.3 red, < 0 yellow, ≥ 0.3 green, else neutral) and `apply_news_tone(ctx, tone)` set the level and the "Negative news" flag.
 - `cloud_ai.py`: `_CONTEXT_RULE` also asks for `"news_tone"` per stock with headlines. With a context block the legacy path uses the JSON array format and `_parse_ranking()`. `_parse_ranking()` stores a finite tone clamped to [-1, 1] in `last_news_tone`.
 - `executor.py`: fetches headlines (`news_lookup`, injectable) when "news" is ticked; after ranking applies `last_news_tone`; after the Top N cut runs `research_runner` (injectable, default `research_picks`) on the final picks when "research" is ticked, saves `ai_research`, appends "Research: <risk>" to `ai_flags`, and adds one system transcript turn.
 - `preset.py`: kinds `news`, `research`; research with a provider other than `claude` fails `validate()`.

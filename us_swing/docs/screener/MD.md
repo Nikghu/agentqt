@@ -87,9 +87,9 @@ Registered as `acc_dist` in `src/us_swing/screener/__init__.py`. M33 opens from 
 | MD-SCR-018.002.M36 | SRD-SCR-018.002 | `src/us_swing/core/stock_context/_earnings.py` | Next earnings date per stock with a daily JSON cache. | `EarningsLookup` | `yfinance` | Implemented |
 | MD-SCR-018.003.M37 | SRD-SCR-018.003, .005, .006 | `src/us_swing/core/stock_context/_context.py` | Earnings and sector levels, flags, market regime, prompt text. | `StockContext`, `build_context()`, `market_regime()`, `context_text()` | M35 | Implemented |
 
-| MD-SCR-019.002.M38 | SRD-SCR-019.002 | `src/us_swing/core/stock_context/_news.py` | Recent headlines per stock with a daily cache. | `NewsLookup`, `Headline` | `yfinance`, M40 | Draft |
-| MD-SCR-019.005.M39 | SRD-SCR-019.005, .006 | `src/us_swing/core/stock_context/_research.py` | Web research per final pick via Claude Code CLI, 3 at a time. | `research_picks()`, `Research` | `core.notifications` | Draft |
-| MD-SCR-019.002.M40 | SRD-SCR-019.002, SRD-SCR-018.002 | `src/us_swing/core/stock_context/_cache.py` | Daily JSON cache shared by earnings and news. | `DailyCache` | — | Draft |
+| MD-SCR-019.002.M38 | SRD-SCR-019.002 | `src/us_swing/core/stock_context/_news.py` | Recent headlines per stock with a daily cache. | `NewsLookup`, `Headline` | `yfinance`, M40 | Implemented |
+| MD-SCR-019.005.M39 | SRD-SCR-019.005, .006 | `src/us_swing/core/stock_context/_research.py` | Web research per final pick via Claude Code CLI, 3 at a time. | `research_picks()`, `Research` | `core.notifications` | Implemented |
+| MD-SCR-019.002.M40 | SRD-SCR-019.002, SRD-SCR-018.002 | `src/us_swing/core/stock_context/_cache.py` | Daily JSON cache shared by earnings and news. | `DailyCache` | — | Implemented |
 
 M01 `preset.py` gains `ai_context`; M10 `executor.py` builds and merges context; M06 `cloud_ai.py` adds the context block to every prompt path.
 

@@ -2,6 +2,16 @@
 
 ---
 
+## [20261118] SCR + GUI + INF — AI Ranking news tone and web research, phase 2 (FO-SCR-017)
+
+- Type: Feature (branch `feat/scr-ai-context`)
+- FO(s): FO-SCR-017 (SRD-SCR-019.001–.007), FO-GUI-022 (SRD-GUI-022.018–.019), FO-INF-011 (SRD-INF-011.004) — approved by user and Implemented
+- RN: RN-SCR-2.12.0-20261118
+- Rules (user answers): tone scored by the ranking AI in the same request; flag at ≤ -0.3; research show-only, all Top N, 3 at a time
+- Artifacts: FO, SRD, DD, MD, UTCD (17 rows), TRACE, TODO T207 done, T208 open
+
+---
+
 ## [20261118] SCR + GUI — AI Ranking stock context, phase 1 (FO-SCR-016)
 
 - Type: Feature (branch `feat/scr-ai-context`)
