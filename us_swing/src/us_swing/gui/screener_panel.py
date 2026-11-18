@@ -1041,6 +1041,8 @@ class _PresetBuilderDialog(_FramelessDialog):
 
         # ── AI Ranking (Stage 3) ──────────────────────────────────────────
         ai_box = QGroupBox("AI Ranking  (Stage 3)")
+        self._ai_box = ai_box
+        self._ai_grown = 0
         ai_box.setStyleSheet(_gb_style)
         ai_vl = QVBoxLayout(ai_box)
         ai_vl.setContentsMargins(8, 12, 8, 8)
@@ -1106,8 +1108,8 @@ class _PresetBuilderDialog(_FramelessDialog):
 
         ai_vl.addWidget(self._ai_ranking_row)
         self._ai_ranking_row.setVisible(False)
-        self._ai_ranking_chk.toggled.connect(self._ai_ranking_row.setVisible)
-        self._ai_ranking_chk.toggled.connect(self._ai_model_validate_btn.setVisible)
+        # _ai_ranking_chk → toggled → dialog → _on_ai_ranking_toggled (show fields, grow dialog)
+        self._ai_ranking_chk.toggled.connect(self._on_ai_ranking_toggled)
         root.addWidget(ai_box)
 
         # ── Button row ────────────────────────────────────────────────────
@@ -1143,6 +1145,27 @@ class _PresetBuilderDialog(_FramelessDialog):
 
         self._refresh_preview()
 
+    def _on_ai_ranking_toggled(self, on: bool) -> None:
+        """Show the AI fields and grow the dialog by their height, so the builder keeps its room."""
+        box_before = self._ai_box.height()
+        self._ai_ranking_row.setVisible(on)
+        self._ai_model_validate_btn.setVisible(on)
+        if not self.isVisible():
+            return
+        if not on:
+            self.resize(self.width(), self.height() - self._ai_grown)
+            self._ai_grown = 0
+            return
+        box_layout = self._ai_box.layout()
+        if box_layout is not None:
+            box_layout.invalidate()
+        extra = max(0, self._ai_box.sizeHint().height() - box_before)
+        screen = self.screen()
+        max_h = screen.availableGeometry().height() if screen else self.height() + extra
+        new_h = min(max_h, self.height() + extra)
+        self._ai_grown = new_h - self.height()
+        self.resize(self.width(), new_h)
+
     # ── Composite area ────────────────────────────────────────────────────
 
     def _build_composite_area(self) -> QWidget:
@@ -1154,7 +1177,7 @@ class _PresetBuilderDialog(_FramelessDialog):
 
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
-        scroll.setMinimumHeight(80)
+        scroll.setMinimumHeight(150)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         scroll.setStyleSheet(
             f"QScrollArea {{ border: none; background: {_T.BG}; }}"
