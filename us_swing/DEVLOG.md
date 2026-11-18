@@ -9,6 +9,8 @@
 - RN: RN-SCR-2.10.0-20261118
 - Artifacts updated: SRD rows, DD section, MD notes, UTCD 7 rows, TRACE rows, TODO T205
 - Note: Claude Code CLI has no tool loop, so the Query only shapes the one-request prompt
+- Also: Model box is an editable dropdown per provider with a chevron (SRD-GUI-022.015); Gemini 3 Flash added to the OpenRouter list
+- Next: AI Ranking context enhancement (Option 1) on a new branch; research + GUI mockup pages published
 
 ---
 
