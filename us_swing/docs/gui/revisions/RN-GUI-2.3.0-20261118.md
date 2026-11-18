@@ -45,6 +45,16 @@ The screener Edit Preset dialog now has a left side list with four sections: Gen
 
 ---
 
+## Follow-up fixes (2026-11-19)
+
+- AI query is a 4-line wrapping box. The 500-character limit stays; line breaks are saved as spaces (commit 82c647df).
+- AI Context tick groups have more space (commit 82c647df).
+- The long red-flag note on AI Context and the "(Claude Code CLI, slower)" text moved into tooltips on the "Stock data" and "Top picks only" labels (commit 82c647df; DD-GUI-042.001.D01).
+- Add User is a small button to the right of the user tags, not a full-width bar. The side list sits in its own panel with a lighter background and a border (commit 3b27b3bb).
+- Note: SRD-GUI-042.003 still says "red-flag note". It is Implemented, so it was not edited.
+
+---
+
 ## Issues Resolved
 
 None
@@ -53,4 +63,4 @@ None
 
 ## Test Coverage
 
-9 UT cases added and Pass: UT-GUI-042.001.M01.T01, .002.M01.T01, .003.M01.T01–T02, .004.M01.T01, .005.M01.T01–T03, .006.M01.T01 (`tests/gui/test_preset_dialog_nav.py`). Two AI provider tests (`tests/gui/test_preset_ai_provider.py`) now tick Enable AI first. 53 tests pass across test_screener_views, test_preset_dialog_nav, test_preset_ai_provider and test_no_stray_windows.
+10 UT cases added and Pass: UT-GUI-042.001.M01.T01, .002.M01.T01, .003.M01.T01–T03, .004.M01.T01, .005.M01.T01–T03, .006.M01.T01 (`tests/gui/test_preset_dialog_nav.py`). Two AI provider tests (`tests/gui/test_preset_ai_provider.py`) now tick Enable AI first. 54 tests pass across test_screener_views, test_preset_dialog_nav, test_preset_ai_provider and test_no_stray_windows.

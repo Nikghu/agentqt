@@ -128,7 +128,7 @@
 | FO-GUI-033 | SRD-GUI-033.006 | DD-GUI-033.001.D01 | MD-GUI-033.001.M01, MD-GUI-033.004.M02 | UT-GUI-033.006.M01.T01, UT-GUI-033.006.M02.T01 (Pass) | `gui/ai_settings_block.py`, `gui/settings_panel.py` | Implemented | RN-GUI-1.59.0-20261105 |
 | FO-GUI-033 | SRD-GUI-033.007 | DD-GUI-033.001.D01 | MD-GUI-033.001.M01 | UT-GUI-033.007.M01.T01–T02 (Pass) | `gui/ai_settings_block.py` | Removed (user, 2026-11-05) | RN-GUI-1.59.1-20261105 |
 | FO-GUI-029 | SRD-GUI-029.007–.008 | DD-GUI-029.007.D01 | MD-GUI-029.004.M02, MD-GUI-029.001.M01 | UT-GUI-029.007–.008 (4, Pass) | `gui/scheduler_dialog.py`, `gui/scheduler_table.py`, `gui/scheduler_store.py` | Implemented | RN-GUI-1.61.0-20261111 |
-| FO-GUI-042 | SRD-GUI-042.001–.006 | DD-GUI-042.001.D01 | MD-GUI-042.001.M01 | UT-GUI-042.001.M01.T01, .002.M01.T01, .003.M01.T01–T02, .004.M01.T01, .005.M01.T01–T03, .006.M01.T01 (9, Pass) | `gui/screener_panel.py` | Implemented | RN-GUI-2.3.0-20261118 |
+| FO-GUI-042 | SRD-GUI-042.001–.006 | DD-GUI-042.001.D01 | MD-GUI-042.001.M01 | UT-GUI-042.001.M01.T01, .002.M01.T01, .003.M01.T01–T03, .004.M01.T01, .005.M01.T01–T03, .006.M01.T01 (10, Pass) | `gui/screener_panel.py` | Implemented | RN-GUI-2.3.0-20261118 |
 
 ---
 

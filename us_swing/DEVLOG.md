@@ -2,6 +2,16 @@
 
 ---
 
+## [20261119] GUI — Edit Preset follow-up fixes (FO-GUI-042)
+
+- Type: Bugfix/polish (branch `feat/gui-preset-side-nav`, not committed by the agent; commits 82c647df, 3b27b3bb)
+- FO(s): FO-GUI-042 (SRD-GUI-042.003 note: still says "red-flag note")
+- RN: RN-GUI-2.3.0-20261118 (follow-up section added)
+- Artifacts: UTCD (UT-GUI-042.003.M01.T03 Pass, 10 cases), TRACE, RN, CONTEXT, DEVLOG
+- Decisions: AI query 4-line wrapping box (500-char limit kept); red-flag note and CLI text moved to tooltips; Add User small button; side list in its own bordered panel
+
+---
+
 ## [20261118] GUI — Edit Preset side navigation (FO-GUI-042)
 
 - Type: Feature (branch `feat/gui-preset-side-nav`, not committed)
