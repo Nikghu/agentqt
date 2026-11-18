@@ -96,3 +96,16 @@ def test_no_fallback_when_off(claude: dict[str, Any], router: list[httpx.Request
     answer = ask_ai(_BOTH, "Say hi", "facts")
     assert router == [] and "limit" in answer.error
 
+
+
+def test_web_search_tool_only_when_asked(claude: dict[str, Any]) -> None:
+    """UT-INF-011.004.M01.T01: Web search tool only when asked."""
+    ask_ai(AiConfig(claude_tools=("WebSearch", "Bash")), "do", "facts")
+    command = claude["command"]
+    assert command[command.index("--tools") + 1] == "WebSearch"
+    assert command[command.index("--allowedTools") + 1] == "WebSearch"
+    assert "Bash" not in command
+    ask_ai(AiConfig(), "do", "facts")
+    command = claude["command"]
+    assert command[command.index("--tools") + 1] == ""
+    assert "--allowedTools" not in command

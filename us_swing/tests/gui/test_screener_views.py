@@ -461,3 +461,42 @@ def test_old_result_without_context(qtbot):
     assert view.list.itemWidget(view.list.item(0)).flag_lbl.text() == ""
     assert view._chips_box.count() == 0
     assert view.flags_head.isHidden()
+
+
+_NEWS_RESULT = {
+    "COF": {
+        "score": 0.6,
+        "ai_context": {"news_tone": -0.6, "news_level": "red", "market": "",
+                       "news": [{"title": "Probe opened", "source": "Reuters",
+                                 "published": "2026-11-17T12:00:00Z", "url": "https://r.test/1"},
+                                {"title": "Fine expected", "source": "WSJ",
+                                 "published": "2026-11-16T09:00:00Z", "url": "https://w.test/2"}]},
+        "ai_flags": ["Negative news", "Research: share offering"],
+        "ai_research": {"summary": "Offering priced at a discount.", "risk": "share offering",
+                        "sources": ["https://www.reuters.com/a", "https://sec.gov/b"]},
+    },
+}
+
+
+def test_news_chip_list_and_research_box(qtbot):
+    """UT-GUI-022.019.M01.T01: News chip, News list and Web research box."""
+    row = rows_from_result(_NEWS_RESULT)[0]
+    assert [(c.text, c.level) for c in row.chips] == [("News tone -0.6 · 2 headlines", "red")]
+    view = ListDetailView()
+    qtbot.addWidget(view)
+    view.load([row])
+    assert not view.news_head.isHidden()
+    texts = [view._news_box.itemAt(i).widget().text() for i in range(view._news_box.count())]
+    assert len(texts) == 2 and "Probe opened" in texts[0] and "Reuters" in texts[0]
+    assert not view.research_box.isHidden()
+    assert view.research_lbl.text() == "Offering priced at a discount."
+    links = view.research_links.text()
+    assert "reuters.com" in links and "sec.gov" in links and view.research_links.openExternalLinks()
+
+
+def test_no_news_or_research_hidden(qtbot):
+    """UT-GUI-022.019.M01.T02: Nothing to show."""
+    view = ListDetailView()
+    qtbot.addWidget(view)
+    view.load(rows_from_result({"NVDA": {"score": 0.8}}))
+    assert view.news_head.isHidden() and view.research_box.isHidden()

@@ -1,6 +1,6 @@
 """
 Module: MD-GUI-003.001.M01 — screener_panel.py  (v2 — Phase 5 GUI integration)
-Parent SRD: SRD-SCR-007.001–012, SRD-SCR-004.007, SRD-GUI-022.014, SRD-GUI-022.016
+Parent SRD: SRD-SCR-007.001–012, SRD-SCR-004.007, SRD-GUI-022.014, SRD-GUI-022.016, SRD-GUI-022.018
 
 Screener Panel — Preset-based v2 (layout: SRD-GUI-022.008–.012):
   ┌──────────────────────┬───────────────────────────────────────────────────┐
@@ -1173,16 +1173,19 @@ class _PresetBuilderDialog(_FramelessDialog):
         ctx_hl = QHBoxLayout()
         ctx_hl.setSpacing(22)
         self._ai_ctx_checks: dict[str, QCheckBox] = {}
-        for kind, label in (("earnings", "Earnings date"), ("sector", "Sector strength")):
+        for kind, label in (("earnings", "Earnings date"), ("sector", "Sector strength"),
+                            ("news", "News tone"), ("research", "Web research for top picks")):
             check = QCheckBox(label)
             check.setStyleSheet(f"color: {_T.TEXT}; font-size: 9pt;")
             ctx_hl.addWidget(check)
             self._ai_ctx_checks[kind] = check
         ctx_hl.addStretch()
         ctx_vl.addLayout(ctx_hl)
+        self._sync_research_tick()
         ctx_hint = QLabel(
-            "Red flags are shown when any of these is on: earnings within 5 days "
-            "or a sector in the bottom 3."
+            "Red flags: earnings within 5 days, a sector in the bottom 3, negative news, "
+            "or a major risk found by web research. Web research needs Claude Code CLI "
+            "and adds about a minute for every 3 top picks."
         )
         ctx_hint.setWordWrap(True)
         ctx_hint.setStyleSheet(f"font-size: 8pt; color: {_T.MUTED};")
@@ -1647,6 +1650,16 @@ class _PresetBuilderDialog(_FramelessDialog):
             model = _AI_DEFAULT_MODELS[provider]
         self._fill_ai_models(provider, model)
         self._ai_model_status_lbl.setText("")
+        self._sync_research_tick()
+
+    def _sync_research_tick(self) -> None:
+        """Web research runs only on Claude Code CLI (SRD-GUI-022.018)."""
+        research = self._ai_ctx_checks["research"]
+        on_claude = self._ai_provider.currentData() == "claude"
+        if not on_claude:
+            research.setChecked(False)
+        research.setEnabled(on_claude)
+        research.setToolTip("" if on_claude else "Needs Claude Code CLI as the AI provider")
 
     def _fill_ai_models(self, provider: str, model: str) -> None:
         """List the provider's models (name as tooltip) and show ``model`` in the box."""

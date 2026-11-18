@@ -2,17 +2,18 @@
 Module: MD-SCR-018.002.M36 — core/stock_context/_earnings.py
 Parent SRD: SRD-SCR-018.002
 
-Next earnings date per stock from Yahoo Finance, kept in a JSON cache so each
+Next earnings date per stock from Yahoo Finance, kept in a daily cache so each
 stock is looked up at most once a day. Sync and network-bound: run off the GUI thread.
 """
 from __future__ import annotations
 
-import json
 import logging
 from collections.abc import Callable, Iterable
 from datetime import date
 from pathlib import Path
 from typing import Any
+
+from us_swing.core.stock_context._cache import DailyCache
 
 _log = logging.getLogger(__name__)
 
@@ -47,14 +48,13 @@ class EarningsLookup:
         Returns:
             Symbol → date or None. A failed lookup gives None and is retried next call.
         """
-        cache = self._load()
-        checked_on = today.isoformat()
+        cache = DailyCache(self._path)
+        day = today.isoformat()
         result: dict[str, date | None] = {}
         failed = 0
         for symbol in symbols:
-            entry = cache.get(symbol)
-            if isinstance(entry, dict) and entry.get("checked") == checked_on:
-                saved = entry.get("date")
+            hit, saved = cache.get(symbol, day)
+            if hit:
                 result[symbol] = date.fromisoformat(saved) if saved else None
                 continue
             try:
@@ -65,24 +65,8 @@ class EarningsLookup:
                 continue
             found = min(upcoming) if upcoming else None
             result[symbol] = found
-            cache[symbol] = {"checked": checked_on, "date": found.isoformat() if found else None}
+            cache.put(symbol, day, found.isoformat() if found else None)
         if failed:
             _log.warning("[Screener] Earnings date lookup failed for %d stock(s)", failed)
-        self._save(cache)
+        cache.save()
         return result
-
-    def _load(self) -> dict[str, Any]:
-        try:
-            data = json.loads(self._path.read_text(encoding="utf-8"))
-        except (OSError, ValueError):
-            return {}
-        return data if isinstance(data, dict) else {}
-
-    def _save(self, cache: dict[str, Any]) -> None:
-        try:
-            self._path.parent.mkdir(parents=True, exist_ok=True)
-            tmp = self._path.with_suffix(".tmp")
-            tmp.write_text(json.dumps(cache, indent=1), encoding="utf-8")
-            tmp.replace(self._path)
-        except OSError:
-            _log.warning("[Screener] Could not save the earnings date cache")

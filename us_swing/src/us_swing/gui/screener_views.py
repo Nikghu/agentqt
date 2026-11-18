@@ -1,6 +1,6 @@
 """
 Module: MD-GUI-022.001.M01 — Screener result views
-Parent SRD: SRD-GUI-022.001, SRD-GUI-022.017
+Parent SRD: SRD-GUI-022.001, SRD-GUI-022.017, SRD-GUI-022.019
 
 Result rows, sorting and CSV rows, the List / Cards switch, the List + detail
 view and the Signal cards view shown by the screener panel (FO-GUI-022).
@@ -8,10 +8,12 @@ view and the Signal cards view shown by the screener panel (FO-GUI-022).
 from __future__ import annotations
 
 import datetime
+import html
 import math
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any, Protocol
+from urllib.parse import urlparse
 
 from PyQt6.QtCore import (
     QEasingCurve,
@@ -105,10 +107,47 @@ def _context_chips(context: Any) -> list[ContextChip]:
         chips.append(ContextChip(
             f"{context.get('sector', '')} #{rank} of {context.get('sector_count', '')}"
             f" · {move:+.1f}% vs RSP", "" if level == "neutral" else level))
+    news = context.get("news") or []
+    tone = context.get("news_tone")
+    count = f"{len(news)} headline{'' if len(news) == 1 else 's'}"
+    if isinstance(tone, (int, float)):
+        level = str(context.get("news_level", ""))
+        chips.append(ContextChip(f"News tone {tone:+.1f} · {count}",
+                                 "" if level == "neutral" else level))
+    elif news:
+        chips.append(ContextChip(count))
     market = str(context.get("market", ""))
     if market in _MARKET_LEVELS:
         chips.append(ContextChip(f"Market {market}", _MARKET_LEVELS[market]))
     return chips
+
+
+def _saved_news(context: Any) -> list[Mapping[str, Any]]:
+    news = context.get("news") if isinstance(context, Mapping) else None
+    return [item for item in news or [] if isinstance(item, Mapping)]
+
+
+def _news_html(item: Mapping[str, Any], link_colour: str) -> str:
+    """One headline as rich text: linked title, then source and day (SRD-GUI-022.019)."""
+    title = html.escape(str(item.get("title", "")))
+    url = html.escape(str(item.get("url", "")), quote=True)
+    try:
+        day = datetime.date.fromisoformat(str(item.get("published", ""))[:10]).strftime("%d %b")
+    except ValueError:
+        day = ""
+    head = f'<a href="{url}" style="color:{link_colour};">{title}</a>' if url else title
+    tail = " · ".join(part for part in (html.escape(str(item.get("source", ""))), day) if part)
+    return f"{head} — {tail}" if tail else head
+
+
+def _source_links(sources: Iterable[Any], link_colour: str) -> str:
+    links = []
+    for url in sources:
+        host = urlparse(str(url)).netloc.removeprefix("www.")
+        if host:
+            safe = html.escape(str(url), quote=True)
+            links.append(f'<a href="{safe}" style="color:{link_colour};">{html.escape(host)} ↗</a>')
+    return "  ·  ".join(links)
 
 
 # Saved detail key → (shown name, unit, tooltip) for screeners that report numbers.
@@ -138,6 +177,8 @@ class ResultRow:
     name: str = ""
     chips: list[ContextChip] = field(default_factory=list)
     flags: list[str] = field(default_factory=list)
+    news: list[Mapping[str, Any]] = field(default_factory=list)
+    research: Mapping[str, Any] = field(default_factory=dict)
 
     @property
     def flag_text(self) -> str:
@@ -235,6 +276,8 @@ def rows_from_result(results: Mapping[str, Mapping[str, Any]],
             name=names.get(symbol, ""),
             chips=_context_chips(meta.get("ai_context")),
             flags=[str(flag) for flag in meta.get("ai_flags") or []],
+            news=_saved_news(meta.get("ai_context")),
+            research=meta.get("ai_research") or {},
         ))
     rows.sort(key=lambda r: r.score, reverse=True)
     for rank, row in enumerate(rows, start=1):
@@ -1024,9 +1067,36 @@ class ListDetailView(QWidget):
         self.reasoning_lbl.setWordWrap(True)
         self.reasoning_lbl.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         why_col.addWidget(self.reasoning_lbl)
+        self.news_head = QLabel("NEWS, LAST 5 DAYS")
+        self.news_head.setObjectName("view_head")
+        self.news_head.hide()
+        why_col.addSpacing(8)
+        why_col.addWidget(self.news_head)
+        self._news_box = QVBoxLayout()
+        self._news_box.setSpacing(4)
+        why_col.addLayout(self._news_box)
         why_col.addStretch(1)
         lower.addLayout(why_col, 3)
         body.addLayout(lower)
+
+        self.research_box = QFrame()
+        self.research_box.setObjectName("detail_plan")
+        research_vl = QVBoxLayout(self.research_box)
+        research_vl.setContentsMargins(16, 12, 16, 12)
+        research_vl.setSpacing(6)
+        research_head = QLabel("WEB RESEARCH")
+        research_head.setObjectName("view_head")
+        research_vl.addWidget(research_head)
+        self.research_lbl = QLabel()
+        self.research_lbl.setWordWrap(True)
+        self.research_lbl.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        research_vl.addWidget(self.research_lbl)
+        self.research_links = QLabel()
+        self.research_links.setTextFormat(Qt.TextFormat.RichText)
+        self.research_links.setOpenExternalLinks(True)
+        research_vl.addWidget(self.research_links)
+        self.research_box.hide()
+        body.addWidget(self.research_box)
         body.addStretch(1)
 
         scroll.setWidget(detail)
@@ -1074,7 +1144,10 @@ class ListDetailView(QWidget):
         _clear_layout(self._rules_box)
         _clear_layout(self._chips_box)
         _clear_layout(self._flags_box)
+        _clear_layout(self._news_box)
         self.flags_head.hide()
+        self.news_head.hide()
+        self.research_box.hide()
         if not 0 <= index < len(self._rows):
             self.symbol_lbl.setText("")
             self.meta_lbl.setText("")
@@ -1099,8 +1172,25 @@ class ListDetailView(QWidget):
         for rule in row.rules:
             self._rules_box.addWidget(self._rule_line(rule, _T))
         self._fill_context(row, _T)
+        self._fill_news_research(row, _T)
         self.reasoning_lbl.setText(row.reasoning or "No AI reasoning for this run.")
         return True
+
+    def _fill_news_research(self, row: ResultRow, palette: Any) -> None:
+        """News list and Web research box (SRD-GUI-022.019)."""
+        for item in row.news:
+            label = QLabel(_news_html(item, palette.BLUE))
+            label.setTextFormat(Qt.TextFormat.RichText)
+            label.setOpenExternalLinks(True)
+            label.setWordWrap(True)
+            self._news_box.addWidget(label)
+        self.news_head.setVisible(bool(row.news))
+        summary = str(row.research.get("summary", ""))
+        if summary:
+            self.research_lbl.setText(summary)
+            self.research_links.setText(_source_links(row.research.get("sources") or [],
+                                                      palette.BLUE))
+            self.research_box.show()
 
     def _fill_context(self, row: ResultRow, palette: Any) -> None:
         """Context chips under the name and the Red flags list (SRD-GUI-022.017)."""

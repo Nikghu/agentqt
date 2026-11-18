@@ -1,22 +1,35 @@
 """Unit tests: core/stock_context — earnings, sector, regime and prompt text.
 Refs: UT-SCR-018.002.M36.T01 – T03, UT-SCR-018.003.M37.T01, UT-SCR-018.004.M35.T01 – T02,
+      UT-SCR-019.002.M38.T01 – T03, UT-SCR-019.003.M37.T01, UT-SCR-019.004.M37.T01,
+      UT-SCR-019.005.M39.T01, UT-SCR-019.006.M39.T01,
       UT-SCR-018.005.M37.T01, UT-SCR-018.006.M37.T01
 """
 from __future__ import annotations
 
-from datetime import date, timedelta
+import json
+import threading
+import time
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
+from typing import Any
 
+from us_swing.core.notifications import AiAnswer
 from us_swing.core.stock_context import (
     SECTOR_BENCHMARK,
     SECTOR_ETFS,
     EarningsLookup,
+    Headline,
+    NewsLookup,
     StockContext,
+    apply_news_tone,
     build_context,
     context_text,
     earnings_level,
     market_regime,
+    news_level,
+    research_picks,
 )
+from us_swing.core.stock_context._news import _parse_yahoo_item
 
 TODAY = date(2026, 11, 18)
 
@@ -145,3 +158,123 @@ def test_prompt_text_lists_stocks_and_market() -> None:
         " | flags: none"
     )
     assert lines[2] == "COF | earnings in 3 days (red) | flags: Earnings in 3 days"
+
+
+# ── Phase 2: news and web research (FO-SCR-017) ───────────────────────────────
+
+NOW = datetime(2026, 11, 18, 15, 0, tzinfo=timezone.utc)
+
+
+def _headline(hours_ago: float, title: str = "t") -> Headline:
+    when = (NOW - timedelta(hours=hours_ago)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return Headline(title=title, source="Reuters", published=when, url="https://x.test/a")
+
+
+def test_newest_eight_from_last_five_days(tmp_path: Path) -> None:
+    """UT-SCR-019.002.M38.T01: Newest 8 from last 5 days, one fetch a day."""
+    items = [_headline(h, f"h{h}") for h in (1, 2, 3, 5, 8, 13, 21, 34, 55, 130, 150, 200)]
+    calls: list[str] = []
+
+    def fetch(symbol: str) -> list[Headline]:
+        calls.append(symbol)
+        return list(reversed(items))
+
+    lookup = NewsLookup(tmp_path / "news.json", fetch)
+    got = lookup.headlines(["NVDA"], NOW)["NVDA"]
+    assert [h.title for h in got] == ["h1", "h2", "h3", "h5", "h8", "h13", "h21", "h34"]
+    assert NewsLookup(tmp_path / "news.json", fetch).headlines(["NVDA"], NOW)["NVDA"] == got
+    assert calls == ["NVDA"]
+
+
+def test_failed_news_lookup_gives_nothing(tmp_path: Path) -> None:
+    """UT-SCR-019.002.M38.T02: Failed lookup gives no headlines."""
+    calls: list[str] = []
+
+    def fetch(symbol: str) -> list[Headline]:
+        calls.append(symbol)
+        raise RuntimeError("YAHOO! FINANCE IS CURRENTLY DOWN!")
+
+    lookup = NewsLookup(tmp_path / "news.json", fetch)
+    assert lookup.headlines(["COF"], NOW) == {"COF": []}
+    lookup.headlines(["COF"], NOW)
+    assert calls == ["COF", "COF"]
+
+
+def test_both_yahoo_formats_read() -> None:
+    """UT-SCR-019.002.M38.T03: Both Yahoo formats read."""
+    new = {"id": "1", "content": {"title": "Chip orders beat", "pubDate": "2026-11-17T12:30:00Z",
+                                  "provider": {"displayName": "Reuters"},
+                                  "canonicalUrl": {"url": "https://r.test/1"}}}
+    old = {"title": "Chip orders beat", "publisher": "Reuters", "link": "https://r.test/1",
+           "providerPublishTime": int(datetime(2026, 11, 17, 12, 30, tzinfo=timezone.utc)
+                                      .timestamp())}
+    expected = Headline("Chip orders beat", "Reuters", "2026-11-17T12:30:00Z", "https://r.test/1")
+    assert _parse_yahoo_item(new) == expected
+    assert _parse_yahoo_item(old) == expected
+    assert _parse_yahoo_item({"content": {}}) is None
+
+
+def test_headlines_in_context_block() -> None:
+    """UT-SCR-019.003.M37.T01: Headlines in the context block."""
+    news = {"NVDA": [_headline(2, "Orders beat"), _headline(30, "Probe opened")]}
+    contexts, regime = build_context(["NVDA"], ["news"], {}, {}, {}, TODAY, headlines=news)
+    assert len(contexts["NVDA"].news) == 2
+    lines = context_text(contexts, regime).splitlines()
+    assert lines[1] == "NVDA | flags: none"
+    assert lines[2] == "  news 11-18 · Reuters · Orders beat"
+    assert lines[3] == "  news 11-17 · Reuters · Probe opened"
+
+
+def test_news_level_boundaries_and_flag() -> None:
+    """UT-SCR-019.004.M37.T01: News level boundaries and flag."""
+    assert [news_level(t) for t in (-0.3, -0.1, 0.0, 0.3, None)] == [
+        "red", "yellow", "neutral", "green", ""]
+    base = StockContext(news=(_headline(1),), flags=("Earnings in 3 days",))
+    red = apply_news_tone(base, -0.6)
+    assert (red.news_tone, red.news_level) == (-0.6, "red")
+    assert red.flags == ("Earnings in 3 days", "Negative news")
+    assert apply_news_tone(base, 0.4).flags == ("Earnings in 3 days",)
+    assert apply_news_tone(base, None) == base
+
+
+def test_research_three_at_a_time_web_search_only() -> None:
+    """UT-SCR-019.005.M39.T01: Research runs 3 at a time with only web search."""
+    lock = threading.Lock()
+    running = {"now": 0, "max": 0}
+    seen: list[Any] = []
+
+    def ask(config: Any, instruction: str, facts: str, timeout_s: float = 90.0) -> AiAnswer:
+        with lock:
+            running["now"] += 1
+            running["max"] = max(running["max"], running["now"])
+            seen.append(config)
+        time.sleep(0.05)
+        with lock:
+            running["now"] -= 1
+        body = {"summary": " ".join(["word"] * 80), "risk": "",
+                "sources": [f"https://s.test/{i}" for i in range(5)]}
+        return AiAnswer(text="Here you go:\n" + json.dumps(body), provider="claude")
+
+    result = research_picks(["A", "B", "C", "D", "E"], "claude-haiku-5-5", TODAY, ask=ask)
+    assert set(result) == {"A", "B", "C", "D", "E"}
+    assert running["max"] == 3
+    assert all(c.claude_tools == ("WebSearch",) and c.claude_model == "claude-haiku-5-5"
+               for c in seen)
+    assert len(result["A"].summary.split()) == 60 and len(result["A"].sources) == 3
+
+
+def test_failed_research_skipped() -> None:
+    """UT-SCR-019.006.M39.T01: Failed or unreadable research skipped."""
+    answers = {
+        "A": AiAnswer(error="Claude Code CLI: no answer in 180 seconds"),
+        "B": AiAnswer(text="I could not find anything useful."),
+        "C": AiAnswer(text=json.dumps({"summary": "Offering priced", "risk": "share offering",
+                                       "sources": ["https://s.test/c"]})),
+    }
+
+    def ask(config: Any, instruction: str, facts: str, timeout_s: float = 90.0) -> AiAnswer:
+        return answers[facts.split()[1]]
+
+    result = research_picks(["A", "B", "C"], "m", TODAY, ask=ask)
+    assert list(result) == ["C"]
+    assert result["C"].risk == "share offering"

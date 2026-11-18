@@ -12,11 +12,20 @@ from __future__ import annotations
 import concurrent.futures
 import logging
 import time
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from datetime import date, datetime, timezone
 from typing import Any, Callable, Final
 
-from us_swing.core.stock_context import EarningsLookup, build_context, context_text
+from us_swing.core.stock_context import (
+    EarningsLookup,
+    Headline,
+    NewsLookup,
+    Research,
+    apply_news_tone,
+    build_context,
+    context_text,
+    research_picks,
+)
 from us_swing.screener.base import ScreenerExecutionError
 from us_swing.screener.preset import GroupLogic, Preset, PresetType
 from us_swing.screener.registry import ScreenerRegistry
@@ -59,9 +68,14 @@ class PresetExecutor:
         max_workers: int = 4,
         notify: Callable[[str, str], None] | None = None,
         earnings_lookup: Callable[[list[str], date], Mapping[str, date | None]] | None = None,
+        news_lookup: Callable[[list[str], datetime], Mapping[str, Sequence[Headline]]]
+        | None = None,
+        research_runner: Callable[[list[str], str, date], Mapping[str, Research]] | None = None,
     ) -> None:
         self._db = db  # Any: duck-typed — must expose fetch_bars(symbols) -> dict
         self._earnings_lookup = earnings_lookup
+        self._news_lookup = news_lookup
+        self._research_runner = research_runner
         self._app_service = app_service
         self._preset_manager = preset_manager
         self._storage = storage
@@ -437,6 +451,8 @@ class PresetExecutor:
         transcript: list[AITranscriptTurn] = (
             raw_transcript if isinstance(raw_transcript, list) else []
         )
+        raw_tone = getattr(llm, "last_news_tone", None)
+        tones: dict[str, float] = raw_tone if isinstance(raw_tone, dict) else {}
 
         # Merge ranked scores back into result
         for sym, (passed, score) in ranked.items():
@@ -450,8 +466,9 @@ class PresetExecutor:
                 if sym in plans:
                     result[sym]["ai_plan"] = plans[sym]
                 if sym in contexts:
-                    result[sym]["ai_context"] = contexts[sym].to_dict()
-                    result[sym]["ai_flags"] = list(contexts[sym].flags)
+                    ctx = apply_news_tone(contexts[sym], tones.get(sym))
+                    result[sym]["ai_context"] = ctx.to_dict()
+                    result[sym]["ai_flags"] = list(ctx.flags)
         # Keep only top-N passing symbols
         ranked_passing = sorted(
             [sym for sym, d in result.items() if d.get("passed", False)],
@@ -461,6 +478,8 @@ class PresetExecutor:
         for sym in list(result.keys()):
             if result[sym].get("passed", False) and sym not in ranked_passing:
                 result[sym] = {**result[sym], "passed": False}
+        if "research" in preset.ai_context and preset.ai_provider == "claude" and ranked_passing:
+            self._add_research(preset, ranked_passing, result, transcript)
         return result, transcript
 
     # ------------------------------------------------------------------
@@ -480,7 +499,35 @@ class PresetExecutor:
         if "earnings" in preset.ai_context:
             lookup = self._earnings_lookup or EarningsLookup().next_dates
             earnings = lookup(passing, today)
-        return build_context(passing, preset.ai_context, sectors, closes, earnings, today)
+        headlines: Mapping[str, Sequence[Headline]] = {}
+        if "news" in preset.ai_context:
+            news_lookup = self._news_lookup or NewsLookup().headlines
+            headlines = news_lookup(passing, datetime.now(timezone.utc))
+        return build_context(passing, preset.ai_context, sectors, closes, earnings, today,
+                             headlines=headlines)
+
+    def _add_research(
+        self,
+        preset: Preset,
+        picks: list[str],
+        result: dict[str, dict[str, Any]],
+        transcript: list[AITranscriptTurn],
+    ) -> None:
+        """Web research for the final picks; a major risk adds a flag (SRD-SCR-019.005–.007)."""
+        _log.info("[Screener] Web research for %d stock(s) started", len(picks))
+        runner = self._research_runner or research_picks
+        found = runner(picks, preset.ai_model, date.today())
+        for sym, research in found.items():
+            if sym not in result:
+                continue
+            result[sym]["ai_research"] = research.to_dict()
+            if research.risk:
+                flags = list(result[sym].get("ai_flags", []))
+                result[sym]["ai_flags"] = [*flags, f"Research: {research.risk}"]
+        transcript.append(AITranscriptTurn(
+            role="system",
+            content=f"Web research done for {len(found)} of {len(picks)} stock(s).",
+        ))
 
     def _get_registry(self) -> ScreenerRegistry:
         return self._registry if self._registry is not None else ScreenerRegistry()

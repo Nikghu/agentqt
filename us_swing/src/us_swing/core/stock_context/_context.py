@@ -1,25 +1,30 @@
 """
 Module: MD-SCR-018.003.M37 — core/stock_context/_context.py
-Parent SRD: SRD-SCR-018.003, SRD-SCR-018.005, SRD-SCR-018.006
+Parent SRD: SRD-SCR-018.003, SRD-SCR-018.005, SRD-SCR-018.006, SRD-SCR-019.003,
+            SRD-SCR-019.004
 
-Earnings and sector levels, red flags, the SPY market regime and the context
+Earnings, sector and news levels, red flags, the SPY market regime and the context
 block sent to the AI ranking. Pure functions; no network or database access.
 """
 from __future__ import annotations
 
-from collections.abc import Iterable, Mapping
-from dataclasses import asdict, dataclass
+from collections.abc import Iterable, Mapping, Sequence
+from dataclasses import asdict, dataclass, replace
 from datetime import date
 from typing import Any
 
+from us_swing.core.stock_context._news import Headline
 from us_swing.core.stock_context._sector import GICS_TO_ETF, SectorMove, sector_moves
 
-CONTEXT_KINDS: frozenset[str] = frozenset({"earnings", "sector"})
+CONTEXT_KINDS: frozenset[str] = frozenset({"earnings", "sector", "news", "research"})
 REGIME_SYMBOL = "SPY"
 SECTOR_DAYS = 21
 _EARNINGS_RED_DAYS = 5
 _EARNINGS_YELLOW_DAYS = 10
 _EDGE_RANKS = 3
+_NEWS_RED_TONE = -0.3
+_NEWS_GREEN_TONE = 0.3
+NEGATIVE_NEWS_FLAG = "Negative news"
 _REGIME_TEXT = {
     "risk-on": "risk-on, SPY above 50- and 200-day",
     "risk-off": "risk-off, SPY below 50- and 200-day",
@@ -41,6 +46,9 @@ class StockContext:
     sector_move_pct: float | None = None
     sector_level: str = ""
     market: str = ""
+    news: tuple[Headline, ...] = ()
+    news_tone: float | None = None
+    news_level: str = ""
     flags: tuple[str, ...] = ()
 
     def to_dict(self) -> dict[str, Any]:
@@ -59,6 +67,28 @@ def earnings_level(days: int | None) -> str:
     if days <= _EARNINGS_YELLOW_DAYS:
         return "yellow"
     return "green"
+
+
+def news_level(tone: float | None) -> str:
+    """Red at tone ≤ -0.3, yellow below 0, green at ≥ 0.3, else neutral; "" without a tone."""
+    if tone is None:
+        return ""
+    if tone <= _NEWS_RED_TONE:
+        return "red"
+    if tone < 0:
+        return "yellow"
+    if tone >= _NEWS_GREEN_TONE:
+        return "green"
+    return "neutral"
+
+
+def apply_news_tone(ctx: StockContext, tone: float | None) -> StockContext:
+    """``ctx`` with the AI's news tone, its level and the "Negative news" flag (SRD-SCR-019.004)."""
+    if tone is None:
+        return ctx
+    level = news_level(tone)
+    flags = ctx.flags + ((NEGATIVE_NEWS_FLAG,) if level == "red" else ())
+    return replace(ctx, news_tone=tone, news_level=level, flags=flags)
 
 
 def earnings_when(days: int) -> str:
@@ -106,6 +136,7 @@ def build_context(
     closes: Mapping[str, Mapping[str, float]],
     earnings: Mapping[str, date | None],
     today: date,
+    headlines: Mapping[str, Sequence[Headline]] | None = None,
 ) -> tuple[dict[str, StockContext], str]:
     """Context and flags per stock, plus the market regime (SRD-SCR-018.003–.005).
 
@@ -116,6 +147,7 @@ def build_context(
         closes: Daily closes keyed by ISO date for the sector ETFs, RSP and SPY.
         earnings: Symbol → next earnings date or None.
         today: The run date.
+        headlines: Symbol → recent headlines, used when "news" is ticked.
 
     Returns:
         Symbol → ``StockContext`` and the regime ("" when SPY has too few closes).
@@ -139,6 +171,8 @@ def build_context(
             sector_fields, sector_flags = _sector_fields(sectors.get(symbol, ""), moves)
             fields.update(sector_fields)
             flags += sector_flags
+        if "news" in wanted:
+            fields["news"] = tuple((headlines or {}).get(symbol, ()))
         contexts[symbol] = StockContext(**fields, flags=flags)
     return contexts, regime
 
@@ -151,7 +185,8 @@ def _line(symbol: str, ctx: StockContext) -> str:
         parts.append(f"{ctx.sector} #{ctx.sector_rank} of {ctx.sector_count}, "
                      f"{ctx.sector_move_pct:+.1f}% vs RSP ({ctx.sector_level})")
     parts.append("flags: " + ("; ".join(ctx.flags) if ctx.flags else "none"))
-    return " | ".join(parts)
+    news = [f"  news {h.published[5:10]} · {h.source} · {h.title}" for h in ctx.news]
+    return "\n".join([" | ".join(parts), *news])
 
 
 def context_text(contexts: Mapping[str, StockContext], regime: str) -> str:

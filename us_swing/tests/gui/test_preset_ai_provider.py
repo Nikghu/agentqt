@@ -1,5 +1,6 @@
 """Unit tests: MD-GUI-022.001.M01 — Edit Preset AI Provider choice.
-Refs: UT-GUI-022.014.M01.T01 – T02, UT-GUI-022.015.M01.T01 – T02, UT-GUI-022.016.M01.T01
+Refs: UT-GUI-022.014.M01.T01 – T02, UT-GUI-022.015.M01.T01 – T02, UT-GUI-022.016.M01.T01,
+      UT-GUI-022.018.M01.T01
 """
 from __future__ import annotations
 
@@ -79,10 +80,25 @@ def test_model_list_opens_from_chevron_and_typing(qtbot, monkeypatch) -> None:  
 def test_context_ticks_save_and_load(qtbot) -> None:  # type: ignore[no-untyped-def]
     """UT-GUI-022.016.M01.T01: Context ticks save and load."""
     dlg = _dialog(qtbot)
-    for check in dlg._ai_ctx_checks.values():
-        check.setChecked(True)
+    for kind in ("earnings", "sector"):
+        dlg._ai_ctx_checks[kind].setChecked(True)
     dlg._name.setText("AI preset")
     preset = dlg._build_preset_from_ui()
     assert preset.ai_context == ["earnings", "sector"]
     again = _dialog(qtbot, preset)
-    assert all(check.isChecked() for check in again._ai_ctx_checks.values())
+    assert [k for k, c in again._ai_ctx_checks.items() if c.isChecked()] == ["earnings", "sector"]
+
+
+def test_news_and_research_ticks(qtbot) -> None:  # type: ignore[no-untyped-def]
+    """UT-GUI-022.018.M01.T01: News and research ticks; research only with Claude."""
+    dlg = _dialog(qtbot)
+    research = dlg._ai_ctx_checks["research"]
+    assert not research.isEnabled()
+    dlg._ai_provider.setCurrentIndex(dlg._ai_provider.findData("claude"))
+    assert research.isEnabled()
+    dlg._ai_ctx_checks["news"].setChecked(True)
+    research.setChecked(True)
+    dlg._name.setText("AI preset")
+    assert dlg._build_preset_from_ui().ai_context == ["news", "research"]
+    dlg._ai_provider.setCurrentIndex(dlg._ai_provider.findData("openrouter"))
+    assert not research.isChecked() and not research.isEnabled()

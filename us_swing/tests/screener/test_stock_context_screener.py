@@ -1,17 +1,20 @@
 """Unit tests: AI Ranking stock context in preset.py, cloud_ai.py and executor.py.
-Refs: UT-SCR-018.001.M01.T01 – T02, UT-SCR-018.006.M06.T01 – T02, UT-SCR-018.007.M10.T01 – T02
+Refs: UT-SCR-018.001.M01.T01 – T02, UT-SCR-018.006.M06.T01 – T02, UT-SCR-018.007.M10.T01 – T02,
+      UT-SCR-019.001.M01.T01 – T02, UT-SCR-019.003.M06.T01 – T02, UT-SCR-019.007.M10.T01 – T02
 """
 from __future__ import annotations
 
 import json
 from datetime import date, timedelta
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
 
 from us_swing.core.notifications import AiAnswer
+from us_swing.core.stock_context import Headline, Research
 from us_swing.screener.executor import PresetExecutor
 from us_swing.screener.preset import (
     Preset,
@@ -131,3 +134,107 @@ def test_no_context_ticked(tmp_path: Path) -> None:
     assert "ai_context_text" not in llm.apply.call_args[0][2]
     assert all("ai_context" not in row and "ai_flags" not in row
                for row in result.results.values())
+
+
+# ── Phase 2: news tone and web research (FO-SCR-017) ──────────────────────────
+
+
+def test_news_and_research_round_trip() -> None:
+    """UT-SCR-019.001.M01.T01: News and research choices round-trip."""
+    preset = _preset(ai_provider="claude", ai_model="claude-sonnet-5-5",
+                     ai_context=["news", "research"])
+    preset.validate()
+    assert Preset.from_dict(preset.to_dict()).ai_context == ["news", "research"]
+
+
+def test_research_needs_claude() -> None:
+    """UT-SCR-019.001.M01.T02: Research needs Claude Code CLI."""
+    with pytest.raises(PresetValidationError):
+        _preset(ai_provider="openrouter", ai_context=["research"]).validate()
+
+
+def test_tone_read_from_ranking_answer() -> None:
+    """UT-SCR-019.003.M06.T01: Tone read from the ranking answer."""
+    screener = CloudAIScreener()
+    answer = [{"symbol": "AAPL", "score": 0.8, "news_tone": 0.5},
+              {"symbol": "MSFT", "score": 0.6, "news_tone": 2.0},
+              {"symbol": "GOOGL", "score": 0.4, "news_tone": "x"}]
+    screener._parse_ranking(json.dumps(answer), SYMBOLS, fallback={})
+    assert screener.last_news_tone == {"AAPL": 0.5, "MSFT": 1.0}
+    assert "news_tone" in cloud_ai._CONTEXT_RULE
+
+
+def test_legacy_path_uses_array_with_context(monkeypatch: pytest.MonkeyPatch) -> None:
+    """UT-SCR-019.003.M06.T02: Legacy path uses array format with context."""
+    sent: list[str] = []
+    reply = json.dumps([{"symbol": "AAPL", "score": 0.8, "reasoning": "ok", "news_tone": -0.4}])
+
+    def fake_call(self: CloudAIScreener, client: Any, **kwargs: Any) -> Any:
+        sent.append(kwargs["messages"][0]["content"])
+        message = SimpleNamespace(content=reply)
+        return SimpleNamespace(choices=[SimpleNamespace(message=message)], usage=None)
+
+    monkeypatch.setattr(CloudAIScreener, "_make_client", lambda self: object())
+    monkeypatch.setattr(CloudAIScreener, "_call_with_retry", fake_call)
+    screener = CloudAIScreener()
+    result = screener.apply(SYMBOLS, BARS, {"ai_provider": "openrouter", "ai_query": "",
+                                            "ai_context_text": "=== STOCK CONTEXT ==="})
+    assert "JSON array" in sent[0] and "STOCK CONTEXT" in sent[0]
+    assert result["AAPL"] == (True, 0.8)
+    assert screener.last_reasoning["AAPL"] == "ok"
+    assert screener.last_news_tone == {"AAPL": -0.4}
+
+
+def _phase2_executor(
+    tmp_path: Path, context: list[str], research: MagicMock,
+) -> PresetExecutor:
+    ind = MagicMock()
+    ind.apply.side_effect = lambda syms, bars, cfg: {s: (True, 0.9) for s in syms}
+    llm = MagicMock()
+    llm.apply.side_effect = lambda syms, bars, cfg: {s: (True, 0.7) for s in syms}
+    llm.last_reasoning = {}
+    llm.last_news_tone = {"AAPL": -0.6}
+    registry = ScreenerRegistry()
+    registry.register("ind_a", lambda: ind)
+    registry.register("llm_claude_ranking", lambda: llm)
+    preset = Preset(
+        id="ctx2", name="Ctx2", preset_type=PresetType.WEIGHTED,
+        screeners=[ScreenerRef(screener_id="ind_a", enabled=True, weight=1.0)],
+        threshold=0.5, enable_llm_ranking=True, top_n=3, ai_provider="claude",
+        ai_model="claude-sonnet-5-5", ai_context=context,
+    )
+    manager = MagicMock()
+    manager.load_preset.return_value = preset
+    news = MagicMock(return_value={"AAPL": [Headline("Probe opened", "Reuters",
+                                                     "2026-11-17T12:00:00Z", "https://r.test")]})
+    return PresetExecutor(
+        preset_manager=manager, storage=ScreenerResultsStorage(base_dir=tmp_path),
+        registry=registry, news_lookup=news, research_runner=research,
+    )
+
+
+def test_executor_saves_tone_news_and_research(tmp_path: Path) -> None:
+    """UT-SCR-019.007.M10.T01: Executor saves tone, news and research."""
+    research = MagicMock(return_value={
+        "AAPL": Research("Offering priced at a discount.", ("https://s.test/a",), "share offering"),
+    })
+    executor = _phase2_executor(tmp_path, ["news", "research"], research)
+    result = executor.run_preset("ctx2", "u", symbols=SYMBOLS, bars=BARS)
+    aapl = result.results["AAPL"]
+    assert aapl["ai_context"]["news_tone"] == -0.6
+    assert aapl["ai_context"]["news_level"] == "red"
+    assert aapl["ai_context"]["news"][0]["title"] == "Probe opened"
+    assert aapl["ai_research"] == {"summary": "Offering priced at a discount.",
+                                   "sources": ["https://s.test/a"], "risk": "share offering"}
+    assert aapl["ai_flags"] == ["Negative news", "Research: share offering"]
+    assert sorted(research.call_args[0][0]) == sorted(SYMBOLS)
+    assert research.call_args[0][1] == "claude-sonnet-5-5"
+
+
+def test_research_not_run_unless_ticked(tmp_path: Path) -> None:
+    """UT-SCR-019.007.M10.T02: Research not run unless ticked."""
+    research = MagicMock()
+    executor = _phase2_executor(tmp_path, ["news"], research)
+    result = executor.run_preset("ctx2", "u", symbols=SYMBOLS, bars=BARS)
+    research.assert_not_called()
+    assert all("ai_research" not in row for row in result.results.values())
