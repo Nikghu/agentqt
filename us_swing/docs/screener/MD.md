@@ -91,8 +91,8 @@ Registered as `acc_dist` in `src/us_swing/screener/__init__.py`. M33 opens from 
 | MD-SCR-019.002.M38 | SRD-SCR-019.002 | `src/us_swing/core/stock_context/_news.py` | Recent headlines per stock with a daily cache. | `NewsLookup`, `Headline` | `yfinance`, M40 | Implemented |
 | MD-SCR-019.005.M39 | SRD-SCR-019.005, .006 | `src/us_swing/core/stock_context/_research.py` | Web research per final pick via Claude Code CLI, 3 at a time. | `research_picks()`, `Research` | `core.notifications` | Implemented |
 | MD-SCR-019.002.M40 | SRD-SCR-019.002, SRD-SCR-018.002 | `src/us_swing/core/stock_context/_cache.py` | Daily JSON cache shared by earnings and news. | `DailyCache` | — | Implemented |
-| MD-SCR-020.002.M41 | SRD-SCR-020.002 | `src/us_swing/core/stock_context/_company.py` | EPS surprise, fundamentals, short interest and analyst changes with a daily cache. | `CompanyLookup`, `CompanyFacts`, `AnalystChange` | `yfinance`, M40 | Draft |
-| MD-SCR-020.007.M42 | SRD-SCR-020.007, .008 | `src/us_swing/core/stock_context/_review.py` | Blind bull vs bear review per final pick via Claude Code CLI, 3 at a time. | `review_picks()`, `review_facts()`, `Review` | `core.notifications`, M37 | Draft |
+| MD-SCR-020.002.M41 | SRD-SCR-020.002 | `src/us_swing/core/stock_context/_company.py` | EPS surprise, fundamentals, short interest and analyst changes with a daily cache. | `CompanyLookup`, `CompanyFacts`, `AnalystChange` | `yfinance`, M40 | Implemented |
+| MD-SCR-020.007.M42 | SRD-SCR-020.007, .008 | `src/us_swing/core/stock_context/_review.py` | Blind bull vs bear review per final pick via Claude Code CLI, 3 at a time. | `review_picks()`, `review_facts()`, `Review` | `core.notifications`, M37 | Implemented |
 
 M01 `preset.py` gains `ai_context`; M10 `executor.py` builds and merges context; M06 `cloud_ai.py` adds the context block to every prompt path.
 

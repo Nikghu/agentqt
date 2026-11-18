@@ -5,6 +5,7 @@
 **Traces To:** FO-SCR v2.2.0
 **Status:** Draft
 **Last Updated:** 2026-11-18
+> v2.12.2: SRD-SCR-020.001–.009 Implemented (RN-SCR-2.13.0-20261118).
 > v2.12.1: FO-SCR-018 and SRD-SCR-020.001–.009 approved by user 2026-11-18.
 > v2.12.0: FO-SCR-018 Section 20 added as Draft — AI Ranking company data and bull vs bear review (phase 3); user request 2026-11-18.
 > v2.11.1: FO-SCR-017 and SRD-SCR-019.001–.007 approved by user 2026-11-18 and Implemented (RN-SCR-2.12.0-20261118).
@@ -347,15 +348,15 @@ Note: The dialog opens from the screener builder in `gui/screener_panel.py`.
 
 | ID | Parent | P | Description | In | Out | Constraints | Status |
 |---|---|---|---|---|---|---|---|
-| SRD-SCR-020.001 | FO-SCR-018 | Must | `ai_context` shall also accept `surprise`, `fundamentals`, `short`, `analysts` and `review`; `review` is valid only when `ai_provider` is `claude`. | preset | `Preset` | `validate()` rejects review with OpenRouter | Approved |
-| SRD-SCR-020.002 | FO-SCR-018 | Must | For each Stage 2 stock one daily-cached Yahoo lookup shall give the last EPS surprise, revenue growth, profit margin, P/E, debt/equity, short % of float, days to cover and analyst changes. | symbols | company facts | Only ticked kinds are looked up; a failed lookup gives no facts and one WARNING log | Approved |
-| SRD-SCR-020.003 | FO-SCR-018 | Must | The surprise level shall be green above +1%, neutral within ±1% and red below -1% with the flag "EPS miss -N%". | EPS actual, estimate | level, flag | No estimate → no level | Approved |
-| SRD-SCR-020.004 | FO-SCR-018 | Must | Short interest above 20% of float shall be red with the flag "High short interest (N% of float)"; fundamentals shall have no level or flag. | short %, fundamentals | level, flag | Missing values are left out | Approved |
-| SRD-SCR-020.005 | FO-SCR-018 | Must | Analyst changes shall keep the newest 5 from the last 30 days and the average target vs price; any downgrade in the last 7 days is red with the flag "N downgrade(s)", upgrades only is green. | changes, target | level, flag | No changes → neutral | Approved |
-| SRD-SCR-020.006 | FO-SCR-018 | Must | Ticked company facts shall add one line per stock to the STOCK CONTEXT block of the ranking request. | facts | prompt text | Fixed order: earnings, surprise, sector, news, fundamentals, short, analysts | Approved |
-| SRD-SCR-020.007 | FO-SCR-018 | Must | With review ticked, each final pick shall get one Claude Code CLI request with no tools after web research, 3 at a time, holding only price facts, ticked facts, rule flags, headlines and research. | final picks | review request | No AI score, rank, reason, news tone, Query or other stocks; 180 s limit | Approved |
-| SRD-SCR-020.008 | FO-SCR-018 | Must | The review shall return up to 3 bull and 3 bear points, a verdict Long, Short, Wait or Avoid, a confidence and a one-line summary; Wait or Avoid adds the flag "Review: wait" or "Review: avoid". | review reply | review, flag | Scores and order unchanged; a failed or unreadable review is left out | Approved |
-| SRD-SCR-020.009 | FO-SCR-018 | Must | Results shall save the company facts and levels in `ai_context` and the review in `ai_review`, and the transcript shall hold each review request and reply. | facts, review | result JSON, transcript | Old results load unchanged | Approved |
+| SRD-SCR-020.001 | FO-SCR-018 | Must | `ai_context` shall also accept `surprise`, `fundamentals`, `short`, `analysts` and `review`; `review` is valid only when `ai_provider` is `claude`. | preset | `Preset` | `validate()` rejects review with OpenRouter | Implemented |
+| SRD-SCR-020.002 | FO-SCR-018 | Must | For each Stage 2 stock one daily-cached Yahoo lookup shall give the last EPS surprise, revenue growth, profit margin, P/E, debt/equity, short % of float, days to cover and analyst changes. | symbols | company facts | Only ticked kinds are looked up; a failed lookup gives no facts and one WARNING log | Implemented |
+| SRD-SCR-020.003 | FO-SCR-018 | Must | The surprise level shall be green above +1%, neutral within ±1% and red below -1% with the flag "EPS miss -N%". | EPS actual, estimate | level, flag | No estimate → no level | Implemented |
+| SRD-SCR-020.004 | FO-SCR-018 | Must | Short interest above 20% of float shall be red with the flag "High short interest (N% of float)"; fundamentals shall have no level or flag. | short %, fundamentals | level, flag | Missing values are left out | Implemented |
+| SRD-SCR-020.005 | FO-SCR-018 | Must | Analyst changes shall keep the newest 5 from the last 30 days and the average target vs price; any downgrade in the last 7 days is red with the flag "N downgrade(s)", upgrades only is green. | changes, target | level, flag | No changes → neutral | Implemented |
+| SRD-SCR-020.006 | FO-SCR-018 | Must | Ticked company facts shall add one line per stock to the STOCK CONTEXT block of the ranking request. | facts | prompt text | Fixed order: earnings, surprise, sector, news, fundamentals, short, analysts | Implemented |
+| SRD-SCR-020.007 | FO-SCR-018 | Must | With review ticked, each final pick shall get one Claude Code CLI request with no tools after web research, 3 at a time, holding only price facts, ticked facts, rule flags, headlines and research. | final picks | review request | No AI score, rank, reason, news tone, Query or other stocks; 180 s limit | Implemented |
+| SRD-SCR-020.008 | FO-SCR-018 | Must | The review shall return up to 3 bull and 3 bear points, a verdict Long, Short, Wait or Avoid, a confidence and a one-line summary; Wait or Avoid adds the flag "Review: wait" or "Review: avoid". | review reply | review, flag | Scores and order unchanged; a failed or unreadable review is left out | Implemented |
+| SRD-SCR-020.009 | FO-SCR-018 | Must | Results shall save the company facts and levels in `ai_context` and the review in `ai_review`, and the transcript shall hold each review request and reply. | facts, review | result JSON, transcript | Old results load unchanged | Implemented |
 
 ---
 

@@ -5,6 +5,7 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-11-17
+> v2.129.2: SRD-GUI-022.020–.021 Implemented (RN-SCR-2.13.0-20261118).
 > v2.129.1: SRD-GUI-022.020–.021 approved by user 2026-11-18.
 > v2.129.0: SRD-GUI-022.020–.021 added as Draft — company data and Bull vs bear ticks and detail (FO-SCR-018, user request 2026-11-18).
 > v2.128.1: SRD-GUI-022.018–.019 approved by user 2026-11-18 and Implemented (RN-SCR-2.12.0-20261118).
@@ -548,8 +549,8 @@
 | SRD-GUI-022.017 | FO-GUI-022 | Should | Result rows with context show green / yellow / red chips for earnings, sector and market under the stock name, a Red flags section in the detail, and a ⚑ count in the list and on cards. | `ai_context`, `ai_flags`, regime | chips, flag count | Nothing shown for runs without context | Implemented |
 | SRD-GUI-022.018 | FO-GUI-022 | Should | The context row adds tick boxes News tone and Web research for top picks; Web research is enabled only when the provider is Claude Code CLI. | ticks, provider | `Preset.ai_context` | Switching to OpenRouter clears and disables Web research | Implemented |
 | SRD-GUI-022.019 | FO-GUI-022 | Should | The detail shows a news chip, a "News, last 5 days" list with each title's source and age, and a Web research box with the summary and source links. | `ai_context`, `ai_research` | chips, lists | Sections hidden when empty; links open in the browser | Implemented |
-| SRD-GUI-022.020 | FO-GUI-022 | Should | The context ticks sit in two groups: Stock data (Earnings date, Earnings surprise, Sector strength, News tone, Fundamentals, Short interest, Analyst changes) and Top picks only (Web research for top picks, Bull vs bear review). | ticks, provider | `Preset.ai_context` | Bull vs bear is enabled only for Claude Code CLI, like Web research | Approved |
-| SRD-GUI-022.021 | FO-GUI-022 | Should | The detail shows tags for surprise, fundamentals, short interest and analysts, a Fundamentals line, an Analyst changes list and a Bull vs bear box with bull and bear points, verdict and confidence. | `ai_context`, `ai_review` | tags, sections | Sections hidden when empty; Wait or Avoid notes it differs from the ranking | Approved |
+| SRD-GUI-022.020 | FO-GUI-022 | Should | The context ticks sit in two groups: Stock data (Earnings date, Earnings surprise, Sector strength, News tone, Fundamentals, Short interest, Analyst changes) and Top picks only (Web research for top picks, Bull vs bear review). | ticks, provider | `Preset.ai_context` | Bull vs bear is enabled only for Claude Code CLI, like Web research | Implemented |
+| SRD-GUI-022.021 | FO-GUI-022 | Should | The detail shows tags for surprise, fundamentals, short interest and analysts, a Fundamentals line, an Analyst changes list and a Bull vs bear box with bull and bear points, verdict and confidence. | `ai_context`, `ai_review` | tags, sections | Sections hidden when empty; Wait or Avoid notes it differs from the ranking | Implemented |
 ## FO-GUI-023 — Card Layout
 
 | ID | Parent | Priority | Description | Input | Output | Constraints | Status |

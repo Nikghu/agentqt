@@ -569,12 +569,12 @@ FO-011
 
 | SRD | DD | MD | Test file | UT IDs | Status |
 |---|---|---|---|---|---|
-| SRD-020.001 | D01 | M01 | test_stock_context_screener.py | .001.M01.T01–T02 | Approved |
-| SRD-020.002 | D01 | M41, M40 | test_stock_context_company.py | .002.M41.T01–T03 | Approved |
-| SRD-020.003 | D01 | M37 | test_stock_context_company.py | .003.M37.T01 | Approved |
-| SRD-020.004 | D01 | M37 | test_stock_context_company.py | .004.M37.T01 | Approved |
-| SRD-020.005 | D01 | M37 | test_stock_context_company.py | .005.M37.T01 | Approved |
-| SRD-020.006 | D01 | M37 | test_stock_context_company.py | .006.M37.T01 | Approved |
-| SRD-020.007 | D01 | M42 | test_stock_context_company.py | .007.M42.T01 | Approved |
-| SRD-020.008 | D01 | M42 | test_stock_context_company.py | .008.M42.T01–T02 | Approved |
-| SRD-020.009 | D01 | M10 | test_stock_context_screener.py | .009.M10.T01–T02 | Approved |
+| SRD-020.001 | D01 | M01 | test_stock_context_screener.py | .001.M01.T01–T02 | Implemented → Pass |
+| SRD-020.002 | D01 | M41, M40 | test_stock_context_company.py | .002.M41.T01–T03 | Implemented → Pass |
+| SRD-020.003 | D01 | M37 | test_stock_context_company.py | .003.M37.T01 | Implemented → Pass |
+| SRD-020.004 | D01 | M37 | test_stock_context_company.py | .004.M37.T01 | Implemented → Pass |
+| SRD-020.005 | D01 | M37 | test_stock_context_company.py | .005.M37.T01 | Implemented → Pass |
+| SRD-020.006 | D01 | M37 | test_stock_context_company.py | .006.M37.T01 | Implemented → Pass |
+| SRD-020.007 | D01 | M42 | test_stock_context_company.py | .007.M42.T01 | Implemented → Pass |
+| SRD-020.008 | D01 | M42 | test_stock_context_company.py | .008.M42.T01–T02 | Implemented → Pass |
+| SRD-020.009 | D01 | M10 | test_stock_context_screener.py | .009.M10.T01–T02 | Implemented → Pass |

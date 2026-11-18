@@ -2,6 +2,16 @@
 
 ---
 
+## [20261118] SCR + GUI — AI Ranking company data and bull vs bear review, phase 3 (FO-SCR-018)
+
+- Type: Feature (branch `feat/scr-ai-context`)
+- FO(s): FO-SCR-018 (SRD-SCR-020.001–.009), FO-GUI-022 (SRD-GUI-022.020–.021) — approved by user and Implemented
+- RN: RN-SCR-2.13.0-20261118
+- Rules (user answers): Option B one tick per item; review is a separate tick, blind (no ranking output), reviewer picks Long/Short/Wait/Avoid, any holding period, show only + flag; flags: short >20%, downgrade in 7 days, any EPS miss
+- Artifacts: FO, SRD, DD, MD, UTCD (17 rows), TRACE, TODO T209 open
+
+---
+
 ## [20261118] SCR + GUI + INF — AI Ranking news tone and web research, phase 2 (FO-SCR-017)
 
 - Type: Feature (branch `feat/scr-ai-context`)

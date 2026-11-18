@@ -1799,7 +1799,7 @@ Search the web for news from the last 14 days about the US stock with this ticke
 ---
 
 ## DD-SCR-020.001.D01 — Company facts, bull vs bear review and wiring
-- **Status:** Draft
+- **Status:** Implemented
 
 **Parent SRDs:** SRD-SCR-020.001 through SRD-SCR-020.009
 
