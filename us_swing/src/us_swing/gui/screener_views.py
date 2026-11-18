@@ -473,16 +473,19 @@ def _rule_chip(rule: RuleCheck) -> QLabel:
     return chip
 
 
+_LEVEL_TIERS = {"green": "Strong", "yellow": "Watch", "red": "Weak"}
+
+
 def _context_chip(chip: ContextChip) -> QLabel:
-    """Neutral filled tag; only a small dot carries the level colour."""
+    """Tag styled like the Strong / Watch / Weak tier tag; neutral levels use a grey tag."""
     _T: Any = active_palette()
-    dot = {"red": _T.RED, "yellow": _T.YELLOW, "green": _T.GREEN}.get(chip.level, _T.MUTED)
-    label = QLabel(f'<span style="color:{dot};">●</span>&nbsp;&nbsp;{html.escape(chip.text)}')
-    label.setTextFormat(Qt.TextFormat.RichText)
+    tier = _LEVEL_TIERS.get(chip.level)
+    fg, bg = _tier_colours(tier) if tier else (_T.SUBTEXT, _T.OVERLAY)
+    label = QLabel(chip.text)
     label.setAccessibleName(chip.text)
     label.setStyleSheet(
-        f"color: {_T.TEXT}; background: {_T.OVERLAY}; border: none;"
-        " border-radius: 4px; padding: 3px 9px; font-size: 8pt;"
+        f"color: {fg}; background: {bg}; border-radius: 3px; padding: 1px 7px;"
+        " font-size: 8pt; font-weight: bold;"
     )
     return label
 
@@ -979,6 +982,9 @@ class ListDetailView(QWidget):
         top.addWidget(self.symbol_lbl)
         self._tier_slot = QHBoxLayout()
         top.addLayout(self._tier_slot)
+        self._chips_box = QHBoxLayout()
+        self._chips_box.setSpacing(6)
+        top.addLayout(self._chips_box)
         top.addStretch(1)
         title.addLayout(top)
         self.meta_lbl = _key_label("")
@@ -991,13 +997,6 @@ class ListDetailView(QWidget):
         self.watch_btn.clicked.connect(lambda: self._emit_selected(self.watchlist_requested))
         head.addWidget(self.watch_btn)
         body.addLayout(head)
-        chips_row = QHBoxLayout()
-        chips_row.setSpacing(8)
-        self._chips_box = QHBoxLayout()
-        self._chips_box.setSpacing(8)
-        chips_row.addLayout(self._chips_box)
-        chips_row.addStretch(1)
-        body.addLayout(chips_row)
 
         self.chart_slot = QFrame()
         self.chart_slot.setObjectName("chart_slot")
