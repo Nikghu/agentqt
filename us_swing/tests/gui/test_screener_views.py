@@ -419,3 +419,45 @@ def test_detail_draws_plan_and_tag(qtbot):
     view.list.setCurrentRow(2)
     assert chart.plans[-1] == (None, None)
     assert view.outcome_lbl.isHidden()
+
+
+_CONTEXT_RESULT = {
+    "COF": {
+        "score": 0.6,
+        "ai_context": {"earnings_date": "2026-11-21", "earnings_days": 3, "earnings_level": "red",
+                       "sector": "Technology", "sector_rank": 2, "sector_count": 11,
+                       "sector_move_pct": 3.4, "sector_level": "green", "market": "risk-on"},
+        "ai_flags": ["Earnings in 3 days"],
+    },
+}
+
+
+def test_context_chips_flags_and_count(qtbot):
+    """UT-GUI-022.017.M01.T01: Chips, flags and ⚑ count."""
+    row = rows_from_result(_CONTEXT_RESULT)[0]
+    assert row.flags == ["Earnings in 3 days"]
+    assert [(c.text, c.level) for c in row.chips] == [
+        ("Earnings in 3 days · 21 Nov", "red"),
+        ("Technology #2 of 11 · +3.4% vs RSP", "green"),
+        ("Market risk-on", "green"),
+    ]
+    view = ListDetailView()
+    qtbot.addWidget(view)
+    view.load([row])
+    assert view.list.itemWidget(view.list.item(0)).flag_lbl.text() == "⚑ 1"
+    assert [view._chips_box.itemAt(i).widget().text() for i in range(3)] == [
+        c.text for c in row.chips]
+    assert not view.flags_head.isHidden()
+    assert view._flags_box.itemAt(0).widget().text() == "Earnings in 3 days"
+
+
+def test_old_result_without_context(qtbot):
+    """UT-GUI-022.017.M01.T02: Old result without context."""
+    row = rows_from_result({"NVDA": {"score": 0.8}})[0]
+    assert row.chips == [] and row.flags == []
+    view = ListDetailView()
+    qtbot.addWidget(view)
+    view.load([row])
+    assert view.list.itemWidget(view.list.item(0)).flag_lbl.text() == ""
+    assert view._chips_box.count() == 0
+    assert view.flags_head.isHidden()

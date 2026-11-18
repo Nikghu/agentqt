@@ -28,6 +28,7 @@ _VALID_TIMEFRAMES: frozenset[str] = frozenset({"1d", "1w"})
 _AI_QUERY_MAX_LEN: int = 500
 _MODEL_RE = re.compile(r"^[a-z0-9_.\-]+/[a-z0-9_.\-]+$")
 _AI_PROVIDERS: frozenset[str] = frozenset({"openrouter", "claude"})
+_AI_CONTEXT_KINDS: frozenset[str] = frozenset({"earnings", "sector"})
 
 
 class PresetType(str, Enum):
@@ -105,6 +106,8 @@ class Preset:
     ai_model: str = _DEFAULT_AI_MODEL
     # SRD-SCR-013.010: "openrouter" or "claude" (Claude Code CLI).
     ai_provider: str = "openrouter"
+    # SRD-SCR-018.001: extra context for the AI ranking ("earnings", "sector").
+    ai_context: list[str] = field(default_factory=list)
 
     # ------------------------------------------------------------------
     # Serialization
@@ -132,6 +135,7 @@ class Preset:
             "ai_query": self.ai_query,
             "ai_model": self.ai_model,
             "ai_provider": self.ai_provider,
+            "ai_context": list(self.ai_context),
         }
 
     @classmethod
@@ -157,6 +161,7 @@ class Preset:
             ai_query=data.get("ai_query", ""),
             ai_model=_load_ai_model(data),
             ai_provider=data.get("ai_provider", "openrouter"),
+            ai_context=list(data.get("ai_context", [])),
         )
 
     # ------------------------------------------------------------------
@@ -177,6 +182,7 @@ class Preset:
             )
         _validate_ai_query(self.ai_query)
         _validate_ai_provider(self.ai_provider)
+        _validate_ai_context(self.ai_context)
         if self.ai_provider == "openrouter":
             _validate_ai_model(self.ai_model)
         if self.preset_type == PresetType.COMPOSITE:
@@ -262,6 +268,15 @@ def _validate_ai_provider(provider: str) -> None:
     if provider not in _AI_PROVIDERS:
         raise PresetValidationError(
             f"ai_provider must be one of {sorted(_AI_PROVIDERS)}, got {provider!r}."
+        )
+
+
+def _validate_ai_context(kinds: list[str]) -> None:
+    unknown = set(kinds) - _AI_CONTEXT_KINDS
+    if unknown:
+        raise PresetValidationError(
+            f"Unknown ai_context value(s): {sorted(unknown)}. "
+            f"Valid values: {sorted(_AI_CONTEXT_KINDS)}."
         )
 
 

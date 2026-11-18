@@ -1,6 +1,6 @@
 """
 Module: MD-SCR-002.003.M06 — screeners/cloud_ai.py
-Parent SRD: SRD-SCR-002.005, SRD-SCR-013.005, SRD-SCR-013.011
+Parent SRD: SRD-SCR-002.005, SRD-SCR-013.005, SRD-SCR-013.011, SRD-SCR-018.006
 
 Provider-agnostic Cloud AI ranking screener (Stage 3).
 
@@ -57,6 +57,10 @@ _REQUEST_TIMEOUT_S: Final[float] = 60.0
 _RETRY_DELAYS_S: Final[tuple[float, ...]] = (1.0, 3.0, 7.0)
 _RETRY_STATUSES: Final[frozenset[int]] = frozenset({429, 502, 503, 504})
 _CLAUDE_TIMEOUT_S: Final[float] = 180.0
+_CONTEXT_RULE: Final[str] = (
+    "Weigh the red flags in the STOCK CONTEXT block in your scores; when a flag "
+    "changes a score, name it in that stock's reasoning."
+)
 
 _RSLP_ENC: Final[dict[str, str]] = {"rising": "R", "falling": "F", "flat": "="}
 _VOL_ENC: Final[dict[str, str]] = {"expanding": "EXP", "contracting": "CON", "neutral": "NEU"}
@@ -457,7 +461,9 @@ class CloudAIScreener:
         prompt = (
             f"You are a swing-trade analyst. Rank the following symbols by "
             f"swing-trade suitability using the pre-extracted features below.\n\n"
-            f"Symbols: {', '.join(symbols)}\n\nFeatures:\n{features_text}\n\n"
+            f"Symbols: {', '.join(symbols)}\n\n"
+            f"Features:\n{_with_context(features_text, config)}\n\n"
+            f"{_context_rule(config)}"
             f"Respond with ONLY a raw JSON object — no explanation, no markdown, "
             f"no prose. Format: {{\"SYMBOL\": 0.0, ...}} where each value is a "
             f"score in [0.0, 1.0]. Example: {{\"AAPL\": 0.82, \"MSFT\": 0.61}}"
@@ -559,10 +565,11 @@ class CloudAIScreener:
     ) -> dict[str, tuple[bool, float]]:
         """Rank in one Claude Code CLI request; the CLI has no tool loop (SRD-SCR-013.011)."""
         ai_config = AiConfig(claude_model=str(config.get("ai_model") or AiConfig().claude_model))
-        instruction = _claude_instruction(ai_query)
-        facts = (
+        instruction = _claude_instruction(ai_query) + _context_rule(config, lead="  ")
+        facts = _with_context(
             f"Symbols passing Stage 2: {', '.join(symbols)}\n\n"
-            f"Pre-extracted features:\n{_features_to_table(self.batch_features(symbols, bars))}"
+            f"Pre-extracted features:\n{_features_to_table(self.batch_features(symbols, bars))}",
+            config,
         )
         fallback = {sym: (True, 0.0) for sym in symbols}
         sent_iso = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -624,10 +631,11 @@ class CloudAIScreener:
         features = self.batch_features(symbols, bars)
         tool_executor = CandleToolExecutor(db, passing_symbols)
 
-        system_prompt = _tool_system_prompt(ai_query)
-        user_msg = (
+        system_prompt = _tool_system_prompt(ai_query) + _context_rule(config, lead="\n")
+        user_msg = _with_context(
             f"Symbols passing Stage 2: {', '.join(symbols)}\n\n"
-            f"Pre-extracted features:\n{_features_to_table(features)}"
+            f"Pre-extracted features:\n{_features_to_table(features)}",
+            config,
         )
         messages: list[dict[str, Any]] = [
             {"role": "system", "content": system_prompt},
@@ -858,6 +866,17 @@ def _tool_system_prompt(ai_query: str) -> str:
         "when the pre-extracted features are insufficient.  When ready, "
         + _RANKING_FORMAT
     )
+
+
+def _with_context(text: str, config: dict[str, Any]) -> str:
+    """``text`` followed by the STOCK CONTEXT block when the run has one (SRD-SCR-018.006)."""
+    block = str(config.get("ai_context_text") or "")
+    return f"{text}\n\n{block}" if block else text
+
+
+def _context_rule(config: dict[str, Any], lead: str = "") -> str:
+    """The flag-weighing rule, only when the run has a STOCK CONTEXT block."""
+    return f"{lead}{_CONTEXT_RULE}\n\n" if config.get("ai_context_text") else ""
 
 
 def _claude_instruction(ai_query: str) -> str:

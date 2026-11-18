@@ -1,6 +1,6 @@
 """
 Module: MD-GUI-022.001.M01 — Screener result views
-Parent SRD: SRD-GUI-022.001
+Parent SRD: SRD-GUI-022.001, SRD-GUI-022.017
 
 Result rows, sorting and CSV rows, the List / Cards switch, the List + detail
 view and the Signal cards view shown by the screener panel (FO-GUI-022).
@@ -41,6 +41,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from us_swing.core.stock_context import earnings_when
 from us_swing.data.market_calendar import ET
 from us_swing.gui.icons import icon, set_icon
 from us_swing.gui.theme import C, active_palette, colors
@@ -73,6 +74,43 @@ class RuleCheck:
     tip: str = ""
 
 
+@dataclass(frozen=True)
+class ContextChip:
+    """One AI context line shown as a chip; ``level`` is red, yellow, green or ""."""
+
+    text: str
+    level: str = ""
+
+
+_MARKET_LEVELS = {"risk-on": "green", "risk-off": "red", "mixed": "yellow"}
+
+
+def _context_chips(context: Any) -> list[ContextChip]:
+    """Earnings, sector and market chips from a saved ``ai_context`` (SRD-GUI-022.017)."""
+    if not isinstance(context, Mapping):
+        return []
+    chips: list[ContextChip] = []
+    days = context.get("earnings_days")
+    if isinstance(days, int):
+        when = context.get("earnings_date", "")
+        try:
+            shown = datetime.date.fromisoformat(when).strftime(" · %d %b")
+        except (TypeError, ValueError):
+            shown = ""
+        chips.append(ContextChip(f"Earnings {earnings_when(days)}{shown}",
+                                 str(context.get("earnings_level", ""))))
+    rank, move = context.get("sector_rank"), context.get("sector_move_pct")
+    if isinstance(rank, int) and isinstance(move, (int, float)):
+        level = str(context.get("sector_level", ""))
+        chips.append(ContextChip(
+            f"{context.get('sector', '')} #{rank} of {context.get('sector_count', '')}"
+            f" · {move:+.1f}% vs RSP", "" if level == "neutral" else level))
+    market = str(context.get("market", ""))
+    if market in _MARKET_LEVELS:
+        chips.append(ContextChip(f"Market {market}", _MARKET_LEVELS[market]))
+    return chips
+
+
 # Saved detail key → (shown name, unit, tooltip) for screeners that report numbers.
 _DETAIL_NAMES: dict[str, tuple[str, str, str]] = {
     "RallyVol": ("Rally volume", "×",
@@ -98,6 +136,13 @@ class ResultRow:
     stop: float | None = None
     target: float | None = None
     name: str = ""
+    chips: list[ContextChip] = field(default_factory=list)
+    flags: list[str] = field(default_factory=list)
+
+    @property
+    def flag_text(self) -> str:
+        """"⚑ 2" style count, or empty when the stock has no red flags."""
+        return f"⚑ {len(self.flags)}" if self.flags else ""
 
     @property
     def rr(self) -> float | None:
@@ -188,6 +233,8 @@ def rows_from_result(results: Mapping[str, Mapping[str, Any]],
             stop=_price(plan, "stop"),
             target=_price(plan, "target"),
             name=names.get(symbol, ""),
+            chips=_context_chips(meta.get("ai_context")),
+            flags=[str(flag) for flag in meta.get("ai_flags") or []],
         ))
     rows.sort(key=lambda r: r.score, reverse=True)
     for rank, row in enumerate(rows, start=1):
@@ -381,6 +428,17 @@ def _rule_chip(rule: RuleCheck) -> QLabel:
         " border-radius: 10px; padding: 2px 9px; font-size: 8pt;"
     )
     return chip
+
+
+def _context_chip(chip: ContextChip) -> QLabel:
+    _T: Any = active_palette()
+    fg = {"red": _T.RED, "yellow": _T.YELLOW, "green": _T.GREEN}.get(chip.level, _T.SUBTEXT)
+    label = QLabel(chip.text)
+    label.setStyleSheet(
+        f"color: {fg}; background: transparent; border: 1px solid {fg};"
+        " border-radius: 10px; padding: 2px 9px; font-size: 8pt;"
+    )
+    return label
 
 
 def _value_label(text: str, colour: str = "", size: str = "9pt",
@@ -820,6 +878,10 @@ class _ListRow(QWidget):
         rules.setFixedWidth(30)
         rules.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
         line.addWidget(rules)
+        self.flag_lbl = _value_label(row.flag_text, _T.RED, bold=True)
+        self.flag_lbl.setFixedWidth(30)
+        self.flag_lbl.setToolTip("\n".join(row.flags))
+        line.addWidget(self.flag_lbl)
 
 
 class ListDetailView(QWidget):
@@ -883,6 +945,13 @@ class ListDetailView(QWidget):
         self.watch_btn.clicked.connect(lambda: self._emit_selected(self.watchlist_requested))
         head.addWidget(self.watch_btn)
         body.addLayout(head)
+        chips_row = QHBoxLayout()
+        chips_row.setSpacing(8)
+        self._chips_box = QHBoxLayout()
+        self._chips_box.setSpacing(8)
+        chips_row.addLayout(self._chips_box)
+        chips_row.addStretch(1)
+        body.addLayout(chips_row)
 
         self.chart_slot = QFrame()
         self.chart_slot.setObjectName("chart_slot")
@@ -936,6 +1005,14 @@ class ListDetailView(QWidget):
         self._rules_box = QVBoxLayout()
         self._rules_box.setSpacing(4)
         rules_col.addLayout(self._rules_box)
+        self.flags_head = QLabel("RED FLAGS")
+        self.flags_head.setObjectName("view_head")
+        self.flags_head.hide()
+        rules_col.addSpacing(8)
+        rules_col.addWidget(self.flags_head)
+        self._flags_box = QVBoxLayout()
+        self._flags_box.setSpacing(4)
+        rules_col.addLayout(self._flags_box)
         rules_col.addStretch(1)
         lower.addLayout(rules_col, 1)
         why_col = QVBoxLayout()
@@ -995,6 +1072,9 @@ class ListDetailView(QWidget):
         _T: Any = active_palette()
         _clear_layout(self._tier_slot)
         _clear_layout(self._rules_box)
+        _clear_layout(self._chips_box)
+        _clear_layout(self._flags_box)
+        self.flags_head.hide()
         if not 0 <= index < len(self._rows):
             self.symbol_lbl.setText("")
             self.meta_lbl.setText("")
@@ -1018,8 +1098,21 @@ class ListDetailView(QWidget):
             f"RULES · {row.passed_count} OF {row.rule_count}" if row.rule_count else "DETAILS")
         for rule in row.rules:
             self._rules_box.addWidget(self._rule_line(rule, _T))
+        self._fill_context(row, _T)
         self.reasoning_lbl.setText(row.reasoning or "No AI reasoning for this run.")
         return True
+
+    def _fill_context(self, row: ResultRow, palette: Any) -> None:
+        """Context chips under the name and the Red flags list (SRD-GUI-022.017)."""
+        for chip in row.chips:
+            self._chips_box.addWidget(_context_chip(chip))
+        if not row.chips:
+            return
+        self.flags_head.show()
+        for flag in row.flags or ["None for this stock"]:
+            label = QLabel(flag)
+            label.setStyleSheet(f"color: {palette.RED if row.flags else palette.MUTED};")
+            self._flags_box.addWidget(label)
 
     def _fill_plan(self, row: ResultRow, palette: Any) -> None:
         for key, text, colour in (("stop", _price_text(row.stop), palette.RED),
@@ -1137,9 +1230,19 @@ class _Card(QFrame):
         self.tier_lbl = _tier_chip(row.tier)
         head.addWidget(self.tier_lbl)
         head.addStretch(1)
+        if row.flags:
+            flag = _value_label(row.flag_text, _T.RED, bold=True)
+            flag.setToolTip("\n".join(row.flags))
+            head.addWidget(flag)
         head.addWidget(_value_label(f"{row.score:.2f}", tier_fg, "14pt", bold=True))
         body.addLayout(head)
         body.addWidget(_ScoreBar(row.score, tier_fg))
+        if row.chips:
+            context = QGridLayout()
+            context.setSpacing(6)
+            for i, chip in enumerate(row.chips):
+                context.addWidget(_context_chip(chip), i // 2, i % 2)
+            body.addLayout(context)
 
         chips = QGridLayout()
         chips.setSpacing(6)

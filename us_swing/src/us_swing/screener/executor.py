@@ -12,9 +12,11 @@ from __future__ import annotations
 import concurrent.futures
 import logging
 import time
-from datetime import datetime, timezone
+from collections.abc import Mapping
+from datetime import date, datetime, timezone
 from typing import Any, Callable, Final
 
+from us_swing.core.stock_context import EarningsLookup, build_context, context_text
 from us_swing.screener.base import ScreenerExecutionError
 from us_swing.screener.preset import GroupLogic, Preset, PresetType
 from us_swing.screener.registry import ScreenerRegistry
@@ -56,8 +58,10 @@ class PresetExecutor:
         registry: ScreenerRegistry | None = None,
         max_workers: int = 4,
         notify: Callable[[str, str], None] | None = None,
+        earnings_lookup: Callable[[list[str], date], Mapping[str, date | None]] | None = None,
     ) -> None:
         self._db = db  # Any: duck-typed — must expose fetch_bars(symbols) -> dict
+        self._earnings_lookup = earnings_lookup
         self._app_service = app_service
         self._preset_manager = preset_manager
         self._storage = storage
@@ -81,6 +85,8 @@ class PresetExecutor:
         preset: Preset | None = None,
         market_caps: dict[str, float] | None = None,
         candle_date: str | None = None,
+        sectors: Mapping[str, str] | None = None,
+        context_closes: Mapping[str, Mapping[str, float]] | None = None,
     ) -> ScreenerRunResult:
         """Execute a preset and persist the result.
 
@@ -95,6 +101,9 @@ class PresetExecutor:
                          symbols when Stage 3 exceeds its input cap.
             candle_date: Last daily candle date of the screened data
                          ("YYYY-MM-DD"), saved with the result.
+            sectors: Symbol → GICS sector, for the AI sector context.
+            context_closes: Daily closes of the sector ETFs, RSP and SPY keyed by
+                            ISO date, for the AI sector and market context.
 
         Returns:
             ScreenerRunResult with only the passing symbols.
@@ -129,7 +138,7 @@ class PresetExecutor:
         ai_transcript: list[AITranscriptTurn] = []
         if preset.enable_llm_ranking:
             combined, ai_transcript = self._run_stage3(
-                preset, combined, bars, market_caps,
+                preset, combined, bars, market_caps, sectors, context_closes,
             )
 
         # --- Enrich passing symbols with per-filter details ----------------
@@ -355,6 +364,8 @@ class PresetExecutor:
         combined: dict[str, dict[str, Any]],
         bars: dict[str, list[Any]],
         market_caps: dict[str, float] | None = None,
+        sectors: Mapping[str, str] | None = None,
+        context_closes: Mapping[str, Mapping[str, float]] | None = None,
     ) -> tuple[dict[str, dict[str, Any]], list[AITranscriptTurn]]:
         """Re-rank Stage 2 passing symbols with CloudAIScreener.
 
@@ -398,6 +409,12 @@ class PresetExecutor:
             "db":               self._db,
             "passing_symbols":  set(passing),
         }
+        contexts: dict[str, Any] = {}
+        if preset.ai_context:
+            contexts, regime = self._stock_context(
+                preset, passing, sectors or {}, context_closes or {},
+            )
+            llm_config["ai_context_text"] = context_text(contexts, regime)
         try:
             ranked = llm.apply(passing, bars, llm_config)
         except Exception as exc:
@@ -432,6 +449,9 @@ class PresetExecutor:
                 }
                 if sym in plans:
                     result[sym]["ai_plan"] = plans[sym]
+                if sym in contexts:
+                    result[sym]["ai_context"] = contexts[sym].to_dict()
+                    result[sym]["ai_flags"] = list(contexts[sym].flags)
         # Keep only top-N passing symbols
         ranked_passing = sorted(
             [sym for sym, d in result.items() if d.get("passed", False)],
@@ -446,6 +466,21 @@ class PresetExecutor:
     # ------------------------------------------------------------------
     # Helpers
     # ------------------------------------------------------------------
+
+    def _stock_context(
+        self,
+        preset: Preset,
+        passing: list[str],
+        sectors: Mapping[str, str],
+        closes: Mapping[str, Mapping[str, float]],
+    ) -> tuple[dict[str, Any], str]:
+        """Earnings, sector and market context for the Stage 3 stocks (SRD-SCR-018.002–.007)."""
+        today = date.today()
+        earnings: Mapping[str, date | None] = {}
+        if "earnings" in preset.ai_context:
+            lookup = self._earnings_lookup or EarningsLookup().next_dates
+            earnings = lookup(passing, today)
+        return build_context(passing, preset.ai_context, sectors, closes, earnings, today)
 
     def _get_registry(self) -> ScreenerRegistry:
         return self._registry if self._registry is not None else ScreenerRegistry()
