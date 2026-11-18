@@ -691,6 +691,8 @@ Test files:
 | UT-GUI-022.011.M01.T05 | MD-GUI-022.001.M01 | Negative | Not entered or still open | price never reaches entry; entry touched only | ("not_entered", None); ("open", None) | Pass |
 | UT-GUI-022.011.M01.T06 | MD-GUI-022.001.M01 | Edge | Target and Stop in one candle; gap past entry | one candle spans stop and target; candle opens below a pullback entry | ("stop", date); entered | Pass |
 | UT-GUI-022.011.M01.T07 | MD-GUI-022.001.M01 | Positive | Detail draws plan and tag | load rows with run time; select plan row; select no-plan row | chart gets plan with start time and tag text; no plan → plan cleared, tag hidden | Pass |
+| UT-GUI-022.013.M01.T01 | MD-GUI-022.001.M01 | Positive | Acc / Dist numbers get plain names | details RallyVol 1.34, DropVol 1.67, UD 0.77 | "Rally volume 1.34×", "Drop volume 1.67×", "Up/down ratio 0.77"; tooltips; no rule count | Pass |
+| UT-GUI-022.013.M01.T02 | MD-GUI-022.001.M01 | Negative | Numbers are not counted as rules | numbers only; numbers + 1 rule | heading "DETAILS"; "1/1" | Pass |
 ## FO-GUI-023 — Card Layout
 
 | ID | Module | Type | Description | Input | Expected | Status |
