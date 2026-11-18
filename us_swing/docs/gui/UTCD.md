@@ -7,6 +7,7 @@
 **Last Updated:** 2026-11-17
 **Project:** US Swing Trading System
 
+> v1.53.0: UT-GUI-022.020.M01.T01, UT-GUI-022.021.M01.T01–T02 added (SRD-GUI-022.020–.021).
 > v1.52.0: UT-GUI-022.018.M01.T01, UT-GUI-022.019.M01.T01–T02 added (SRD-GUI-022.018–.019).
 > v1.51.0: UT-GUI-022.016.M01.T01, UT-GUI-022.017.M01.T01–T02 added — AI context ticks and chips (SRD-GUI-022.016–.017).
 > v1.50.0: UT-GUI-022.015.M01.T01–T02 added — Model dropdown per provider (SRD-GUI-022.015).
@@ -707,6 +708,9 @@ Test files:
 | UT-GUI-022.018.M01.T01 | MD-GUI-022.001.M01 | Positive | News and research ticks; research only with Claude | tick both on Claude; switch to OpenRouter | saved `[..., "news", "research"]`; research unticked and disabled | Pass |
 | UT-GUI-022.019.M01.T01 | MD-GUI-022.001.M01 | Positive | News chip, News list and Web research box | tone -0.6 with 2 headlines; research with risk and 2 links | chip "News tone -0.6 · 2 headlines" red; 2 news lines; summary and 2 links shown | Pass |
 | UT-GUI-022.019.M01.T02 | MD-GUI-022.001.M01 | Negative | Nothing to show | no news, no research | News and Web research sections hidden | Pass |
+| UT-GUI-022.020.M01.T01 | MD-GUI-022.001.M01 | Positive | Two tick groups; review only with Claude | tick surprise, short, review on Claude; switch to OpenRouter | saved in order; review unticked and disabled on OpenRouter | Not Run |
+| UT-GUI-022.021.M01.T01 | MD-GUI-022.001.M01 | Positive | Company tags and sections | surprise -3.5, short 24, 2 changes, review Wait | tags "EPS miss -3.5%", "Short 24% of float"; Fundamentals line; 2 analyst lines; bull/bear points and verdict with differs note | Not Run |
+| UT-GUI-022.021.M01.T02 | MD-GUI-022.001.M01 | Negative | Nothing to show | no company facts, no review | Fundamentals, Analyst changes and Bull vs bear hidden | Not Run |
 ## FO-GUI-023 — Card Layout
 
 | ID | Module | Type | Description | Input | Expected | Status |

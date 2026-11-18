@@ -1795,3 +1795,50 @@ COF | earnings in 3 days (red) | Financials #10 of 11, -2.1% vs RSP (red) | flag
 
 ### Research prompt (instruction)
 Search the web for news from the last 14 days about the US stock with this ticker. Reply with ONLY a JSON object: `{"summary": "<= 60 words", "risk": "" or a few words naming a major risk (lawsuit, share offering, guidance cut, probe, delisting), "sources": ["url", ...up to 3]}`.
+
+---
+
+## DD-SCR-020.001.D01 — Company facts, bull vs bear review and wiring
+- **Status:** Draft
+
+**Parent SRDs:** SRD-SCR-020.001 through SRD-SCR-020.009
+
+### New files in `core/stock_context/`
+
+| File | Holds |
+|---|---|
+| `_company.py` | `AnalystChange(day, firm, action, grade, target)`; `CompanyFacts(eps_surprise_pct, revenue_growth_pct, margin_pct, pe, debt_to_equity, short_pct, days_to_cover, target_mean, price, changes)`; `CompanyLookup(cache_path, fetch)`: `facts(symbols, kinds, today)`. Yahoo is read in three parts: `info` (fundamentals, short, target, price), `eps` (last row of `earnings_history` with a surprise) and `changes` (newest 10 rows of `upgrades_downgrades`). Only the parts the ticked kinds need are fetched (surprise → eps; fundamentals, short → info; analysts → info + changes). Parts are cached per stock per day in `~/.usswing/company_cache.json`; a failed part is not cached and is counted in one WARNING. Yahoo fractions become percents (0.0121 → 1.21); debt/equity is divided by 100; a target ≤ 0 is None. |
+| `_review.py` | `Review(bull, bear, verdict, confidence, summary)`; `ReviewRun(facts, reply, review, seconds)`; `price_line(closes, highs, lows)`; `review_facts(symbol, today, price, ctx, research)`; `review_picks(facts_by_symbol, model, ask=ask_ai, workers=3)` sends one Claude Code CLI request per stock with no tools, 180 s each. |
+
+### Changes
+- `_context.py`: kinds `surprise`, `fundamentals`, `short`, `analysts`, `review`. `StockContext` gains `eps_surprise_pct`, `surprise_level`, `revenue_growth_pct`, `margin_pct`, `pe`, `debt_to_equity`, `short_pct`, `days_to_cover`, `short_level`, `analyst_changes`, `analyst_target_pct`, `analyst_level`. `build_context(..., company=...)` fills only ticked kinds.
+  - `surprise_level(pct)`: > +1 green, < -1 red (flag `EPS miss -3.5%`), else neutral.
+  - Short: > 20% red (flag `High short interest (24% of float)`), else neutral. Fundamentals have no level.
+  - Analysts: changes from the last 30 days, newest 5. Downgrades in the last 7 days → red, flag `1 downgrade` / `2 downgrades`; upgrades and no downgrades in 7 days → green; else neutral. `analyst_target_pct = (target_mean / price - 1) × 100`.
+  - `context_text()` line order: earnings, surprise, sector, fundamentals, short, analysts, flags; then news lines.
+- `executor.py`: `company_lookup` and `review_runner` injectable. After research (when ticked), builds review facts from the context **before** the news tone is applied, the price line from the Stage 3 bars and the research; runs the review on the final picks; saves `ai_review`; Wait / Avoid adds `Review: wait` / `Review: avoid`; adds a user and an assistant transcript turn per stock (`Bull vs bear · NVDA`).
+- `preset.py`: `review` with a provider other than `claude` fails `validate()`.
+
+### Review facts (no AI score, rank, reason, news tone, Query or other stocks)
+```
+Ticker: NVDA
+Today: 2026-11-18
+Price: close 151.20; above 50-day (+3.1%); above 200-day (+18.4%); 20-day range 138.50-158.90
+Earnings: next 2026-11-21 (in 3 days)
+Last EPS: beat +6.2%
+Sector: Information Technology, #11 of 11, -4.1% vs equal-weight (1 month)
+Market: mixed, SPY between its 50- and 200-day
+Fundamentals: revenue growth +62%, margin 55%, P/E 48.0, debt/equity 0.40
+Short interest: 1.1% of float, 1.3 days to cover
+Analysts (30 days): 11-14 Morgan Stanley down to Equal Weight; average target +14% vs price
+Headlines (5 days):
+  11-17 · Reuters · <title>
+Web research: <summary> Risk: <risk>
+Red flags: Earnings in 3 days; Weak sector (#11 of 11)
+```
+Lines for parts that are missing or not ticked are left out.
+
+### Review system prompt
+You review one US stock as a possible swing trade, long or short, over any holding period. You get only facts; some parts may be missing. 1) Bull case: up to 3 strongest reasons the price could rise. 2) Bear case: up to 3 strongest reasons it could fall. 3) Weigh both sides fairly; do not lean to either side by default. 4) Verdict: "Long" (bull case clearly stronger, no near-term event risk), "Short" (bear case clearly stronger and the trend supports a short, no near-term event risk), "Wait" (a near-term event such as earnings within 5 days or fresh news should pass first, or signals are mixed), "Avoid" (serious risk or no edge either way). 5) Confidence low / medium / high; low when key data is missing. Rules: use only the facts given; each point names its fact; at most 20 words per point; do not pad; reply with only `{"bull": [...], "bear": [...], "verdict": "...", "confidence": "...", "summary": "<= 25 words"}`.
+
+Parsing: the first `{…}` object; verdict must be one of the four (any case); confidence outside low/medium/high becomes low; bull/bear cut to 3; an error or unreadable reply leaves the stock without a review and is counted in one WARNING.

@@ -355,3 +355,19 @@
   - With research ticked and Top N 5, five summaries appear; one that reports a share offering adds "Research: share offering".
   - Research cannot be saved on a preset whose provider is OpenRouter.
 
+## FO-SCR-018: AI Ranking Stock Context (Phase 3 — Company Data and Bull vs Bear Review)
+- **Status:** Approved (user, 2026-11-18)
+
+- The system shall offer four more context choices for the Stage 3 AI: last earnings surprise, fundamentals, short interest and analyst changes, each chosen on its own per preset.
+- These facts shall come from Yahoo Finance, be cached once per stock per day, and go into the same single ranking request.
+- An EPS miss, short interest above 20% of float and a downgrade in the last 7 days shall each raise a red flag; fundamentals are shown only.
+- When chosen and the AI provider is Claude Code CLI, the system shall give each final pick a blind bull vs bear review: the reviewer sees only facts, never the ranking score, rank, reason, news tone or Query.
+- The review shall return bull points, bear points, a verdict (Long, Short, Wait or Avoid) and a confidence; Wait or Avoid shall raise a red flag; scores and order do not change.
+- A failed lookup or review shall leave that part empty and the run shall complete.
+- Backtests are out of scope.
+- **Acceptance Criteria:**
+  - A stock whose last EPS was 3.5% under the estimate shows a red "EPS miss -3.5%" tag and flag.
+  - A stock with 24% of float sold short gets the flag "High short interest (24% of float)".
+  - A stock downgraded 2 days ago gets the flag "1 downgrade"; one only upgraded gets a green tag.
+  - With Bull vs bear ticked and Top N 5, five reviews appear; the review request text contains no AI score or rank.
+  - Bull vs bear cannot be saved on a preset whose provider is OpenRouter.

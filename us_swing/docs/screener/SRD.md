@@ -5,6 +5,8 @@
 **Traces To:** FO-SCR v2.2.0
 **Status:** Draft
 **Last Updated:** 2026-11-18
+> v2.12.1: FO-SCR-018 and SRD-SCR-020.001–.009 approved by user 2026-11-18.
+> v2.12.0: FO-SCR-018 Section 20 added as Draft — AI Ranking company data and bull vs bear review (phase 3); user request 2026-11-18.
 > v2.11.1: FO-SCR-017 and SRD-SCR-019.001–.007 approved by user 2026-11-18 and Implemented (RN-SCR-2.12.0-20261118).
 > v2.11.0: FO-SCR-017 Section 19 added as Draft — AI Ranking news tone and web research (phase 2); user request 2026-11-18.
 > v2.10.1: FO-SCR-016 and SRD-SCR-018.001–.007 approved by user 2026-11-18 and Implemented (RN-SCR-2.11.0).
@@ -341,6 +343,20 @@ Note: The dialog opens from the screener builder in `gui/screener_panel.py`.
 | SRD-SCR-019.006 | FO-SCR-017 | Must | A major risk found by research shall add the flag "Research: <risk>"; a failed research run leaves that stock without research. | research | flag | Run always completes | Implemented |
 | SRD-SCR-019.007 | FO-SCR-017 | Must | Results shall save the headlines, `news_tone` and news level in `ai_context`, and research in `ai_research`. | context, research | result JSON | Old results load unchanged | Implemented |
 
+## Section 20: Requirements for FO-SCR-018 — AI Ranking Company Data and Bull vs Bear Review (Phase 3)
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-SCR-020.001 | FO-SCR-018 | Must | `ai_context` shall also accept `surprise`, `fundamentals`, `short`, `analysts` and `review`; `review` is valid only when `ai_provider` is `claude`. | preset | `Preset` | `validate()` rejects review with OpenRouter | Approved |
+| SRD-SCR-020.002 | FO-SCR-018 | Must | For each Stage 2 stock one daily-cached Yahoo lookup shall give the last EPS surprise, revenue growth, profit margin, P/E, debt/equity, short % of float, days to cover and analyst changes. | symbols | company facts | Only ticked kinds are looked up; a failed lookup gives no facts and one WARNING log | Approved |
+| SRD-SCR-020.003 | FO-SCR-018 | Must | The surprise level shall be green above +1%, neutral within ±1% and red below -1% with the flag "EPS miss -N%". | EPS actual, estimate | level, flag | No estimate → no level | Approved |
+| SRD-SCR-020.004 | FO-SCR-018 | Must | Short interest above 20% of float shall be red with the flag "High short interest (N% of float)"; fundamentals shall have no level or flag. | short %, fundamentals | level, flag | Missing values are left out | Approved |
+| SRD-SCR-020.005 | FO-SCR-018 | Must | Analyst changes shall keep the newest 5 from the last 30 days and the average target vs price; any downgrade in the last 7 days is red with the flag "N downgrade(s)", upgrades only is green. | changes, target | level, flag | No changes → neutral | Approved |
+| SRD-SCR-020.006 | FO-SCR-018 | Must | Ticked company facts shall add one line per stock to the STOCK CONTEXT block of the ranking request. | facts | prompt text | Fixed order: earnings, surprise, sector, news, fundamentals, short, analysts | Approved |
+| SRD-SCR-020.007 | FO-SCR-018 | Must | With review ticked, each final pick shall get one Claude Code CLI request with no tools after web research, 3 at a time, holding only price facts, ticked facts, rule flags, headlines and research. | final picks | review request | No AI score, rank, reason, news tone, Query or other stocks; 180 s limit | Approved |
+| SRD-SCR-020.008 | FO-SCR-018 | Must | The review shall return up to 3 bull and 3 bear points, a verdict Long, Short, Wait or Avoid, a confidence and a one-line summary; Wait or Avoid adds the flag "Review: wait" or "Review: avoid". | review reply | review, flag | Scores and order unchanged; a failed or unreadable review is left out | Approved |
+| SRD-SCR-020.009 | FO-SCR-018 | Must | Results shall save the company facts and levels in `ai_context` and the review in `ai_review`, and the transcript shall hold each review request and reply. | facts, review | result JSON, transcript | Old results load unchanged | Approved |
+
 ---
 
 ## Summary: Requirement Counts
@@ -366,6 +382,7 @@ Note: The dialog opens from the screener builder in `gui/screener_panel.py`.
 | Accumulation / Distribution | 15 | 017.001–013 | 13 |
 | AI Ranking Stock Context | 16 | 018.001–007 | 7 |
 | AI Ranking News and Research | 17 | 019.001–007 | 7 |
-| **Totals** | **17 FOs** | **155 SRDs** | — |
+| AI Ranking Company Data and Review | 18 | 020.001–009 | 9 |
+| **Totals** | **18 FOs** | **164 SRDs** | — |
 
 **Status:** v2.4.0 Draft — SRD-SCR-004.007 reworded and SRD-SCR-004.009 added (2026-11-03, ISS-SCR-0003; approved by user, Implemented, RN-SCR-2.7.1-20261103): auto-run needs up-to-date candles and skips presets already run on them.

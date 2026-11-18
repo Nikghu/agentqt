@@ -7,6 +7,7 @@
 **Last Updated:** 2026-11-17
 **Project:** US Swing Trading System
 
+> v1.63.0: MD-GUI-022.001.M01 — Stock data / Top picks only tick groups with 5 new ticks; company tags, Fundamentals line, Analyst changes list, Bull vs bear box (SRD-GUI-022.020–.021).
 > v1.62.0: MD-GUI-022.001.M01 — News tone / Web research ticks; news chip, News list, Web research box (SRD-GUI-022.018–.019).
 > v1.61.0: MD-GUI-022.001.M01 — context tick boxes in Edit Preset; `ResultRow.context` / `flags`, context chips, Red flags section, ⚑ count (SRD-GUI-022.016–.017).
 > v1.60.0: MD-GUI-022.001.M01 — editable Model dropdown `_ai_model_combo`, `_ai_model_choices()`, `_fill_ai_models()` (SRD-GUI-022.015).
