@@ -60,6 +60,8 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from us_swing.gui.ai_model_store import all_model_rows
+from us_swing.gui.ai_settings_block import CLAUDE_MODELS
 from us_swing.gui.ai_transcript_panel import AITranscriptPanel
 from us_swing.core.indicator_rules import config_summary
 from us_swing.core.notifications import AiConfig, ask_ai
@@ -108,6 +110,13 @@ _AI_MODEL_HINTS: dict[str, str] = {
     "openrouter": "e.g. google/gemini-2-flash-preview",
     "claude": "e.g. claude-sonnet-5-5",
 }
+
+
+def _ai_model_choices(provider: str) -> list[tuple[str, str]]:
+    """(model id, shown name) pairs the Model box lists for a provider (SRD-GUI-022.015)."""
+    if provider == "claude":
+        return [(model_id, name) for name, model_id in CLAUDE_MODELS]
+    return [(model_id, f"{name} · {tier}") for tier, _p, name, model_id, _t, _c in all_model_rows()]
 
 # Trading-style filter options (label → style_filter value or None).
 _STYLE_OPTIONS: list[tuple[str, str | None]] = [
@@ -1113,11 +1122,12 @@ class _PresetBuilderDialog(_FramelessDialog):
         model_vl = QVBoxLayout()
         model_vl.setSpacing(2)
         model_vl.addWidget(self._lbl("Model"))
-        self._ai_model_edit = QLineEdit()
-        self._ai_model_edit.setPlaceholderText(_AI_MODEL_HINTS["openrouter"])
-        self._ai_model_edit.setText(_CLOUD_AI_DEFAULT_MODEL)
-        self._ai_model_edit.textChanged.connect(self._on_model_text_changed)
-        model_vl.addWidget(self._ai_model_edit)
+        self._ai_model_combo = QComboBox()
+        self._ai_model_combo.setEditable(True)
+        self._ai_model_combo.setInsertPolicy(QComboBox.InsertPolicy.NoInsert)
+        self._fill_ai_models("openrouter", _CLOUD_AI_DEFAULT_MODEL)
+        self._ai_model_combo.editTextChanged.connect(self._on_model_text_changed)
+        model_vl.addWidget(self._ai_model_combo)
         self._ai_model_status_lbl = QLabel("")
         self._ai_model_status_lbl.setStyleSheet(f"font-size: 8pt; color: {_T.MUTED};")
         model_vl.addWidget(self._ai_model_status_lbl)
@@ -1412,7 +1422,7 @@ class _PresetBuilderDialog(_FramelessDialog):
         provider_idx = self._ai_provider.findData(getattr(preset, "ai_provider", "openrouter"))
         self._ai_provider.setCurrentIndex(max(provider_idx, 0))
         _preset_model = getattr(preset, "ai_model", _CLOUD_AI_DEFAULT_MODEL) or _CLOUD_AI_DEFAULT_MODEL
-        self._ai_model_edit.setText(_preset_model)
+        self._ai_model_combo.setEditText(_preset_model)
         self._ai_query_field.setText(getattr(preset, "ai_query", "") or "")
 
         from us_swing.screener.preset import PresetType
@@ -1452,7 +1462,9 @@ class _PresetBuilderDialog(_FramelessDialog):
         enable_llm_ranking = self._ai_ranking_chk.isChecked()
         top_n              = self._ai_top_n.value()
         ai_provider        = self._ai_provider.currentData()
-        ai_model_stage3    = self._ai_model_edit.text().strip() or _AI_DEFAULT_MODELS[ai_provider]
+        ai_model_stage3    = (
+            self._ai_model_combo.currentText().strip() or _AI_DEFAULT_MODELS[ai_provider]
+        )
         ai_query_stage3    = self._ai_query_field.text().strip()
 
         if self._is_composite():
@@ -1581,14 +1593,29 @@ class _PresetBuilderDialog(_FramelessDialog):
     def _on_ai_provider_changed(self) -> None:
         """Swap in the new provider's default model unless the user typed their own."""
         provider = self._ai_provider.currentData()
-        self._ai_model_edit.setPlaceholderText(_AI_MODEL_HINTS[provider])
-        if self._ai_model_edit.text().strip() in ("", *_AI_DEFAULT_MODELS.values()):
-            self._ai_model_edit.setText(_AI_DEFAULT_MODELS[provider])
+        model = self._ai_model_combo.currentText().strip()
+        if model in ("", *_AI_DEFAULT_MODELS.values()):
+            model = _AI_DEFAULT_MODELS[provider]
+        self._fill_ai_models(provider, model)
         self._ai_model_status_lbl.setText("")
+
+    def _fill_ai_models(self, provider: str, model: str) -> None:
+        """List the provider's models (name as tooltip) and show ``model`` in the box."""
+        combo = self._ai_model_combo
+        combo.blockSignals(True)
+        combo.clear()
+        for model_id, name in _ai_model_choices(provider):
+            combo.addItem(model_id)
+            combo.setItemData(combo.count() - 1, name, Qt.ItemDataRole.ToolTipRole)
+        combo.setEditText(model)
+        line_edit = combo.lineEdit()
+        if line_edit is not None:
+            line_edit.setPlaceholderText(_AI_MODEL_HINTS[provider])
+        combo.blockSignals(False)
 
     def _on_validate_model(self) -> None:
         _T = active_palette()
-        model_id = self._ai_model_edit.text().strip()
+        model_id = self._ai_model_combo.currentText().strip()
         if not model_id:
             self._ai_model_status_lbl.setStyleSheet(f"font-size: 8pt; color: {_T.MUTED};")
             self._ai_model_status_lbl.setText("Enter a model ID first.")

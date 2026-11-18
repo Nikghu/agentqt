@@ -1,12 +1,13 @@
 # Unit Test Case Document â€” GUI Module (GUI)
 
 **Document ID:** UTCD-GUI
-**Version:** 1.49.0
+**Version:** 1.50.0
 **Traces To:** MD-GUI v1.7.0
 **Status:** Draft
 **Last Updated:** 2026-11-17
 **Project:** US Swing Trading System
 
+> v1.50.0: UT-GUI-022.015.M01.T01 added — Model dropdown per provider (SRD-GUI-022.015).
 > v1.49.0: UT-GUI-022.014.M01.T01–T02 added — AI Provider choice in Edit Preset (SRD-GUI-022.014).
 > v1.48.0: UT-GUI-022.013.M01.T01–T02 added; UT-GUI-022.011.M01.T01 now expects "1 OF 2" (a number is not a rule) — SRD-GUI-022.013.
 > v1.47.0: UT-GUI-004.001.M01.T26–T27 added, T17 input updated — manual run sends no "screener approved" message (SRD-GUI-004.014).
@@ -696,6 +697,7 @@ Test files:
 | UT-GUI-022.013.M01.T02 | MD-GUI-022.001.M01 | Negative | Numbers are not counted as rules | numbers only; numbers + 1 rule | heading "DETAILS"; "1/1" | Pass |
 | UT-GUI-022.014.M01.T01 | MD-GUI-022.001.M01 | Positive | Provider choice sets model and is saved | pick Claude Code CLI | checkbox "Enable AI Ranking"; model `claude-sonnet-5-5`; saved preset `ai_provider == "claude"`; Query below the row | Pass |
 | UT-GUI-022.014.M01.T02 | MD-GUI-022.001.M01 | Negative | Own model kept on switch; old preset opens as OpenRouter | typed model then switch; preset without provider | typed model kept; combo shows OpenRouter | Pass |
+| UT-GUI-022.015.M01.T01 | MD-GUI-022.001.M01 | Positive | Model list follows provider and allows typing | switch to Claude Code CLI; type own ID | editable; OpenRouter list has default; Claude list = 3 Claude models; typed ID saved | Pass |
 ## FO-GUI-023 — Card Layout
 
 | ID | Module | Type | Description | Input | Expected | Status |

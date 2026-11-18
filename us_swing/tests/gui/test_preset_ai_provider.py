@@ -1,5 +1,5 @@
 """Unit tests: MD-GUI-022.001.M01 — Edit Preset AI Provider choice.
-Refs: UT-GUI-022.014.M01.T01 – T02
+Refs: UT-GUI-022.014.M01.T01 – T02, UT-GUI-022.015.M01.T01
 """
 from __future__ import annotations
 
@@ -24,20 +24,37 @@ def test_provider_choice_sets_model_and_is_saved(qtbot) -> None:  # type: ignore
         "OpenRouter", "Claude Code CLI",
     ]
     dlg._ai_provider.setCurrentIndex(dlg._ai_provider.findData("claude"))
-    assert dlg._ai_model_edit.text() == "claude-sonnet-5-5"
+    assert dlg._ai_model_combo.currentText() == "claude-sonnet-5-5"
     dlg._name.setText("AI preset")
     preset = dlg._build_preset_from_ui()
     assert preset.ai_provider == "claude"
     assert preset.ai_model == "claude-sonnet-5-5"
-    assert dlg._ai_query_field.parentWidget() is not dlg._ai_model_edit.parentWidget()
+    assert dlg._ai_query_field.parentWidget() is not dlg._ai_model_combo.parentWidget()
     dlg._ai_provider.setCurrentIndex(dlg._ai_provider.findData("openrouter"))
-    assert dlg._ai_model_edit.text() == DEFAULT_MODEL
+    assert dlg._ai_model_combo.currentText() == DEFAULT_MODEL
 
 
 def test_own_model_kept_and_old_preset_is_openrouter(qtbot) -> None:  # type: ignore[no-untyped-def]
     """UT-GUI-022.014.M01.T02: Own model kept on switch; old preset opens as OpenRouter."""
     dlg = _dialog(qtbot, make_composite_preset())
     assert dlg._ai_provider.currentData() == "openrouter"
-    dlg._ai_model_edit.setText("google/gemini-2-flash")
+    dlg._ai_model_combo.setEditText("google/gemini-2-flash")
     dlg._ai_provider.setCurrentIndex(dlg._ai_provider.findData("claude"))
-    assert dlg._ai_model_edit.text() == "google/gemini-2-flash"
+    assert dlg._ai_model_combo.currentText() == "google/gemini-2-flash"
+
+
+def test_model_list_follows_provider(qtbot) -> None:  # type: ignore[no-untyped-def]
+    """UT-GUI-022.015.M01.T01: Model list follows the provider and allows typing."""
+    dlg = _dialog(qtbot)
+    combo = dlg._ai_model_combo
+
+    def ids() -> list[str]:
+        return [combo.itemText(i) for i in range(combo.count())]
+
+    assert combo.isEditable()
+    assert DEFAULT_MODEL in ids()
+    dlg._ai_provider.setCurrentIndex(dlg._ai_provider.findData("claude"))
+    assert ids() == ["claude-sonnet-5-5", "claude-haiku-5-5", "claude-opus-5-5"]
+    combo.setEditText("claude-own-model")
+    dlg._name.setText("AI preset")
+    assert dlg._build_preset_from_ui().ai_model == "claude-own-model"
