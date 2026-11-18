@@ -6,6 +6,7 @@
 **Status:** Draft
 **Last Updated:** 2026-05-06
 **Project:** US Swing Trading System
+> v2.5.0: FO-SCR-017 modules M38 (`_news.py`), M39 (`_research.py`), M40 (`_cache.py`) added; M37, M06, M10, M01 extended (SRD-SCR-019.001–.007).
 > v2.4.0: FO-SCR-016 modules M35–M37 (`core/stock_context/`) added; M01, M06, M10 extended (SRD-SCR-018.001–.007).
 > v2.3.0: M01 `preset.py` gains `ai_provider` (SRD-SCR-013.010); M06 `cloud_ai.py` gains the Claude Code CLI path `_apply_claude()` and M10 `executor.py` passes `ai_provider` (SRD-SCR-013.011).
 
@@ -85,6 +86,10 @@ Registered as `acc_dist` in `src/us_swing/screener/__init__.py`. M33 opens from 
 | MD-SCR-018.004.M35 | SRD-SCR-018.004 | `src/us_swing/core/stock_context/_sector.py` | Sector ETF list, moves vs RSP, GICS → ETF map. | `sector_moves()`, `SECTOR_SYMBOLS`, `GICS_TO_ETF` | — | Implemented |
 | MD-SCR-018.002.M36 | SRD-SCR-018.002 | `src/us_swing/core/stock_context/_earnings.py` | Next earnings date per stock with a daily JSON cache. | `EarningsLookup` | `yfinance` | Implemented |
 | MD-SCR-018.003.M37 | SRD-SCR-018.003, .005, .006 | `src/us_swing/core/stock_context/_context.py` | Earnings and sector levels, flags, market regime, prompt text. | `StockContext`, `build_context()`, `market_regime()`, `context_text()` | M35 | Implemented |
+
+| MD-SCR-019.002.M38 | SRD-SCR-019.002 | `src/us_swing/core/stock_context/_news.py` | Recent headlines per stock with a daily cache. | `NewsLookup`, `Headline` | `yfinance`, M40 | Draft |
+| MD-SCR-019.005.M39 | SRD-SCR-019.005, .006 | `src/us_swing/core/stock_context/_research.py` | Web research per final pick via Claude Code CLI, 3 at a time. | `research_picks()`, `Research` | `core.notifications` | Draft |
+| MD-SCR-019.002.M40 | SRD-SCR-019.002, SRD-SCR-018.002 | `src/us_swing/core/stock_context/_cache.py` | Daily JSON cache shared by earnings and news. | `DailyCache` | — | Draft |
 
 M01 `preset.py` gains `ai_context`; M10 `executor.py` builds and merges context; M06 `cloud_ai.py` adds the context block to every prompt path.
 

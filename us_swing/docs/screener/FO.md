@@ -1,7 +1,7 @@
 # Functional Objectives — Screener (SCR)
 
 **Document ID:** FO-SCR
-**Version:** 2.3.0
+**Version:** 2.4.0
 **Status:** Draft
 **Last Updated:** 2026-11-18
 **Project:** US Swing Trading System
@@ -336,4 +336,22 @@
   - SPY above both its 50- and 200-day averages gives "risk-on"; below both "risk-off"; otherwise "mixed".
   - When the earnings lookup fails, the run still completes and that stock has no earnings level.
   - A preset with no context ticked sends the same prompt as today.
+
+---
+
+## FO-SCR-017: AI Ranking Stock Context (Phase 2 — News and Web Research)
+- **Status:** Approved (user, 2026-11-18)
+
+- The system shall give the Stage 3 AI up to 8 headline titles per stock from the last 5 days, and the AI shall return a news tone from -1 to +1 per stock in the same request.
+- A clearly negative news tone shall raise a red flag.
+- When chosen and the AI provider is Claude Code CLI, the system shall research each final pick on the web and show a short summary with source links.
+- Web research shall not change scores or order; a major risk it finds shall raise a red flag.
+- Each preset shall choose news and web research on their own, next to the phase 1 context choices.
+- A failed headline lookup or research run shall leave that part empty and the run shall complete.
+- Backtests are out of scope.
+- **Acceptance Criteria:**
+  - A stock with three negative headlines gets a tone near -0.6, a red news chip and a "Negative news" flag.
+  - With news ticked and Yahoo down, the run completes and no stock shows a news chip.
+  - With research ticked and Top N 5, five summaries appear; one that reports a share offering adds "Research: share offering".
+  - Research cannot be saved on a preset whose provider is OpenRouter.
 

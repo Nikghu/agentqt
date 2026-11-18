@@ -1,12 +1,13 @@
 # Unit Test Case Document â€” GUI Module (GUI)
 
 **Document ID:** UTCD-GUI
-**Version:** 1.51.0
+**Version:** 1.52.0
 **Traces To:** MD-GUI v1.7.0
 **Status:** Draft
 **Last Updated:** 2026-11-17
 **Project:** US Swing Trading System
 
+> v1.52.0: UT-GUI-022.018.M01.T01, UT-GUI-022.019.M01.T01–T02 added (SRD-GUI-022.018–.019).
 > v1.51.0: UT-GUI-022.016.M01.T01, UT-GUI-022.017.M01.T01–T02 added — AI context ticks and chips (SRD-GUI-022.016–.017).
 > v1.50.0: UT-GUI-022.015.M01.T01–T02 added — Model dropdown per provider (SRD-GUI-022.015).
 > v1.49.0: UT-GUI-022.014.M01.T01–T02 added — AI Provider choice in Edit Preset (SRD-GUI-022.014).
@@ -703,6 +704,9 @@ Test files:
 | UT-GUI-022.016.M01.T01 | MD-GUI-022.001.M01 | Positive | Context ticks save and load | tick Earnings and Sector; reopen preset | `ai_context == ["earnings", "sector"]`; both ticked again | Pass |
 | UT-GUI-022.017.M01.T01 | MD-GUI-022.001.M01 | Positive | Chips, flags and ⚑ count | result with earnings red, sector green, market risk-on, 1 flag | row flags 1; list shows "⚑ 1"; chips coloured; Red flags lists it | Pass |
 | UT-GUI-022.017.M01.T02 | MD-GUI-022.001.M01 | Negative | Old result without context | no `ai_context` | no chips, empty ⚑ label, Red flags hidden | Pass |
+| UT-GUI-022.018.M01.T01 | MD-GUI-022.001.M01 | Positive | News and research ticks; research only with Claude | tick both on Claude; switch to OpenRouter | saved `[..., "news", "research"]`; research unticked and disabled | Not Run |
+| UT-GUI-022.019.M01.T01 | MD-GUI-022.001.M01 | Positive | News chip, News list and Web research box | tone -0.6 with 2 headlines; research with risk and 2 links | chip "News tone -0.6 · 2 headlines" red; 2 news lines; summary and 2 links shown | Not Run |
+| UT-GUI-022.019.M01.T02 | MD-GUI-022.001.M01 | Negative | Nothing to show | no news, no research | News and Web research sections hidden | Not Run |
 ## FO-GUI-023 — Card Layout
 
 | ID | Module | Type | Description | Input | Expected | Status |

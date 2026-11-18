@@ -1768,3 +1768,30 @@ JSON at `~/.usswing/earnings_cache.json`: symbol → `{"checked": "YYYY-MM-DD", 
 NVDA | earnings in 23 days (green) | Technology #2 of 11, +3.4% vs RSP (green) | flags: none
 COF | earnings in 3 days (red) | Financials #10 of 11, -2.1% vs RSP (red) | flags: Earnings in 3 days; Weak sector (#10 of 11)
 ```
+
+---
+
+# FO-SCR-017 — AI Ranking News Tone and Web Research (Phase 2)
+
+## DD-SCR-019.001.D01 — Headlines, tone, research and wiring
+- **Status:** Draft
+
+**Parent SRDs:** SRD-SCR-019.001 through SRD-SCR-019.007, SRD-INF-011.004
+
+### New files in `core/stock_context/`
+
+| File | Holds |
+|---|---|
+| `_cache.py` | `DailyCache(path)`: `get(symbol, day)`, `put(symbol, day, value)`, `save()`; JSON file, temp file + replace. `_earnings.py` now uses it. |
+| `_news.py` | `Headline(title, source, published, url)`; `NewsLookup(cache_path, fetch)`: `headlines(symbols, now)` returns the newest 8 from the last 5 days per symbol; `_parse_yahoo_item()` reads both Yahoo formats (`content.title/pubDate/provider.displayName/canonicalUrl.url` and old `title/providerPublishTime/publisher/link`). Cache `~/.usswing/news_cache.json`. |
+| `_research.py` | `Research(summary, sources, risk)`; `research_picks(symbols, model, today, ask=ask_ai, workers=3)` runs one Claude Code CLI request per symbol with `AiConfig(claude_model=model, claude_tools=("WebSearch",))` in a 3-thread pool; parses `{"summary", "risk", "sources"}`; summary cut to 60 words, sources to 3; a failed or unreadable answer leaves the symbol out and is counted in one WARNING. |
+
+### Changes
+- `_context.py`: `StockContext` gains `news` (tuple of `Headline`), `news_tone`, `news_level`; `build_context(..., headlines=...)` fills `news` when "news" is ticked; `context_text()` adds one indented line per title (`news 2d · Reuters · <title>`); `news_level(tone)` (≤ -0.3 red, < 0 yellow, ≥ 0.3 green, else neutral) and `apply_news_tone(ctx, tone)` set the level and the "Negative news" flag.
+- `cloud_ai.py`: `_CONTEXT_RULE` also asks for `"news_tone"` per stock with headlines. With a context block the legacy path uses the JSON array format and `_parse_ranking()`. `_parse_ranking()` stores a finite tone clamped to [-1, 1] in `last_news_tone`.
+- `executor.py`: fetches headlines (`news_lookup`, injectable) when "news" is ticked; after ranking applies `last_news_tone`; after the Top N cut runs `research_runner` (injectable, default `research_picks`) on the final picks when "research" is ticked, saves `ai_research`, appends "Research: <risk>" to `ai_flags`, and adds one system transcript turn.
+- `preset.py`: kinds `news`, `research`; research with a provider other than `claude` fails `validate()`.
+- `core/notifications/_ai_client.py` (SRD-INF-011.004): `AiConfig.claude_tools`; only `WebSearch` is kept; the CLI gets `--tools WebSearch --allowedTools WebSearch`, else `--tools ""` as before.
+
+### Research prompt (instruction)
+Search the web for news from the last 14 days about the US stock with this ticker. Reply with ONLY a JSON object: `{"summary": "<= 60 words", "risk": "" or a few words naming a major risk (lawsuit, share offering, guidance cut, probe, delisting), "sources": ["url", ...up to 3]}`.

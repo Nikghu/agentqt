@@ -1,10 +1,11 @@
 # Software Requirement Document — Screener (SCR)
 
 **Document ID:** SRD-SCR
-**Version:** 2.5.0
+**Version:** 2.6.0
 **Traces To:** FO-SCR v2.2.0
 **Status:** Draft
 **Last Updated:** 2026-11-18
+> v2.11.0: FO-SCR-017 Section 19 added as Draft — AI Ranking news tone and web research (phase 2); user request 2026-11-18.
 > v2.10.1: FO-SCR-016 and SRD-SCR-018.001–.007 approved by user 2026-11-18 and Implemented (RN-SCR-2.11.0).
 > v2.10.0: FO-SCR-016 Section 18 added as Draft — AI Ranking stock context Phase 1 (earnings, sector, regime, red flags); user request 2026-11-18.
 > v2.9.1: SRD-SCR-013.010–.011 approved by user 2026-11-18 and Implemented (RN-SCR-2.10.0).
@@ -327,6 +328,18 @@ Note: The dialog opens from the screener builder in `gui/screener_panel.py`.
 | SRD-SCR-018.006 | FO-SCR-016 | Must | With any context ticked, the ranking prompt shall carry a context line per stock and the regime line, and ask the AI to weigh flags and name them in its reasoning. | context, flags | prompt | Both providers; no context ticked → prompt unchanged | Implemented |
 | SRD-SCR-018.007 | FO-SCR-016 | Must | Each result row reaching Stage 3 shall save `ai_context` (levels and values) and `ai_flags` (list of flag names); the run saves the regime. | context, flags | result JSON | Old result files load with no context | Implemented |
 
+## Section 19: Requirements for FO-SCR-017 — AI Ranking News Tone and Web Research (Phase 2)
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-SCR-019.001 | FO-SCR-017 | Must | `ai_context` shall also accept `news` and `research`; `research` is valid only when `ai_provider` is `claude`. | preset | `Preset` | `validate()` rejects research with OpenRouter | Approved |
+| SRD-SCR-019.002 | FO-SCR-017 | Must | Headlines for each Stage 2 stock shall come from Yahoo Finance: newest 8 from the last 5 days, cached once per stock per day. | symbols | title, source, time, link | Failed lookup gives no headlines and a WARNING log; run continues | Approved |
+| SRD-SCR-019.003 | FO-SCR-017 | Must | Headline titles shall go into the STOCK CONTEXT block and the AI shall return `news_tone` (-1 to +1) per stock that has headlines. | headlines | tone per stock | With any context ticked every path asks for the JSON array format | Approved |
+| SRD-SCR-019.004 | FO-SCR-017 | Must | The news level shall be red at tone ≤ -0.3 (flag "Negative news"), yellow below 0, green at ≥ 0.3, otherwise neutral. | tone | level, flag | No tone → no level | Approved |
+| SRD-SCR-019.005 | FO-SCR-017 | Must | With research ticked, each final pick shall be researched by Claude Code CLI using only web search, 3 at a time, returning a summary of at most 60 words, up to 3 links and any major risk. | final picks | research per stock | 180 s limit per stock; scores and order unchanged | Approved |
+| SRD-SCR-019.006 | FO-SCR-017 | Must | A major risk found by research shall add the flag "Research: <risk>"; a failed research run leaves that stock without research. | research | flag | Run always completes | Approved |
+| SRD-SCR-019.007 | FO-SCR-017 | Must | Results shall save the headlines, `news_tone` and news level in `ai_context`, and research in `ai_research`. | context, research | result JSON | Old results load unchanged | Approved |
+
 ---
 
 ## Summary: Requirement Counts
@@ -351,6 +364,7 @@ Note: The dialog opens from the screener builder in `gui/screener_panel.py`.
 | Price Action Patterns & Rules | 14 | 016.001–015 | 15 |
 | Accumulation / Distribution | 15 | 017.001–013 | 13 |
 | AI Ranking Stock Context | 16 | 018.001–007 | 7 |
-| **Totals** | **16 FOs** | **148 SRDs** | — |
+| AI Ranking News and Research | 17 | 019.001–007 | 7 |
+| **Totals** | **17 FOs** | **155 SRDs** | — |
 
 **Status:** v2.4.0 Draft — SRD-SCR-004.007 reworded and SRD-SCR-004.009 added (2026-11-03, ISS-SCR-0003; approved by user, Implemented, RN-SCR-2.7.1-20261103): auto-run needs up-to-date candles and skips presets already run on them.

@@ -552,3 +552,15 @@ FO-011
 | SRD-018.005 | D01 | M37 | test_stock_context.py | .005.M37.T01 | Implemented → Pass |
 | SRD-018.006 | D01 | M37, M06 | test_stock_context.py, test_stock_context_screener.py | .006.M37.T01, M06.T01–T02 | Implemented → Pass |
 | SRD-018.007 | D01 | M10 | test_stock_context_screener.py | M10.T01–T02 | Implemented → Pass |
+
+## FO-SCR-017 Trace (AI Ranking News Tone and Web Research, Phase 2)
+
+| SRD | DD | MD | Test file | UT IDs | Status |
+|---|---|---|---|---|---|
+| SRD-019.001 | D01 | M01 | test_stock_context_screener.py | .001.M01.T01–T02 | Approved |
+| SRD-019.002 | D01 | M38, M40 | test_stock_context.py | .002.M38.T01–T03 | Approved |
+| SRD-019.003 | D01 | M37, M06 | test_stock_context.py, test_stock_context_screener.py | .003.M37.T01, .003.M06.T01–T02 | Approved |
+| SRD-019.004 | D01 | M37 | test_stock_context.py | .004.M37.T01 | Approved |
+| SRD-019.005 | D01 | M39 | test_stock_context.py | .005.M39.T01 | Approved |
+| SRD-019.006 | D01 | M39 | test_stock_context.py | .006.M39.T01 | Approved |
+| SRD-019.007 | D01 | M10 | test_stock_context_screener.py | .007.M10.T01–T02 | Approved |
