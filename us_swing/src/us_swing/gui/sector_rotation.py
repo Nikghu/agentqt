@@ -8,71 +8,22 @@ a range of trading days, and shows them as bars in the Market Watch tile.
 from __future__ import annotations
 
 import datetime
-from collections.abc import Mapping
-from dataclasses import dataclass
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QFrame, QHBoxLayout, QLabel, QScrollArea, QVBoxLayout, QWidget
 
+from us_swing.core.stock_context import (  # noqa: F401  (re-exported for gui callers)
+    RANGE_DAYS,
+    SECTOR_BENCHMARK,
+    SECTOR_ETFS,
+    SECTOR_SYMBOLS,
+    SectorMove,
+    sector_moves,
+)
 from us_swing.gui.dashboard_tiles import PnlBar
 from us_swing.gui.theme import C
 
-SECTOR_BENCHMARK = "RSP"
-SECTOR_ETFS: tuple[tuple[str, str], ...] = (
-    ("XLK", "Technology"),
-    ("XLF", "Financials"),
-    ("XLE", "Energy"),
-    ("XLV", "Health Care"),
-    ("XLY", "Consumer Discretionary"),
-    ("XLP", "Consumer Staples"),
-    ("XLI", "Industrials"),
-    ("XLB", "Materials"),
-    ("XLU", "Utilities"),
-    ("XLRE", "Real Estate"),
-    ("XLC", "Communication"),
-)
-SECTOR_SYMBOLS: tuple[str, ...] = (SECTOR_BENCHMARK, *(sym for sym, _name in SECTOR_ETFS))
-RANGE_DAYS: dict[str, int] = {"1W": 5, "1M": 21, "3M": 63}
-
 _MONO = '"IBM Plex Mono", Consolas, monospace'
-
-
-@dataclass(frozen=True, slots=True)
-class SectorMove:
-    """One sector's move over the range, minus the RSP move, in percent."""
-
-    symbol: str
-    name: str
-    relative_pct: float
-
-
-def sector_moves(
-    closes: Mapping[str, Mapping[str, float]], days: int
-) -> tuple[list[SectorMove], str]:
-    """Sector moves against RSP over the last ``days`` RSP trading days, strongest first.
-
-    Args:
-        closes: Daily closes per symbol, keyed by ISO date (``YYYY-MM-DD``).
-        days: Number of trading days back from RSP's last close.
-
-    Returns:
-        The ranked moves and RSP's last close date; ``([], "")`` when RSP has too few
-        closes. A sector without a close on both the start and end day is left out.
-    """
-    bench = closes.get(SECTOR_BENCHMARK, {})
-    dates = sorted(bench)
-    if len(dates) <= days:
-        return [], ""
-    start, end = dates[-1 - days], dates[-1]
-    bench_move = bench[end] / bench[start] - 1
-    moves = []
-    for symbol, name in SECTOR_ETFS:
-        sector = closes.get(symbol, {})
-        if sector.get(start) and end in sector:
-            relative = (sector[end] / sector[start] - 1 - bench_move) * 100
-            moves.append(SectorMove(symbol, name, relative))
-    moves.sort(key=lambda move: move.relative_pct, reverse=True)
-    return moves, end
 
 
 class SectorRotationView(QWidget):

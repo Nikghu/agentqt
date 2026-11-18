@@ -1,10 +1,17 @@
 # Software Requirement Document — Screener (SCR)
 
 **Document ID:** SRD-SCR
-**Version:** 2.4.0
+**Version:** 2.6.0
 **Traces To:** FO-SCR v2.2.0
 **Status:** Draft
 **Last Updated:** 2026-11-18
+> v2.12.2: SRD-SCR-020.001–.009 Implemented (RN-SCR-2.13.0-20261118).
+> v2.12.1: FO-SCR-018 and SRD-SCR-020.001–.009 approved by user 2026-11-18.
+> v2.12.0: FO-SCR-018 Section 20 added as Draft — AI Ranking company data and bull vs bear review (phase 3); user request 2026-11-18.
+> v2.11.1: FO-SCR-017 and SRD-SCR-019.001–.007 approved by user 2026-11-18 and Implemented (RN-SCR-2.12.0-20261118).
+> v2.11.0: FO-SCR-017 Section 19 added as Draft — AI Ranking news tone and web research (phase 2); user request 2026-11-18.
+> v2.10.1: FO-SCR-016 and SRD-SCR-018.001–.007 approved by user 2026-11-18 and Implemented (RN-SCR-2.11.0).
+> v2.10.0: FO-SCR-016 Section 18 added as Draft — AI Ranking stock context Phase 1 (earnings, sector, regime, red flags); user request 2026-11-18.
 > v2.9.1: SRD-SCR-013.010–.011 approved by user 2026-11-18 and Implemented (RN-SCR-2.10.0).
 > v2.9.0: SRD-SCR-013.010–.011 added as Draft — AI Provider choice (OpenRouter or Claude Code CLI) for AI ranking; user request 2026-11-18.
 > v2.8.1: SRD-SCR-017.017–.018 approved by user 2026-11-18 and Implemented (RN-SCR-2.9.0).
@@ -313,6 +320,46 @@ Note: The dialog opens from the screener builder in `gui/screener_panel.py`.
 
 ---
 
+## Section 18: Requirements for FO-SCR-016 — AI Ranking Stock Context (Phase 1)
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-SCR-018.001 | FO-SCR-016 | Must | `Preset` shall gain `ai_context` (a list of `earnings`, `sector`) that round-trips; old presets load with an empty list. | preset JSON | `Preset` | Unknown value fails `validate()` | Implemented |
+| SRD-SCR-018.002 | FO-SCR-016 | Must | The next earnings date of each Stage 2 stock shall come from Yahoo Finance, cached once per stock per day. | symbols | date or none | Failed or missing lookup gives no date and a WARNING log; run continues | Implemented |
+| SRD-SCR-018.003 | FO-SCR-016 | Must | The earnings level shall be red at 0–5 days to the report, yellow at 6–10, green above 10; red raises an earnings flag. | earnings date, run date | level, flag | Calendar days; no date → no level | Implemented |
+| SRD-SCR-018.004 | FO-SCR-016 | Must | Each stock's GICS sector shall map to its sector ETF and be ranked by its 1-month move minus RSP among the 11 sectors; bottom 3 raise a sector flag, top 3 are green. | sector, daily closes | rank, move %, level, flag | 21 trading days from `candles.db`; unmapped sector or missing closes → no sector context | Implemented |
+| SRD-SCR-018.005 | FO-SCR-016 | Should | The market regime shall be risk-on when SPY closes above both its 50- and 200-day averages, risk-off below both, otherwise mixed. | SPY daily closes | regime | One value per run; never a per-stock flag | Implemented |
+| SRD-SCR-018.006 | FO-SCR-016 | Must | With any context ticked, the ranking prompt shall carry a context line per stock and the regime line, and ask the AI to weigh flags and name them in its reasoning. | context, flags | prompt | Both providers; no context ticked → prompt unchanged | Implemented |
+| SRD-SCR-018.007 | FO-SCR-016 | Must | Each result row reaching Stage 3 shall save `ai_context` (levels and values) and `ai_flags` (list of flag names); the run saves the regime. | context, flags | result JSON | Old result files load with no context | Implemented |
+
+## Section 19: Requirements for FO-SCR-017 — AI Ranking News Tone and Web Research (Phase 2)
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-SCR-019.001 | FO-SCR-017 | Must | `ai_context` shall also accept `news` and `research`; `research` is valid only when `ai_provider` is `claude`. | preset | `Preset` | `validate()` rejects research with OpenRouter | Implemented |
+| SRD-SCR-019.002 | FO-SCR-017 | Must | Headlines for each Stage 2 stock shall come from Yahoo Finance: newest 8 from the last 5 days, cached once per stock per day. | symbols | title, source, time, link | Failed lookup gives no headlines and a WARNING log; run continues | Implemented |
+| SRD-SCR-019.003 | FO-SCR-017 | Must | Headline titles shall go into the STOCK CONTEXT block and the AI shall return `news_tone` (-1 to +1) per stock that has headlines. | headlines | tone per stock | With any context ticked every path asks for the JSON array format | Implemented |
+| SRD-SCR-019.004 | FO-SCR-017 | Must | The news level shall be red at tone ≤ -0.3 (flag "Negative news"), yellow below 0, green at ≥ 0.3, otherwise neutral. | tone | level, flag | No tone → no level | Implemented |
+| SRD-SCR-019.005 | FO-SCR-017 | Must | With research ticked, each final pick shall be researched by Claude Code CLI using only web search, 3 at a time, returning a summary of at most 60 words, up to 3 links and any major risk. | final picks | research per stock | 180 s limit per stock; scores and order unchanged | Implemented |
+| SRD-SCR-019.006 | FO-SCR-017 | Must | A major risk found by research shall add the flag "Research: <risk>"; a failed research run leaves that stock without research. | research | flag | Run always completes | Implemented |
+| SRD-SCR-019.007 | FO-SCR-017 | Must | Results shall save the headlines, `news_tone` and news level in `ai_context`, and research in `ai_research`. | context, research | result JSON | Old results load unchanged | Implemented |
+
+## Section 20: Requirements for FO-SCR-018 — AI Ranking Company Data and Bull vs Bear Review (Phase 3)
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-SCR-020.001 | FO-SCR-018 | Must | `ai_context` shall also accept `surprise`, `fundamentals`, `short`, `analysts` and `review`; `review` is valid only when `ai_provider` is `claude`. | preset | `Preset` | `validate()` rejects review with OpenRouter | Implemented |
+| SRD-SCR-020.002 | FO-SCR-018 | Must | For each Stage 2 stock one daily-cached Yahoo lookup shall give the last EPS surprise, revenue growth, profit margin, P/E, debt/equity, short % of float, days to cover and analyst changes. | symbols | company facts | Only ticked kinds are looked up; a failed lookup gives no facts and one WARNING log | Implemented |
+| SRD-SCR-020.003 | FO-SCR-018 | Must | The surprise level shall be green above +1%, neutral within ±1% and red below -1% with the flag "EPS miss -N%". | EPS actual, estimate | level, flag | No estimate → no level | Implemented |
+| SRD-SCR-020.004 | FO-SCR-018 | Must | Short interest above 20% of float shall be red with the flag "High short interest (N% of float)"; fundamentals shall have no level or flag. | short %, fundamentals | level, flag | Missing values are left out | Implemented |
+| SRD-SCR-020.005 | FO-SCR-018 | Must | Analyst changes shall keep the newest 5 from the last 30 days and the average target vs price; any downgrade in the last 7 days is red with the flag "N downgrade(s)", upgrades only is green. | changes, target | level, flag | No changes → neutral | Implemented |
+| SRD-SCR-020.006 | FO-SCR-018 | Must | Ticked company facts shall add one line per stock to the STOCK CONTEXT block of the ranking request. | facts | prompt text | Fixed order: earnings, surprise, sector, news, fundamentals, short, analysts | Implemented |
+| SRD-SCR-020.007 | FO-SCR-018 | Must | With review ticked, each final pick shall get one Claude Code CLI request with no tools after web research, 3 at a time, holding only price facts, ticked facts, rule flags, headlines and research. | final picks | review request | No AI score, rank, reason, news tone, Query or other stocks; 180 s limit | Implemented |
+| SRD-SCR-020.008 | FO-SCR-018 | Must | The review shall return up to 3 bull and 3 bear points, a verdict Long, Short, Wait or Avoid, a confidence and a one-line summary; Wait or Avoid adds the flag "Review: wait" or "Review: avoid". | review reply | review, flag | Scores and order unchanged; a failed or unreadable review is left out | Implemented |
+| SRD-SCR-020.009 | FO-SCR-018 | Must | Results shall save the company facts and levels in `ai_context` and the review in `ai_review`, and the transcript shall hold each review request and reply. | facts, review | result JSON, transcript | Old results load unchanged | Implemented |
+
+---
+
 ## Summary: Requirement Counts
 
 | Module | FO Count | SRD Count | Status |
@@ -334,6 +381,9 @@ Note: The dialog opens from the screener builder in `gui/screener_panel.py`.
 | Indicator Catalogue & Rules | 13 | 015.001–017 | 17 |
 | Price Action Patterns & Rules | 14 | 016.001–015 | 15 |
 | Accumulation / Distribution | 15 | 017.001–013 | 13 |
-| **Totals** | **15 FOs** | **141 SRDs** | — |
+| AI Ranking Stock Context | 16 | 018.001–007 | 7 |
+| AI Ranking News and Research | 17 | 019.001–007 | 7 |
+| AI Ranking Company Data and Review | 18 | 020.001–009 | 9 |
+| **Totals** | **18 FOs** | **164 SRDs** | — |
 
 **Status:** v2.4.0 Draft — SRD-SCR-004.007 reworded and SRD-SCR-004.009 added (2026-11-03, ISS-SCR-0003; approved by user, Implemented, RN-SCR-2.7.1-20261103): auto-run needs up-to-date candles and skips presets already run on them.

@@ -587,3 +587,58 @@ Test files:
 | UT-SCR-004.007.M16.T05 | MD-SCR-007.010.M16 | Negative | Old cached status is not trusted | cached status current, no fresh check yet | no run; fresh check requested | Pass |
 | UT-SCR-004.007.M16.T06 | MD-SCR-007.010.M16 | Negative | Outside 09:00–09:30 ET | 09:45 ET | no status check, no run | Pass |
 
+### SRD-SCR-018.001–.007 — AI Ranking stock context
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-SCR-018.001.M01.T01 | MD-SCR-001.001.M01 | Positive | Context choice round-trips; old preset empty | `ai_context=["earnings","sector"]`; dict without key | same list; `[]` | Pass |
+| UT-SCR-018.001.M01.T02 | MD-SCR-001.001.M01 | Negative | Unknown context rejected | `ai_context=["weather"]` | `PresetValidationError` | Pass |
+| UT-SCR-018.002.M36.T01 | MD-SCR-018.002.M36 | Positive | One fetch per stock per day | two calls same day, then next day | fetch count 2, then 3; dates match | Pass |
+| UT-SCR-018.002.M36.T02 | MD-SCR-018.002.M36 | Negative | Failed lookup gives None and retries next run | fetch raises for COF | COF None, NVDA ok; COF fetched again next call | Pass |
+| UT-SCR-018.002.M36.T03 | MD-SCR-018.002.M36 | Edge | Only dates on or after today | calendar [yesterday, in 20 days]; [] | in 20 days; None | Pass |
+| UT-SCR-018.003.M37.T01 | MD-SCR-018.003.M37 | Edge | Earnings level boundaries | 0, 5, 6, 10, 11 days, none | red, red, yellow, yellow, green, none; flag only for red | Pass |
+| UT-SCR-018.004.M35.T01 | MD-SCR-018.004.M35 | Positive | Sector rank and levels | 11 ETFs + RSP closes; stocks in #2, #6, #10 sectors | green / neutral / red + "Weak sector (#10 of 11)" | Pass |
+| UT-SCR-018.004.M35.T02 | MD-SCR-018.004.M35 | Negative | Unknown sector or missing closes | sector "Crypto"; ETF without closes | no sector fields, no flag | Pass |
+| UT-SCR-018.005.M37.T01 | MD-SCR-018.003.M37 | Positive | Market regime | SPY above both; below both; between; 150 closes | risk-on; risk-off; mixed; "" | Pass |
+| UT-SCR-018.006.M37.T01 | MD-SCR-018.003.M37 | Positive | Prompt text lists each stock and the market | 2 contexts, regime risk-on | header with market; one line per stock with flags | Pass |
+| UT-SCR-018.006.M06.T01 | MD-SCR-002.003.M06 | Positive | Context goes into the AI request | `ai_context_text` set, Claude path | facts contain block; instruction contains flag rule | Pass |
+| UT-SCR-018.006.M06.T02 | MD-SCR-002.003.M06 | Negative | No context, prompt unchanged | no `ai_context_text` | instruction equals today's; no block | Pass |
+| UT-SCR-018.007.M10.T01 | MD-SCR-003.001.M10 | Positive | Executor builds, sends and saves context | preset with context; fake earnings lookup | LLM config has text; rows have `ai_context` incl. market and `ai_flags` | Pass |
+| UT-SCR-018.007.M10.T02 | MD-SCR-003.001.M10 | Negative | No context ticked | preset `ai_context=[]` | lookup not called; no context keys; no text in config | Pass |
+
+### SRD-SCR-019.001–.007 — AI Ranking news tone and web research
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-SCR-019.001.M01.T01 | MD-SCR-001.001.M01 | Positive | News and research choices round-trip | claude preset with `["news","research"]` | same list after round-trip; validates | Pass |
+| UT-SCR-019.001.M01.T02 | MD-SCR-001.001.M01 | Negative | Research needs Claude Code CLI | openrouter preset with `["research"]` | `PresetValidationError` | Pass |
+| UT-SCR-019.002.M38.T01 | MD-SCR-019.002.M38 | Positive | Newest 8 from last 5 days, one fetch a day | 12 items, 3 older than 5 days; two calls | 8 newest within 5 days; fetch once | Pass |
+| UT-SCR-019.002.M38.T02 | MD-SCR-019.002.M38 | Negative | Failed lookup gives no headlines | fetch raises | empty list; run continues; retried next call | Pass |
+| UT-SCR-019.002.M38.T03 | MD-SCR-019.002.M38 | Edge | Both Yahoo formats read | new `content` item; old item with epoch time | same `Headline` fields | Pass |
+| UT-SCR-019.003.M37.T01 | MD-SCR-018.003.M37 | Positive | Headlines in the context block | context with 2 headlines | two indented `news` lines with age and source | Pass |
+| UT-SCR-019.003.M06.T01 | MD-SCR-002.003.M06 | Positive | Tone read from the ranking answer | array with news_tone 0.5, 2.0, "x" | last_news_tone 0.5 and 1.0; bad value skipped; rule asks for news_tone | Pass |
+| UT-SCR-019.003.M06.T02 | MD-SCR-002.003.M06 | Positive | Legacy path uses array format with context | OpenRouter no query, context set | prompt asks for JSON array; reasoning parsed | Pass |
+| UT-SCR-019.004.M37.T01 | MD-SCR-018.003.M37 | Edge | News level boundaries and flag | tone -0.3, -0.1, 0.0, 0.3, None | red + "Negative news", yellow, neutral, green, none | Pass |
+| UT-SCR-019.005.M39.T01 | MD-SCR-019.005.M39 | Positive | Research runs 3 at a time with only web search | 5 picks, fake ask | max 3 at once; tools ("WebSearch",); model passed; summary ≤ 60 words; ≤ 3 links | Pass |
+| UT-SCR-019.006.M39.T01 | MD-SCR-019.005.M39 | Negative | Failed or unreadable research skipped | ask error; non-JSON text | those picks missing; others kept | Pass |
+| UT-SCR-019.007.M10.T01 | MD-SCR-003.001.M10 | Positive | Executor saves tone, news and research | news + research ticked; fakes | `news_tone`, level, headlines in `ai_context`; `ai_research`; risk flag added | Pass |
+| UT-SCR-019.007.M10.T02 | MD-SCR-003.001.M10 | Negative | Research not run unless ticked | news only | research runner not called; no `ai_research` | Pass |
+
+### SRD-SCR-020.001–.009 — AI Ranking company data and bull vs bear review
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-SCR-020.001.M01.T01 | MD-SCR-001.001.M01 | Positive | New choices round-trip | claude preset with surprise, fundamentals, short, analysts, review | same list after round-trip; validates | Pass |
+| UT-SCR-020.001.M01.T02 | MD-SCR-001.001.M01 | Negative | Review needs Claude Code CLI | openrouter preset with `["review"]` | `PresetValidationError` | Pass |
+| UT-SCR-020.002.M41.T01 | MD-SCR-020.002.M41 | Positive | Only needed parts fetched, once a day | analysts ticked; two calls same day | info + changes fetched once; eps never | Pass |
+| UT-SCR-020.002.M41.T02 | MD-SCR-020.002.M41 | Negative | Failed part gives no facts | fetch raises | facts empty; one WARNING; retried next call | Pass |
+| UT-SCR-020.002.M41.T03 | MD-SCR-020.002.M41 | Edge | Yahoo values converted | debt 16.97, short 0.0121, surprise 0.0836, target 0 | 0.17, 1.21%, 8.36%, target None | Pass |
+| UT-SCR-020.003.M37.T01 | MD-SCR-018.003.M37 | Edge | Surprise levels and flag | +1.5, +0.5, -1.0, -3.5 | green, neutral, neutral, red + "EPS miss -3.5%" | Pass |
+| UT-SCR-020.004.M37.T01 | MD-SCR-018.003.M37 | Edge | Short flag; fundamentals no flag | short 20.0 and 24.0; low P/E | neutral; red + "High short interest (24% of float)"; no fundamentals flag | Pass |
+| UT-SCR-020.005.M37.T01 | MD-SCR-018.003.M37 | Positive | Analyst levels and flag | downgrade 2 days ago; 2 downgrades; upgrade only; change 40 days old | red "1 downgrade"; "2 downgrades"; green; old change dropped | Pass |
+| UT-SCR-020.006.M37.T01 | MD-SCR-018.003.M37 | Positive | Company facts in the context block | context with all four kinds | one line in fixed order with surprise, fundamentals, short, analysts | Pass |
+| UT-SCR-020.007.M42.T01 | MD-SCR-020.007.M42 | Positive | Blind facts, 3 at a time, no tools | context with tone and flags; 5 picks, fake ask | facts hold price, facts, flags, research; no tone, score, rank or "Negative news"; max 3 at once; no tools | Pass |
+| UT-SCR-020.008.M42.T01 | MD-SCR-020.007.M42 | Positive | Reply read | JSON with 4 bull points, verdict "wait", confidence "odd" | 3 bull points; verdict Wait; confidence low | Pass |
+| UT-SCR-020.008.M42.T02 | MD-SCR-020.007.M42 | Negative | Bad reply skipped | ask error; non-JSON; verdict "Buy" | no review for those; others kept | Pass |
+| UT-SCR-020.009.M10.T01 | MD-SCR-003.001.M10 | Positive | Executor saves facts, review, flag and transcript | all kinds ticked; fakes; review Avoid | `ai_context` facts; `ai_review`; "Review: avoid" flag; 2 transcript turns per pick; facts without news tone | Pass |
+| UT-SCR-020.009.M10.T02 | MD-SCR-003.001.M10 | Negative | Review and company lookup not run unless ticked | earnings only | company lookup and review runner not called | Pass |

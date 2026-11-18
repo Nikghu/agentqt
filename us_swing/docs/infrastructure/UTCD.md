@@ -294,6 +294,7 @@
 | UT-INF-011.002.M01.T01 | MD-INF-011.001.M01 | Positive | OpenRouter answer is read from chat completions | mock transport returning one choice | `text` = choice content; Bearer key sent | Pass |
 | UT-INF-011.003.M01.T01 | MD-INF-011.001.M01 | Positive | Fallback uses the other provider | default Claude fails; fallback on | provider `openrouter` | Pass |
 | UT-INF-011.003.M01.T02 | MD-INF-011.001.M01 | Negative | No fallback when off | default Claude fails; fallback off | OpenRouter not called; `error` set | Pass |
+| UT-INF-011.004.M01.T01 | MD-INF-011.001.M01 | Positive | Web search tool only when asked | `claude_tools=("WebSearch", "Bash")`; default | `--tools WebSearch --allowedTools WebSearch`, no Bash; default `--tools ""` and no allowed list | Pass |
 | UT-INF-012.002.M01.T01 | MD-INF-012.002.M01 | Positive | Brief due once in pre-market | Thu 07:00 ET, not sent; same day sent | True; False | Pass |
 | UT-INF-012.002.M01.T02 | MD-INF-012.002.M01 | Negative | Brief not due outside pre-market | Sat 07:00 ET; Thu 10:00 ET; Thanksgiving 07:00 ET | False each | Pass |
 | UT-INF-012.002.M01.T03 | MD-INF-012.002.M01 | Positive | Send log survives a restart | save date for user 1; new `SendLog` on same file; bad JSON file | date read back; bad file reads as empty | Pass |

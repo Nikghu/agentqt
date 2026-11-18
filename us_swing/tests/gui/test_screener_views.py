@@ -419,3 +419,136 @@ def test_detail_draws_plan_and_tag(qtbot):
     view.list.setCurrentRow(2)
     assert chart.plans[-1] == (None, None)
     assert view.outcome_lbl.isHidden()
+
+
+_CONTEXT_RESULT = {
+    "COF": {
+        "score": 0.6,
+        "ai_context": {"earnings_date": "2026-11-21", "earnings_days": 3, "earnings_level": "red",
+                       "sector": "Technology", "sector_rank": 2, "sector_count": 11,
+                       "sector_move_pct": 3.4, "sector_level": "green", "market": "risk-on"},
+        "ai_flags": ["Earnings in 3 days"],
+    },
+}
+
+
+def test_context_chips_flags_and_count(qtbot):
+    """UT-GUI-022.017.M01.T01: Chips, flags and ⚑ count."""
+    row = rows_from_result(_CONTEXT_RESULT)[0]
+    assert row.flags == ["Earnings in 3 days"]
+    assert [(c.text, c.level) for c in row.chips] == [
+        ("Earnings in 3 days · 21 Nov", "red"),
+        ("Technology #2 of 11 · +3.4% vs RSP", "green"),
+        ("Market risk-on", "green"),
+    ]
+    view = ListDetailView()
+    qtbot.addWidget(view)
+    view.load([row])
+    assert view.list.itemWidget(view.list.item(0)).flag_lbl.text() == "⚑ 1"
+    assert [view._chips_box.itemAt(i).widget().accessibleName() for i in range(3)] == [
+        c.text for c in row.chips]
+    assert not view.flags_head.isHidden()
+    assert view._flags_box.itemAt(0).widget().text() == "Earnings in 3 days"
+
+
+def test_old_result_without_context(qtbot):
+    """UT-GUI-022.017.M01.T02: Old result without context."""
+    row = rows_from_result({"NVDA": {"score": 0.8}})[0]
+    assert row.chips == [] and row.flags == []
+    view = ListDetailView()
+    qtbot.addWidget(view)
+    view.load([row])
+    assert view.list.itemWidget(view.list.item(0)).flag_lbl.text() == ""
+    assert view._chips_box.count() == 0
+    assert view.flags_head.isHidden()
+
+
+_NEWS_RESULT = {
+    "COF": {
+        "score": 0.6,
+        "ai_context": {"news_tone": -0.6, "news_level": "red", "market": "",
+                       "news": [{"title": "Probe opened", "source": "Reuters",
+                                 "published": "2026-11-17T12:00:00Z", "url": "https://r.test/1"},
+                                {"title": "Fine expected", "source": "WSJ",
+                                 "published": "2026-11-16T09:00:00Z", "url": "https://w.test/2"}]},
+        "ai_flags": ["Negative news", "Research: share offering"],
+        "ai_research": {"summary": "Offering priced at a discount.", "risk": "share offering",
+                        "sources": ["https://www.reuters.com/a", "https://sec.gov/b"]},
+    },
+}
+
+
+def test_news_chip_list_and_research_box(qtbot):
+    """UT-GUI-022.019.M01.T01: News chip, News list and Web research box."""
+    row = rows_from_result(_NEWS_RESULT)[0]
+    assert [(c.text, c.level) for c in row.chips] == [("News tone -0.6 · 2 headlines", "red")]
+    view = ListDetailView()
+    qtbot.addWidget(view)
+    view.load([row])
+    assert not view.news_head.isHidden()
+    texts = [view._news_box.itemAt(i).widget().text() for i in range(view._news_box.count())]
+    assert len(texts) == 2 and "Probe opened" in texts[0] and "Reuters" in texts[0]
+    assert not view.research_box.isHidden()
+    assert view.research_lbl.text() == "Offering priced at a discount."
+    links = view.research_links.text()
+    assert "reuters.com" in links and "sec.gov" in links and view.research_links.openExternalLinks()
+
+
+def test_no_news_or_research_hidden(qtbot):
+    """UT-GUI-022.019.M01.T02: Nothing to show."""
+    view = ListDetailView()
+    qtbot.addWidget(view)
+    view.load(rows_from_result({"NVDA": {"score": 0.8}}))
+    assert view.news_head.isHidden() and view.research_box.isHidden()
+
+
+_COMPANY_RESULT = {"NVDA": {
+    "score": 0.8,
+    "ai_context": {
+        "eps_surprise_pct": -3.5, "surprise_level": "red",
+        "revenue_growth_pct": 62.0, "margin_pct": 55.0, "pe": 48.0, "debt_to_equity": 0.4,
+        "short_pct": 24.0, "days_to_cover": 1.3, "short_level": "red",
+        "analyst_changes": [
+            {"day": "2026-11-14", "firm": "Morgan Stanley", "action": "down",
+             "grade": "Equal Weight", "target": 150.0},
+            {"day": "2026-11-10", "firm": "Jefferies", "action": "main", "grade": "Buy",
+             "target": None},
+        ],
+        "analyst_target_pct": 14.0, "analyst_level": "red",
+    },
+    "ai_review": {"bull": ["Trend above 200-day"], "bear": ["Earnings in 3 days", "2 downgrades"],
+                  "verdict": "Wait", "confidence": "medium", "summary": "Let earnings pass"},
+}}
+
+
+def test_company_tags_and_sections(qtbot):
+    """UT-GUI-022.021.M01.T01: Company tags and sections."""
+    row = rows_from_result(_COMPANY_RESULT)[0]
+    assert [(c.text, c.level) for c in row.chips] == [
+        ("EPS miss -3.5%", "red"), ("P/E 48 · Rev +62%", ""),
+        ("Short 24% of float", "red"), ("Analysts 0 up · 1 down", "red"),
+    ]
+    view = ListDetailView()
+    qtbot.addWidget(view)
+    view.load([row])
+    assert not view.fundamentals_lbl.isHidden()
+    assert view.fundamentals_lbl.text().startswith("Revenue growth +62%")
+    assert "short 24.0% of float" in view.fundamentals_lbl.text()
+    lines = [view._analysts_box.itemAt(i).widget().text()
+             for i in range(view._analysts_box.count())]
+    assert lines == ["14 Nov · Morgan Stanley · downgrade to Equal Weight · target 150",
+                     "10 Nov · Jefferies · kept at Buy", "Average target +14% vs price"]
+    assert not view.review_box.isHidden()
+    assert "Trend above 200-day" in view.review_bull_lbl.text()
+    assert "2 downgrades" in view.review_bear_lbl.text()
+    assert view.review_verdict_lbl.text() == (
+        "Verdict: Wait (medium) — Let earnings pass  ·  differs from the ranking (#1)")
+
+
+def test_no_company_or_review_hidden(qtbot):
+    """UT-GUI-022.021.M01.T02: Nothing to show."""
+    view = ListDetailView()
+    qtbot.addWidget(view)
+    view.load(rows_from_result({"NVDA": {"score": 0.8}}))
+    assert view.fundamentals_lbl.isHidden() and view.analysts_head.isHidden()
+    assert view.review_box.isHidden()

@@ -1,6 +1,6 @@
 """
 Module: MD-GUI-022.001.M01 — Screener result views
-Parent SRD: SRD-GUI-022.001
+Parent SRD: SRD-GUI-022.001, SRD-GUI-022.017, SRD-GUI-022.019
 
 Result rows, sorting and CSV rows, the List / Cards switch, the List + detail
 view and the Signal cards view shown by the screener panel (FO-GUI-022).
@@ -8,10 +8,12 @@ view and the Signal cards view shown by the screener panel (FO-GUI-022).
 from __future__ import annotations
 
 import datetime
+import html
 import math
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any, Protocol
+from urllib.parse import urlparse
 
 from PyQt6.QtCore import (
     QEasingCurve,
@@ -19,6 +21,7 @@ from PyQt6.QtCore import (
     QObject,
     QPoint,
     QPropertyAnimation,
+    QRect,
     QRectF,
     QSettings,
     QSize,
@@ -32,6 +35,8 @@ from PyQt6.QtWidgets import (
     QGridLayout,
     QHBoxLayout,
     QLabel,
+    QLayout,
+    QLayoutItem,
     QListWidget,
     QListWidgetItem,
     QMenu,
@@ -41,6 +46,13 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from us_swing.core.stock_context import (
+    StockContext,
+    earnings_when,
+    fundamentals_text,
+    short_text,
+    surprise_text,
+)
 from us_swing.data.market_calendar import ET
 from us_swing.gui.icons import icon, set_icon
 from us_swing.gui.theme import C, active_palette, colors
@@ -73,6 +85,149 @@ class RuleCheck:
     tip: str = ""
 
 
+@dataclass(frozen=True)
+class ContextChip:
+    """One AI context line shown as a chip; ``level`` is red, yellow, green or ""."""
+
+    text: str
+    level: str = ""
+
+
+_MARKET_LEVELS = {"risk-on": "green", "risk-off": "red", "mixed": "yellow"}
+
+
+def _context_chips(context: Any) -> list[ContextChip]:
+    """Earnings, sector and market chips from a saved ``ai_context`` (SRD-GUI-022.017)."""
+    if not isinstance(context, Mapping):
+        return []
+    chips: list[ContextChip] = []
+    days = context.get("earnings_days")
+    if isinstance(days, int):
+        when = context.get("earnings_date", "")
+        try:
+            shown = datetime.date.fromisoformat(when).strftime(" · %d %b")
+        except (TypeError, ValueError):
+            shown = ""
+        chips.append(ContextChip(f"Earnings {earnings_when(days)}{shown}",
+                                 str(context.get("earnings_level", ""))))
+    surprise = context.get("eps_surprise_pct")
+    if isinstance(surprise, (int, float)):
+        chips.append(ContextChip(f"EPS {surprise_text(surprise)}",
+                                 _shown_level(context.get("surprise_level"))))
+    rank, move = context.get("sector_rank"), context.get("sector_move_pct")
+    if isinstance(rank, int) and isinstance(move, (int, float)):
+        level = str(context.get("sector_level", ""))
+        chips.append(ContextChip(
+            f"{context.get('sector', '')} #{rank} of {context.get('sector_count', '')}"
+            f" · {move:+.1f}% vs RSP", "" if level == "neutral" else level))
+    news = context.get("news") or []
+    tone = context.get("news_tone")
+    count = f"{len(news)} headline{'' if len(news) == 1 else 's'}"
+    if isinstance(tone, (int, float)):
+        level = str(context.get("news_level", ""))
+        chips.append(ContextChip(f"News tone {tone:+.1f} · {count}",
+                                 "" if level == "neutral" else level))
+    elif news:
+        chips.append(ContextChip(count))
+    chips += _company_chips(context)
+    market = str(context.get("market", ""))
+    if market in _MARKET_LEVELS:
+        chips.append(ContextChip(f"Market {market}", _MARKET_LEVELS[market]))
+    return chips
+
+
+def _shown_level(level: Any) -> str:
+    return "" if level in (None, "neutral") else str(level)
+
+
+def _company_chips(context: Mapping[str, Any]) -> list[ContextChip]:
+    """Fundamentals, short interest and analyst tags (SRD-GUI-022.021)."""
+    chips: list[ContextChip] = []
+    pe, growth = context.get("pe"), context.get("revenue_growth_pct")
+    parts = [f"P/E {pe:.0f}" if isinstance(pe, (int, float)) else "",
+             f"Rev {growth:+.0f}%" if isinstance(growth, (int, float)) else ""]
+    if any(parts):
+        chips.append(ContextChip(" · ".join(part for part in parts if part)))
+    short = context.get("short_pct")
+    if isinstance(short, (int, float)):
+        chips.append(ContextChip(f"Short {short:.0f}% of float",
+                                 _shown_level(context.get("short_level"))))
+    actions = [str(c.get("action", "")) for c in context.get("analyst_changes") or []
+               if isinstance(c, Mapping)]
+    ups, downs = actions.count("up"), actions.count("down")
+    if ups or downs:
+        chips.append(ContextChip(f"Analysts {ups} up · {downs} down",
+                                 _shown_level(context.get("analyst_level"))))
+    return chips
+
+
+def _fundamentals_line(context: Any) -> str:
+    """"revenue growth +62%, ... · short 1.1% of float, ..." from a saved ``ai_context``."""
+    if not isinstance(context, Mapping):
+        return ""
+    numbers = {key: context.get(key) for key in (
+        "revenue_growth_pct", "margin_pct", "pe", "debt_to_equity", "short_pct", "days_to_cover")}
+    known: dict[str, Any] = {k: v for k, v in numbers.items() if isinstance(v, (int, float))}
+    ctx = StockContext(**known)
+    text = " · ".join(part for part in (fundamentals_text(ctx), short_text(ctx)) if part)
+    return text[:1].upper() + text[1:]
+
+
+_ACTION_WORDS = {"up": "upgrade to", "down": "downgrade to", "main": "kept at",
+                 "init": "started at", "reit": "repeated"}
+
+
+def _analyst_lines(context: Any) -> list[str]:
+    """One line per saved analyst change, then the average target (SRD-GUI-022.021)."""
+    if not isinstance(context, Mapping):
+        return []
+    lines = []
+    for change in context.get("analyst_changes") or []:
+        if not isinstance(change, Mapping):
+            continue
+        try:
+            day = datetime.date.fromisoformat(str(change.get("day", ""))).strftime("%d %b")
+        except ValueError:
+            day = ""
+        action = str(change.get("action", ""))
+        words = f"{_ACTION_WORDS.get(action, action)} {change.get('grade', '')}".strip()
+        target = change.get("target")
+        tail = f" · target {target:.0f}" if isinstance(target, (int, float)) else ""
+        lines.append(" · ".join(p for p in (day, str(change.get("firm", "")), words) if p) + tail)
+    target_pct = context.get("analyst_target_pct")
+    if isinstance(target_pct, (int, float)):
+        lines.append(f"Average target {target_pct:+.0f}% vs price")
+    return lines
+
+
+def _saved_news(context: Any) -> list[Mapping[str, Any]]:
+    news = context.get("news") if isinstance(context, Mapping) else None
+    return [item for item in news or [] if isinstance(item, Mapping)]
+
+
+def _news_html(item: Mapping[str, Any], link_colour: str) -> str:
+    """One headline as rich text: linked title, then source and day (SRD-GUI-022.019)."""
+    title = html.escape(str(item.get("title", "")))
+    url = html.escape(str(item.get("url", "")), quote=True)
+    try:
+        day = datetime.date.fromisoformat(str(item.get("published", ""))[:10]).strftime("%d %b")
+    except ValueError:
+        day = ""
+    head = f'<a href="{url}" style="color:{link_colour};">{title}</a>' if url else title
+    tail = " · ".join(part for part in (html.escape(str(item.get("source", ""))), day) if part)
+    return f"{head} — {tail}" if tail else head
+
+
+def _source_links(sources: Iterable[Any], link_colour: str) -> str:
+    links = []
+    for url in sources:
+        host = urlparse(str(url)).netloc.removeprefix("www.")
+        if host:
+            safe = html.escape(str(url), quote=True)
+            links.append(f'<a href="{safe}" style="color:{link_colour};">{html.escape(host)} ↗</a>')
+    return "  ·  ".join(links)
+
+
 # Saved detail key → (shown name, unit, tooltip) for screeners that report numbers.
 _DETAIL_NAMES: dict[str, tuple[str, str, str]] = {
     "RallyVol": ("Rally volume", "×",
@@ -98,6 +253,18 @@ class ResultRow:
     stop: float | None = None
     target: float | None = None
     name: str = ""
+    chips: list[ContextChip] = field(default_factory=list)
+    flags: list[str] = field(default_factory=list)
+    news: list[Mapping[str, Any]] = field(default_factory=list)
+    research: Mapping[str, Any] = field(default_factory=dict)
+    fundamentals: str = ""
+    analysts: list[str] = field(default_factory=list)
+    review: Mapping[str, Any] = field(default_factory=dict)
+
+    @property
+    def flag_text(self) -> str:
+        """"⚑ 2" style count, or empty when the stock has no red flags."""
+        return f"⚑ {len(self.flags)}" if self.flags else ""
 
     @property
     def rr(self) -> float | None:
@@ -188,6 +355,13 @@ def rows_from_result(results: Mapping[str, Mapping[str, Any]],
             stop=_price(plan, "stop"),
             target=_price(plan, "target"),
             name=names.get(symbol, ""),
+            chips=_context_chips(meta.get("ai_context")),
+            flags=[str(flag) for flag in meta.get("ai_flags") or []],
+            news=_saved_news(meta.get("ai_context")),
+            research=meta.get("ai_research") or {},
+            fundamentals=_fundamentals_line(meta.get("ai_context")),
+            analysts=_analyst_lines(meta.get("ai_context")),
+            review=meta.get("ai_review") or {},
         ))
     rows.sort(key=lambda r: r.score, reverse=True)
     for rank, row in enumerate(rows, start=1):
@@ -383,6 +557,23 @@ def _rule_chip(rule: RuleCheck) -> QLabel:
     return chip
 
 
+_LEVEL_TIERS = {"green": "Strong", "yellow": "Watch", "red": "Weak"}
+
+
+def _context_chip(chip: ContextChip) -> QLabel:
+    """Tag styled like the Strong / Watch / Weak tier tag; neutral levels use a grey tag."""
+    _T: Any = active_palette()
+    tier = _LEVEL_TIERS.get(chip.level)
+    fg, bg = _tier_colours(tier) if tier else (_T.SUBTEXT, _T.OVERLAY)
+    label = QLabel(chip.text)
+    label.setAccessibleName(chip.text)
+    label.setStyleSheet(
+        f"color: {fg}; background: {bg}; border-radius: 3px; padding: 1px 7px;"
+        " font-size: 8pt; font-weight: bold;"
+    )
+    return label
+
+
 def _value_label(text: str, colour: str = "", size: str = "9pt",
                  bold: bool = False) -> QLabel:
     label = QLabel(text)
@@ -403,6 +594,66 @@ def _action_button(text: str, icon_name: str, role: str) -> QPushButton:
     set_icon(button, icon_name, role, 14)
     button.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
     return button
+
+
+class _FlowLayout(QLayout):
+    """Left-to-right layout that wraps its widgets onto more lines when space runs out."""
+
+    def __init__(self, spacing: int = 6) -> None:
+        super().__init__()
+        self._items: list[QLayoutItem] = []
+        self.setSpacing(spacing)
+        self.setContentsMargins(0, 0, 0, 0)
+
+    def addItem(self, item: QLayoutItem | None) -> None:  # noqa: N802 — Qt override
+        if item is not None:
+            self._items.append(item)
+
+    def count(self) -> int:
+        return len(self._items)
+
+    def itemAt(self, index: int) -> QLayoutItem | None:  # noqa: N802 — Qt override
+        return self._items[index] if 0 <= index < len(self._items) else None
+
+    def takeAt(self, index: int) -> QLayoutItem | None:  # noqa: N802 — Qt override
+        return self._items.pop(index) if 0 <= index < len(self._items) else None
+
+    def expandingDirections(self) -> Qt.Orientation:  # noqa: N802 — Qt override
+        return Qt.Orientation.Horizontal
+
+    def hasHeightForWidth(self) -> bool:  # noqa: N802 — Qt override
+        return True
+
+    def heightForWidth(self, width: int) -> int:  # noqa: N802 — Qt override
+        return self._arrange(QRect(0, 0, width, 0), move=False)
+
+    def setGeometry(self, rect: QRect) -> None:  # noqa: N802 — Qt override
+        super().setGeometry(rect)
+        self._arrange(rect, move=True)
+
+    def sizeHint(self) -> QSize:  # noqa: N802 — Qt override
+        return self.minimumSize()
+
+    def minimumSize(self) -> QSize:  # noqa: N802 — Qt override
+        size = QSize()
+        for item in self._items:
+            size = size.expandedTo(item.minimumSize())
+        return size
+
+    def _arrange(self, outer: QRect, move: bool) -> int:
+        m = self.contentsMargins()
+        rect = outer.adjusted(m.left(), m.top(), -m.right(), -m.bottom())
+        x, y, line_h = rect.x(), rect.y(), 0
+        gap = self.spacing()
+        for item in self._items:
+            hint = item.sizeHint()
+            if x + hint.width() > rect.right() + 1 and line_h > 0:
+                x, y, line_h = rect.x(), y + line_h + gap, 0
+            if move:
+                item.setGeometry(QRect(QPoint(x, y), hint))
+            x += hint.width() + gap
+            line_h = max(line_h, hint.height())
+        return y + line_h - rect.y() + m.top() + m.bottom()
 
 
 def _clear_layout(layout: Any) -> None:
@@ -820,6 +1071,10 @@ class _ListRow(QWidget):
         rules.setFixedWidth(30)
         rules.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
         line.addWidget(rules)
+        self.flag_lbl = _value_label(row.flag_text, _T.RED, bold=True)
+        self.flag_lbl.setFixedWidth(30)
+        self.flag_lbl.setToolTip("\n".join(row.flags))
+        line.addWidget(self.flag_lbl)
 
 
 class ListDetailView(QWidget):
@@ -868,10 +1123,13 @@ class ListDetailView(QWidget):
         top.setSpacing(10)
         self.symbol_lbl = QLabel()
         self.symbol_lbl.setObjectName("detail_symbol")
-        top.addWidget(self.symbol_lbl)
+        top.addWidget(self.symbol_lbl, 0, Qt.AlignmentFlag.AlignTop)
         self._tier_slot = QHBoxLayout()
+        self._tier_slot.setContentsMargins(0, 7, 0, 0)
         top.addLayout(self._tier_slot)
-        top.addStretch(1)
+        self._chips_box = _FlowLayout(spacing=6)
+        self._chips_box.setContentsMargins(0, 7, 0, 0)
+        top.addLayout(self._chips_box, 1)
         title.addLayout(top)
         self.meta_lbl = _key_label("")
         title.addWidget(self.meta_lbl)
@@ -936,6 +1194,14 @@ class ListDetailView(QWidget):
         self._rules_box = QVBoxLayout()
         self._rules_box.setSpacing(4)
         rules_col.addLayout(self._rules_box)
+        self.flags_head = QLabel("RED FLAGS")
+        self.flags_head.setObjectName("view_head")
+        self.flags_head.hide()
+        rules_col.addSpacing(8)
+        rules_col.addWidget(self.flags_head)
+        self._flags_box = QVBoxLayout()
+        self._flags_box.setSpacing(4)
+        rules_col.addLayout(self._flags_box)
         rules_col.addStretch(1)
         lower.addLayout(rules_col, 1)
         why_col = QVBoxLayout()
@@ -947,9 +1213,70 @@ class ListDetailView(QWidget):
         self.reasoning_lbl.setWordWrap(True)
         self.reasoning_lbl.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         why_col.addWidget(self.reasoning_lbl)
+        self.news_head = QLabel("NEWS, LAST 5 DAYS")
+        self.news_head.setObjectName("view_head")
+        self.news_head.hide()
+        why_col.addSpacing(8)
+        why_col.addWidget(self.news_head)
+        self._news_box = QVBoxLayout()
+        self._news_box.setSpacing(4)
+        why_col.addLayout(self._news_box)
+        self.fundamentals_head = QLabel("FUNDAMENTALS")
+        self.fundamentals_head.setObjectName("view_head")
+        why_col.addSpacing(8)
+        why_col.addWidget(self.fundamentals_head)
+        self.fundamentals_lbl = QLabel()
+        self.fundamentals_lbl.setWordWrap(True)
+        why_col.addWidget(self.fundamentals_lbl)
+        self.analysts_head = QLabel("ANALYST CHANGES, LAST 30 DAYS")
+        self.analysts_head.setObjectName("view_head")
+        why_col.addSpacing(8)
+        why_col.addWidget(self.analysts_head)
+        self._analysts_box = QVBoxLayout()
+        self._analysts_box.setSpacing(4)
+        why_col.addLayout(self._analysts_box)
         why_col.addStretch(1)
         lower.addLayout(why_col, 3)
         body.addLayout(lower)
+
+        self.research_box = QFrame()
+        self.research_box.setObjectName("detail_plan")
+        research_vl = QVBoxLayout(self.research_box)
+        research_vl.setContentsMargins(16, 12, 16, 12)
+        research_vl.setSpacing(6)
+        research_head = QLabel("WEB RESEARCH")
+        research_head.setObjectName("view_head")
+        research_vl.addWidget(research_head)
+        self.research_lbl = QLabel()
+        self.research_lbl.setWordWrap(True)
+        self.research_lbl.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        research_vl.addWidget(self.research_lbl)
+        self.research_links = QLabel()
+        self.research_links.setTextFormat(Qt.TextFormat.RichText)
+        self.research_links.setOpenExternalLinks(True)
+        research_vl.addWidget(self.research_links)
+        self.research_box.hide()
+        body.addWidget(self.research_box)
+        self.review_box = QFrame()
+        self.review_box.setObjectName("detail_plan")
+        review_vl = QVBoxLayout(self.review_box)
+        review_vl.setContentsMargins(16, 12, 16, 12)
+        review_vl.setSpacing(6)
+        review_head = QLabel("BULL VS BEAR")
+        review_head.setObjectName("view_head")
+        review_vl.addWidget(review_head)
+        self.review_bull_lbl = QLabel()
+        self.review_bear_lbl = QLabel()
+        self.review_verdict_lbl = QLabel()
+        for label in (self.review_bull_lbl, self.review_bear_lbl):
+            label.setTextFormat(Qt.TextFormat.RichText)
+        for label in (self.review_bull_lbl, self.review_bear_lbl, self.review_verdict_lbl):
+            label.setWordWrap(True)
+            label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+            review_vl.addWidget(label)
+        self.review_box.hide()
+        body.addWidget(self.review_box)
+        self._hide_company_sections()
         body.addStretch(1)
 
         scroll.setWidget(detail)
@@ -995,6 +1322,14 @@ class ListDetailView(QWidget):
         _T: Any = active_palette()
         _clear_layout(self._tier_slot)
         _clear_layout(self._rules_box)
+        _clear_layout(self._chips_box)
+        _clear_layout(self._flags_box)
+        _clear_layout(self._news_box)
+        _clear_layout(self._analysts_box)
+        self.flags_head.hide()
+        self.news_head.hide()
+        self.research_box.hide()
+        self._hide_company_sections()
         if not 0 <= index < len(self._rows):
             self.symbol_lbl.setText("")
             self.meta_lbl.setText("")
@@ -1009,7 +1344,7 @@ class ListDetailView(QWidget):
             return False
         row = self._rows[index]
         self.symbol_lbl.setText(row.symbol)
-        self._tier_slot.addWidget(_tier_chip(row.tier))
+        self._tier_slot.addWidget(_tier_chip(row.tier), 0, Qt.AlignmentFlag.AlignTop)
         parts = [row.name] if row.name else []
         parts += [f"rank {row.rank} of {len(self._rows)}", f"AI score {row.score:.2f}"]
         self.meta_lbl.setText(" · ".join(parts))
@@ -1018,8 +1353,70 @@ class ListDetailView(QWidget):
             f"RULES · {row.passed_count} OF {row.rule_count}" if row.rule_count else "DETAILS")
         for rule in row.rules:
             self._rules_box.addWidget(self._rule_line(rule, _T))
+        self._fill_context(row, _T)
+        self._fill_news_research(row, _T)
+        self._fill_company_review(row, _T)
         self.reasoning_lbl.setText(row.reasoning or "No AI reasoning for this run.")
         return True
+
+    def _fill_news_research(self, row: ResultRow, palette: Any) -> None:
+        """News list and Web research box (SRD-GUI-022.019)."""
+        for item in row.news:
+            label = QLabel(_news_html(item, palette.BLUE))
+            label.setTextFormat(Qt.TextFormat.RichText)
+            label.setOpenExternalLinks(True)
+            label.setWordWrap(True)
+            self._news_box.addWidget(label)
+        self.news_head.setVisible(bool(row.news))
+        summary = str(row.research.get("summary", ""))
+        if summary:
+            self.research_lbl.setText(summary)
+            self.research_links.setText(_source_links(row.research.get("sources") or [],
+                                                      palette.BLUE))
+            self.research_box.show()
+
+    def _hide_company_sections(self) -> None:
+        for widget in (self.fundamentals_head, self.fundamentals_lbl, self.analysts_head,
+                       self.review_box):
+            widget.hide()
+
+    def _fill_company_review(self, row: ResultRow, palette: Any) -> None:
+        """Fundamentals line, Analyst changes list and Bull vs bear box (SRD-GUI-022.021)."""
+        if row.fundamentals:
+            self.fundamentals_lbl.setText(row.fundamentals)
+            self.fundamentals_head.show()
+            self.fundamentals_lbl.show()
+        for line in row.analysts:
+            self._analysts_box.addWidget(QLabel(line))
+        self.analysts_head.setVisible(bool(row.analysts))
+        verdict = str(row.review.get("verdict", ""))
+        if not verdict:
+            return
+        for label, key, mark, colour in ((self.review_bull_lbl, "bull", "▲", palette.GREEN),
+                                         (self.review_bear_lbl, "bear", "▼", palette.RED)):
+            points = [html.escape(str(p)) for p in row.review.get(key) or []]
+            label.setText("<br>".join(
+                f'<span style="color:{colour};">{mark}</span> {point}' for point in points))
+            label.setVisible(bool(points))
+        text = f"Verdict: {verdict} ({row.review.get('confidence', '')})"
+        if row.review.get("summary"):
+            text += f" — {row.review['summary']}"
+        if verdict in ("Wait", "Avoid"):
+            text += f"  ·  differs from the ranking (#{row.rank})"
+        self.review_verdict_lbl.setText(text)
+        self.review_box.show()
+
+    def _fill_context(self, row: ResultRow, palette: Any) -> None:
+        """Context chips under the name and the Red flags list (SRD-GUI-022.017)."""
+        for chip in row.chips:
+            self._chips_box.addWidget(_context_chip(chip))
+        if not row.chips:
+            return
+        self.flags_head.show()
+        for flag in row.flags or ["None for this stock"]:
+            label = QLabel(flag)
+            label.setStyleSheet(f"color: {palette.RED if row.flags else palette.MUTED};")
+            self._flags_box.addWidget(label)
 
     def _fill_plan(self, row: ResultRow, palette: Any) -> None:
         for key, text, colour in (("stop", _price_text(row.stop), palette.RED),
@@ -1137,9 +1534,19 @@ class _Card(QFrame):
         self.tier_lbl = _tier_chip(row.tier)
         head.addWidget(self.tier_lbl)
         head.addStretch(1)
+        if row.flags:
+            flag = _value_label(row.flag_text, _T.RED, bold=True)
+            flag.setToolTip("\n".join(row.flags))
+            head.addWidget(flag)
         head.addWidget(_value_label(f"{row.score:.2f}", tier_fg, "14pt", bold=True))
         body.addLayout(head)
         body.addWidget(_ScoreBar(row.score, tier_fg))
+        if row.chips:
+            context = QGridLayout()
+            context.setSpacing(6)
+            for i, chip in enumerate(row.chips):
+                context.addWidget(_context_chip(chip), i // 2, i % 2)
+            body.addLayout(context)
 
         chips = QGridLayout()
         chips.setSpacing(6)

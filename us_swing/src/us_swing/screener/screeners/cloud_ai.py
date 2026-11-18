@@ -1,6 +1,6 @@
 """
 Module: MD-SCR-002.003.M06 — screeners/cloud_ai.py
-Parent SRD: SRD-SCR-002.005, SRD-SCR-013.005, SRD-SCR-013.011
+Parent SRD: SRD-SCR-002.005, SRD-SCR-013.005, SRD-SCR-013.011, SRD-SCR-018.006, SRD-SCR-019.003
 
 Provider-agnostic Cloud AI ranking screener (Stage 3).
 
@@ -57,6 +57,17 @@ _REQUEST_TIMEOUT_S: Final[float] = 60.0
 _RETRY_DELAYS_S: Final[tuple[float, ...]] = (1.0, 3.0, 7.0)
 _RETRY_STATUSES: Final[frozenset[int]] = frozenset({429, 502, 503, 504})
 _CLAUDE_TIMEOUT_S: Final[float] = 180.0
+_CONTEXT_RULE: Final[str] = (
+    "Weigh the red flags in the STOCK CONTEXT block in your scores; when a flag "
+    "changes a score, name it in that stock's reasoning. For each stock with news "
+    'lines, also return "news_tone" from -1 (very negative) to +1 (very positive) '
+    "for what those headlines mean for the stock."
+)
+_LEGACY_FORMAT: Final[str] = (
+    "Respond with ONLY a raw JSON object — no explanation, no markdown, "
+    "no prose. Format: {\"SYMBOL\": 0.0, ...} where each value is a "
+    "score in [0.0, 1.0]. Example: {\"AAPL\": 0.82, \"MSFT\": 0.61}"
+)
 
 _RSLP_ENC: Final[dict[str, str]] = {"rising": "R", "falling": "F", "flat": "="}
 _VOL_ENC: Final[dict[str, str]] = {"expanding": "EXP", "contracting": "CON", "neutral": "NEU"}
@@ -360,6 +371,7 @@ class CloudAIScreener:
         self._usage_tracker = usage_tracker
         self.last_reasoning: dict[str, str] = {}
         self.last_plan: dict[str, dict[str, float]] = {}
+        self.last_news_tone: dict[str, float] = {}
         self.last_transcript: list[AITranscriptTurn] = []
 
     def batch_features(
@@ -386,6 +398,7 @@ class CloudAIScreener:
     ) -> dict[str, tuple[bool, float]]:
         self.last_reasoning = {}
         self.last_plan = {}
+        self.last_news_tone = {}
         self.last_transcript = []
         ai_query = str(config.get("ai_query", "")).strip()
         if config.get("ai_provider") == "claude":
@@ -454,13 +467,15 @@ class CloudAIScreener:
         model = str(config.get("ai_model", DEFAULT_MODEL))
         features = self.batch_features(symbols, bars)
         features_text = _features_to_table(features)
+        # With a STOCK CONTEXT block the answer needs per-stock reasoning and tone (SRD-SCR-019.003).
+        with_context = bool(config.get("ai_context_text"))
         prompt = (
             f"You are a swing-trade analyst. Rank the following symbols by "
             f"swing-trade suitability using the pre-extracted features below.\n\n"
-            f"Symbols: {', '.join(symbols)}\n\nFeatures:\n{features_text}\n\n"
-            f"Respond with ONLY a raw JSON object — no explanation, no markdown, "
-            f"no prose. Format: {{\"SYMBOL\": 0.0, ...}} where each value is a "
-            f"score in [0.0, 1.0]. Example: {{\"AAPL\": 0.82, \"MSFT\": 0.61}}"
+            f"Symbols: {', '.join(symbols)}\n\n"
+            f"Features:\n{_with_context(features_text, config)}\n\n"
+            f"{_context_rule(config)}"
+            + ("Then " + _RANKING_FORMAT if with_context else _LEGACY_FORMAT)
         )
         fallback = {sym: (True, 0.0) for sym in symbols}
         t_sent = datetime.now(timezone.utc)
@@ -544,6 +559,8 @@ class CloudAIScreener:
             ))
             return fallback
 
+        if with_context:
+            return self._parse_ranking(raw_text, symbols, fallback)
         return _scores_to_results(symbols, raw_scores)
 
     # ------------------------------------------------------------------
@@ -559,10 +576,11 @@ class CloudAIScreener:
     ) -> dict[str, tuple[bool, float]]:
         """Rank in one Claude Code CLI request; the CLI has no tool loop (SRD-SCR-013.011)."""
         ai_config = AiConfig(claude_model=str(config.get("ai_model") or AiConfig().claude_model))
-        instruction = _claude_instruction(ai_query)
-        facts = (
+        instruction = _claude_instruction(ai_query) + _context_rule(config, lead="  ")
+        facts = _with_context(
             f"Symbols passing Stage 2: {', '.join(symbols)}\n\n"
-            f"Pre-extracted features:\n{_features_to_table(self.batch_features(symbols, bars))}"
+            f"Pre-extracted features:\n{_features_to_table(self.batch_features(symbols, bars))}",
+            config,
         )
         fallback = {sym: (True, 0.0) for sym in symbols}
         sent_iso = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -624,10 +642,11 @@ class CloudAIScreener:
         features = self.batch_features(symbols, bars)
         tool_executor = CandleToolExecutor(db, passing_symbols)
 
-        system_prompt = _tool_system_prompt(ai_query)
-        user_msg = (
+        system_prompt = _tool_system_prompt(ai_query) + _context_rule(config, lead="\n")
+        user_msg = _with_context(
             f"Symbols passing Stage 2: {', '.join(symbols)}\n\n"
-            f"Pre-extracted features:\n{_features_to_table(features)}"
+            f"Pre-extracted features:\n{_features_to_table(features)}",
+            config,
         )
         messages: list[dict[str, Any]] = [
             {"role": "system", "content": system_prompt},
@@ -812,6 +831,9 @@ class CloudAIScreener:
                 scores[sym] = 0.0
             reasoning = str(entry.get("reasoning", "")).strip()
             self.last_reasoning[sym] = _truncate_words(reasoning, _REASONING_MAX_WORDS)
+            tone = _news_tone(entry)
+            if tone is not None:
+                self.last_news_tone[sym] = tone
             plan = _plan_from_entry(entry)
             if plan:
                 self.last_plan[sym] = plan
@@ -860,6 +882,17 @@ def _tool_system_prompt(ai_query: str) -> str:
     )
 
 
+def _with_context(text: str, config: dict[str, Any]) -> str:
+    """``text`` followed by the STOCK CONTEXT block when the run has one (SRD-SCR-018.006)."""
+    block = str(config.get("ai_context_text") or "")
+    return f"{text}\n\n{block}" if block else text
+
+
+def _context_rule(config: dict[str, Any], lead: str = "") -> str:
+    """The flag-weighing rule, only when the run has a STOCK CONTEXT block."""
+    return f"{lead}{_CONTEXT_RULE}\n\n" if config.get("ai_context_text") else ""
+
+
 def _claude_instruction(ai_query: str) -> str:
     """Return the one-request ranking prompt for Claude Code CLI (no tools)."""
     goal = (
@@ -880,6 +913,14 @@ _RANKING_FORMAT: Final[str] = (
     "entry, stop and target are optional trade-plan prices; "
     "omit all three when there is no clear setup."
 )
+
+
+def _news_tone(entry: dict[str, Any]) -> float | None:
+    """The ranking record's ``news_tone`` clamped to [-1, 1], or None (SRD-SCR-019.003)."""
+    raw = entry.get("news_tone")
+    if isinstance(raw, bool) or not isinstance(raw, (int, float)) or not math.isfinite(raw):
+        return None
+    return max(-1.0, min(1.0, float(raw)))
 
 
 def _plan_from_entry(entry: dict[str, Any]) -> dict[str, float]:

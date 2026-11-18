@@ -1,9 +1,9 @@
 # Functional Objectives — Screener (SCR)
 
 **Document ID:** FO-SCR
-**Version:** 2.2.0
+**Version:** 2.4.0
 **Status:** Draft
-**Last Updated:** 2026-04-30
+**Last Updated:** 2026-11-18
 **Project:** US Swing Trading System
 
 > Traces to: `us_swing/requirements.md` §8, §12, §21.3, §22
@@ -316,3 +316,58 @@
   - With fewer than the minimum rally or drop days, the symbol fails.
   - With the location filter on, a symbol at the top of its range fails Accumulation; with it off, only the volume pattern decides.
   - A setting outside its allowed range is rejected with a clear error.
+
+---
+
+## FO-SCR-016: AI Ranking Stock Context (Phase 1)
+- **Status:** Approved (user, 2026-11-18)
+
+- The system shall give the Stage 3 AI ranking extra context for each stock that passed Stage 2: the next earnings date and the strength of its sector.
+- The system shall give the AI one market regime line built from SPY.
+- The system shall mark red flags per stock by fixed rules, so the same data always gives the same flags.
+- The AI shall weigh the flags itself and name them in its reasoning; code shall not change the AI's scores.
+- Each preset shall choose which context to use; with none chosen, Stage 3 shall work as before.
+- The context and flags shall be saved with each run result and shown in the screener result views.
+- News tone and web research are out of scope for this phase (Phase 2).
+- Backtests are out of scope; the context is fetched only for live screener runs.
+- **Acceptance Criteria:**
+  - A stock reporting in 3 days gets a red earnings flag; in 8 days a yellow level and no flag; in 23 days a green level.
+  - A stock whose sector ranks 10th of 11 against RSP over 1 month gets a red sector flag; 2nd of 11 is green.
+  - SPY above both its 50- and 200-day averages gives "risk-on"; below both "risk-off"; otherwise "mixed".
+  - When the earnings lookup fails, the run still completes and that stock has no earnings level.
+  - A preset with no context ticked sends the same prompt as today.
+
+---
+
+## FO-SCR-017: AI Ranking Stock Context (Phase 2 — News and Web Research)
+- **Status:** Approved (user, 2026-11-18)
+
+- The system shall give the Stage 3 AI up to 8 headline titles per stock from the last 5 days, and the AI shall return a news tone from -1 to +1 per stock in the same request.
+- A clearly negative news tone shall raise a red flag.
+- When chosen and the AI provider is Claude Code CLI, the system shall research each final pick on the web and show a short summary with source links.
+- Web research shall not change scores or order; a major risk it finds shall raise a red flag.
+- Each preset shall choose news and web research on their own, next to the phase 1 context choices.
+- A failed headline lookup or research run shall leave that part empty and the run shall complete.
+- Backtests are out of scope.
+- **Acceptance Criteria:**
+  - A stock with three negative headlines gets a tone near -0.6, a red news chip and a "Negative news" flag.
+  - With news ticked and Yahoo down, the run completes and no stock shows a news chip.
+  - With research ticked and Top N 5, five summaries appear; one that reports a share offering adds "Research: share offering".
+  - Research cannot be saved on a preset whose provider is OpenRouter.
+
+## FO-SCR-018: AI Ranking Stock Context (Phase 3 — Company Data and Bull vs Bear Review)
+- **Status:** Approved (user, 2026-11-18)
+
+- The system shall offer four more context choices for the Stage 3 AI: last earnings surprise, fundamentals, short interest and analyst changes, each chosen on its own per preset.
+- These facts shall come from Yahoo Finance, be cached once per stock per day, and go into the same single ranking request.
+- An EPS miss, short interest above 20% of float and a downgrade in the last 7 days shall each raise a red flag; fundamentals are shown only.
+- When chosen and the AI provider is Claude Code CLI, the system shall give each final pick a blind bull vs bear review: the reviewer sees only facts, never the ranking score, rank, reason, news tone or Query.
+- The review shall return bull points, bear points, a verdict (Long, Short, Wait or Avoid) and a confidence; Wait or Avoid shall raise a red flag; scores and order do not change.
+- A failed lookup or review shall leave that part empty and the run shall complete.
+- Backtests are out of scope.
+- **Acceptance Criteria:**
+  - A stock whose last EPS was 3.5% under the estimate shows a red "EPS miss -3.5%" tag and flag.
+  - A stock with 24% of float sold short gets the flag "High short interest (24% of float)".
+  - A stock downgraded 2 days ago gets the flag "1 downgrade"; one only upgraded gets a green tag.
+  - With Bull vs bear ticked and Top N 5, five reviews appear; the review request text contains no AI score or rank.
+  - Bull vs bear cannot be saved on a preset whose provider is OpenRouter.

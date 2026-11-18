@@ -10,6 +10,7 @@
 > v1.2.0: MD-INF-010.001.M01–M07 added — Telegram Notification Service (`core/notifications/`).
 > v1.3.0: MD-INF-010.001.M08–M09 added — app wiring (keychain token store + notification worker thread).
 > v1.6.0: MD-INF-012.* added — Daily Telegram Briefs.
+> v1.6.0: MD-INF-011.001.M01 — `AiConfig.claude_tools` lets one request use only web search (SRD-INF-011.004, for FO-SCR-017).
 > v1.5.0: MD-INF-011.001.M01 added — AI Notes Client.
 > v1.4.0: M04 now enforces per-event toggles (adds SRD-INF-010.006); M09 extended with AppService per-event config mapping + guarded day-end trigger.
 

@@ -1,5 +1,6 @@
 """Module: MD-SCR-003.001.M10 — screener/executor.py
-Parent SRD: SRD-SCR-003.001–008, SRD-SCR-013.006, SRD-SCR-013.007, SRD-SCR-004.009
+Parent SRD: SRD-SCR-003.001–008, SRD-SCR-013.006, SRD-SCR-013.007, SRD-SCR-004.009,
+            SRD-SCR-020.002, SRD-SCR-020.007 – SRD-SCR-020.009
 
 PresetExecutor — orchestrates the 3-stage screening pipeline:
   Stage 1: PreFilter (price > $5, volume > 1 M)
@@ -12,9 +13,27 @@ from __future__ import annotations
 import concurrent.futures
 import logging
 import time
-from datetime import datetime, timezone
+from collections.abc import Mapping, Sequence
+from datetime import date, datetime, timezone
 from typing import Any, Callable, Final
 
+from us_swing.core.stock_context import (
+    COMPANY_KINDS,
+    CompanyFacts,
+    CompanyLookup,
+    EarningsLookup,
+    Headline,
+    NewsLookup,
+    Research,
+    ReviewRun,
+    apply_news_tone,
+    build_context,
+    context_text,
+    price_line,
+    research_picks,
+    review_facts,
+    review_picks,
+)
 from us_swing.screener.base import ScreenerExecutionError
 from us_swing.screener.preset import GroupLogic, Preset, PresetType
 from us_swing.screener.registry import ScreenerRegistry
@@ -56,8 +75,21 @@ class PresetExecutor:
         registry: ScreenerRegistry | None = None,
         max_workers: int = 4,
         notify: Callable[[str, str], None] | None = None,
+        earnings_lookup: Callable[[list[str], date], Mapping[str, date | None]] | None = None,
+        news_lookup: Callable[[list[str], datetime], Mapping[str, Sequence[Headline]]]
+        | None = None,
+        research_runner: Callable[[list[str], str, date], Mapping[str, Research]] | None = None,
+        company_lookup: Callable[[list[str], list[str], date], Mapping[str, CompanyFacts]]
+        | None = None,
+        review_runner: Callable[[Mapping[str, str], str], Mapping[str, ReviewRun]]
+        | None = None,
     ) -> None:
         self._db = db  # Any: duck-typed — must expose fetch_bars(symbols) -> dict
+        self._earnings_lookup = earnings_lookup
+        self._news_lookup = news_lookup
+        self._research_runner = research_runner
+        self._company_lookup = company_lookup
+        self._review_runner = review_runner
         self._app_service = app_service
         self._preset_manager = preset_manager
         self._storage = storage
@@ -81,6 +113,8 @@ class PresetExecutor:
         preset: Preset | None = None,
         market_caps: dict[str, float] | None = None,
         candle_date: str | None = None,
+        sectors: Mapping[str, str] | None = None,
+        context_closes: Mapping[str, Mapping[str, float]] | None = None,
     ) -> ScreenerRunResult:
         """Execute a preset and persist the result.
 
@@ -95,6 +129,9 @@ class PresetExecutor:
                          symbols when Stage 3 exceeds its input cap.
             candle_date: Last daily candle date of the screened data
                          ("YYYY-MM-DD"), saved with the result.
+            sectors: Symbol → GICS sector, for the AI sector context.
+            context_closes: Daily closes of the sector ETFs, RSP and SPY keyed by
+                            ISO date, for the AI sector and market context.
 
         Returns:
             ScreenerRunResult with only the passing symbols.
@@ -129,7 +166,7 @@ class PresetExecutor:
         ai_transcript: list[AITranscriptTurn] = []
         if preset.enable_llm_ranking:
             combined, ai_transcript = self._run_stage3(
-                preset, combined, bars, market_caps,
+                preset, combined, bars, market_caps, sectors, context_closes,
             )
 
         # --- Enrich passing symbols with per-filter details ----------------
@@ -355,6 +392,8 @@ class PresetExecutor:
         combined: dict[str, dict[str, Any]],
         bars: dict[str, list[Any]],
         market_caps: dict[str, float] | None = None,
+        sectors: Mapping[str, str] | None = None,
+        context_closes: Mapping[str, Mapping[str, float]] | None = None,
     ) -> tuple[dict[str, dict[str, Any]], list[AITranscriptTurn]]:
         """Re-rank Stage 2 passing symbols with CloudAIScreener.
 
@@ -398,6 +437,12 @@ class PresetExecutor:
             "db":               self._db,
             "passing_symbols":  set(passing),
         }
+        contexts: dict[str, Any] = {}
+        if preset.ai_context:
+            contexts, regime = self._stock_context(
+                preset, passing, sectors or {}, context_closes or {},
+            )
+            llm_config["ai_context_text"] = context_text(contexts, regime)
         try:
             ranked = llm.apply(passing, bars, llm_config)
         except Exception as exc:
@@ -420,6 +465,8 @@ class PresetExecutor:
         transcript: list[AITranscriptTurn] = (
             raw_transcript if isinstance(raw_transcript, list) else []
         )
+        raw_tone = getattr(llm, "last_news_tone", None)
+        tones: dict[str, float] = raw_tone if isinstance(raw_tone, dict) else {}
 
         # Merge ranked scores back into result
         for sym, (passed, score) in ranked.items():
@@ -432,6 +479,10 @@ class PresetExecutor:
                 }
                 if sym in plans:
                     result[sym]["ai_plan"] = plans[sym]
+                if sym in contexts:
+                    ctx = apply_news_tone(contexts[sym], tones.get(sym))
+                    result[sym]["ai_context"] = ctx.to_dict()
+                    result[sym]["ai_flags"] = list(ctx.flags)
         # Keep only top-N passing symbols
         ranked_passing = sorted(
             [sym for sym, d in result.items() if d.get("passed", False)],
@@ -441,14 +492,105 @@ class PresetExecutor:
         for sym in list(result.keys()):
             if result[sym].get("passed", False) and sym not in ranked_passing:
                 result[sym] = {**result[sym], "passed": False}
+        claude = preset.ai_provider == "claude" and bool(ranked_passing)
+        research: Mapping[str, Research] = {}
+        if "research" in preset.ai_context and claude:
+            research = self._add_research(preset, ranked_passing, result, transcript)
+        if "review" in preset.ai_context and claude:
+            facts = {
+                sym: review_facts(sym, date.today(), _price_text(bars.get(sym, [])),
+                                  contexts.get(sym), research.get(sym))
+                for sym in ranked_passing
+            }
+            self._add_review(preset, facts, result, transcript)
         return result, transcript
 
     # ------------------------------------------------------------------
     # Helpers
     # ------------------------------------------------------------------
 
+    def _stock_context(
+        self,
+        preset: Preset,
+        passing: list[str],
+        sectors: Mapping[str, str],
+        closes: Mapping[str, Mapping[str, float]],
+    ) -> tuple[dict[str, Any], str]:
+        """Earnings, sector and market context for the Stage 3 stocks (SRD-SCR-018.002–.007)."""
+        today = date.today()
+        earnings: Mapping[str, date | None] = {}
+        if "earnings" in preset.ai_context:
+            lookup = self._earnings_lookup or EarningsLookup().next_dates
+            earnings = lookup(passing, today)
+        headlines: Mapping[str, Sequence[Headline]] = {}
+        if "news" in preset.ai_context:
+            news_lookup = self._news_lookup or NewsLookup().headlines
+            headlines = news_lookup(passing, datetime.now(timezone.utc))
+        company: Mapping[str, CompanyFacts] = {}
+        company_kinds = [kind for kind in preset.ai_context if kind in COMPANY_KINDS]
+        if company_kinds:
+            company_lookup = self._company_lookup or CompanyLookup().facts
+            company = company_lookup(passing, company_kinds, today)
+        return build_context(passing, preset.ai_context, sectors, closes, earnings, today,
+                             headlines=headlines, company=company)
+
+    def _add_research(
+        self,
+        preset: Preset,
+        picks: list[str],
+        result: dict[str, dict[str, Any]],
+        transcript: list[AITranscriptTurn],
+    ) -> Mapping[str, Research]:
+        """Web research for the final picks; a major risk adds a flag (SRD-SCR-019.005–.007)."""
+        _log.info("[Screener] Web research for %d stock(s) started", len(picks))
+        runner = self._research_runner or research_picks
+        found = runner(picks, preset.ai_model, date.today())
+        for sym, research in found.items():
+            if sym not in result:
+                continue
+            result[sym]["ai_research"] = research.to_dict()
+            if research.risk:
+                flags = list(result[sym].get("ai_flags", []))
+                result[sym]["ai_flags"] = [*flags, f"Research: {research.risk}"]
+        transcript.append(AITranscriptTurn(
+            role="system",
+            content=f"Web research done for {len(found)} of {len(picks)} stock(s).",
+        ))
+        return found
+
+    def _add_review(
+        self,
+        preset: Preset,
+        facts: Mapping[str, str],
+        result: dict[str, dict[str, Any]],
+        transcript: list[AITranscriptTurn],
+    ) -> None:
+        """Blind bull vs bear review; Wait or Avoid adds a flag (SRD-SCR-020.007–.009)."""
+        _log.info("[Screener] Bull vs bear review for %d stock(s) started", len(facts))
+        runner = self._review_runner or review_picks
+        runs = runner(facts, preset.ai_model)
+        for sym, run in runs.items():
+            transcript.append(AITranscriptTurn(
+                role="user", content=f"Bull vs bear · {sym}\n{run.facts}",
+            ))
+            transcript.append(AITranscriptTurn(
+                role="assistant", content=run.reply,
+                response_time_ms=int(run.seconds * 1000),
+            ))
+            if run.review is None or sym not in result:
+                continue
+            result[sym]["ai_review"] = run.review.to_dict()
+            if run.review.verdict in ("Wait", "Avoid"):
+                flags = list(result[sym].get("ai_flags", []))
+                result[sym]["ai_flags"] = [*flags, f"Review: {run.review.verdict.lower()}"]
+
     def _get_registry(self) -> ScreenerRegistry:
         return self._registry if self._registry is not None else ScreenerRegistry()
 
     def _get_storage(self) -> ScreenerResultsStorage:
         return self._storage if self._storage is not None else ScreenerResultsStorage()
+
+
+def _price_text(bars: Sequence[Any]) -> str:
+    """Price line for the review from Stage 3 daily bars."""
+    return price_line([b.close for b in bars], [b.high for b in bars], [b.low for b in bars])

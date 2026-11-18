@@ -1,6 +1,6 @@
 """
 Module: MD-INF-011.001.M01 — AI Notes Client
-Parent SRD: SRD-INF-011.001
+Parent SRD: SRD-INF-011.001, SRD-INF-011.004
 
 Sends one short request to the user's default AI, Claude Code CLI or OpenRouter, and
 tries the other provider when AI Fallback is on. Sync: callers run it off the GUI thread.
@@ -25,6 +25,8 @@ _log = logging.getLogger(__name__)
 
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 _NAMES = {"claude": "Claude Code CLI", "openrouter": "OpenRouter"}
+# Built-in CLI tools a caller may switch on for one request (SRD-INF-011.004).
+_ALLOWED_TOOLS = frozenset({"WebSearch"})
 
 
 @dataclass(frozen=True, slots=True)
@@ -38,6 +40,7 @@ class AiConfig:
     openrouter_key: str = ""
     default: str = "claude"
     fallback: bool = False
+    claude_tools: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -104,11 +107,14 @@ def _ask_claude(config: AiConfig, instruction: str, facts: str, timeout_s: float
     with tempfile.TemporaryDirectory(prefix="usswing_ai_") as work_dir:
         prompt_file = Path(work_dir) / "system_prompt.txt"
         prompt_file.write_text(instruction, encoding="utf-8")
+        tools = ",".join(t for t in config.claude_tools if t in _ALLOWED_TOOLS)
         command = [
-            exe, "-p", "--safe-mode", "--tools", "", "--system-prompt-file", str(prompt_file),
+            exe, "-p", "--safe-mode", "--tools", tools, "--system-prompt-file", str(prompt_file),
             "--model", config.claude_model, "--effort", "low", "--output-format", "json",
             "--no-session-persistence", "--permission-prompts", "none",
         ]
+        if tools:
+            command += ["--allowedTools", tools]
         stdout, stderr, code = _run_with_timeout(
             command, f"{instruction}\n\n{facts}", work_dir, env, timeout_s
         )

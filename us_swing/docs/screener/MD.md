@@ -6,6 +6,9 @@
 **Status:** Draft
 **Last Updated:** 2026-05-06
 **Project:** US Swing Trading System
+> v2.6.0: FO-SCR-018 modules M41 (`_company.py`), M42 (`_review.py`) added; M37, M10, M01 extended (SRD-SCR-020.001–.009).
+> v2.5.0: FO-SCR-017 modules M38 (`_news.py`), M39 (`_research.py`), M40 (`_cache.py`) added; M37, M06, M10, M01 extended (SRD-SCR-019.001–.007).
+> v2.4.0: FO-SCR-016 modules M35–M37 (`core/stock_context/`) added; M01, M06, M10 extended (SRD-SCR-018.001–.007).
 > v2.3.0: M01 `preset.py` gains `ai_provider` (SRD-SCR-013.010); M06 `cloud_ai.py` gains the Claude Code CLI path `_apply_claude()` and M10 `executor.py` passes `ai_provider` (SRD-SCR-013.011).
 
 ---
@@ -76,6 +79,22 @@ Package `src/us_swing/core/price_patterns/__init__.py` re-exports the public API
 | MD-SCR-017.013.M33 | SRD-SCR-017.013, .016–.018 | `src/us_swing/gui/acc_dist_settings_dialog.py` | Frameless form that edits every setting. | `AccDistSettingsDialog`, `get_config()` | `frameless_dialog.py`, `acc_dist.py` | Implemented |
 
 Registered as `acc_dist` in `src/us_swing/screener/__init__.py`. M33 opens from the builder's configure button and context menu in `gui/screener_panel.py` (display name "Acc / Dist").
+
+### Modules for FO-SCR-016 — AI Ranking Stock Context
+
+| Module ID | Parent SRD | File | Responsibility | Public API | Deps | Status |
+|---|---|---|---|---|---|---|
+| MD-SCR-018.004.M35 | SRD-SCR-018.004 | `src/us_swing/core/stock_context/_sector.py` | Sector ETF list, moves vs RSP, GICS → ETF map. | `sector_moves()`, `SECTOR_SYMBOLS`, `GICS_TO_ETF` | — | Implemented |
+| MD-SCR-018.002.M36 | SRD-SCR-018.002 | `src/us_swing/core/stock_context/_earnings.py` | Next earnings date per stock with a daily JSON cache. | `EarningsLookup` | `yfinance` | Implemented |
+| MD-SCR-018.003.M37 | SRD-SCR-018.003, .005, .006 | `src/us_swing/core/stock_context/_context.py` | Earnings and sector levels, flags, market regime, prompt text. | `StockContext`, `build_context()`, `market_regime()`, `context_text()` | M35 | Implemented |
+
+| MD-SCR-019.002.M38 | SRD-SCR-019.002 | `src/us_swing/core/stock_context/_news.py` | Recent headlines per stock with a daily cache. | `NewsLookup`, `Headline` | `yfinance`, M40 | Implemented |
+| MD-SCR-019.005.M39 | SRD-SCR-019.005, .006 | `src/us_swing/core/stock_context/_research.py` | Web research per final pick via Claude Code CLI, 3 at a time. | `research_picks()`, `Research` | `core.notifications` | Implemented |
+| MD-SCR-019.002.M40 | SRD-SCR-019.002, SRD-SCR-018.002 | `src/us_swing/core/stock_context/_cache.py` | Daily JSON cache shared by earnings and news. | `DailyCache` | — | Implemented |
+| MD-SCR-020.002.M41 | SRD-SCR-020.002 | `src/us_swing/core/stock_context/_company.py` | EPS surprise, fundamentals, short interest and analyst changes with a daily cache. | `CompanyLookup`, `CompanyFacts`, `AnalystChange` | `yfinance`, M40 | Implemented |
+| MD-SCR-020.007.M42 | SRD-SCR-020.007, .008 | `src/us_swing/core/stock_context/_review.py` | Blind bull vs bear review per final pick via Claude Code CLI, 3 at a time. | `review_picks()`, `review_facts()`, `Review` | `core.notifications`, M37 | Implemented |
+
+M01 `preset.py` gains `ai_context`; M10 `executor.py` builds and merges context; M06 `cloud_ai.py` adds the context block to every prompt path.
 
 > **Doc mismatch (record only, not fixed):** MD-SCR-007.011.M17 names `screener/gui/preset_builder.py`, but the preset builder is implemented as `_PresetBuilderDialog` in `src/us_swing/gui/screener_panel.py`. Found 2026-10-21 while scoping FO-SCR-013.
 

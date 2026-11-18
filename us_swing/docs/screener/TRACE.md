@@ -540,3 +540,41 @@ FO-011
 ---
 
 **Status:** v2.1.0 — FO-SCR-011 (Phase 1 AI Stock Ranking) traced through SRD/DD/MD/UTCD. All 22 new unit tests pass; GUI smoke deferred to Phase 5.
+
+## FO-SCR-016 Trace (AI Ranking Stock Context, Phase 1)
+
+| SRD | DD | MD | Test file | UT IDs | Status |
+|---|---|---|---|---|---|
+| SRD-018.001 | D01 | M01 | test_stock_context_screener.py | M01.T01–T02 | Implemented → Pass |
+| SRD-018.002 | D01 | M36 | test_stock_context.py | M36.T01–T03 | Implemented → Pass |
+| SRD-018.003 | D01 | M37 | test_stock_context.py | M37.T01 | Implemented → Pass |
+| SRD-018.004 | D01 | M35 | test_stock_context.py | M35.T01–T02 | Implemented → Pass |
+| SRD-018.005 | D01 | M37 | test_stock_context.py | .005.M37.T01 | Implemented → Pass |
+| SRD-018.006 | D01 | M37, M06 | test_stock_context.py, test_stock_context_screener.py | .006.M37.T01, M06.T01–T02 | Implemented → Pass |
+| SRD-018.007 | D01 | M10 | test_stock_context_screener.py | M10.T01–T02 | Implemented → Pass |
+
+## FO-SCR-017 Trace (AI Ranking News Tone and Web Research, Phase 2)
+
+| SRD | DD | MD | Test file | UT IDs | Status |
+|---|---|---|---|---|---|
+| SRD-019.001 | D01 | M01 | test_stock_context_screener.py | .001.M01.T01–T02 | Implemented → Pass |
+| SRD-019.002 | D01 | M38, M40 | test_stock_context.py | .002.M38.T01–T03 | Implemented → Pass |
+| SRD-019.003 | D01 | M37, M06 | test_stock_context.py, test_stock_context_screener.py | .003.M37.T01, .003.M06.T01–T02 | Implemented → Pass |
+| SRD-019.004 | D01 | M37 | test_stock_context.py | .004.M37.T01 | Implemented → Pass |
+| SRD-019.005 | D01 | M39 | test_stock_context.py | .005.M39.T01 | Implemented → Pass |
+| SRD-019.006 | D01 | M39 | test_stock_context.py | .006.M39.T01 | Implemented → Pass |
+| SRD-019.007 | D01 | M10 | test_stock_context_screener.py | .007.M10.T01–T02 | Implemented → Pass |
+
+## FO-SCR-018 Trace (AI Ranking Company Data and Bull vs Bear Review, Phase 3)
+
+| SRD | DD | MD | Test file | UT IDs | Status |
+|---|---|---|---|---|---|
+| SRD-020.001 | D01 | M01 | test_stock_context_screener.py | .001.M01.T01–T02 | Implemented → Pass |
+| SRD-020.002 | D01 | M41, M40 | test_stock_context_company.py | .002.M41.T01–T03 | Implemented → Pass |
+| SRD-020.003 | D01 | M37 | test_stock_context_company.py | .003.M37.T01 | Implemented → Pass |
+| SRD-020.004 | D01 | M37 | test_stock_context_company.py | .004.M37.T01 | Implemented → Pass |
+| SRD-020.005 | D01 | M37 | test_stock_context_company.py | .005.M37.T01 | Implemented → Pass |
+| SRD-020.006 | D01 | M37 | test_stock_context_company.py | .006.M37.T01 | Implemented → Pass |
+| SRD-020.007 | D01 | M42 | test_stock_context_company.py | .007.M42.T01 | Implemented → Pass |
+| SRD-020.008 | D01 | M42 | test_stock_context_company.py | .008.M42.T01–T02 | Implemented → Pass |
+| SRD-020.009 | D01 | M10 | test_stock_context_screener.py | .009.M10.T01–T02 | Implemented → Pass |

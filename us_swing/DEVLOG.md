@@ -2,6 +2,36 @@
 
 ---
 
+## [20261118] SCR + GUI — AI Ranking company data and bull vs bear review, phase 3 (FO-SCR-018)
+
+- Type: Feature (branch `feat/scr-ai-context`)
+- FO(s): FO-SCR-018 (SRD-SCR-020.001–.009), FO-GUI-022 (SRD-GUI-022.020–.021) — approved by user and Implemented
+- RN: RN-SCR-2.13.0-20261118
+- Rules (user answers): Option B one tick per item; review is a separate tick, blind (no ranking output), reviewer picks Long/Short/Wait/Avoid, any holding period, show only + flag; flags: short >20%, downgrade in 7 days, any EPS miss
+- Artifacts: FO, SRD, DD, MD, UTCD (17 rows), TRACE, TODO T209 open
+
+---
+
+## [20261118] SCR + GUI + INF — AI Ranking news tone and web research, phase 2 (FO-SCR-017)
+
+- Type: Feature (branch `feat/scr-ai-context`)
+- FO(s): FO-SCR-017 (SRD-SCR-019.001–.007), FO-GUI-022 (SRD-GUI-022.018–.019), FO-INF-011 (SRD-INF-011.004) — approved by user and Implemented
+- RN: RN-SCR-2.12.0-20261118
+- Rules (user answers): tone scored by the ranking AI in the same request; flag at ≤ -0.3; research show-only, all Top N, 3 at a time
+- Artifacts: FO, SRD, DD, MD, UTCD (17 rows), TRACE, TODO T207 done, T208 open
+
+---
+
+## [20261118] SCR + GUI — AI Ranking stock context, phase 1 (FO-SCR-016)
+
+- Type: Feature (branch `feat/scr-ai-context`)
+- FO(s): FO-SCR-016 (SRD-SCR-018.001–.007), FO-GUI-022 (SRD-GUI-022.016–.017) — approved by user and Implemented
+- RN: RN-SCR-2.11.0-20261118
+- Rules (user answers): earnings red ≤5 days, yellow 6–10; sector 1-month rank vs RSP, bottom 3 flagged; regime SPY vs 50/200-day; AI weighs flags, no code penalty
+- Artifacts: FO, SRD, DD, MD, UTCD (17 rows), TRACE, TODO T206–T207
+
+---
+
 ## [20261118] SCR + GUI — AI Provider choice for AI Ranking (FO-SCR-011, FO-GUI-022)
 
 - Type: Feature (batch branch `fix/bugfix-batch-20261118`, commit 0d4a83be)

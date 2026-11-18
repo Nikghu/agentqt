@@ -1,6 +1,6 @@
 """
 Module: MD-GUI-003.001.M01 — screener_panel.py  (v2 — Phase 5 GUI integration)
-Parent SRD: SRD-SCR-007.001–012, SRD-SCR-004.007, SRD-GUI-022.014
+Parent SRD: SRD-SCR-007.001–012, SRD-SCR-004.007, SRD-GUI-022.014, SRD-GUI-022.016, SRD-GUI-022.018
 
 Screener Panel — Preset-based v2 (layout: SRD-GUI-022.008–.012):
   ┌──────────────────────┬───────────────────────────────────────────────────┐
@@ -43,6 +43,7 @@ from PyQt6.QtWidgets import (
     QDoubleSpinBox,
     QFileDialog,
     QFrame,
+    QGridLayout,
     QGroupBox,
     QHBoxLayout,
     QLabel,
@@ -66,6 +67,7 @@ from us_swing.gui.ai_settings_block import CLAUDE_MODELS
 from us_swing.gui.ai_transcript_panel import AITranscriptPanel
 from us_swing.core.indicator_rules import config_summary
 from us_swing.core.notifications import AiConfig, ask_ai
+from us_swing.core.stock_context import REGIME_SYMBOL, SECTOR_SYMBOLS
 from us_swing.core.price_patterns import pattern_config_summary
 from us_swing.gui.app_service import AppService
 from us_swing.gui.cards import GAP, card, gutter
@@ -101,6 +103,9 @@ from us_swing.screener.screeners._cloud_ai_models import (
     ALL_MODEL_PRESETS as _CLOUD_AI_ALL_MODELS,
     DEFAULT_MODEL as _CLOUD_AI_DEFAULT_MODEL,
 )
+
+# Daily closes read for the AI market context: SPY's 200-day average needs 200 (SRD-SCR-018.005).
+_CONTEXT_CLOSE_DAYS = 210
 
 # AI Ranking provider id → default model and model hint (SRD-GUI-022.014).
 _AI_DEFAULT_MODELS: dict[str, str] = {
@@ -280,6 +285,10 @@ class _PresetRunWorker(QThread):
                 bars=bars,
                 market_caps=market_caps,
                 candle_date=last_candle.isoformat() if last_candle else None,
+                sectors={r.symbol: r.sector for r in (universe or [])},
+                context_closes=self._svc.get_daily_closes(
+                    (*SECTOR_SYMBOLS, REGIME_SYMBOL), _CONTEXT_CLOSE_DAYS,
+                ),
             )
             self.finished.emit(result)
         except Exception as exc:  # noqa: BLE001
@@ -1158,6 +1167,48 @@ class _PresetBuilderDialog(_FramelessDialog):
         query_vl.addWidget(self._ai_query_field)
         ai_rows_vl.addLayout(query_vl)
 
+        # Extra context for the AI (SRD-GUI-022.016, SRD-GUI-022.020)
+        ctx_vl = QVBoxLayout()
+        ctx_vl.setSpacing(4)
+        ctx_vl.addWidget(self._lbl("Extra context for the AI"))
+        self._ai_ctx_checks: dict[str, QCheckBox] = {}
+        groups = (
+            ("Stock data", (
+                ("earnings", "Earnings date"), ("surprise", "Earnings surprise"),
+                ("sector", "Sector strength"), ("news", "News tone"),
+                ("fundamentals", "Fundamentals"), ("short", "Short interest"),
+                ("analysts", "Analyst changes"),
+            )),
+            ("Top picks only (Claude Code CLI, slower)", (
+                ("research", "Web research for top picks"), ("review", "Bull vs bear review"),
+            )),
+        )
+        for title, ticks in groups:
+            group_lbl = QLabel(title)
+            group_lbl.setStyleSheet(f"font-size: 8pt; color: {_T.SUBTEXT};")
+            ctx_vl.addWidget(group_lbl)
+            grid = QGridLayout()
+            grid.setHorizontalSpacing(22)
+            grid.setVerticalSpacing(4)
+            for i, (kind, label) in enumerate(ticks):
+                check = QCheckBox(label)
+                check.setStyleSheet(f"color: {_T.TEXT}; font-size: 9pt;")
+                grid.addWidget(check, i // 4, i % 4)
+                self._ai_ctx_checks[kind] = check
+            grid.setColumnStretch(4, 1)
+            ctx_vl.addLayout(grid)
+        self._sync_research_tick()
+        ctx_hint = QLabel(
+            "Red flags: earnings within 5 days, an earnings miss, a sector in the bottom 3, "
+            "negative news, short interest above 20%, a downgrade this week, a major risk "
+            "found by web research, or a Wait / Avoid review. Top picks only adds about a "
+            "minute for every 3 top picks."
+        )
+        ctx_hint.setWordWrap(True)
+        ctx_hint.setStyleSheet(f"font-size: 8pt; color: {_T.MUTED};")
+        ctx_vl.addWidget(ctx_hint)
+        ai_rows_vl.addLayout(ctx_vl)
+
         ai_vl.addWidget(self._ai_ranking_row)
         self._ai_ranking_row.setVisible(False)
         # _ai_ranking_chk → toggled → dialog → _on_ai_ranking_toggled (show fields, grow dialog)
@@ -1431,6 +1482,9 @@ class _PresetBuilderDialog(_FramelessDialog):
         # AI Ranking (Stage 3) fields
         self._ai_ranking_chk.setChecked(getattr(preset, "enable_llm_ranking", False))
         self._ai_top_n.setValue(getattr(preset, "top_n", 5))
+        context = getattr(preset, "ai_context", [])
+        for kind, check in self._ai_ctx_checks.items():
+            check.setChecked(kind in context)
         provider_idx = self._ai_provider.findData(getattr(preset, "ai_provider", "openrouter"))
         self._ai_provider.setCurrentIndex(max(provider_idx, 0))
         _preset_model = getattr(preset, "ai_model", _CLOUD_AI_DEFAULT_MODEL) or _CLOUD_AI_DEFAULT_MODEL
@@ -1478,6 +1532,7 @@ class _PresetBuilderDialog(_FramelessDialog):
             self._ai_model_combo.currentText().strip() or _AI_DEFAULT_MODELS[ai_provider]
         )
         ai_query_stage3    = self._ai_query_field.text().strip()
+        ai_context         = [k for k, check in self._ai_ctx_checks.items() if check.isChecked()]
 
         if self._is_composite():
             groups = []
@@ -1507,6 +1562,7 @@ class _PresetBuilderDialog(_FramelessDialog):
                 ai_model=ai_model_stage3,
                 ai_query=ai_query_stage3,
                 ai_provider=ai_provider,
+                ai_context=ai_context,
             )
         else:
             refs = [
@@ -1531,6 +1587,7 @@ class _PresetBuilderDialog(_FramelessDialog):
                 ai_model=ai_model_stage3,
                 ai_query=ai_query_stage3,
                 ai_provider=ai_provider,
+                ai_context=ai_context,
             )
 
     def _validate(self) -> str | None:
@@ -1610,6 +1667,17 @@ class _PresetBuilderDialog(_FramelessDialog):
             model = _AI_DEFAULT_MODELS[provider]
         self._fill_ai_models(provider, model)
         self._ai_model_status_lbl.setText("")
+        self._sync_research_tick()
+
+    def _sync_research_tick(self) -> None:
+        """Web research and review run only on Claude Code CLI (SRD-GUI-022.018, .020)."""
+        on_claude = self._ai_provider.currentData() == "claude"
+        for kind in ("research", "review"):
+            check = self._ai_ctx_checks[kind]
+            if not on_claude:
+                check.setChecked(False)
+            check.setEnabled(on_claude)
+            check.setToolTip("" if on_claude else "Needs Claude Code CLI as the AI provider")
 
     def _fill_ai_models(self, provider: str, model: str) -> None:
         """List the provider's models (name as tooltip) and show ``model`` in the box."""
