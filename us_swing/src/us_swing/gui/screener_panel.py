@@ -37,6 +37,7 @@ from PyQt6.QtWidgets import (
     QButtonGroup,
     QCheckBox,
     QComboBox,
+    QCompleter,
     QDialog,
     QDialogButtonBox,
     QDoubleSpinBox,
@@ -1126,6 +1127,17 @@ class _PresetBuilderDialog(_FramelessDialog):
         self._ai_model_combo.setEditable(True)
         self._ai_model_combo.setInsertPolicy(QComboBox.InsertPolicy.NoInsert)
         self._fill_ai_models("openrouter", _CLOUD_AI_DEFAULT_MODEL)
+        completer = self._ai_model_combo.completer()
+        if completer is not None:
+            completer.setFilterMode(Qt.MatchFlag.MatchContains)
+            completer.setCompletionMode(QCompleter.CompletionMode.PopupCompletion)
+        self._ai_model_list_action = QAction(make_icon("chevron-down"), "Show models", self)
+        self._ai_model_list_action.triggered.connect(lambda: self._ai_model_combo.showPopup())
+        model_line = self._ai_model_combo.lineEdit()
+        if model_line is not None:
+            model_line.addAction(
+                self._ai_model_list_action, QLineEdit.ActionPosition.TrailingPosition
+            )
         self._ai_model_combo.editTextChanged.connect(self._on_model_text_changed)
         model_vl.addWidget(self._ai_model_combo)
         self._ai_model_status_lbl = QLabel("")

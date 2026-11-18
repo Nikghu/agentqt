@@ -10,7 +10,7 @@
 
 ## Summary
 
-AI Ranking can now use Claude Code CLI as well as OpenRouter. Each preset saves its AI Provider; old presets open as OpenRouter. With Claude Code CLI the stocks are ranked in one CLI request with the features and the Query (if any) in the prompt; the CLI cannot fetch extra candles, so the tool loop is OpenRouter only. A CLI failure or a bad answer gives the plain Stage 2 results with a note in the transcript. In Edit Preset the checkbox reads "Enable AI Ranking"; Top N, AI Provider and Model share one row and Query has its own row. Switching provider swaps in that provider's default model unless the user typed their own; Validate checks the chosen provider answers. The Model box is a dropdown of the chosen provider's models (OpenRouter list with your custom models, or Sonnet / Haiku / Opus 5.5 for Claude) and still takes a typed ID.
+AI Ranking can now use Claude Code CLI as well as OpenRouter. Each preset saves its AI Provider; old presets open as OpenRouter. With Claude Code CLI the stocks are ranked in one CLI request with the features and the Query (if any) in the prompt; the CLI cannot fetch extra candles, so the tool loop is OpenRouter only. A CLI failure or a bad answer gives the plain Stage 2 results with a note in the transcript. In Edit Preset the checkbox reads "Enable AI Ranking"; Top N, AI Provider and Model share one row and Query has its own row. Switching provider swaps in that provider's default model unless the user typed their own; Validate checks the chosen provider answers. The Model box is a dropdown of the chosen provider's models (OpenRouter list with your custom models, or Sonnet / Haiku / Opus 5.5 for Claude) and still takes a typed ID; a chevron in the box opens the list (the app theme draws combos without an arrow) and typing shows matching models.
 
 ---
 
@@ -38,7 +38,7 @@ AI Ranking can now use Claude Code CLI as well as OpenRouter. Each preset saves 
 
 ## Tests
 
-8 new UT cases Pass (UT-SCR-013.010.M01.T01–T02, .011.M06.T01–T02, .011.M10.T01, UT-GUI-022.014.M01.T01–T02, UT-GUI-022.015.M01.T01). Ruff clean on new code; no new mypy errors. Layout checked by an offscreen screenshot.
+9 new UT cases Pass (UT-SCR-013.010.M01.T01–T02, .011.M06.T01–T02, .011.M10.T01, UT-GUI-022.014.M01.T01–T02, UT-GUI-022.015.M01.T01–T02). Ruff clean on new code; no new mypy errors. Layout checked by an offscreen screenshot.
 
 ## Known
 

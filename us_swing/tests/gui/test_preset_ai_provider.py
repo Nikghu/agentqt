@@ -1,5 +1,5 @@
 """Unit tests: MD-GUI-022.001.M01 — Edit Preset AI Provider choice.
-Refs: UT-GUI-022.014.M01.T01 – T02, UT-GUI-022.015.M01.T01
+Refs: UT-GUI-022.014.M01.T01 – T02, UT-GUI-022.015.M01.T01 – T02
 """
 from __future__ import annotations
 
@@ -58,3 +58,19 @@ def test_model_list_follows_provider(qtbot) -> None:  # type: ignore[no-untyped-
     combo.setEditText("claude-own-model")
     dlg._name.setText("AI preset")
     assert dlg._build_preset_from_ui().ai_model == "claude-own-model"
+
+
+def test_model_list_opens_from_chevron_and_typing(qtbot, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    """UT-GUI-022.015.M01.T02: Chevron opens the list; typing shows matching models."""
+    from PyQt6.QtCore import Qt
+    from PyQt6.QtWidgets import QCompleter
+
+    dlg = _dialog(qtbot)
+    combo = dlg._ai_model_combo
+    opened: list[bool] = []
+    monkeypatch.setattr(combo, "showPopup", lambda: opened.append(True))
+    dlg._ai_model_list_action.trigger()
+    assert opened == [True]
+    completer = combo.completer()
+    assert completer.filterMode() == Qt.MatchFlag.MatchContains
+    assert completer.completionMode() == QCompleter.CompletionMode.PopupCompletion
