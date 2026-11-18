@@ -26,7 +26,7 @@ Screener results for Accumulation / Distribution showed "RULES · 0 OF 3" with t
 
 | SRD ID | Description | Status |
 |---|---|---|
-| SRD-GUI-022.013 | Plain names for number-only details; numbers not counted as rules | Draft (code done; needs user approval) |
+| SRD-GUI-022.013 | Plain names for number-only details; numbers not counted as rules | Implemented (approved by user 2026-11-18) |
 
 ---
 

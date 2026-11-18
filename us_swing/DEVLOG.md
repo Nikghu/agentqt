@@ -5,7 +5,7 @@
 ## [20261118] GUI — Plain names for number-only screener details (FO-GUI-022)
 
 - Type: Improvement (batch branch `fix/bugfix-batch-20261118`)
-- FO(s): FO-GUI-022 (SRD-GUI-022.013, Draft)
+- FO(s): FO-GUI-022 (SRD-GUI-022.013, approved by user and Implemented)
 - RN: RN-GUI-2.2.0-20261118
 - Artifacts updated: SRD row, MD note, UTCD 2 rows (+ T01 of .011 updated), TRACE row, TODO T204
 - Cause: every detail was counted as a rule, so Acc / Dist numbers showed "RULES · 0 OF 3" with code names (user asked "what is UD")
