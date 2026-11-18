@@ -21,6 +21,7 @@ from PyQt6.QtCore import (
     QObject,
     QPoint,
     QPropertyAnimation,
+    QRect,
     QRectF,
     QSettings,
     QSize,
@@ -34,6 +35,8 @@ from PyQt6.QtWidgets import (
     QGridLayout,
     QHBoxLayout,
     QLabel,
+    QLayout,
+    QLayoutItem,
     QListWidget,
     QListWidgetItem,
     QMenu,
@@ -43,7 +46,13 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from us_swing.core.stock_context import earnings_when
+from us_swing.core.stock_context import (
+    StockContext,
+    earnings_when,
+    fundamentals_text,
+    short_text,
+    surprise_text,
+)
 from us_swing.data.market_calendar import ET
 from us_swing.gui.icons import icon, set_icon
 from us_swing.gui.theme import C, active_palette, colors
@@ -101,6 +110,10 @@ def _context_chips(context: Any) -> list[ContextChip]:
             shown = ""
         chips.append(ContextChip(f"Earnings {earnings_when(days)}{shown}",
                                  str(context.get("earnings_level", ""))))
+    surprise = context.get("eps_surprise_pct")
+    if isinstance(surprise, (int, float)):
+        chips.append(ContextChip(f"EPS {surprise_text(surprise)}",
+                                 _shown_level(context.get("surprise_level"))))
     rank, move = context.get("sector_rank"), context.get("sector_move_pct")
     if isinstance(rank, int) and isinstance(move, (int, float)):
         level = str(context.get("sector_level", ""))
@@ -116,10 +129,75 @@ def _context_chips(context: Any) -> list[ContextChip]:
                                  "" if level == "neutral" else level))
     elif news:
         chips.append(ContextChip(count))
+    chips += _company_chips(context)
     market = str(context.get("market", ""))
     if market in _MARKET_LEVELS:
         chips.append(ContextChip(f"Market {market}", _MARKET_LEVELS[market]))
     return chips
+
+
+def _shown_level(level: Any) -> str:
+    return "" if level in (None, "neutral") else str(level)
+
+
+def _company_chips(context: Mapping[str, Any]) -> list[ContextChip]:
+    """Fundamentals, short interest and analyst tags (SRD-GUI-022.021)."""
+    chips: list[ContextChip] = []
+    pe, growth = context.get("pe"), context.get("revenue_growth_pct")
+    parts = [f"P/E {pe:.0f}" if isinstance(pe, (int, float)) else "",
+             f"Rev {growth:+.0f}%" if isinstance(growth, (int, float)) else ""]
+    if any(parts):
+        chips.append(ContextChip(" · ".join(part for part in parts if part)))
+    short = context.get("short_pct")
+    if isinstance(short, (int, float)):
+        chips.append(ContextChip(f"Short {short:.0f}% of float",
+                                 _shown_level(context.get("short_level"))))
+    actions = [str(c.get("action", "")) for c in context.get("analyst_changes") or []
+               if isinstance(c, Mapping)]
+    ups, downs = actions.count("up"), actions.count("down")
+    if ups or downs:
+        chips.append(ContextChip(f"Analysts {ups} up · {downs} down",
+                                 _shown_level(context.get("analyst_level"))))
+    return chips
+
+
+def _fundamentals_line(context: Any) -> str:
+    """"revenue growth +62%, ... · short 1.1% of float, ..." from a saved ``ai_context``."""
+    if not isinstance(context, Mapping):
+        return ""
+    numbers = {key: context.get(key) for key in (
+        "revenue_growth_pct", "margin_pct", "pe", "debt_to_equity", "short_pct", "days_to_cover")}
+    known: dict[str, Any] = {k: v for k, v in numbers.items() if isinstance(v, (int, float))}
+    ctx = StockContext(**known)
+    text = " · ".join(part for part in (fundamentals_text(ctx), short_text(ctx)) if part)
+    return text[:1].upper() + text[1:]
+
+
+_ACTION_WORDS = {"up": "upgrade to", "down": "downgrade to", "main": "kept at",
+                 "init": "started at", "reit": "repeated"}
+
+
+def _analyst_lines(context: Any) -> list[str]:
+    """One line per saved analyst change, then the average target (SRD-GUI-022.021)."""
+    if not isinstance(context, Mapping):
+        return []
+    lines = []
+    for change in context.get("analyst_changes") or []:
+        if not isinstance(change, Mapping):
+            continue
+        try:
+            day = datetime.date.fromisoformat(str(change.get("day", ""))).strftime("%d %b")
+        except ValueError:
+            day = ""
+        action = str(change.get("action", ""))
+        words = f"{_ACTION_WORDS.get(action, action)} {change.get('grade', '')}".strip()
+        target = change.get("target")
+        tail = f" · target {target:.0f}" if isinstance(target, (int, float)) else ""
+        lines.append(" · ".join(p for p in (day, str(change.get("firm", "")), words) if p) + tail)
+    target_pct = context.get("analyst_target_pct")
+    if isinstance(target_pct, (int, float)):
+        lines.append(f"Average target {target_pct:+.0f}% vs price")
+    return lines
 
 
 def _saved_news(context: Any) -> list[Mapping[str, Any]]:
@@ -179,6 +257,9 @@ class ResultRow:
     flags: list[str] = field(default_factory=list)
     news: list[Mapping[str, Any]] = field(default_factory=list)
     research: Mapping[str, Any] = field(default_factory=dict)
+    fundamentals: str = ""
+    analysts: list[str] = field(default_factory=list)
+    review: Mapping[str, Any] = field(default_factory=dict)
 
     @property
     def flag_text(self) -> str:
@@ -278,6 +359,9 @@ def rows_from_result(results: Mapping[str, Mapping[str, Any]],
             flags=[str(flag) for flag in meta.get("ai_flags") or []],
             news=_saved_news(meta.get("ai_context")),
             research=meta.get("ai_research") or {},
+            fundamentals=_fundamentals_line(meta.get("ai_context")),
+            analysts=_analyst_lines(meta.get("ai_context")),
+            review=meta.get("ai_review") or {},
         ))
     rows.sort(key=lambda r: r.score, reverse=True)
     for rank, row in enumerate(rows, start=1):
@@ -510,6 +594,66 @@ def _action_button(text: str, icon_name: str, role: str) -> QPushButton:
     set_icon(button, icon_name, role, 14)
     button.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
     return button
+
+
+class _FlowLayout(QLayout):
+    """Left-to-right layout that wraps its widgets onto more lines when space runs out."""
+
+    def __init__(self, spacing: int = 6) -> None:
+        super().__init__()
+        self._items: list[QLayoutItem] = []
+        self.setSpacing(spacing)
+        self.setContentsMargins(0, 0, 0, 0)
+
+    def addItem(self, item: QLayoutItem | None) -> None:  # noqa: N802 — Qt override
+        if item is not None:
+            self._items.append(item)
+
+    def count(self) -> int:
+        return len(self._items)
+
+    def itemAt(self, index: int) -> QLayoutItem | None:  # noqa: N802 — Qt override
+        return self._items[index] if 0 <= index < len(self._items) else None
+
+    def takeAt(self, index: int) -> QLayoutItem | None:  # noqa: N802 — Qt override
+        return self._items.pop(index) if 0 <= index < len(self._items) else None
+
+    def expandingDirections(self) -> Qt.Orientation:  # noqa: N802 — Qt override
+        return Qt.Orientation.Horizontal
+
+    def hasHeightForWidth(self) -> bool:  # noqa: N802 — Qt override
+        return True
+
+    def heightForWidth(self, width: int) -> int:  # noqa: N802 — Qt override
+        return self._arrange(QRect(0, 0, width, 0), move=False)
+
+    def setGeometry(self, rect: QRect) -> None:  # noqa: N802 — Qt override
+        super().setGeometry(rect)
+        self._arrange(rect, move=True)
+
+    def sizeHint(self) -> QSize:  # noqa: N802 — Qt override
+        return self.minimumSize()
+
+    def minimumSize(self) -> QSize:  # noqa: N802 — Qt override
+        size = QSize()
+        for item in self._items:
+            size = size.expandedTo(item.minimumSize())
+        return size
+
+    def _arrange(self, outer: QRect, move: bool) -> int:
+        m = self.contentsMargins()
+        rect = outer.adjusted(m.left(), m.top(), -m.right(), -m.bottom())
+        x, y, line_h = rect.x(), rect.y(), 0
+        gap = self.spacing()
+        for item in self._items:
+            hint = item.sizeHint()
+            if x + hint.width() > rect.right() + 1 and line_h > 0:
+                x, y, line_h = rect.x(), y + line_h + gap, 0
+            if move:
+                item.setGeometry(QRect(QPoint(x, y), hint))
+            x += hint.width() + gap
+            line_h = max(line_h, hint.height())
+        return y + line_h - rect.y() + m.top() + m.bottom()
 
 
 def _clear_layout(layout: Any) -> None:
@@ -979,13 +1123,13 @@ class ListDetailView(QWidget):
         top.setSpacing(10)
         self.symbol_lbl = QLabel()
         self.symbol_lbl.setObjectName("detail_symbol")
-        top.addWidget(self.symbol_lbl)
+        top.addWidget(self.symbol_lbl, 0, Qt.AlignmentFlag.AlignTop)
         self._tier_slot = QHBoxLayout()
+        self._tier_slot.setContentsMargins(0, 7, 0, 0)
         top.addLayout(self._tier_slot)
-        self._chips_box = QHBoxLayout()
-        self._chips_box.setSpacing(6)
-        top.addLayout(self._chips_box)
-        top.addStretch(1)
+        self._chips_box = _FlowLayout(spacing=6)
+        self._chips_box.setContentsMargins(0, 7, 0, 0)
+        top.addLayout(self._chips_box, 1)
         title.addLayout(top)
         self.meta_lbl = _key_label("")
         title.addWidget(self.meta_lbl)
@@ -1077,6 +1221,20 @@ class ListDetailView(QWidget):
         self._news_box = QVBoxLayout()
         self._news_box.setSpacing(4)
         why_col.addLayout(self._news_box)
+        self.fundamentals_head = QLabel("FUNDAMENTALS")
+        self.fundamentals_head.setObjectName("view_head")
+        why_col.addSpacing(8)
+        why_col.addWidget(self.fundamentals_head)
+        self.fundamentals_lbl = QLabel()
+        self.fundamentals_lbl.setWordWrap(True)
+        why_col.addWidget(self.fundamentals_lbl)
+        self.analysts_head = QLabel("ANALYST CHANGES, LAST 30 DAYS")
+        self.analysts_head.setObjectName("view_head")
+        why_col.addSpacing(8)
+        why_col.addWidget(self.analysts_head)
+        self._analysts_box = QVBoxLayout()
+        self._analysts_box.setSpacing(4)
+        why_col.addLayout(self._analysts_box)
         why_col.addStretch(1)
         lower.addLayout(why_col, 3)
         body.addLayout(lower)
@@ -1099,6 +1257,26 @@ class ListDetailView(QWidget):
         research_vl.addWidget(self.research_links)
         self.research_box.hide()
         body.addWidget(self.research_box)
+        self.review_box = QFrame()
+        self.review_box.setObjectName("detail_plan")
+        review_vl = QVBoxLayout(self.review_box)
+        review_vl.setContentsMargins(16, 12, 16, 12)
+        review_vl.setSpacing(6)
+        review_head = QLabel("BULL VS BEAR")
+        review_head.setObjectName("view_head")
+        review_vl.addWidget(review_head)
+        self.review_bull_lbl = QLabel()
+        self.review_bear_lbl = QLabel()
+        self.review_verdict_lbl = QLabel()
+        for label in (self.review_bull_lbl, self.review_bear_lbl):
+            label.setTextFormat(Qt.TextFormat.RichText)
+        for label in (self.review_bull_lbl, self.review_bear_lbl, self.review_verdict_lbl):
+            label.setWordWrap(True)
+            label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+            review_vl.addWidget(label)
+        self.review_box.hide()
+        body.addWidget(self.review_box)
+        self._hide_company_sections()
         body.addStretch(1)
 
         scroll.setWidget(detail)
@@ -1147,9 +1325,11 @@ class ListDetailView(QWidget):
         _clear_layout(self._chips_box)
         _clear_layout(self._flags_box)
         _clear_layout(self._news_box)
+        _clear_layout(self._analysts_box)
         self.flags_head.hide()
         self.news_head.hide()
         self.research_box.hide()
+        self._hide_company_sections()
         if not 0 <= index < len(self._rows):
             self.symbol_lbl.setText("")
             self.meta_lbl.setText("")
@@ -1164,7 +1344,7 @@ class ListDetailView(QWidget):
             return False
         row = self._rows[index]
         self.symbol_lbl.setText(row.symbol)
-        self._tier_slot.addWidget(_tier_chip(row.tier))
+        self._tier_slot.addWidget(_tier_chip(row.tier), 0, Qt.AlignmentFlag.AlignTop)
         parts = [row.name] if row.name else []
         parts += [f"rank {row.rank} of {len(self._rows)}", f"AI score {row.score:.2f}"]
         self.meta_lbl.setText(" · ".join(parts))
@@ -1175,6 +1355,7 @@ class ListDetailView(QWidget):
             self._rules_box.addWidget(self._rule_line(rule, _T))
         self._fill_context(row, _T)
         self._fill_news_research(row, _T)
+        self._fill_company_review(row, _T)
         self.reasoning_lbl.setText(row.reasoning or "No AI reasoning for this run.")
         return True
 
@@ -1193,6 +1374,37 @@ class ListDetailView(QWidget):
             self.research_links.setText(_source_links(row.research.get("sources") or [],
                                                       palette.BLUE))
             self.research_box.show()
+
+    def _hide_company_sections(self) -> None:
+        for widget in (self.fundamentals_head, self.fundamentals_lbl, self.analysts_head,
+                       self.review_box):
+            widget.hide()
+
+    def _fill_company_review(self, row: ResultRow, palette: Any) -> None:
+        """Fundamentals line, Analyst changes list and Bull vs bear box (SRD-GUI-022.021)."""
+        if row.fundamentals:
+            self.fundamentals_lbl.setText(row.fundamentals)
+            self.fundamentals_head.show()
+            self.fundamentals_lbl.show()
+        for line in row.analysts:
+            self._analysts_box.addWidget(QLabel(line))
+        self.analysts_head.setVisible(bool(row.analysts))
+        verdict = str(row.review.get("verdict", ""))
+        if not verdict:
+            return
+        for label, key, mark, colour in ((self.review_bull_lbl, "bull", "▲", palette.GREEN),
+                                         (self.review_bear_lbl, "bear", "▼", palette.RED)):
+            points = [html.escape(str(p)) for p in row.review.get(key) or []]
+            label.setText("<br>".join(
+                f'<span style="color:{colour};">{mark}</span> {point}' for point in points))
+            label.setVisible(bool(points))
+        text = f"Verdict: {verdict} ({row.review.get('confidence', '')})"
+        if row.review.get("summary"):
+            text += f" — {row.review['summary']}"
+        if verdict in ("Wait", "Avoid"):
+            text += f"  ·  differs from the ranking (#{row.rank})"
+        self.review_verdict_lbl.setText(text)
+        self.review_box.show()
 
     def _fill_context(self, row: ResultRow, palette: Any) -> None:
         """Context chips under the name and the Red flags list (SRD-GUI-022.017)."""

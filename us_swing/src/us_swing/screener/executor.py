@@ -1,5 +1,6 @@
 """Module: MD-SCR-003.001.M10 — screener/executor.py
-Parent SRD: SRD-SCR-003.001–008, SRD-SCR-013.006, SRD-SCR-013.007, SRD-SCR-004.009
+Parent SRD: SRD-SCR-003.001–008, SRD-SCR-013.006, SRD-SCR-013.007, SRD-SCR-004.009,
+            SRD-SCR-020.002, SRD-SCR-020.007 – SRD-SCR-020.009
 
 PresetExecutor — orchestrates the 3-stage screening pipeline:
   Stage 1: PreFilter (price > $5, volume > 1 M)
@@ -17,14 +18,21 @@ from datetime import date, datetime, timezone
 from typing import Any, Callable, Final
 
 from us_swing.core.stock_context import (
+    COMPANY_KINDS,
+    CompanyFacts,
+    CompanyLookup,
     EarningsLookup,
     Headline,
     NewsLookup,
     Research,
+    ReviewRun,
     apply_news_tone,
     build_context,
     context_text,
+    price_line,
     research_picks,
+    review_facts,
+    review_picks,
 )
 from us_swing.screener.base import ScreenerExecutionError
 from us_swing.screener.preset import GroupLogic, Preset, PresetType
@@ -71,11 +79,17 @@ class PresetExecutor:
         news_lookup: Callable[[list[str], datetime], Mapping[str, Sequence[Headline]]]
         | None = None,
         research_runner: Callable[[list[str], str, date], Mapping[str, Research]] | None = None,
+        company_lookup: Callable[[list[str], list[str], date], Mapping[str, CompanyFacts]]
+        | None = None,
+        review_runner: Callable[[Mapping[str, str], str], Mapping[str, ReviewRun]]
+        | None = None,
     ) -> None:
         self._db = db  # Any: duck-typed — must expose fetch_bars(symbols) -> dict
         self._earnings_lookup = earnings_lookup
         self._news_lookup = news_lookup
         self._research_runner = research_runner
+        self._company_lookup = company_lookup
+        self._review_runner = review_runner
         self._app_service = app_service
         self._preset_manager = preset_manager
         self._storage = storage
@@ -478,8 +492,17 @@ class PresetExecutor:
         for sym in list(result.keys()):
             if result[sym].get("passed", False) and sym not in ranked_passing:
                 result[sym] = {**result[sym], "passed": False}
-        if "research" in preset.ai_context and preset.ai_provider == "claude" and ranked_passing:
-            self._add_research(preset, ranked_passing, result, transcript)
+        claude = preset.ai_provider == "claude" and bool(ranked_passing)
+        research: Mapping[str, Research] = {}
+        if "research" in preset.ai_context and claude:
+            research = self._add_research(preset, ranked_passing, result, transcript)
+        if "review" in preset.ai_context and claude:
+            facts = {
+                sym: review_facts(sym, date.today(), _price_text(bars.get(sym, [])),
+                                  contexts.get(sym), research.get(sym))
+                for sym in ranked_passing
+            }
+            self._add_review(preset, facts, result, transcript)
         return result, transcript
 
     # ------------------------------------------------------------------
@@ -503,8 +526,13 @@ class PresetExecutor:
         if "news" in preset.ai_context:
             news_lookup = self._news_lookup or NewsLookup().headlines
             headlines = news_lookup(passing, datetime.now(timezone.utc))
+        company: Mapping[str, CompanyFacts] = {}
+        company_kinds = [kind for kind in preset.ai_context if kind in COMPANY_KINDS]
+        if company_kinds:
+            company_lookup = self._company_lookup or CompanyLookup().facts
+            company = company_lookup(passing, company_kinds, today)
         return build_context(passing, preset.ai_context, sectors, closes, earnings, today,
-                             headlines=headlines)
+                             headlines=headlines, company=company)
 
     def _add_research(
         self,
@@ -512,7 +540,7 @@ class PresetExecutor:
         picks: list[str],
         result: dict[str, dict[str, Any]],
         transcript: list[AITranscriptTurn],
-    ) -> None:
+    ) -> Mapping[str, Research]:
         """Web research for the final picks; a major risk adds a flag (SRD-SCR-019.005–.007)."""
         _log.info("[Screener] Web research for %d stock(s) started", len(picks))
         runner = self._research_runner or research_picks
@@ -528,9 +556,41 @@ class PresetExecutor:
             role="system",
             content=f"Web research done for {len(found)} of {len(picks)} stock(s).",
         ))
+        return found
+
+    def _add_review(
+        self,
+        preset: Preset,
+        facts: Mapping[str, str],
+        result: dict[str, dict[str, Any]],
+        transcript: list[AITranscriptTurn],
+    ) -> None:
+        """Blind bull vs bear review; Wait or Avoid adds a flag (SRD-SCR-020.007–.009)."""
+        _log.info("[Screener] Bull vs bear review for %d stock(s) started", len(facts))
+        runner = self._review_runner or review_picks
+        runs = runner(facts, preset.ai_model)
+        for sym, run in runs.items():
+            transcript.append(AITranscriptTurn(
+                role="user", content=f"Bull vs bear · {sym}\n{run.facts}",
+            ))
+            transcript.append(AITranscriptTurn(
+                role="assistant", content=run.reply,
+                response_time_ms=int(run.seconds * 1000),
+            ))
+            if run.review is None or sym not in result:
+                continue
+            result[sym]["ai_review"] = run.review.to_dict()
+            if run.review.verdict in ("Wait", "Avoid"):
+                flags = list(result[sym].get("ai_flags", []))
+                result[sym]["ai_flags"] = [*flags, f"Review: {run.review.verdict.lower()}"]
 
     def _get_registry(self) -> ScreenerRegistry:
         return self._registry if self._registry is not None else ScreenerRegistry()
 
     def _get_storage(self) -> ScreenerResultsStorage:
         return self._storage if self._storage is not None else ScreenerResultsStorage()
+
+
+def _price_text(bars: Sequence[Any]) -> str:
+    """Price line for the review from Stage 3 daily bars."""
+    return price_line([b.close for b in bars], [b.high for b in bars], [b.low for b in bars])

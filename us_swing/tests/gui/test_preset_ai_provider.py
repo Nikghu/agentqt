@@ -1,6 +1,6 @@
 """Unit tests: MD-GUI-022.001.M01 — Edit Preset AI Provider choice.
 Refs: UT-GUI-022.014.M01.T01 – T02, UT-GUI-022.015.M01.T01 – T02, UT-GUI-022.016.M01.T01,
-      UT-GUI-022.018.M01.T01
+      UT-GUI-022.018.M01.T01, UT-GUI-022.020.M01.T01
 """
 from __future__ import annotations
 
@@ -102,3 +102,21 @@ def test_news_and_research_ticks(qtbot) -> None:  # type: ignore[no-untyped-def]
     assert dlg._build_preset_from_ui().ai_context == ["news", "research"]
     dlg._ai_provider.setCurrentIndex(dlg._ai_provider.findData("openrouter"))
     assert not research.isChecked() and not research.isEnabled()
+
+
+def test_two_tick_groups_and_review_needs_claude(qtbot) -> None:  # type: ignore[no-untyped-def]
+    """UT-GUI-022.020.M01.T01: Two tick groups; review only with Claude."""
+    dlg = _dialog(qtbot)
+    assert list(dlg._ai_ctx_checks) == [
+        "earnings", "surprise", "sector", "news", "fundamentals", "short", "analysts",
+        "research", "review",
+    ]
+    review = dlg._ai_ctx_checks["review"]
+    assert not review.isEnabled()
+    dlg._ai_provider.setCurrentIndex(dlg._ai_provider.findData("claude"))
+    for kind in ("short", "surprise", "review"):
+        dlg._ai_ctx_checks[kind].setChecked(True)
+    dlg._name.setText("AI preset")
+    assert dlg._build_preset_from_ui().ai_context == ["surprise", "short", "review"]
+    dlg._ai_provider.setCurrentIndex(dlg._ai_provider.findData("openrouter"))
+    assert not review.isChecked() and not review.isEnabled()

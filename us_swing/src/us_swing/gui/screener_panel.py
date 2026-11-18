@@ -43,6 +43,7 @@ from PyQt6.QtWidgets import (
     QDoubleSpinBox,
     QFileDialog,
     QFrame,
+    QGridLayout,
     QGroupBox,
     QHBoxLayout,
     QLabel,
@@ -1166,26 +1167,42 @@ class _PresetBuilderDialog(_FramelessDialog):
         query_vl.addWidget(self._ai_query_field)
         ai_rows_vl.addLayout(query_vl)
 
-        # Extra context for the AI (SRD-GUI-022.016)
+        # Extra context for the AI (SRD-GUI-022.016, SRD-GUI-022.020)
         ctx_vl = QVBoxLayout()
         ctx_vl.setSpacing(4)
         ctx_vl.addWidget(self._lbl("Extra context for the AI"))
-        ctx_hl = QHBoxLayout()
-        ctx_hl.setSpacing(22)
         self._ai_ctx_checks: dict[str, QCheckBox] = {}
-        for kind, label in (("earnings", "Earnings date"), ("sector", "Sector strength"),
-                            ("news", "News tone"), ("research", "Web research for top picks")):
-            check = QCheckBox(label)
-            check.setStyleSheet(f"color: {_T.TEXT}; font-size: 9pt;")
-            ctx_hl.addWidget(check)
-            self._ai_ctx_checks[kind] = check
-        ctx_hl.addStretch()
-        ctx_vl.addLayout(ctx_hl)
+        groups = (
+            ("Stock data", (
+                ("earnings", "Earnings date"), ("surprise", "Earnings surprise"),
+                ("sector", "Sector strength"), ("news", "News tone"),
+                ("fundamentals", "Fundamentals"), ("short", "Short interest"),
+                ("analysts", "Analyst changes"),
+            )),
+            ("Top picks only (Claude Code CLI, slower)", (
+                ("research", "Web research for top picks"), ("review", "Bull vs bear review"),
+            )),
+        )
+        for title, ticks in groups:
+            group_lbl = QLabel(title)
+            group_lbl.setStyleSheet(f"font-size: 8pt; color: {_T.SUBTEXT};")
+            ctx_vl.addWidget(group_lbl)
+            grid = QGridLayout()
+            grid.setHorizontalSpacing(22)
+            grid.setVerticalSpacing(4)
+            for i, (kind, label) in enumerate(ticks):
+                check = QCheckBox(label)
+                check.setStyleSheet(f"color: {_T.TEXT}; font-size: 9pt;")
+                grid.addWidget(check, i // 4, i % 4)
+                self._ai_ctx_checks[kind] = check
+            grid.setColumnStretch(4, 1)
+            ctx_vl.addLayout(grid)
         self._sync_research_tick()
         ctx_hint = QLabel(
-            "Red flags: earnings within 5 days, a sector in the bottom 3, negative news, "
-            "or a major risk found by web research. Web research needs Claude Code CLI "
-            "and adds about a minute for every 3 top picks."
+            "Red flags: earnings within 5 days, an earnings miss, a sector in the bottom 3, "
+            "negative news, short interest above 20%, a downgrade this week, a major risk "
+            "found by web research, or a Wait / Avoid review. Top picks only adds about a "
+            "minute for every 3 top picks."
         )
         ctx_hint.setWordWrap(True)
         ctx_hint.setStyleSheet(f"font-size: 8pt; color: {_T.MUTED};")
@@ -1653,13 +1670,14 @@ class _PresetBuilderDialog(_FramelessDialog):
         self._sync_research_tick()
 
     def _sync_research_tick(self) -> None:
-        """Web research runs only on Claude Code CLI (SRD-GUI-022.018)."""
-        research = self._ai_ctx_checks["research"]
+        """Web research and review run only on Claude Code CLI (SRD-GUI-022.018, .020)."""
         on_claude = self._ai_provider.currentData() == "claude"
-        if not on_claude:
-            research.setChecked(False)
-        research.setEnabled(on_claude)
-        research.setToolTip("" if on_claude else "Needs Claude Code CLI as the AI provider")
+        for kind in ("research", "review"):
+            check = self._ai_ctx_checks[kind]
+            if not on_claude:
+                check.setChecked(False)
+            check.setEnabled(on_claude)
+            check.setToolTip("" if on_claude else "Needs Claude Code CLI as the AI provider")
 
     def _fill_ai_models(self, provider: str, model: str) -> None:
         """List the provider's models (name as tooltip) and show ``model`` in the box."""

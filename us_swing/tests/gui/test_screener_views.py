@@ -500,3 +500,55 @@ def test_no_news_or_research_hidden(qtbot):
     qtbot.addWidget(view)
     view.load(rows_from_result({"NVDA": {"score": 0.8}}))
     assert view.news_head.isHidden() and view.research_box.isHidden()
+
+
+_COMPANY_RESULT = {"NVDA": {
+    "score": 0.8,
+    "ai_context": {
+        "eps_surprise_pct": -3.5, "surprise_level": "red",
+        "revenue_growth_pct": 62.0, "margin_pct": 55.0, "pe": 48.0, "debt_to_equity": 0.4,
+        "short_pct": 24.0, "days_to_cover": 1.3, "short_level": "red",
+        "analyst_changes": [
+            {"day": "2026-11-14", "firm": "Morgan Stanley", "action": "down",
+             "grade": "Equal Weight", "target": 150.0},
+            {"day": "2026-11-10", "firm": "Jefferies", "action": "main", "grade": "Buy",
+             "target": None},
+        ],
+        "analyst_target_pct": 14.0, "analyst_level": "red",
+    },
+    "ai_review": {"bull": ["Trend above 200-day"], "bear": ["Earnings in 3 days", "2 downgrades"],
+                  "verdict": "Wait", "confidence": "medium", "summary": "Let earnings pass"},
+}}
+
+
+def test_company_tags_and_sections(qtbot):
+    """UT-GUI-022.021.M01.T01: Company tags and sections."""
+    row = rows_from_result(_COMPANY_RESULT)[0]
+    assert [(c.text, c.level) for c in row.chips] == [
+        ("EPS miss -3.5%", "red"), ("P/E 48 · Rev +62%", ""),
+        ("Short 24% of float", "red"), ("Analysts 0 up · 1 down", "red"),
+    ]
+    view = ListDetailView()
+    qtbot.addWidget(view)
+    view.load([row])
+    assert not view.fundamentals_lbl.isHidden()
+    assert view.fundamentals_lbl.text().startswith("Revenue growth +62%")
+    assert "short 24.0% of float" in view.fundamentals_lbl.text()
+    lines = [view._analysts_box.itemAt(i).widget().text()
+             for i in range(view._analysts_box.count())]
+    assert lines == ["14 Nov · Morgan Stanley · downgrade to Equal Weight · target 150",
+                     "10 Nov · Jefferies · kept at Buy", "Average target +14% vs price"]
+    assert not view.review_box.isHidden()
+    assert "Trend above 200-day" in view.review_bull_lbl.text()
+    assert "2 downgrades" in view.review_bear_lbl.text()
+    assert view.review_verdict_lbl.text() == (
+        "Verdict: Wait (medium) — Let earnings pass  ·  differs from the ranking (#1)")
+
+
+def test_no_company_or_review_hidden(qtbot):
+    """UT-GUI-022.021.M01.T02: Nothing to show."""
+    view = ListDetailView()
+    qtbot.addWidget(view)
+    view.load(rows_from_result({"NVDA": {"score": 0.8}}))
+    assert view.fundamentals_lbl.isHidden() and view.analysts_head.isHidden()
+    assert view.review_box.isHidden()

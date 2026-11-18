@@ -1,6 +1,7 @@
 """Unit tests: AI Ranking stock context in preset.py, cloud_ai.py and executor.py.
 Refs: UT-SCR-018.001.M01.T01 – T02, UT-SCR-018.006.M06.T01 – T02, UT-SCR-018.007.M10.T01 – T02,
-      UT-SCR-019.001.M01.T01 – T02, UT-SCR-019.003.M06.T01 – T02, UT-SCR-019.007.M10.T01 – T02
+      UT-SCR-019.001.M01.T01 – T02, UT-SCR-019.003.M06.T01 – T02, UT-SCR-019.007.M10.T01 – T02,
+      UT-SCR-020.001.M01.T01 – T02, UT-SCR-020.009.M10.T01 – T02
 """
 from __future__ import annotations
 
@@ -14,7 +15,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from us_swing.core.notifications import AiAnswer
-from us_swing.core.stock_context import Headline, Research
+from us_swing.core.stock_context import CompanyFacts, Headline, Research, Review, ReviewRun
 from us_swing.screener.executor import PresetExecutor
 from us_swing.screener.preset import (
     Preset,
@@ -238,3 +239,73 @@ def test_research_not_run_unless_ticked(tmp_path: Path) -> None:
     result = executor.run_preset("ctx2", "u", symbols=SYMBOLS, bars=BARS)
     research.assert_not_called()
     assert all("ai_research" not in row for row in result.results.values())
+
+
+# ── Phase 3: company data and bull vs bear review (FO-SCR-018) ────────────────
+
+_PHASE3 = ["surprise", "fundamentals", "short", "analysts", "review"]
+
+
+def test_company_and_review_round_trip() -> None:
+    """UT-SCR-020.001.M01.T01: New choices round-trip."""
+    preset = _preset(ai_provider="claude", ai_model="claude-sonnet-5-5", ai_context=_PHASE3)
+    preset.validate()
+    assert Preset.from_dict(preset.to_dict()).ai_context == _PHASE3
+
+
+def test_review_needs_claude() -> None:
+    """UT-SCR-020.001.M01.T02: Review needs Claude Code CLI."""
+    with pytest.raises(PresetValidationError):
+        _preset(ai_context=["review"]).validate()
+
+
+def _phase3_executor(
+    tmp_path: Path, context: list[str], company: MagicMock, review: MagicMock,
+) -> PresetExecutor:
+    executor = _phase2_executor(tmp_path, context, MagicMock(return_value={}))
+    executor._company_lookup = company
+    executor._review_runner = review
+    return executor
+
+
+def _review_run(facts: Any, _model: str) -> dict[str, ReviewRun]:
+    verdicts = {"AAPL": "Avoid", "MSFT": "Long"}
+    return {
+        sym: ReviewRun(text, "{...}", Review(("up",), ("down",), verdicts[sym], "medium"), 2.5)
+        for sym, text in facts.items() if sym in verdicts
+    }
+
+
+def test_executor_saves_company_and_review(tmp_path: Path) -> None:
+    """UT-SCR-020.009.M10.T01: Executor saves facts, review, flag and transcript."""
+    company = MagicMock(return_value={
+        "AAPL": CompanyFacts(eps_surprise_pct=-3.5, short_pct=24.0, pe=30.0),
+    })
+    review = MagicMock(side_effect=_review_run)
+    executor = _phase3_executor(tmp_path, ["news", *_PHASE3], company, review)
+    result = executor.run_preset("ctx2", "u", symbols=SYMBOLS, bars=BARS)
+    assert sorted(company.call_args[0][1]) == ["analysts", "fundamentals", "short", "surprise"]
+    aapl = result.results["AAPL"]
+    assert aapl["ai_context"]["eps_surprise_pct"] == -3.5
+    assert aapl["ai_context"]["pe"] == 30.0
+    assert aapl["ai_review"]["verdict"] == "Avoid"
+    assert aapl["ai_flags"] == ["EPS miss -3.5%", "High short interest (24% of float)",
+                                "Negative news", "Review: avoid"]
+    assert "Review: long" not in result.results["MSFT"].get("ai_flags", [])
+    facts = review.call_args[0][0]["AAPL"]
+    assert "Price: close" in facts and "Last EPS: miss -3.5%" in facts
+    assert "Negative news" not in facts and "tone" not in facts and "score" not in facts.lower()
+    turns = [t for t in result.ai_transcript if t.content.startswith("Bull vs bear · ")]
+    assert len(turns) == 2
+    assert any(t.role == "assistant" and t.response_time_ms == 2500
+               for t in result.ai_transcript)
+
+
+def test_company_and_review_not_run_unless_ticked(tmp_path: Path) -> None:
+    """UT-SCR-020.009.M10.T02: Review and company lookup not run unless ticked."""
+    company, review = MagicMock(), MagicMock()
+    executor = _phase3_executor(tmp_path, ["news"], company, review)
+    result = executor.run_preset("ctx2", "u", symbols=SYMBOLS, bars=BARS)
+    company.assert_not_called()
+    review.assert_not_called()
+    assert all("ai_review" not in row for row in result.results.values())

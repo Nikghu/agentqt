@@ -1,5 +1,5 @@
 """Module: MD-SCR-001.001.M01 — preset.py
-Parent SRD: SRD-SCR-001.001–009, SRD-SCR-013.001
+Parent SRD: SRD-SCR-001.001–009, SRD-SCR-013.001, SRD-SCR-020.001
 
 Preset dataclass + data model, serialization (to_dict / from_dict),
 and structural validation (validate()).
@@ -28,7 +28,10 @@ _VALID_TIMEFRAMES: frozenset[str] = frozenset({"1d", "1w"})
 _AI_QUERY_MAX_LEN: int = 500
 _MODEL_RE = re.compile(r"^[a-z0-9_.\-]+/[a-z0-9_.\-]+$")
 _AI_PROVIDERS: frozenset[str] = frozenset({"openrouter", "claude"})
-_AI_CONTEXT_KINDS: frozenset[str] = frozenset({"earnings", "sector", "news", "research"})
+_AI_CONTEXT_KINDS: frozenset[str] = frozenset({
+    "earnings", "sector", "news", "research",
+    "surprise", "fundamentals", "short", "analysts", "review",
+})
 
 
 class PresetType(str, Enum):
@@ -106,8 +109,8 @@ class Preset:
     ai_model: str = _DEFAULT_AI_MODEL
     # SRD-SCR-013.010: "openrouter" or "claude" (Claude Code CLI).
     ai_provider: str = "openrouter"
-    # SRD-SCR-018.001 / SRD-SCR-019.001: extra AI context ("earnings", "sector", "news",
-    # "research").
+    # SRD-SCR-018.001 / SRD-SCR-019.001 / SRD-SCR-020.001: extra AI context ("earnings",
+    # "sector", "news", "research", "surprise", "fundamentals", "short", "analysts", "review").
     ai_context: list[str] = field(default_factory=list)
 
     # ------------------------------------------------------------------
@@ -186,6 +189,10 @@ class Preset:
         _validate_ai_context(self.ai_context)
         if "research" in self.ai_context and self.ai_provider != "claude":
             raise PresetValidationError("Web research needs Claude Code CLI as the AI provider.")
+        if "review" in self.ai_context and self.ai_provider != "claude":
+            raise PresetValidationError(
+                "Bull vs bear review needs Claude Code CLI as the AI provider."
+            )
         if self.ai_provider == "openrouter":
             _validate_ai_model(self.ai_model)
         if self.preset_type == PresetType.COMPOSITE:
