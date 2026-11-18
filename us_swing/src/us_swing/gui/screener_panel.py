@@ -542,7 +542,7 @@ class _GroupWidget(QFrame):
             self.changed.emit()
 
     def _open_acc_dist_config(self, sid: str) -> None:
-        dlg = AccDistSettingsDialog(self._configs.get(sid), parent=self)
+        dlg = AccDistSettingsDialog(self._configs.get(sid), parent=self.window())
         if dlg.exec() == QDialog.DialogCode.Accepted:
             self._configs[sid] = dlg.get_config()
             self.changed.emit()
@@ -667,7 +667,7 @@ class _WeightedRow(QFrame):
         if self._sid == _PRICE_ACTION_SCREENER_ID:
             dlg = PriceActionRulesDialog(self._config or None, parent=self)
         elif self._sid == _ACC_DIST_SCREENER_ID:
-            dlg = AccDistSettingsDialog(self._config or None, parent=self)
+            dlg = AccDistSettingsDialog(self._config or None, parent=self.window())
         else:
             dlg = IndicatorRulesDialog(self._config or None, parent=self)
         if dlg.exec() == QDialog.DialogCode.Accepted:
