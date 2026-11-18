@@ -1,6 +1,6 @@
 """
 Module: MD-SCR-017.013.M33 — Accumulation / Distribution Settings Dialog
-Parent SRD: SRD-SCR-017.013
+Parent SRD: SRD-SCR-017.013, SRD-SCR-017.016
 """
 from __future__ import annotations
 
@@ -22,6 +22,8 @@ from us_swing.screener.base import ScreenerValidationError
 from us_swing.screener.screeners.acc_dist import (
     ACCUMULATION,
     DISTRIBUTION,
+    FIXED_MOVE,
+    OWN_MOVE,
     SETTINGS,
     default_config,
     read_config,
@@ -33,6 +35,7 @@ _LABELS: dict[str, tuple[str, str]] = {
     "volume_period": ("Volume average", " days"),
     "high_factor": ("High volume ≥", "×"),
     "low_factor": ("Low volume ≤", "×"),
+    "move_factor": ("Move factor", "× normal"),
     "min_move_pct": ("Minimum move", " %"),
     "min_rally_days": ("Minimum rally days", ""),
     "min_drop_days": ("Minimum drop days", ""),
@@ -47,6 +50,7 @@ _LABELS: dict[str, tuple[str, str]] = {
 }
 
 _MODES = (("Accumulation", ACCUMULATION), ("Distribution", DISTRIBUTION))
+_MOVE_RULES = (("Stock's own move", OWN_MOVE), ("Fixed %", FIXED_MOVE))
 
 
 class AccDistSettingsDialog(FramelessDialog):
@@ -67,6 +71,16 @@ class AccDistSettingsDialog(FramelessDialog):
             self.mode_combo.addItem(label, mode)
         self.mode_combo.setCurrentIndex(0 if cfg["mode"] == ACCUMULATION else 1)
         form.addRow("Mode", self.mode_combo)
+        self.move_rule_combo = QComboBox()
+        for label, rule in _MOVE_RULES:
+            self.move_rule_combo.addItem(label, rule)
+        self.move_rule_combo.setCurrentIndex(0 if cfg["move_rule"] == OWN_MOVE else 1)
+        self.move_rule_combo.setToolTip(
+            "Stock's own move: a day counts when it moves at least the factor times the "
+            "stock's normal daily move over the volume average days.\n"
+            "Fixed %: a day counts when it moves at least the minimum move %."
+        )
+        form.addRow("Move rule", self.move_rule_combo)
 
         self.inputs: dict[str, QCheckBox | QSpinBox | QDoubleSpinBox] = {}
         for key, (default, lo, hi) in SETTINGS.items():
@@ -76,6 +90,16 @@ class AccDistSettingsDialog(FramelessDialog):
             form.addRow(label, widget)
         self.content_layout().addLayout(form)
         self.content_layout().addLayout(self._build_footer())
+
+        # move_rule_combo → currentIndexChanged → dialog → _sync_move_inputs
+        self.move_rule_combo.currentIndexChanged.connect(self._sync_move_inputs)
+        self._sync_move_inputs()
+
+    def _sync_move_inputs(self) -> None:
+        """Enable only the move input that the chosen move rule uses."""
+        own = self.move_rule_combo.currentData() == OWN_MOVE
+        self.inputs["move_factor"].setEnabled(own)
+        self.inputs["min_move_pct"].setEnabled(not own)
 
     @staticmethod
     def _make_input(
@@ -126,6 +150,7 @@ class AccDistSettingsDialog(FramelessDialog):
     def _reset(self) -> None:
         cfg = default_config()
         self.mode_combo.setCurrentIndex(0)
+        self.move_rule_combo.setCurrentIndex(0)
         for key, widget in self.inputs.items():
             if isinstance(widget, QCheckBox):
                 widget.setChecked(bool(cfg[key]))
@@ -134,7 +159,10 @@ class AccDistSettingsDialog(FramelessDialog):
 
     def get_config(self) -> dict[str, Any]:
         """Return the screener config dict for the current inputs."""
-        cfg: dict[str, Any] = {"mode": self.mode_combo.currentData()}
+        cfg: dict[str, Any] = {
+            "mode": self.mode_combo.currentData(),
+            "move_rule": self.move_rule_combo.currentData(),
+        }
         for key, widget in self.inputs.items():
             cfg[key] = widget.isChecked() if isinstance(widget, QCheckBox) else widget.value()
         return read_config(cfg)

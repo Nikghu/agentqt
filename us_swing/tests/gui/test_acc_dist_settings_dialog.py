@@ -56,6 +56,17 @@ def test_bad_config_and_reset(qtbot: QtBot) -> None:
     assert dlg.get_config() == default_config()
 
 
+def test_move_rule_input(qtbot: QtBot) -> None:
+    """UT-SCR-017.016.M33.T01: Move rule round trips and enables only the input it uses."""
+    dlg = _dialog(qtbot, {"min_move_pct": 0.8})
+    assert dlg.move_rule_combo.currentData() == "fixed"
+    assert dlg.inputs["min_move_pct"].isEnabled() and not dlg.inputs["move_factor"].isEnabled()
+    assert dlg.get_config()["move_rule"] == "fixed"
+    dlg.move_rule_combo.setCurrentIndex(0)
+    assert dlg.inputs["move_factor"].isEnabled() and not dlg.inputs["min_move_pct"].isEnabled()
+    assert dlg.get_config()["move_rule"] == "own"
+
+
 @pytest.fixture
 def panel_module(monkeypatch: pytest.MonkeyPatch) -> Iterator[types.ModuleType]:
     """Import screener_panel, stubbing QtWebEngineWidgets when its DLL cannot load."""

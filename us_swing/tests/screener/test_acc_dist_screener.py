@@ -151,6 +151,43 @@ def test_close_position_check() -> None:
     assert off_passed is True
 
 
+def _history_then_lookback(swing_pct: float) -> list[Any]:
+    """106 bars that swing ±``swing_pct`` % every day, then the same 20 lookback days."""
+    bars = []
+    up = 100.0 * (1 + swing_pct / 100.0)
+    for i in range(106):
+        o, c = (100.0, up) if i % 2 == 0 else (up, 100.0)
+        bars.append(_bar(o, c, 1_000_000.0))
+    return bars + _bars()[-20:]
+
+
+def test_own_move_rule_scales_with_stock() -> None:
+    """UT-SCR-017.014.M32.T01: The same 1–1.5 % days count for a calm stock, not a fast one."""
+    cfg = {"volume_period": 100, "location_filter": False}
+    calm_passed, calm_score = _run(_history_then_lookback(0.3), **cfg)
+    fast_passed, fast_score = _run(_history_then_lookback(4.0), **cfg)
+    assert calm_passed is True and calm_score > 0.6
+    assert (fast_passed, fast_score) == (False, 0.0)
+    assert _run(_history_then_lookback(4.0), move_factor=0.1, **cfg)[0] is True
+
+
+@pytest.mark.parametrize(("key", "value"), [("move_rule", "average"), ("move_factor", 3.0)])
+def test_bad_move_setting_raises(key: str, value: Any) -> None:
+    """UT-SCR-017.014.M32.T02: Unknown move rule or move factor out of range raises."""
+    with pytest.raises(ScreenerValidationError, match="move"):
+        read_config({key: value})
+
+
+def test_old_config_keeps_fixed_rule() -> None:
+    """UT-SCR-017.015.M32.T01: Configs saved with only a minimum move keep the fixed % rule."""
+    assert read_config({})["move_rule"] == "own"
+    assert read_config({"min_move_pct": 0.5})["move_rule"] == "fixed"
+    assert read_config({"min_move_pct": 0.5, "move_rule": "own"})["move_rule"] == "own"
+    passed, score = _run(_bars(), move_rule="fixed")
+    assert passed is True
+    assert score == pytest.approx((6 / 8 + 6 / 7) / 2, abs=1e-3)
+
+
 def test_min_days_and_short_history() -> None:
     """UT-SCR-017.011.M32.T01: Too few rally days fails; too few bars omits the symbol."""
     assert _run(_bars(), min_rally_days=9)[0] is False

@@ -545,6 +545,10 @@ Test files:
 | UT-SCR-017.013.M33.T03 | MD-SCR-017.013.M33 | Negative | Inputs are range-limited | lookback 999 | 120 | Pass |
 | UT-SCR-017.013.M33.T04 | MD-SCR-017.013.M33 | Edge | Bad saved config and Reset | mode `sideways`; edits then Reset | defaults both times | Pass |
 | UT-SCR-017.013.M33.T05 | MD-SCR-017.013.M33 | Positive | Builder wiring | group and weighted-row configure with an accepting dialog | display "Acc / Dist"; both store the returned config | Pass |
+| UT-SCR-017.014.M32.T01 | MD-SCR-017.001.M32 | Positive | Own move rule scales with the stock | same 1–1.5 % lookback days after ±0.3 % vs ±4 % history; volume period 100 | calm passes (score > 0.6); fast `(False, 0.0)`; fast passes at factor 0.1 | Pass |
+| UT-SCR-017.014.M32.T02 | MD-SCR-017.001.M32 | Negative | Bad move rule or factor raises (2 cases) | move rule `average`; move factor 3 | `ScreenerValidationError` | Pass |
+| UT-SCR-017.015.M32.T01 | MD-SCR-017.001.M32 | Edge | Old configs keep the fixed rule | `{}`; `{min_move_pct}`; both keys; fixed run on standard bars | own; fixed; own; same score as UT-SCR-017.006.M32.T01 | Pass |
+| UT-SCR-017.016.M33.T01 | MD-SCR-017.013.M33 | Positive | Move rule input | old config; switch to own | fixed with only Minimum move enabled; own with only Move factor enabled | Pass |
 
 SRD-SCR-017.005 (relative volume) and .007 (score) are covered by T01 / T03 of .006 and T01 of .008.
 

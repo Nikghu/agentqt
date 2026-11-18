@@ -1659,7 +1659,7 @@ The registry id stays `price_action`. The module no longer imports `us_swing.ana
 ## DD-SCR-017.002.D01 — Accumulation / Distribution Screener
 - **Status:** Draft
 
-**Parent SRDs:** SRD-SCR-017.001 through SRD-SCR-017.013
+**Parent SRDs:** SRD-SCR-017.001 through SRD-SCR-017.016
 
 ### Settings (`SETTINGS`, key → default, min, max)
 
@@ -1673,11 +1673,14 @@ The registry id stays `price_action`. The module no longer imports `us_swing.ana
 | `min_rally_days` | 3 | 1–60 | `close_zone_pct` | 30 | 10–50 |
 | `min_drop_days` | 3 | 1–60 | `min_score` | 0.6 | 0–1 |
 | `min_ud_ratio` | 1.3 | 1.0–5.0 | `mode` | `accumulation` | `accumulation` / `distribution` |
+| `move_factor` | 0.5 | 0.1–2.0 | `move_rule` | `own` | `own` / `fixed` |
 
-`read_config()` merges the saved dict over the defaults, ignores unknown keys, casts int / float / bool by the default's type and raises `ScreenerValidationError` naming the key for a bad mode or out-of-range value.
+`read_config()` merges the saved dict over the defaults, ignores unknown keys, casts int / float / bool by the default's type and raises `ScreenerValidationError` naming the key for a bad mode, bad move rule or out-of-range value. A saved dict that has `min_move_pct` but no `move_rule` (saved before 2026-11-18) reads as `move_rule = fixed`, so old presets keep their results.
 
 ### `_evaluate(arrays, cfg)` for the last `n = lookback` bars
-1. `change % = close[i] / close[i-1] − 1`. Rally: `change > 0` and `≥ min_move_pct`. Drop: `change < 0` and `≤ −min_move_pct`. Other days are flat and not scored.
+1. `change % = close[i] / close[i-1] − 1`. Rally: `change > 0` and `≥ min_move`. Drop: `change < 0` and `≤ −min_move`. Other days are flat and not scored.
+   - `fixed`: `min_move = min_move_pct` for every day.
+   - `own`: `min_move[i] = move_factor × mean(|change|)` over the `volume_period` days before day `i` (day `i` excluded, the same window rule as relative volume). Built with one cumulative sum: `(csum[i] − csum[i − period]) / period`. The bar minimum `lookback + volume_period + 1` already covers this window.
 2. `ratio = volume_ratio(volume, volume_period)` (volume ÷ mean of the previous `volume_period` bars, today excluded).
 3. `high = ratio ≥ high_factor`, `low = ratio ≤ low_factor`.
 4. Close position (if on): `pos = (close − low) / (high − low)` (0.5 when the candle has no range). Accumulation needs `pos ≥ 1 − zone`; Distribution needs `pos ≤ zone`.
@@ -1690,7 +1693,7 @@ The registry id stays `price_action`. The module no longer imports `us_swing.ana
 Symbols with fewer than `lookback + volume_period + 1` bars are left out. `screen_detailed()` returns `RallyVol` / `DropVol` (mean relative volume on rally / drop days) and `UD`, which the Details column shows as numbers.
 
 ### Settings dialog
-`AccDistSettingsDialog(config)` is a `FramelessDialog` with a mode combo and one input per `SETTINGS` key: a checkbox for on/off keys, a range-limited spin box for the others. A config that fails `read_config()` opens with defaults. Reset restores defaults; `get_config()` returns `read_config()` of the inputs.
+`AccDistSettingsDialog(config)` is a `FramelessDialog` with a mode combo, a Move rule combo ("Stock's own move" / "Fixed %"; only `move_factor` or only `min_move_pct` is enabled to match) and one input per `SETTINGS` key: a checkbox for on/off keys, a range-limited spin box for the others. A config that fails `read_config()` opens with defaults. Reset restores defaults; `get_config()` returns `read_config()` of the inputs.
 
 ---
 

@@ -2,6 +2,17 @@
 
 ---
 
+## [20261118] SCR — Acc / Dist move rule: stock's own move or fixed % (FO-SCR-015)
+
+- Type: Feature
+- FO(s): FO-SCR-015 (SRD-SCR-017.014–.016, Draft)
+- RN: RN-SCR-2.8.0-20261118
+- Artifacts updated: SRD (3 rows), DD-SCR-017.002.D01, MD rows M32/M33, UTCD 4 rows, TRACE, TODO T202
+- Decisions (user): a fixed minimum move is unfair across calm and fast stocks; use each stock's own normal move. Claude chose mean absolute close-to-close % change over the previous volume-period days (not ATR), factor 0.5, old presets kept on fixed
+- Branch: same as the Telegram fix (user's call); future small fixes go on one shared bug-fix branch
+
+---
+
 ## [20261117] GUI — Manual screener run sends no Telegram message (ISS-GUI-0021)
 
 - Type: Fix
