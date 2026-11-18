@@ -1,7 +1,9 @@
 """Module: MD-SCR-017.001.M32 — screeners/acc_dist.py
-Parent SRD: SRD-SCR-017.001–.012
+Parent SRD: SRD-SCR-017.001–.012, SRD-SCR-017.014–.015, SRD-SCR-017.018
 
 AccDistScreener: reads the volume behind recent rallies and drops on daily bars.
+A rally or drop day must move at least a set part of the stock's own normal daily
+move (or a fixed %, for older presets).
 
 Accumulation = rallies on high volume, drops on low volume (near the range low).
 Distribution = rallies on low volume, drops on high volume (near the range high).
@@ -26,12 +28,17 @@ ACCUMULATION = "accumulation"
 DISTRIBUTION = "distribution"
 MODES = (ACCUMULATION, DISTRIBUTION)
 
+OWN_MOVE = "own"
+FIXED_MOVE = "fixed"
+MOVE_RULES = (OWN_MOVE, FIXED_MOVE)
+
 # key → (default, min, max); a bool default marks an on/off setting.
 SETTINGS: dict[str, tuple[Any, float, float]] = {
     "lookback": (20, 5, 120),
     "volume_period": (20, 5, 100),
     "high_factor": (1.2, 1.0, 5.0),
     "low_factor": (0.9, 0.1, 1.0),
+    "move_factor": (0.5, 0.1, 2.0),
     "min_move_pct": (0.5, 0.0, 10.0),
     "min_rally_days": (3, 1, 60),
     "min_drop_days": (3, 1, 60),
@@ -48,19 +55,32 @@ SETTINGS: dict[str, tuple[Any, float, float]] = {
 
 def default_config() -> dict[str, Any]:
     """Return a config dict with every setting at its default."""
-    return {"mode": ACCUMULATION, **{k: d for k, (d, _, _) in SETTINGS.items()}}
+    return {
+        "mode": ACCUMULATION,
+        "move_rule": OWN_MOVE,
+        **{k: d for k, (d, _, _) in SETTINGS.items()},
+    }
 
 
 def read_config(config: dict[str, Any]) -> dict[str, Any]:
     """Merge ``config`` over the defaults and check every value.
 
+    A config saved before the move rule existed has ``min_move_pct`` but no
+    ``move_rule``; it keeps the fixed % rule so its results do not change.
+
     Raises:
-        ScreenerValidationError: If the mode is unknown or a value is out of range.
+        ScreenerValidationError: If the mode or move rule is unknown or a value is out of range.
     """
     cfg = default_config()
     cfg.update({k: v for k, v in config.items() if k in cfg})
+    if "move_rule" not in config and "min_move_pct" in config:
+        cfg["move_rule"] = FIXED_MOVE
     if cfg["mode"] not in MODES:
         raise ScreenerValidationError(f"Accumulation / Distribution: unknown mode '{cfg['mode']}'")
+    if cfg["move_rule"] not in MOVE_RULES:
+        raise ScreenerValidationError(
+            f"Accumulation / Distribution: unknown move rule '{cfg['move_rule']}'"
+        )
     for key, (default, lo, hi) in SETTINGS.items():
         if isinstance(default, bool):
             cfg[key] = bool(cfg[key])
@@ -72,6 +92,64 @@ def read_config(config: dict[str, Any]) -> dict[str, Any]:
             )
         cfg[key] = int(value) if isinstance(default, int) else value
     return cfg
+
+
+STRICTNESS_LEVELS = ((0.25, "Wide"), (0.55, "Balanced"), (0.75, "Strict"), (1.01, "Very strict"))
+
+# key → (wide value, strict value): a value at "strict" scores 1.0, at "wide" 0.0.
+_STRICT_SCALE: dict[str, tuple[float, float]] = {
+    "high_factor": (1.0, 1.6),
+    "low_factor": (1.0, 0.7),
+    "move_factor": (0.2, 1.0),
+    "min_move_pct": (0.2, 1.5),
+    "min_rally_days": (1, 6),
+    "min_drop_days": (1, 6),
+    "min_ud_ratio": (1.0, 1.6),
+    "max_ud_ratio": (1.0, 0.6),
+    "zone_pct": (50.0, 10.0),
+    "close_zone_pct": (50.0, 10.0),
+    "min_score": (0.2, 0.8),
+}
+
+
+@dataclass(frozen=True, slots=True)
+class Strictness:
+    """How strict a config is overall: 0 (wide) to 1 (very strict)."""
+
+    level: str
+    value: float
+    tightest: tuple[str, ...]
+
+
+def strictness(config: dict[str, Any]) -> Strictness:
+    """Rate how strict the settings are, from the settings in use for the mode and move rule.
+
+    A filter that is switched off counts as 0. ``tightest`` names up to two settings
+    scoring 0.5 or more, strictest first.
+
+    Raises:
+        ScreenerValidationError: If the config is invalid.
+    """
+    cfg = read_config(config)
+    acc = cfg["mode"] == ACCUMULATION
+    keys = [
+        "high_factor", "low_factor",
+        "move_factor" if cfg["move_rule"] == OWN_MOVE else "min_move_pct",
+        "min_rally_days", "min_drop_days",
+        "min_ud_ratio" if acc else "max_ud_ratio",
+        "min_score",
+    ]
+    parts = {}
+    for key in keys:
+        wide, strict = _STRICT_SCALE[key]
+        parts[key] = min(1.0, max(0.0, (cfg[key] - wide) / (strict - wide)))
+    for key, switch in (("zone_pct", "location_filter"), ("close_zone_pct", "close_position")):
+        wide, strict = _STRICT_SCALE[key]
+        parts[key] = min(1.0, max(0.0, (cfg[key] - wide) / (strict - wide))) if cfg[switch] else 0.0
+    value = round(sum(parts.values()) / len(parts), 2)
+    level = next(name for limit, name in STRICTNESS_LEVELS if value < limit)
+    ranked = sorted((k for k, v in parts.items() if v >= 0.5), key=lambda k: -parts[k])
+    return Strictness(level, value, tuple(ranked[:2]))
 
 
 @dataclass(frozen=True, slots=True)
@@ -100,13 +178,31 @@ def _near_range_edge(a: BarArrays, cfg: dict[str, Any], bottom: bool) -> bool:
     return bool(pos <= zone if bottom else pos >= 1.0 - zone)
 
 
+def _move_threshold(
+    change: npt.NDArray[np.float64], n: int, cfg: dict[str, Any]
+) -> float | npt.NDArray[np.float64]:
+    """Minimum move % for each of the last ``n`` days.
+
+    Own rule: ``move_factor`` × the mean absolute daily % change of the previous
+    ``volume_period`` days (the day itself excluded). Fixed rule: ``min_move_pct``.
+    """
+    if cfg["move_rule"] == FIXED_MOVE:
+        return float(cfg["min_move_pct"])
+    period: int = cfg["volume_period"]
+    csum = np.concatenate(([0.0], np.cumsum(np.abs(change))))
+    prior_mean = (csum[period:-1] - csum[: -period - 1]) / period
+    return float(cfg["move_factor"]) * prior_mean[-n:]
+
+
 def _evaluate(a: BarArrays, cfg: dict[str, Any]) -> _Result:
     acc = cfg["mode"] == ACCUMULATION
     n = cfg["lookback"]
-    change = np.diff(a.close[-n - 1:]) / a.close[-n - 1:-1] * 100.0
+    all_change = np.diff(a.close) / a.close[:-1] * 100.0
+    change = all_change[-n:]
+    min_move = _move_threshold(all_change, n, cfg)
     ratio = volume_ratio(a.volume, cfg["volume_period"])[-n:]
-    rally = (change > 0) & (change >= cfg["min_move_pct"])
-    drop = (change < 0) & (change <= -cfg["min_move_pct"])
+    rally = (change > 0) & (change >= min_move)
+    drop = (change < 0) & (change <= -min_move)
 
     high = ratio >= cfg["high_factor"]
     low = ratio <= cfg["low_factor"]

@@ -545,6 +545,17 @@ Test files:
 | UT-SCR-017.013.M33.T03 | MD-SCR-017.013.M33 | Negative | Inputs are range-limited | lookback 999 | 120 | Pass |
 | UT-SCR-017.013.M33.T04 | MD-SCR-017.013.M33 | Edge | Bad saved config and Reset | mode `sideways`; edits then Reset | defaults both times | Pass |
 | UT-SCR-017.013.M33.T05 | MD-SCR-017.013.M33 | Positive | Builder wiring | group and weighted-row configure with an accepting dialog | display "Acc / Dist"; both store the returned config | Pass |
+| UT-SCR-017.014.M32.T01 | MD-SCR-017.001.M32 | Positive | Own move rule scales with the stock | same 1–1.5 % lookback days after ±0.3 % vs ±4 % history; volume period 100 | calm passes (score > 0.6); fast `(False, 0.0)`; fast passes at factor 0.1 | Pass |
+| UT-SCR-017.014.M32.T02 | MD-SCR-017.001.M32 | Negative | Bad move rule or factor raises (2 cases) | move rule `average`; move factor 3 | `ScreenerValidationError` | Pass |
+| UT-SCR-017.015.M32.T01 | MD-SCR-017.001.M32 | Edge | Old configs keep the fixed rule | `{}`; `{min_move_pct}`; both keys; fixed run on standard bars | own; fixed; own; same score as UT-SCR-017.006.M32.T01 | Pass |
+| UT-SCR-017.017.M34.T01 | MD-SCR-017.017.M34 | Positive | Every setting on one tab with a tip (2 modes) | Acc and Dist configs | all keys placed once; title, text, example present; 4 intros | Pass |
+| UT-SCR-017.017.M34.T02 | MD-SCR-017.017.M34 | Positive | Tips follow mode and values | zone 25 %; Acc vs Dist | Dist "$95.00", Acc "$85.00"; unused ratio "Not used now" | Pass |
+| UT-SCR-017.017.M34.T03 | MD-SCR-017.017.M34 | Edge | Summary drops switched-off zones | both zones off | no range or day-close text | Pass |
+| UT-SCR-017.017.M33.T01 | MD-SCR-017.013.M33 | Positive | Tabs and tip panel | click tab 3; tip Range Zone; switch to Acc | page 3; "How near the high" + "$95.00"; then "How near the low"; mode chip Accumulation | Pass |
+| UT-SCR-017.018.M32.T01 | MD-SCR-017.001.M32 | Positive | Rules levels | defaults; loose; tight | Balanced; Wide (0.0); Very strict (1.0) | Pass |
+| UT-SCR-017.018.M32.T02 | MD-SCR-017.001.M32 | Edge | Level follows switches; strictest named | zone 10 + score 0.7, zone off; Dist ratio 0.6 | lower when off; tightest (zone, score); ratio named | Pass |
+| UT-SCR-017.018.M33.T01 | MD-SCR-017.013.M33 | Positive | Rules chip and greyed inputs | Dist defaults, then loosen | "Rules: Balanced" → "Rules: Wide"; Acc ratio and zone inputs disabled | Pass |
+| UT-SCR-017.016.M33.T01 | MD-SCR-017.013.M33 | Positive | Move rule input | old config; switch to own | fixed with only Minimum move enabled; own with only Move factor enabled | Pass |
 
 SRD-SCR-017.005 (relative volume) and .007 (score) are covered by T01 / T03 of .006 and T01 of .008.
 

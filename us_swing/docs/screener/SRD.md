@@ -4,7 +4,11 @@
 **Version:** 2.3.0
 **Traces To:** FO-SCR v2.2.0
 **Status:** Draft
-**Last Updated:** 2026-05-06
+**Last Updated:** 2026-11-18
+> v2.8.1: SRD-SCR-017.017–.018 approved by user 2026-11-18 and Implemented (RN-SCR-2.9.0).
+> v2.8.0: SRD-SCR-017.017–.018 added as Draft — tabbed Acc / Dist settings with tips and a rules level; user request 2026-11-18.
+> v2.7.1: SRD-SCR-017.014–.016 approved by user 2026-11-18 and Implemented (RN-SCR-2.8.0).
+> v2.7.0: SRD-SCR-017.014–.016 added as Draft — Acc / Dist move rule (stock's own move or fixed %); user request 2026-11-18.
 > v2.6.0: SRD-SCR-013.009 added — AI trade plan fields (`ai_plan`) for the screener result views (FO-GUI-022); approved by user 2026-10-23.
 > v2.5.0: SRD-SCR-016.018 added — Fibonacci retracement Sell / Buy patterns; user request 2026-10-22; Implemented (RN-SCR-2.5.0).
 > v2.4.0: SRD-SCR-016.016 (Double Top + Double Top Pullback) and SRD-SCR-016.017 (Double Bottom breakout-within) added; user request 2026-10-22; Implemented (RN-SCR-2.4.0).
@@ -292,7 +296,14 @@ Note: Section 16 extends SRD-SCR-002.007 (Approved), which is left unchanged.
 | SRD-SCR-017.012 | FO-SCR-015 | Should | `screen_detailed()` returns rally-volume ×, drop-volume × and up/down ratio per symbol for result columns. | symbols, bars, config | per-symbol dict | Same checks as `apply()` | Implemented |
 | SRD-SCR-017.013 | FO-SCR-015 | Must | A settings dialog edits every config key with range-limited inputs and returns the config dict. | config dict | config dict | Frameless; new file, no shared GUI file edits until wiring step | Implemented |
 
-SRD-SCR-017.001–.013 approved by the user on 2026-10-23.
+| SRD-SCR-017.014 | FO-SCR-015 | Must | With move rule "own" (default), a day is a rally or drop only if its move is at least move factor (0.5, range 0.1–2.0) × the stock's mean absolute daily % change over the previous volume-period days. | close array | day class | Day itself excluded from the mean; bad rule or factor raises `ScreenerValidationError` | Implemented |
+| SRD-SCR-017.015 | FO-SCR-015 | Must | With move rule "fixed", the minimum move % is used as before; a saved config with a minimum move but no move rule reads as "fixed". | config dict | settings | Saved presets give the same results until the user changes the rule | Implemented |
+| SRD-SCR-017.016 | FO-SCR-015 | Should | The settings dialog has a Move rule choice ("Stock's own move" / "Fixed %") and enables only the input that rule uses. | config dict | config dict | Reset picks "Stock's own move" | Implemented |
+
+SRD-SCR-017.001–.013 approved by the user on 2026-10-23. | SRD-SCR-017.017 | FO-SCR-015 | Should | The settings dialog shows 4 tabs (Basics, Volume & Pattern, Range Zone & Close Zone, Result) with two settings per row and a side panel that explains the clicked setting for the chosen mode, with an example from the current values. | config dict | config dict | Result tab adds a plain-words summary; settings not in use are greyed out | Implemented |
+| SRD-SCR-017.018 | FO-SCR-015 | Should | The dialog title bar shows the mode and a rules level (Wide / Balanced / Strict / Very strict) worked out from the settings in use, with the two strictest settings in its tooltip. | config dict | level label | Default settings read Balanced; a switched-off filter counts as loosest | Implemented |
+
+SRD-SCR-017.014–.016 approved by the user on 2026-11-18 and Implemented. SRD-SCR-017.017–.018 approved by the user on 2026-11-18 and Implemented.
 
 Note: The dialog opens from the screener builder in `gui/screener_panel.py`.
 

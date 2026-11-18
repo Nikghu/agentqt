@@ -1,10 +1,12 @@
 # Software Requirements Document — GUI Module (GUI)
 
 **Document ID:** SRD-GUI
-**Version:** 2.122.0
+**Version:** 2.123.0
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
-**Last Updated:** 2026-11-06
+**Last Updated:** 2026-11-17
+> v2.123.1: SRD-GUI-004.014 approved by user 2026-11-17 and Implemented.
+> v2.123.0: SRD-GUI-004.014 added as Draft (ISS-GUI-0021, user report 2026-11-17) — only a scheduled screener run sends the "screener approved" message.
 > v2.122.0: SRD-GUI-025.021–.023 added; approved by user 2026-11-17 — Sector Rotation tab in the Market Watch tile.
 > v2.121.1: SRD-GUI-018.012 and SRD-GUI-019.011 wording no longer names the AI Desk (reopened and fixed on user's call, 2026-11-17).
 > v2.121.0: AI Desk and Market Floor removed (user, 2026-11-17; docs/audit/DESK_REMOVAL_2026-11-17.md): sections FO-GUI-034 to FO-GUI-041 and their SRDs removed.
@@ -251,6 +253,7 @@
 | SRD-GUI-004.011 | FO-GUI-004 | Must | The Filtered Stocks pane has a symbol box with "+ Add", lists picks above screener rows in any sort order as "★ SYMBOL" / "Manual pick", and removes a pick from its "✕ Remove" cell. | Add / Enter / ✕ click | Pick added or removed; refusal shown as a tooltip | Picks are exempt from SRD-GUI-004.009 and win over a screener row for the same symbol | Implemented |
 | SRD-GUI-004.012 | FO-GUI-004 | Must | Picks reach the engine, candle fetch and live prices through the screener feed; a pick change sends no "screener approved" message and is recorded in the monitoring ledger as "Manual pick". | Pick add / remove | Engine symbol list updated, also when it becomes empty | Removing a pick drops it from the engine list at once, unless it has an open trade or a screener still lists it | Implemented |
 | SRD-GUI-004.013 | FO-GUI-004 | Must | At app start, all 1m/3m/15m candles of a stock are deleted when it is not in Filtered Stocks, has no open trade or position, and its newest bar is more than `intraday_retention_days` (5) older than the newest bar in the database. | App start | Stale stocks' intraday rows deleted; one `[Candles]` log line | Idle is measured against the newest stored bar, not today, so a long break deletes nothing; skipped when open trades cannot be read; daily/weekly tables untouched | Implemented |
+| SRD-GUI-004.014 | FO-GUI-004 | Must | Only a scheduled screener run sends the "screener approved" message; a manual Run now refreshes the Execution list without it. | Screener run finished | Execution list refreshed; message only for a scheduled run | Run type read from the saved result (`manual` / `scheduled`) | Implemented |
 
 ---
 

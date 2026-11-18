@@ -1,9 +1,9 @@
 # Traceability Matrix — GUI Module (GUI)
 
 **Document ID:** TRACE-GUI
-**Version:** 1.16.0
+**Version:** 1.17.0
 **Project:** US Swing Trading System
-**Last Updated:** 2026-11-17 (AI Desk and Market Floor removed: FO-GUI-034 to FO-GUI-041 rows dropped; SRD-GUI-029.007–.008 now trace to DD-GUI-029.007.D01; see docs/audit/DESK_REMOVAL_2026-11-17.md)
+**Last Updated:** 2026-11-17 (SRD-GUI-004.014 row added, ISS-GUI-0021. Earlier: AI Desk and Market Floor removed: FO-GUI-034 to FO-GUI-041 rows dropped; SRD-GUI-029.007–.008 now trace to DD-GUI-029.007.D01; see docs/audit/DESK_REMOVAL_2026-11-17.md)
 
 ---
 
@@ -35,6 +35,7 @@
 | FO-GUI-004 | SRD-GUI-004.011 | — | MD-GUI-004.001.M01 | UT-GUI-004.001.M01.T15–T16, T19 | `gui/execution_panel.py`, `gui/app_service.py` | Implemented | RN-GUI-1.8.0-20261022 |
 | FO-GUI-004 | SRD-GUI-004.012 | — | MD-GUI-004.001.M01 | UT-GUI-004.001.M01.T17–T18, T20 | `gui/app_service.py` | Implemented | RN-GUI-1.8.0-20261022 |
 | FO-GUI-004 | SRD-GUI-004.013 | — | MD-GUI-004.001.M01, MD-GUI-004.001.M03 | UT-GUI-004.001.M01.T21–T25 | `gui/intraday_cleanup.py`, `gui/app_service.py` | Implemented | RN-GUI-1.8.0-20261022 |
+| FO-GUI-004 | SRD-GUI-004.014 | — | MD-GUI-004.001.M01 | UT-GUI-004.001.M01.T26–T27 | `gui/app_service.py`, `gui/screener_panel.py` | Implemented | RN-GUI-2.1.1-20261117 |
 | FO-GUI-007 | SRD-GUI-007.001–004 | DD-GUI-007.001.D01 | MD-GUI-007.001.M01 | T01–T04 | `gui/log_viewer_panel.py` | Draft |
 | FO-GUI-007 | SRD-GUI-007.001 | DD-GUI-007.001.D01 | MD-GUI-007.001.M02 | T01 | `gui/log_bridge.py` | Draft |
 | FO-GUI-011 | SRD-GUI-011.001–004 | DD-GUI-011.001.D01 | MD-GUI-011.001.M01 | — | `gui/chart_panel.py` | Implemented | RN-GUI-1.0.0-20260513 |

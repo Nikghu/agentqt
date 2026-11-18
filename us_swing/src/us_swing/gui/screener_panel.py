@@ -2348,8 +2348,10 @@ class ScreenerPanel(QWidget):
         self._display_result(result)
         self._refresh_preset_meta(str(getattr(result, "preset_id", self._selected_preset_id)))
 
-        # Notify Execution panel so its Filtered Stocks pane refreshes immediately
-        self._demo.notify_screener_results_updated()
+        # Notify Execution panel so its Filtered Stocks pane refreshes immediately;
+        # only a scheduled run sends the "screener approved" message (SRD-GUI-004.014)
+        scheduled = getattr(result, "execution_mode", "manual") == "scheduled"
+        self._demo.notify_screener_results_updated(send_message=scheduled)
 
         # Drain auto-run queue: start next assigned preset if any remain
         if self._auto_run_queue:

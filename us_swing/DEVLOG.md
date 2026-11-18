@@ -2,6 +2,39 @@
 
 ---
 
+## [20261118] SCR — Acc / Dist settings: tabs, tips and rules level (FO-SCR-015)
+
+- Type: Feature
+- FO(s): FO-SCR-015 (SRD-SCR-017.017–.018, approved by user and Implemented)
+- RN: RN-SCR-2.9.0-20261118
+- Artifacts updated: SRD (2 rows), DD-SCR-017.002.D01 (layout + rules level), MD (M34 new; M32, M33), UTCD 7 rows, TRACE, TODO T203; T201 closed
+- Decisions (user): tab strip on top + rows of two settings (user's sketch) on the option C tip-panel base; add a "how strict" indicator by the mode chip. Claude chose the strictness anchors and the 4 levels (defaults read Balanced)
+- Checked by screenshot with the app theme (tabs 1, 3, 4); fixed "&" in tab names, active-field highlight, title chip height, greyed unused inputs
+
+---
+
+## [20261118] SCR — Acc / Dist move rule: stock's own move or fixed % (FO-SCR-015)
+
+- Type: Feature
+- FO(s): FO-SCR-015 (SRD-SCR-017.014–.016, approved by user and Implemented)
+- RN: RN-SCR-2.8.0-20261118
+- Artifacts updated: SRD (3 rows), DD-SCR-017.002.D01, MD rows M32/M33, UTCD 4 rows, TRACE, TODO T202
+- Decisions (user): a fixed minimum move is unfair across calm and fast stocks; use each stock's own normal move. Claude chose mean absolute close-to-close % change over the previous volume-period days (not ATR), factor 0.5, old presets kept on fixed
+- Branch: same as the Telegram fix (user's call); future small fixes go on one shared bug-fix branch
+
+---
+
+## [20261117] GUI — Manual screener run sends no Telegram message (ISS-GUI-0021)
+
+- Type: Fix
+- FO(s): FO-GUI-004 (SRD-GUI-004.014, approved by user and Implemented)
+- RN: RN-GUI-2.1.1-20261117
+- Artifacts updated: SRD row, MD row, UTCD T26–T27 (T17 updated), TRACE, ISS-GUI-0021, TODO T201
+- Cause: `_on_run_finished()` refreshed the Execution list the same way for manual and scheduled runs, and the refresh always sent `ScreenerApprovedEvent`
+- Also checked: Acc / Dist "Distribution" preset with 0 matches is not a bug (strict settings + price/volume pre-filter); no code change
+
+---
+
 ## [20261117] GUI — Sector Rotation tab in the Market Watch tile (FO-GUI-025)
 
 - Type: Feature

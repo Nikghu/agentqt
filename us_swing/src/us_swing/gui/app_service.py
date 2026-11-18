@@ -1933,20 +1933,24 @@ class AppService(QObject):
 
     def _refresh_after_pick_change(self) -> None:
         """Re-emit the Execution list without the "screener approved" notification."""
-        self._notify_screener_approved = False
-        try:
-            self.notify_screener_results_updated()
-        finally:
-            self._notify_screener_approved = True
+        self.notify_screener_results_updated(send_message=False)
 
-    def notify_screener_results_updated(self) -> None:
+    def notify_screener_results_updated(self, send_message: bool = True) -> None:
         """Reload latest file-based results and emit ``screener_results_updated``.
 
         Called by ScreenerPanel after any successful run so the Execution panel
         refreshes without requiring the user to switch tabs.
+
+        Args:
+            send_message: False skips the "screener approved" message, e.g. for a
+                manual run or a pick change (SRD-GUI-004.012, .014).
         """
-        entries = self.get_latest_screener_results()
-        self.screener_results_updated.emit(entries)
+        self._notify_screener_approved = send_message
+        try:
+            entries = self.get_latest_screener_results()
+            self.screener_results_updated.emit(entries)
+        finally:
+            self._notify_screener_approved = True
 
     # ── Intraday candle auto-fetch (SRD-EXE-006.007 / .008) ──────────────────
 
