@@ -1,9 +1,9 @@
 # Functional Objectives — Screener (SCR)
 
 **Document ID:** FO-SCR
-**Version:** 2.2.0
+**Version:** 2.3.0
 **Status:** Draft
-**Last Updated:** 2026-04-30
+**Last Updated:** 2026-11-18
 **Project:** US Swing Trading System
 
 > Traces to: `us_swing/requirements.md` §8, §12, §21.3, §22
@@ -316,3 +316,24 @@
   - With fewer than the minimum rally or drop days, the symbol fails.
   - With the location filter on, a symbol at the top of its range fails Accumulation; with it off, only the volume pattern decides.
   - A setting outside its allowed range is rejected with a clear error.
+
+---
+
+## FO-SCR-016: AI Ranking Stock Context (Phase 1)
+- **Status:** Approved (user, 2026-11-18)
+
+- The system shall give the Stage 3 AI ranking extra context for each stock that passed Stage 2: the next earnings date and the strength of its sector.
+- The system shall give the AI one market regime line built from SPY.
+- The system shall mark red flags per stock by fixed rules, so the same data always gives the same flags.
+- The AI shall weigh the flags itself and name them in its reasoning; code shall not change the AI's scores.
+- Each preset shall choose which context to use; with none chosen, Stage 3 shall work as before.
+- The context and flags shall be saved with each run result and shown in the screener result views.
+- News tone and web research are out of scope for this phase (Phase 2).
+- Backtests are out of scope; the context is fetched only for live screener runs.
+- **Acceptance Criteria:**
+  - A stock reporting in 3 days gets a red earnings flag; in 8 days a yellow level and no flag; in 23 days a green level.
+  - A stock whose sector ranks 10th of 11 against RSP over 1 month gets a red sector flag; 2nd of 11 is green.
+  - SPY above both its 50- and 200-day averages gives "risk-on"; below both "risk-off"; otherwise "mixed".
+  - When the earnings lookup fails, the run still completes and that stock has no earnings level.
+  - A preset with no context ticked sends the same prompt as today.
+

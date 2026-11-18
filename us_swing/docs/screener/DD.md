@@ -1729,3 +1729,42 @@ A switched-off Range Zone or Close Zone scores 0. Value = mean of the 9 scores, 
 ---
 
 **Status:** Approved
+
+---
+
+# FO-SCR-016 — AI Ranking Stock Context (Phase 1)
+
+## DD-SCR-018.001.D01 — Context package, rules and wiring
+- **Status:** Draft
+
+**Parent SRDs:** SRD-SCR-018.001 through SRD-SCR-018.007
+
+### Package `src/us_swing/core/stock_context/` (no Qt; screener and gui import it)
+
+| File | Holds |
+|---|---|
+| `_sector.py` | `SECTOR_BENCHMARK`, `SECTOR_ETFS`, `SECTOR_SYMBOLS`, `RANGE_DAYS`, `SectorMove`, `sector_moves()` (moved unchanged from `gui/sector_rotation.py`, which re-imports them), `GICS_TO_ETF` |
+| `_earnings.py` | `EarningsLookup(cache_path, fetch)`: `next_dates(symbols, today)` returns symbol → date or None; default fetch reads `yfinance.Ticker(sym).calendar["Earnings Date"]` and keeps the first date on or after today |
+| `_context.py` | `StockContext` (frozen dataclass, `to_dict()`), `earnings_level()`, `market_regime()`, `build_context()`, `context_text()` |
+
+### Rules
+- Earnings: `days = (date - today).days`; 0–5 red + flag "Earnings in N days", 6–10 yellow, >10 green; no date → no level.
+- Sector: `sector_moves(closes, 21)` ranks the 11 ETFs vs RSP; stock sector → ETF by `GICS_TO_ETF`; rank 9–11 red + flag "Weak sector (#N of 11)", 1–3 green, else neutral; unmapped or ETF missing → no sector fields.
+- Regime: SPY last close vs SMA50 and SMA200: above both risk-on, below both risk-off, else mixed; fewer than 200 closes → empty.
+
+### Earnings cache
+JSON at `~/.usswing/earnings_cache.json`: symbol → `{"checked": "YYYY-MM-DD", "date": "YYYY-MM-DD" or null}`. A symbol checked today is not fetched again. A fetch that raises returns None, is not cached (next run retries) and is counted in one WARNING `[Screener] Earnings date lookup failed for N stock(s)`. Writes go through a temp file + replace.
+
+### Wiring
+1. `_RunWorker` (gui) passes `sectors` (universe symbol → GICS sector) and `context_closes = get_daily_closes(SECTOR_SYMBOLS + ("SPY",), 210)` to `run_preset()`.
+2. `PresetExecutor(earnings_lookup=...)` takes an optional lookup callable (tests inject a fake); default `EarningsLookup().next_dates`.
+3. `_run_stage3`: when `preset.ai_context` is not empty, `build_context(...)` returns `(contexts, regime)`; `context_text(contexts, regime)` goes into `llm_config["ai_context_text"]`.
+4. `CloudAIScreener`: when `ai_context_text` is set, every path appends it to the facts / user message and adds `_CONTEXT_RULE` (weigh the flags; name any flag that changed a score in the reasoning) to the instruction.
+5. Merge: each Stage 3 row gets `ai_context` (`StockContext.to_dict()` incl. `market`) and `ai_flags` (list of flag texts).
+
+### Prompt block example
+```
+=== STOCK CONTEXT (market: risk-on, SPY above 50- and 200-day) ===
+NVDA | earnings in 23 days (green) | Technology #2 of 11, +3.4% vs RSP (green) | flags: none
+COF | earnings in 3 days (red) | Financials #10 of 11, -2.1% vs RSP (red) | flags: Earnings in 3 days; Weak sector (#10 of 11)
+```

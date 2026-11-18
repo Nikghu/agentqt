@@ -6,6 +6,7 @@
 **Status:** Draft
 **Last Updated:** 2026-05-06
 **Project:** US Swing Trading System
+> v2.4.0: FO-SCR-016 modules M35–M37 (`core/stock_context/`) added; M01, M06, M10 extended (SRD-SCR-018.001–.007).
 > v2.3.0: M01 `preset.py` gains `ai_provider` (SRD-SCR-013.010); M06 `cloud_ai.py` gains the Claude Code CLI path `_apply_claude()` and M10 `executor.py` passes `ai_provider` (SRD-SCR-013.011).
 
 ---
@@ -76,6 +77,16 @@ Package `src/us_swing/core/price_patterns/__init__.py` re-exports the public API
 | MD-SCR-017.013.M33 | SRD-SCR-017.013, .016–.018 | `src/us_swing/gui/acc_dist_settings_dialog.py` | Frameless form that edits every setting. | `AccDistSettingsDialog`, `get_config()` | `frameless_dialog.py`, `acc_dist.py` | Implemented |
 
 Registered as `acc_dist` in `src/us_swing/screener/__init__.py`. M33 opens from the builder's configure button and context menu in `gui/screener_panel.py` (display name "Acc / Dist").
+
+### Modules for FO-SCR-016 — AI Ranking Stock Context
+
+| Module ID | Parent SRD | File | Responsibility | Public API | Deps | Status |
+|---|---|---|---|---|---|---|
+| MD-SCR-018.004.M35 | SRD-SCR-018.004 | `src/us_swing/core/stock_context/_sector.py` | Sector ETF list, moves vs RSP, GICS → ETF map. | `sector_moves()`, `SECTOR_SYMBOLS`, `GICS_TO_ETF` | — | Draft |
+| MD-SCR-018.002.M36 | SRD-SCR-018.002 | `src/us_swing/core/stock_context/_earnings.py` | Next earnings date per stock with a daily JSON cache. | `EarningsLookup` | `yfinance` | Draft |
+| MD-SCR-018.003.M37 | SRD-SCR-018.003, .005, .006 | `src/us_swing/core/stock_context/_context.py` | Earnings and sector levels, flags, market regime, prompt text. | `StockContext`, `build_context()`, `market_regime()`, `context_text()` | M35 | Draft |
+
+M01 `preset.py` gains `ai_context`; M10 `executor.py` builds and merges context; M06 `cloud_ai.py` adds the context block to every prompt path.
 
 > **Doc mismatch (record only, not fixed):** MD-SCR-007.011.M17 names `screener/gui/preset_builder.py`, but the preset builder is implemented as `_PresetBuilderDialog` in `src/us_swing/gui/screener_panel.py`. Found 2026-10-21 while scoping FO-SCR-013.
 

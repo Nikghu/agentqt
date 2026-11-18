@@ -1,10 +1,11 @@
 # Software Requirement Document — Screener (SCR)
 
 **Document ID:** SRD-SCR
-**Version:** 2.4.0
+**Version:** 2.5.0
 **Traces To:** FO-SCR v2.2.0
 **Status:** Draft
 **Last Updated:** 2026-11-18
+> v2.10.0: FO-SCR-016 Section 18 added as Draft — AI Ranking stock context Phase 1 (earnings, sector, regime, red flags); user request 2026-11-18.
 > v2.9.1: SRD-SCR-013.010–.011 approved by user 2026-11-18 and Implemented (RN-SCR-2.10.0).
 > v2.9.0: SRD-SCR-013.010–.011 added as Draft — AI Provider choice (OpenRouter or Claude Code CLI) for AI ranking; user request 2026-11-18.
 > v2.8.1: SRD-SCR-017.017–.018 approved by user 2026-11-18 and Implemented (RN-SCR-2.9.0).
@@ -313,6 +314,20 @@ Note: The dialog opens from the screener builder in `gui/screener_panel.py`.
 
 ---
 
+## Section 18: Requirements for FO-SCR-016 — AI Ranking Stock Context (Phase 1)
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-SCR-018.001 | FO-SCR-016 | Must | `Preset` shall gain `ai_context` (a list of `earnings`, `sector`) that round-trips; old presets load with an empty list. | preset JSON | `Preset` | Unknown value fails `validate()` | Approved |
+| SRD-SCR-018.002 | FO-SCR-016 | Must | The next earnings date of each Stage 2 stock shall come from Yahoo Finance, cached once per stock per day. | symbols | date or none | Failed or missing lookup gives no date and a WARNING log; run continues | Approved |
+| SRD-SCR-018.003 | FO-SCR-016 | Must | The earnings level shall be red at 0–5 days to the report, yellow at 6–10, green above 10; red raises an earnings flag. | earnings date, run date | level, flag | Calendar days; no date → no level | Approved |
+| SRD-SCR-018.004 | FO-SCR-016 | Must | Each stock's GICS sector shall map to its sector ETF and be ranked by its 1-month move minus RSP among the 11 sectors; bottom 3 raise a sector flag, top 3 are green. | sector, daily closes | rank, move %, level, flag | 21 trading days from `candles.db`; unmapped sector or missing closes → no sector context | Approved |
+| SRD-SCR-018.005 | FO-SCR-016 | Should | The market regime shall be risk-on when SPY closes above both its 50- and 200-day averages, risk-off below both, otherwise mixed. | SPY daily closes | regime | One value per run; never a per-stock flag | Approved |
+| SRD-SCR-018.006 | FO-SCR-016 | Must | With any context ticked, the ranking prompt shall carry a context line per stock and the regime line, and ask the AI to weigh flags and name them in its reasoning. | context, flags | prompt | Both providers; no context ticked → prompt unchanged | Approved |
+| SRD-SCR-018.007 | FO-SCR-016 | Must | Each result row reaching Stage 3 shall save `ai_context` (levels and values) and `ai_flags` (list of flag names); the run saves the regime. | context, flags | result JSON | Old result files load with no context | Approved |
+
+---
+
 ## Summary: Requirement Counts
 
 | Module | FO Count | SRD Count | Status |
@@ -334,6 +349,7 @@ Note: The dialog opens from the screener builder in `gui/screener_panel.py`.
 | Indicator Catalogue & Rules | 13 | 015.001–017 | 17 |
 | Price Action Patterns & Rules | 14 | 016.001–015 | 15 |
 | Accumulation / Distribution | 15 | 017.001–013 | 13 |
-| **Totals** | **15 FOs** | **141 SRDs** | — |
+| AI Ranking Stock Context | 16 | 018.001–007 | 7 |
+| **Totals** | **16 FOs** | **148 SRDs** | — |
 
 **Status:** v2.4.0 Draft — SRD-SCR-004.007 reworded and SRD-SCR-004.009 added (2026-11-03, ISS-SCR-0003; approved by user, Implemented, RN-SCR-2.7.1-20261103): auto-run needs up-to-date candles and skips presets already run on them.
