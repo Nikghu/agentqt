@@ -1,6 +1,6 @@
 """
 Module: MD-GUI-003.001.M01 — screener_panel.py  (v2 — Phase 5 GUI integration)
-Parent SRD: SRD-SCR-007.001–012, SRD-SCR-004.007
+Parent SRD: SRD-SCR-007.001–012, SRD-SCR-004.007, SRD-GUI-022.014
 
 Screener Panel — Preset-based v2 (layout: SRD-GUI-022.008–.012):
   ┌──────────────────────┬───────────────────────────────────────────────────┐
@@ -62,6 +62,7 @@ from PyQt6.QtWidgets import (
 
 from us_swing.gui.ai_transcript_panel import AITranscriptPanel
 from us_swing.core.indicator_rules import config_summary
+from us_swing.core.notifications import AiConfig, ask_ai
 from us_swing.core.price_patterns import pattern_config_summary
 from us_swing.gui.app_service import AppService
 from us_swing.gui.cards import GAP, card, gutter
@@ -97,6 +98,16 @@ from us_swing.screener.screeners._cloud_ai_models import (
     ALL_MODEL_PRESETS as _CLOUD_AI_ALL_MODELS,
     DEFAULT_MODEL as _CLOUD_AI_DEFAULT_MODEL,
 )
+
+# AI Ranking provider id → default model and model hint (SRD-GUI-022.014).
+_AI_DEFAULT_MODELS: dict[str, str] = {
+    "openrouter": _CLOUD_AI_DEFAULT_MODEL,
+    "claude": AiConfig().claude_model,
+}
+_AI_MODEL_HINTS: dict[str, str] = {
+    "openrouter": "e.g. google/gemini-2-flash-preview",
+    "claude": "e.g. claude-sonnet-5-5",
+}
 
 # Trading-style filter options (label → style_filter value or None).
 _STYLE_OPTIONS: list[tuple[str, str | None]] = [
@@ -270,11 +281,16 @@ class _PresetRunWorker(QThread):
 class _ModelValidateWorker(QThread):
     done = pyqtSignal(bool, str)   # (ok, message)
 
-    def __init__(self, model_id: str, parent: Any = None) -> None:
+    def __init__(self, model_id: str, provider: str = "openrouter", parent: Any = None) -> None:
         super().__init__(parent)
         self._model_id = model_id
+        self._provider = provider
 
     def run(self) -> None:
+        if self._provider == "claude":
+            answer = ask_ai(AiConfig(claude_model=self._model_id), "Reply with OK.", "Check", 60.0)
+            self.done.emit(not answer.error, answer.error or "available")
+            return
         from us_swing.gui.ai_model_store import validate_model
         ok, msg = validate_model(self._model_id)
         self.done.emit(ok, msg)
@@ -1050,9 +1066,7 @@ class _PresetBuilderDialog(_FramelessDialog):
 
         ai_header_hl = QHBoxLayout()
         ai_header_hl.setContentsMargins(0, 0, 0, 0)
-        self._ai_ranking_chk = QCheckBox(
-            "Enable AI Ranking — let an AI model score and sort your filtered results"
-        )
+        self._ai_ranking_chk = QCheckBox("Enable AI Ranking")
         self._ai_ranking_chk.setStyleSheet(f"color: {_T.TEXT}; font-size: 9pt;")
         ai_header_hl.addWidget(self._ai_ranking_chk)
         ai_header_hl.addStretch()
@@ -1065,8 +1079,12 @@ class _PresetBuilderDialog(_FramelessDialog):
         ai_vl.addLayout(ai_header_hl)
 
         self._ai_ranking_row = QWidget()
-        ai_fields_hl = QHBoxLayout(self._ai_ranking_row)
-        ai_fields_hl.setContentsMargins(0, 2, 0, 0)
+        ai_rows_vl = QVBoxLayout(self._ai_ranking_row)
+        ai_rows_vl.setContentsMargins(0, 2, 0, 0)
+        ai_rows_vl.setSpacing(6)
+        ai_fields_row = QWidget()
+        ai_fields_hl = QHBoxLayout(ai_fields_row)
+        ai_fields_hl.setContentsMargins(0, 0, 0, 0)
         ai_fields_hl.setSpacing(12)
 
         top_n_vl = QVBoxLayout()
@@ -1080,11 +1098,23 @@ class _PresetBuilderDialog(_FramelessDialog):
         top_n_vl.addStretch()
         ai_fields_hl.addLayout(top_n_vl)
 
+        provider_vl = QVBoxLayout()
+        provider_vl.setSpacing(2)
+        provider_vl.addWidget(self._lbl("AI Provider"))
+        self._ai_provider = QComboBox()
+        for label, provider in (("OpenRouter", "openrouter"), ("Claude Code CLI", "claude")):
+            self._ai_provider.addItem(label, provider)
+        self._ai_provider.setFixedWidth(160)
+        self._ai_provider.currentIndexChanged.connect(self._on_ai_provider_changed)
+        provider_vl.addWidget(self._ai_provider)
+        provider_vl.addStretch()
+        ai_fields_hl.addLayout(provider_vl)
+
         model_vl = QVBoxLayout()
         model_vl.setSpacing(2)
         model_vl.addWidget(self._lbl("Model"))
         self._ai_model_edit = QLineEdit()
-        self._ai_model_edit.setPlaceholderText("e.g. google/gemini-2-flash-preview")
+        self._ai_model_edit.setPlaceholderText(_AI_MODEL_HINTS["openrouter"])
         self._ai_model_edit.setText(_CLOUD_AI_DEFAULT_MODEL)
         self._ai_model_edit.textChanged.connect(self._on_model_text_changed)
         model_vl.addWidget(self._ai_model_edit)
@@ -1092,7 +1122,8 @@ class _PresetBuilderDialog(_FramelessDialog):
         self._ai_model_status_lbl.setStyleSheet(f"font-size: 8pt; color: {_T.MUTED};")
         model_vl.addWidget(self._ai_model_status_lbl)
         model_vl.addStretch()
-        ai_fields_hl.addLayout(model_vl, 2)
+        ai_fields_hl.addLayout(model_vl, 1)
+        ai_rows_vl.addWidget(ai_fields_row)
 
         query_vl = QVBoxLayout()
         query_vl.setSpacing(2)
@@ -1103,8 +1134,7 @@ class _PresetBuilderDialog(_FramelessDialog):
         )
         self._ai_query_field.setMaxLength(500)
         query_vl.addWidget(self._ai_query_field)
-        query_vl.addStretch()
-        ai_fields_hl.addLayout(query_vl, 3)
+        ai_rows_vl.addLayout(query_vl)
 
         ai_vl.addWidget(self._ai_ranking_row)
         self._ai_ranking_row.setVisible(False)
@@ -1379,6 +1409,8 @@ class _PresetBuilderDialog(_FramelessDialog):
         # AI Ranking (Stage 3) fields
         self._ai_ranking_chk.setChecked(getattr(preset, "enable_llm_ranking", False))
         self._ai_top_n.setValue(getattr(preset, "top_n", 5))
+        provider_idx = self._ai_provider.findData(getattr(preset, "ai_provider", "openrouter"))
+        self._ai_provider.setCurrentIndex(max(provider_idx, 0))
         _preset_model = getattr(preset, "ai_model", _CLOUD_AI_DEFAULT_MODEL) or _CLOUD_AI_DEFAULT_MODEL
         self._ai_model_edit.setText(_preset_model)
         self._ai_query_field.setText(getattr(preset, "ai_query", "") or "")
@@ -1419,7 +1451,8 @@ class _PresetBuilderDialog(_FramelessDialog):
 
         enable_llm_ranking = self._ai_ranking_chk.isChecked()
         top_n              = self._ai_top_n.value()
-        ai_model_stage3    = self._ai_model_edit.text().strip() or _CLOUD_AI_DEFAULT_MODEL
+        ai_provider        = self._ai_provider.currentData()
+        ai_model_stage3    = self._ai_model_edit.text().strip() or _AI_DEFAULT_MODELS[ai_provider]
         ai_query_stage3    = self._ai_query_field.text().strip()
 
         if self._is_composite():
@@ -1449,6 +1482,7 @@ class _PresetBuilderDialog(_FramelessDialog):
                 top_n=top_n,
                 ai_model=ai_model_stage3,
                 ai_query=ai_query_stage3,
+                ai_provider=ai_provider,
             )
         else:
             refs = [
@@ -1472,6 +1506,7 @@ class _PresetBuilderDialog(_FramelessDialog):
                 top_n=top_n,
                 ai_model=ai_model_stage3,
                 ai_query=ai_query_stage3,
+                ai_provider=ai_provider,
             )
 
     def _validate(self) -> str | None:
@@ -1543,6 +1578,14 @@ class _PresetBuilderDialog(_FramelessDialog):
     def _on_model_text_changed(self) -> None:
         self._ai_model_status_lbl.setText("")
 
+    def _on_ai_provider_changed(self) -> None:
+        """Swap in the new provider's default model unless the user typed their own."""
+        provider = self._ai_provider.currentData()
+        self._ai_model_edit.setPlaceholderText(_AI_MODEL_HINTS[provider])
+        if self._ai_model_edit.text().strip() in ("", *_AI_DEFAULT_MODELS.values()):
+            self._ai_model_edit.setText(_AI_DEFAULT_MODELS[provider])
+        self._ai_model_status_lbl.setText("")
+
     def _on_validate_model(self) -> None:
         _T = active_palette()
         model_id = self._ai_model_edit.text().strip()
@@ -1554,7 +1597,9 @@ class _PresetBuilderDialog(_FramelessDialog):
         self._ai_model_validate_btn.setText("…")
         self._ai_model_status_lbl.setStyleSheet(f"font-size: 8pt; color: {_T.MUTED};")
         self._ai_model_status_lbl.setText("Checking…")
-        self._validate_worker = _ModelValidateWorker(model_id, parent=self)
+        self._validate_worker = _ModelValidateWorker(
+            model_id, self._ai_provider.currentData(), parent=self
+        )
         self._validate_worker.done.connect(self._on_validate_done)
         self._validate_worker.start()
 

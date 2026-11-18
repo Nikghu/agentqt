@@ -1320,6 +1320,10 @@ Turn 3:  assistant (end_turn): JSON ranking for all 10 symbols
 
 The tool-path system prompt adds `"entry": price, "stop": price, "target": price` to each ranking record and says they are optional. `_parse_ranking()` calls `_plan_from_entry(entry)`, which returns `{entry, stop, target}` only when all three convert to finite floats > 0, else `{}`; non-empty plans go to `self.last_plan[sym]` (reset in `apply()`). `PresetExecutor._apply_stage3` reads `last_plan` the same way as `last_reasoning` (dict check) and adds `"ai_plan"` to `result[sym]` only for symbols that have one. The legacy single-shot path never sets a plan. Direction is not checked here; the GUI computes R:R only for long-shaped plans (stop < entry < target).
 
+### AI Provider Choice (SRD-SCR-013.010–.011)
+
+`Preset.ai_provider` is `"openrouter"` (default, also for old presets) or `"claude"`. `_validate_ai_model` runs only for OpenRouter; any other provider value raises `PresetValidationError`. `PresetExecutor` adds `"ai_provider"` to the Stage 3 config. `CloudAIScreener.apply()` sends `claude` to `_apply_claude()`, which builds `_claude_instruction(ai_query)` (same JSON array format as the tool path, no tool text) and calls `core.notifications.ask_ai(AiConfig(claude_model=model), instruction, facts)` with the symbol list and feature table as facts. The answer goes through `_parse_ranking()`, so scores, reasoning and plans fill as on the tool path. An `AiAnswer.error` or bad JSON gives the Stage 2 fallback and a system transcript note. Claude CLI has no tool loop, so `get_candle_data` is not offered; the query only shapes the prompt.
+
 ### Phase 2/3 Forward Compatibility
 
 - `_apply_with_tools()` is structured so the inner loop can be lifted into a provider-agnostic helper when `OpenAIProvider` / `GeminiProvider` are added.

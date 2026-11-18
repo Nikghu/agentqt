@@ -1,11 +1,12 @@
 # Module Decomposition — Screener (SCR)
 
 **Document ID:** MD-SCR
-**Version:** 2.2.0
+**Version:** 2.3.0
 **Traces To:** DD-SCR v2.1.0
 **Status:** Draft
 **Last Updated:** 2026-05-06
 **Project:** US Swing Trading System
+> v2.3.0: M01 `preset.py` gains `ai_provider` (SRD-SCR-013.010); M06 `cloud_ai.py` gains the Claude Code CLI path `_apply_claude()` and M10 `executor.py` passes `ai_provider` (SRD-SCR-013.011).
 
 ---
 

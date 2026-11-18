@@ -1,7 +1,7 @@
 # Unit Test & Coverage Definition — Screener (SCR)
 
 **Document ID:** UTCD-SCR
-**Version:** 2.2.0
+**Version:** 2.3.0
 **Traces To:** MD-SCR v2.1.0
 **Status:** Draft
 **Last Updated:** 2026-04-25
@@ -408,6 +408,16 @@ pytest tests/screener/ -m "not slow" -v
 | UT-SCR-013.009.M06.T02 | MD-SCR-002.003.M06 | Negative | Missing or bad value drops the plan | no target; stop "abc"; entry -5 | symbol absent from `last_plan`; score and reasoning still parsed | Pass |
 | UT-SCR-013.009.M06.T03 | MD-SCR-002.003.M06 | Positive | Prompt asks for plan fields | build tool-path prompt | system prompt contains "entry", "stop", "target" | Pass |
 | UT-SCR-013.009.M10.T01 | MD-SCR-003.001.M10 | Positive | Plan merged only where present | `last_plan` for AAPL only | AAPL has `ai_plan`; MSFT, GOOGL have none | Pass |
+
+### SRD-SCR-013.010–.011 — AI Provider choice
+
+| ID | Module | Type | Objective | Input | Expected | Status |
+|---|---|---|---|---|---|---|
+| UT-SCR-013.010.M01.T01 | MD-SCR-001.001.M01 | Positive | Provider round-trips; old preset is OpenRouter | `ai_provider="claude"`; dict without key | `"claude"` back; `"openrouter"` | Pass |
+| UT-SCR-013.010.M01.T02 | MD-SCR-001.001.M01 | Negative | Model format checked only for OpenRouter | claude + `claude-sonnet-5-5`; openrouter + same; provider `"x"` | first valid; second and third raise | Pass |
+| UT-SCR-013.011.M06.T01 | MD-SCR-002.003.M06 | Positive | Claude path ranks in one CLI request | provider claude, query set, answer JSON array | scores, reasoning, plan filled; model and query sent; no OpenRouter client | Pass |
+| UT-SCR-013.011.M06.T02 | MD-SCR-002.003.M06 | Negative | CLI failure falls back | `AiAnswer(error=...)`; non-JSON text | all `(True, 0.0)`; system note in transcript | Pass |
+| UT-SCR-013.011.M10.T01 | MD-SCR-003.001.M10 | Positive | Executor passes provider | preset `ai_provider="claude"` | Stage 3 config `ai_provider == "claude"` | Pass |
 
 
 ---

@@ -394,6 +394,7 @@ class PresetExecutor:
             "top_n":            top_n,
             "ai_query":         preset.ai_query,
             "ai_model":         preset.ai_model,
+            "ai_provider":      preset.ai_provider,
             "db":               self._db,
             "passing_symbols":  set(passing),
         }

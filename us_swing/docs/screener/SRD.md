@@ -1,10 +1,12 @@
 # Software Requirement Document — Screener (SCR)
 
 **Document ID:** SRD-SCR
-**Version:** 2.3.0
+**Version:** 2.4.0
 **Traces To:** FO-SCR v2.2.0
 **Status:** Draft
 **Last Updated:** 2026-11-18
+> v2.9.1: SRD-SCR-013.010–.011 approved by user 2026-11-18 and Implemented (RN-SCR-2.10.0).
+> v2.9.0: SRD-SCR-013.010–.011 added as Draft — AI Provider choice (OpenRouter or Claude Code CLI) for AI ranking; user request 2026-11-18.
 > v2.8.1: SRD-SCR-017.017–.018 approved by user 2026-11-18 and Implemented (RN-SCR-2.9.0).
 > v2.8.0: SRD-SCR-017.017–.018 added as Draft — tabbed Acc / Dist settings with tips and a rules level; user request 2026-11-18.
 > v2.7.1: SRD-SCR-017.014–.016 approved by user 2026-11-18 and Implemented (RN-SCR-2.8.0).
@@ -209,6 +211,8 @@
 | SRD-SCR-013.007 | FO-SCR-011 | Must | `ScreenerRunResult.results[symbol]` shall gain an `ai_reasoning: str` field (default `""`). For each symbol that received an AI ranking in Stage 3, the field is populated with the model's reasoning string (≤50 words). For symbols that did not pass Stage 2 or for runs without AI ranking, the field is empty. The field round-trips through `ScreenerResultsStorage.save_result` / `load_result` and is included in CSV export. | Stage 3 reasoning dict | updated result JSON | Adding the field is backward-compatible with existing JSON result files: `load_result()` defaults missing keys to `""` | Approved |
 | SRD-SCR-013.008 | FO-SCR-011 | Must | GUI: `_PresetBuilderDialog` shall add an `ai_query` `QLineEdit` (height `C.INPUT_H = 28`, max 500 chars, placeholder text "find bullish breakout candidates with strong momentum") inside the existing AI Ranking section, shown only when "Enable AI Ranking" is checked. `_build_preset_from_ui()` writes the line-edit text to `Preset.ai_query`; `_populate_from_preset()` reads it back. The `ScreenerPanel` results table shall add an "AI Reasoning" column showing the first 60 chars of `ai_reasoning` with the full text in `Qt.ItemDataRole.ToolTipRole`. CSV export (`_export_csv`) shall include the new column. | user input, preset state, run result | updated UI state, CSV output | Widget heights use `C.INPUT_H` constant per project convention (no hardcoded pixel heights); column is hidden if no row has non-empty `ai_reasoning` to avoid empty-column noise | Approved |
 | SRD-SCR-013.009 | FO-SCR-011 | Should | The tool-augmented ranking prompt asks for optional `entry`, `stop` and `target` prices per symbol; when all three are positive numbers they are kept in `last_plan` and merged into `result.results[sym]["ai_plan"]`. | Stage 3 ranking JSON | `ai_plan` dict | All-or-nothing per symbol; missing or invalid → no `ai_plan`; old result files load unchanged | Implemented |
+| SRD-SCR-013.010 | FO-SCR-011 | Must | `Preset` shall gain `ai_provider` (`openrouter` or `claude`, default `openrouter`) that round-trips; the `provider/model` format check on `ai_model` applies only to OpenRouter. | preset JSON | `Preset` | Old presets load as OpenRouter; unknown provider fails `validate()` | Implemented |
+| SRD-SCR-013.011 | FO-SCR-011 | Must | When `ai_provider` is `claude`, Stage 3 ranks in one Claude Code CLI request with the features and the query (if any) in the prompt, and returns scores, reasoning and plans as the tool path does. | features, query, model | scores, reasoning, plan, transcript | No tool calls; CLI failure or bad JSON falls back to Stage 2 results; executor passes `ai_provider` | Implemented |
 
 ---
 

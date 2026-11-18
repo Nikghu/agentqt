@@ -1,10 +1,12 @@
 # Software Requirements Document — GUI Module (GUI)
 
 **Document ID:** SRD-GUI
-**Version:** 2.123.0
+**Version:** 2.125.0
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-11-17
+> v2.125.1: SRD-GUI-022.014 approved by user 2026-11-18 and Implemented (RN-SCR-2.10.0).
+> v2.125.0: SRD-GUI-022.014 added as Draft — AI Ranking box: AI Provider choice, Query on its own row (user request 2026-11-18).
 > v2.124.1: SRD-GUI-022.013 approved by user 2026-11-18 and Implemented (RN-GUI-2.2.0).
 > v2.124.0: SRD-GUI-022.013 added as Draft — plain names for number-only screener details, no false "0 of 3" count (user request 2026-11-18).
 > v2.123.1: SRD-GUI-004.014 approved by user 2026-11-17 and Implemented.
@@ -533,6 +535,7 @@
 | SRD-GUI-022.011 | FO-GUI-022 | Should | List rows show rank, symbol, company name, score bar and rules passed ("2/4"); the detail shows a company line, Open in Charts, Add to watchlist, a chart without its input bar, one plan box with a risk / reward bar and a ✓ / ✕ rule list; on a daily chart the AI plan is drawn from the first candle after the run's last completed session, and the plan box shows Not entered, Open, Target hit or Stop hit with the date. | rows, run time, bars | list, detail | Supersedes the rule dots of SRD-GUI-022.002; Target and Stop in one candle count as Stop | Implemented |
 | SRD-GUI-022.012 | FO-GUI-022 | Should | Numbers use the UI font, the accent colour is kept for Run now and selection, rule chips are pills, the style chips are one segmented control, New preset is a + button in the rail header and preset rows drop the type tag. | — | — | Supersedes the per-row type tag of SRD-GUI-022.007 | Implemented |
 | SRD-GUI-022.013 | FO-GUI-022 | Should | Number-only details (e.g. Acc / Dist rally volume, drop volume, up/down ratio) show plain names with units and a tooltip, and are not counted as rules; a stock with only numbers shows "Details" with no count. | Result details | Detail list, list-row count, card chips | Pass/fail rules still show "RULES · n OF m" and "n/m" | Implemented |
+| SRD-GUI-022.014 | FO-GUI-022 | Should | The Edit Preset AI Ranking box shows "Enable AI Ranking", then Top N, AI Provider (OpenRouter, Claude Code CLI) and Model in one row and Query on its own row below. | provider choice | model default, Validate result | Switching provider swaps a default model; Validate checks the chosen provider answers | Implemented |
 ## FO-GUI-023 — Card Layout
 
 | ID | Parent | Priority | Description | Input | Output | Constraints | Status |
