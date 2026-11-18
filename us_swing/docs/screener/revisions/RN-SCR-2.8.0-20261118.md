@@ -27,9 +27,9 @@ The Accumulation / Distribution screener can judge rally and drop days against e
 
 | SRD ID | Description | Status |
 |---|---|---|
-| SRD-SCR-017.014 | Own move rule with move factor | Draft (code done; needs user approval) |
-| SRD-SCR-017.015 | Fixed rule kept; old configs read as fixed | Draft (code done; needs user approval) |
-| SRD-SCR-017.016 | Move rule choice in the settings dialog | Draft (code done; needs user approval) |
+| SRD-SCR-017.014 | Own move rule with move factor | Implemented (approved by user 2026-11-18) |
+| SRD-SCR-017.015 | Fixed rule kept; old configs read as fixed | Implemented (approved by user 2026-11-18) |
+| SRD-SCR-017.016 | Move rule choice in the settings dialog | Implemented (approved by user 2026-11-18) |
 
 ---
 
