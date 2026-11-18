@@ -7,6 +7,7 @@
 **Last Updated:** 2026-11-17
 **Project:** US Swing Trading System
 
+> v1.58.0: MD-GUI-022.001.M01 — `RuleCheck.tip`, `_DETAIL_NAMES` (RallyVol / DropVol / UD shown names), `ResultRow.rule_count` and `rules_text`; heading "DETAILS" when no pass/fail rules (SRD-GUI-022.013).
 > v1.57.0: MD-GUI-004.001.M01 extended — `notify_screener_results_updated(send_message)`; manual run sends no message (SRD-GUI-004.014, ISS-GUI-0021).
 > v1.55.1: MD-GUI-018.012.M05 note: no screen uses the sub-menu yet.
 > v1.55.0: AI Desk and Market Floor removed (user, 2026-11-17; docs/audit/DESK_REMOVAL_2026-11-17.md): FO-GUI-034 to FO-GUI-041 modules and MD-GUI-019.011.M04 removed.

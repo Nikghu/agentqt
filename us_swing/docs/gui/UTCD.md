@@ -7,6 +7,7 @@
 **Last Updated:** 2026-11-17
 **Project:** US Swing Trading System
 
+> v1.48.0: UT-GUI-022.013.M01.T01–T02 added; UT-GUI-022.011.M01.T01 now expects "1 OF 2" (a number is not a rule) — SRD-GUI-022.013.
 > v1.47.0: UT-GUI-004.001.M01.T26–T27 added, T17 input updated — manual run sends no "screener approved" message (SRD-GUI-004.014).
 > v1.46.0: AI Desk and Market Floor removed (user, 2026-11-17; docs/audit/DESK_REMOVAL_2026-11-17.md): FO-GUI-034 to FO-GUI-041 tests and UT-GUI-019.011.M04.T01 removed.
 > v1.42.1: UT-GUI-041.006–.010 and UT-GUI-034.085 Pass (13) (2026-11-16).

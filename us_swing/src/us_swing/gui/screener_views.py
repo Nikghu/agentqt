@@ -70,6 +70,19 @@ class RuleCheck:
     name: str
     passed: bool | None
     value: str = ""
+    tip: str = ""
+
+
+# Saved detail key → (shown name, unit, tooltip) for screeners that report numbers.
+_DETAIL_NAMES: dict[str, tuple[str, str, str]] = {
+    "RallyVol": ("Rally volume", "×",
+                 "Average volume on rally days, compared with normal volume"),
+    "DropVol": ("Drop volume", "×",
+                "Average volume on drop days, compared with normal volume"),
+    "UD": ("Up/down ratio", "",
+           "Volume on rally days ÷ volume on drop days. "
+           "Below 1: sellers heavier. Above 1: buyers heavier"),
+}
 
 
 @dataclass
@@ -108,6 +121,16 @@ class ResultRow:
         return sum(1 for rule in self.rules if rule.passed)
 
     @property
+    def rule_count(self) -> int:
+        """Number of pass/fail rules; numeric details are not counted."""
+        return sum(1 for rule in self.rules if rule.passed is not None)
+
+    @property
+    def rules_text(self) -> str:
+        """"2/3" style count, or empty when the stock has no pass/fail rules."""
+        return f"{self.passed_count}/{self.rule_count}" if self.rule_count else ""
+
+    @property
     def details_text(self) -> str:
         """Compact rule text, as the old Details column showed it."""
         parts = [
@@ -118,6 +141,10 @@ class ResultRow:
 
 
 def _rule_check(key: str, value: Any) -> RuleCheck:
+    known = _DETAIL_NAMES.get(key)
+    if known and isinstance(value, (int, float)) and not isinstance(value, bool):
+        name, unit, tip = known
+        return RuleCheck(name, None, f"{float(value):.2f}{unit}", tip)
     name = key.split("_")[0]
     if isinstance(value, bool):
         return RuleCheck(name, value)
@@ -348,6 +375,7 @@ def _rule_chip(rule: RuleCheck) -> QLabel:
     else:
         text, fg = f"✕ {rule.name}", _T.MUTED
     chip = QLabel(text)
+    chip.setToolTip(rule.tip)
     chip.setStyleSheet(
         f"color: {fg}; background: transparent; border: 1px solid {_T.OVERLAY2};"
         " border-radius: 10px; padding: 2px 9px; font-size: 8pt;"
@@ -788,7 +816,7 @@ class _ListRow(QWidget):
         bar = _ScoreBar(row.score, tier_fg)
         bar.setFixedWidth(60)
         line.addWidget(bar)
-        rules = _value_label(f"{row.passed_count}/{len(row.rules)}", _T.SUBTEXT)
+        rules = _value_label(row.rules_text, _T.SUBTEXT)
         rules.setFixedWidth(30)
         rules.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
         line.addWidget(rules)
@@ -986,7 +1014,8 @@ class ListDetailView(QWidget):
         parts += [f"rank {row.rank} of {len(self._rows)}", f"AI score {row.score:.2f}"]
         self.meta_lbl.setText(" · ".join(parts))
         self._fill_plan(row, _T)
-        self.rules_head.setText(f"RULES · {row.passed_count} OF {len(row.rules)}")
+        self.rules_head.setText(
+            f"RULES · {row.passed_count} OF {row.rule_count}" if row.rule_count else "DETAILS")
         for rule in row.rules:
             self._rules_box.addWidget(self._rule_line(rule, _T))
         self.reasoning_lbl.setText(row.reasoning or "No AI reasoning for this run.")
@@ -1026,6 +1055,7 @@ class ListDetailView(QWidget):
         text_clr = palette.MUTED if rule.passed is False else palette.TEXT
         label = QLabel(rule.name)
         label.setStyleSheet(f"color: {text_clr};")
+        label.setToolTip(rule.tip)
         box.addWidget(label, 1)
         if rule.passed is None:
             box.addWidget(QLabel(rule.value))

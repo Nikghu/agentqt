@@ -5,6 +5,7 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-11-17
+> v2.124.0: SRD-GUI-022.013 added as Draft — plain names for number-only screener details, no false "0 of 3" count (user request 2026-11-18).
 > v2.123.1: SRD-GUI-004.014 approved by user 2026-11-17 and Implemented.
 > v2.123.0: SRD-GUI-004.014 added as Draft (ISS-GUI-0021, user report 2026-11-17) — only a scheduled screener run sends the "screener approved" message.
 > v2.122.0: SRD-GUI-025.021–.023 added; approved by user 2026-11-17 — Sector Rotation tab in the Market Watch tile.
@@ -530,6 +531,7 @@
 | SRD-GUI-022.010 | FO-GUI-022 | Must | A header pill "AI transcript · N steps · $cost" opens the run transcript in a drawer over the right side of the results; the bottom transcript panel is removed. | transcript | drawer | Pill shown only for AI-ranked presets with a transcript | Implemented |
 | SRD-GUI-022.011 | FO-GUI-022 | Should | List rows show rank, symbol, company name, score bar and rules passed ("2/4"); the detail shows a company line, Open in Charts, Add to watchlist, a chart without its input bar, one plan box with a risk / reward bar and a ✓ / ✕ rule list; on a daily chart the AI plan is drawn from the first candle after the run's last completed session, and the plan box shows Not entered, Open, Target hit or Stop hit with the date. | rows, run time, bars | list, detail | Supersedes the rule dots of SRD-GUI-022.002; Target and Stop in one candle count as Stop | Implemented |
 | SRD-GUI-022.012 | FO-GUI-022 | Should | Numbers use the UI font, the accent colour is kept for Run now and selection, rule chips are pills, the style chips are one segmented control, New preset is a + button in the rail header and preset rows drop the type tag. | — | — | Supersedes the per-row type tag of SRD-GUI-022.007 | Implemented |
+| SRD-GUI-022.013 | FO-GUI-022 | Should | Number-only details (e.g. Acc / Dist rally volume, drop volume, up/down ratio) show plain names with units and a tooltip, and are not counted as rules; a stock with only numbers shows "Details" with no count. | Result details | Detail list, list-row count, card chips | Pass/fail rules still show "RULES · n OF m" and "n/m" | Draft |
 ## FO-GUI-023 — Card Layout
 
 | ID | Parent | Priority | Description | Input | Output | Constraints | Status |
