@@ -2,6 +2,16 @@
 
 ---
 
+## [20261118] SCR + GUI — AI Ranking stock context, phase 1 (FO-SCR-016)
+
+- Type: Feature (branch `feat/scr-ai-context`)
+- FO(s): FO-SCR-016 (SRD-SCR-018.001–.007), FO-GUI-022 (SRD-GUI-022.016–.017) — approved by user and Implemented
+- RN: RN-SCR-2.11.0-20261118
+- Rules (user answers): earnings red ≤5 days, yellow 6–10; sector 1-month rank vs RSP, bottom 3 flagged; regime SPY vs 50/200-day; AI weighs flags, no code penalty
+- Artifacts: FO, SRD, DD, MD, UTCD (17 rows), TRACE, TODO T206–T207
+
+---
+
 ## [20261118] SCR + GUI — AI Provider choice for AI Ranking (FO-SCR-011, FO-GUI-022)
 
 - Type: Feature (batch branch `fix/bugfix-batch-20261118`, commit 0d4a83be)

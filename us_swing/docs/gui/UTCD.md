@@ -700,9 +700,9 @@ Test files:
 | UT-GUI-022.014.M01.T02 | MD-GUI-022.001.M01 | Negative | Own model kept on switch; old preset opens as OpenRouter | typed model then switch; preset without provider | typed model kept; combo shows OpenRouter | Pass |
 | UT-GUI-022.015.M01.T01 | MD-GUI-022.001.M01 | Positive | Model list follows provider and allows typing | switch to Claude Code CLI; type own ID | editable; OpenRouter list has default; Claude list = 3 Claude models; typed ID saved | Pass |
 | UT-GUI-022.015.M01.T02 | MD-GUI-022.001.M01 | Positive | Chevron opens the list; typing matches | trigger chevron action; read completer | list opens; completer filter = contains, popup mode | Pass |
-| UT-GUI-022.016.M01.T01 | MD-GUI-022.001.M01 | Positive | Context ticks save and load | tick Earnings and Sector; reopen preset | `ai_context == ["earnings", "sector"]`; both ticked again | Not Run |
-| UT-GUI-022.017.M01.T01 | MD-GUI-022.001.M01 | Positive | Chips, flags and ⚑ count | result with earnings red, sector green, market risk-on, 1 flag | row flags 1; list shows "⚑ 1"; chips coloured; Red flags lists it | Not Run |
-| UT-GUI-022.017.M01.T02 | MD-GUI-022.001.M01 | Negative | Old result without context | no `ai_context` | no chips, empty ⚑ label, Red flags hidden | Not Run |
+| UT-GUI-022.016.M01.T01 | MD-GUI-022.001.M01 | Positive | Context ticks save and load | tick Earnings and Sector; reopen preset | `ai_context == ["earnings", "sector"]`; both ticked again | Pass |
+| UT-GUI-022.017.M01.T01 | MD-GUI-022.001.M01 | Positive | Chips, flags and ⚑ count | result with earnings red, sector green, market risk-on, 1 flag | row flags 1; list shows "⚑ 1"; chips coloured; Red flags lists it | Pass |
+| UT-GUI-022.017.M01.T02 | MD-GUI-022.001.M01 | Negative | Old result without context | no `ai_context` | no chips, empty ⚑ label, Red flags hidden | Pass |
 ## FO-GUI-023 — Card Layout
 
 | ID | Module | Type | Description | Input | Expected | Status |

@@ -5,6 +5,7 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-11-17
+> v2.127.1: SRD-GUI-022.016–.017 approved by user 2026-11-18 and Implemented (RN-SCR-2.11.0).
 > v2.127.0: SRD-GUI-022.016–.017 added as Draft — AI context tick boxes and context chips / red flags in screener results (FO-SCR-016, user request 2026-11-18).
 > v2.126.0: SRD-GUI-022.015 added, approved by user 2026-11-18 and Implemented — Model box lists the provider's models (RN-SCR-2.10.0).
 > v2.125.1: SRD-GUI-022.014 approved by user 2026-11-18 and Implemented (RN-SCR-2.10.0).
@@ -539,8 +540,8 @@
 | SRD-GUI-022.013 | FO-GUI-022 | Should | Number-only details (e.g. Acc / Dist rally volume, drop volume, up/down ratio) show plain names with units and a tooltip, and are not counted as rules; a stock with only numbers shows "Details" with no count. | Result details | Detail list, list-row count, card chips | Pass/fail rules still show "RULES · n OF m" and "n/m" | Implemented |
 | SRD-GUI-022.014 | FO-GUI-022 | Should | The Edit Preset AI Ranking box shows "Enable AI Ranking", then Top N, AI Provider (OpenRouter, Claude Code CLI) and Model in one row and Query on its own row below. | provider choice | model default, Validate result | Switching provider swaps a default model; Validate checks the chosen provider answers | Implemented |
 | SRD-GUI-022.015 | FO-GUI-022 | Should | The Model box is a dropdown of the chosen provider's models (OpenRouter list plus the user's custom models, or the Claude models) and still accepts a typed model ID. | provider | model list | Model name shown as tooltip; list refills on provider switch; a chevron in the box opens the list and typing shows matching models | Implemented |
-| SRD-GUI-022.016 | FO-GUI-022 | Should | The Edit Preset AI Ranking box shows an "Extra context for the AI" row with tick boxes Earnings date and Sector strength, saved per preset. | ticks | `Preset.ai_context` | Row shown only when AI Ranking is on; short hint below the ticks | Approved |
-| SRD-GUI-022.017 | FO-GUI-022 | Should | Result rows with context show green / yellow / red chips for earnings, sector and market under the stock name, a Red flags section in the detail, and a ⚑ count in the list and on cards. | `ai_context`, `ai_flags`, regime | chips, flag count | Nothing shown for runs without context | Approved |
+| SRD-GUI-022.016 | FO-GUI-022 | Should | The Edit Preset AI Ranking box shows an "Extra context for the AI" row with tick boxes Earnings date and Sector strength, saved per preset. | ticks | `Preset.ai_context` | Row shown only when AI Ranking is on; short hint below the ticks | Implemented |
+| SRD-GUI-022.017 | FO-GUI-022 | Should | Result rows with context show green / yellow / red chips for earnings, sector and market under the stock name, a Red flags section in the detail, and a ⚑ count in the list and on cards. | `ai_context`, `ai_flags`, regime | chips, flag count | Nothing shown for runs without context | Implemented |
 ## FO-GUI-023 — Card Layout
 
 | ID | Parent | Priority | Description | Input | Output | Constraints | Status |

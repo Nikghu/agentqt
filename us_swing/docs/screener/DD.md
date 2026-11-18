@@ -1735,7 +1735,7 @@ A switched-off Range Zone or Close Zone scores 0. Value = mean of the 9 scores, 
 # FO-SCR-016 — AI Ranking Stock Context (Phase 1)
 
 ## DD-SCR-018.001.D01 — Context package, rules and wiring
-- **Status:** Draft
+- **Status:** Implemented
 
 **Parent SRDs:** SRD-SCR-018.001 through SRD-SCR-018.007
 
@@ -1748,7 +1748,7 @@ A switched-off Range Zone or Close Zone scores 0. Value = mean of the 9 scores, 
 | `_context.py` | `StockContext` (frozen dataclass, `to_dict()`), `earnings_level()`, `market_regime()`, `build_context()`, `context_text()` |
 
 ### Rules
-- Earnings: `days = (date - today).days`; 0–5 red + flag "Earnings in N days", 6–10 yellow, >10 green; no date → no level.
+- Earnings: `days = (date - today).days`; 0–5 red + flag "Earnings today" / "Earnings in N days", 6–10 yellow, >10 green; no date → no level.
 - Sector: `sector_moves(closes, 21)` ranks the 11 ETFs vs RSP; stock sector → ETF by `GICS_TO_ETF`; rank 9–11 red + flag "Weak sector (#N of 11)", 1–3 green, else neutral; unmapped or ETF missing → no sector fields.
 - Regime: SPY last close vs SMA50 and SMA200: above both risk-on, below both risk-off, else mixed; fewer than 200 closes → empty.
 

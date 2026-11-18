@@ -591,17 +591,17 @@ Test files:
 
 | ID | Module | Type | Objective | Input | Expected Output | Status |
 |---|---|---|---|---|---|---|
-| UT-SCR-018.001.M01.T01 | MD-SCR-001.001.M01 | Positive | Context choice round-trips; old preset empty | `ai_context=["earnings","sector"]`; dict without key | same list; `[]` | Not Run |
-| UT-SCR-018.001.M01.T02 | MD-SCR-001.001.M01 | Negative | Unknown context rejected | `ai_context=["weather"]` | `PresetValidationError` | Not Run |
-| UT-SCR-018.002.M36.T01 | MD-SCR-018.002.M36 | Positive | One fetch per stock per day | two calls same day, then next day | fetch count 2, then 3; dates match | Not Run |
-| UT-SCR-018.002.M36.T02 | MD-SCR-018.002.M36 | Negative | Failed lookup gives None and retries next run | fetch raises for COF | COF None, NVDA ok; COF fetched again next call | Not Run |
-| UT-SCR-018.002.M36.T03 | MD-SCR-018.002.M36 | Edge | Only dates on or after today | calendar [yesterday, in 20 days]; [] | in 20 days; None | Not Run |
-| UT-SCR-018.003.M37.T01 | MD-SCR-018.003.M37 | Edge | Earnings level boundaries | 0, 5, 6, 10, 11 days, none | red, red, yellow, yellow, green, none; flag only for red | Not Run |
-| UT-SCR-018.004.M35.T01 | MD-SCR-018.004.M35 | Positive | Sector rank and levels | 11 ETFs + RSP closes; stocks in #2, #6, #10 sectors | green / neutral / red + "Weak sector (#10 of 11)" | Not Run |
-| UT-SCR-018.004.M35.T02 | MD-SCR-018.004.M35 | Negative | Unknown sector or missing closes | sector "Crypto"; ETF without closes | no sector fields, no flag | Not Run |
-| UT-SCR-018.005.M37.T01 | MD-SCR-018.003.M37 | Positive | Market regime | SPY above both; below both; between; 150 closes | risk-on; risk-off; mixed; "" | Not Run |
-| UT-SCR-018.006.M37.T01 | MD-SCR-018.003.M37 | Positive | Prompt text lists each stock and the market | 2 contexts, regime risk-on | header with market; one line per stock with flags | Not Run |
-| UT-SCR-018.006.M06.T01 | MD-SCR-002.003.M06 | Positive | Context goes into the AI request | `ai_context_text` set, Claude path | facts contain block; instruction contains flag rule | Not Run |
-| UT-SCR-018.006.M06.T02 | MD-SCR-002.003.M06 | Negative | No context, prompt unchanged | no `ai_context_text` | instruction equals today's; no block | Not Run |
-| UT-SCR-018.007.M10.T01 | MD-SCR-003.001.M10 | Positive | Executor builds, sends and saves context | preset with context; fake earnings lookup | LLM config has text; rows have `ai_context` incl. market and `ai_flags` | Not Run |
-| UT-SCR-018.007.M10.T02 | MD-SCR-003.001.M10 | Negative | No context ticked | preset `ai_context=[]` | lookup not called; no context keys; no text in config | Not Run |
+| UT-SCR-018.001.M01.T01 | MD-SCR-001.001.M01 | Positive | Context choice round-trips; old preset empty | `ai_context=["earnings","sector"]`; dict without key | same list; `[]` | Pass |
+| UT-SCR-018.001.M01.T02 | MD-SCR-001.001.M01 | Negative | Unknown context rejected | `ai_context=["weather"]` | `PresetValidationError` | Pass |
+| UT-SCR-018.002.M36.T01 | MD-SCR-018.002.M36 | Positive | One fetch per stock per day | two calls same day, then next day | fetch count 2, then 3; dates match | Pass |
+| UT-SCR-018.002.M36.T02 | MD-SCR-018.002.M36 | Negative | Failed lookup gives None and retries next run | fetch raises for COF | COF None, NVDA ok; COF fetched again next call | Pass |
+| UT-SCR-018.002.M36.T03 | MD-SCR-018.002.M36 | Edge | Only dates on or after today | calendar [yesterday, in 20 days]; [] | in 20 days; None | Pass |
+| UT-SCR-018.003.M37.T01 | MD-SCR-018.003.M37 | Edge | Earnings level boundaries | 0, 5, 6, 10, 11 days, none | red, red, yellow, yellow, green, none; flag only for red | Pass |
+| UT-SCR-018.004.M35.T01 | MD-SCR-018.004.M35 | Positive | Sector rank and levels | 11 ETFs + RSP closes; stocks in #2, #6, #10 sectors | green / neutral / red + "Weak sector (#10 of 11)" | Pass |
+| UT-SCR-018.004.M35.T02 | MD-SCR-018.004.M35 | Negative | Unknown sector or missing closes | sector "Crypto"; ETF without closes | no sector fields, no flag | Pass |
+| UT-SCR-018.005.M37.T01 | MD-SCR-018.003.M37 | Positive | Market regime | SPY above both; below both; between; 150 closes | risk-on; risk-off; mixed; "" | Pass |
+| UT-SCR-018.006.M37.T01 | MD-SCR-018.003.M37 | Positive | Prompt text lists each stock and the market | 2 contexts, regime risk-on | header with market; one line per stock with flags | Pass |
+| UT-SCR-018.006.M06.T01 | MD-SCR-002.003.M06 | Positive | Context goes into the AI request | `ai_context_text` set, Claude path | facts contain block; instruction contains flag rule | Pass |
+| UT-SCR-018.006.M06.T02 | MD-SCR-002.003.M06 | Negative | No context, prompt unchanged | no `ai_context_text` | instruction equals today's; no block | Pass |
+| UT-SCR-018.007.M10.T01 | MD-SCR-003.001.M10 | Positive | Executor builds, sends and saves context | preset with context; fake earnings lookup | LLM config has text; rows have `ai_context` incl. market and `ai_flags` | Pass |
+| UT-SCR-018.007.M10.T02 | MD-SCR-003.001.M10 | Negative | No context ticked | preset `ai_context=[]` | lookup not called; no context keys; no text in config | Pass |

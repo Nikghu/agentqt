@@ -545,10 +545,10 @@ FO-011
 
 | SRD | DD | MD | Test file | UT IDs | Status |
 |---|---|---|---|---|---|
-| SRD-018.001 | D01 | M01 | test_stock_context_screener.py | M01.T01–T02 | Approved |
-| SRD-018.002 | D01 | M36 | test_stock_context.py | M36.T01–T03 | Approved |
-| SRD-018.003 | D01 | M37 | test_stock_context.py | M37.T01 | Approved |
-| SRD-018.004 | D01 | M35 | test_stock_context.py | M35.T01–T02 | Approved |
-| SRD-018.005 | D01 | M37 | test_stock_context.py | .005.M37.T01 | Approved |
-| SRD-018.006 | D01 | M37, M06 | test_stock_context.py, test_stock_context_screener.py | .006.M37.T01, M06.T01–T02 | Approved |
-| SRD-018.007 | D01 | M10 | test_stock_context_screener.py | M10.T01–T02 | Approved |
+| SRD-018.001 | D01 | M01 | test_stock_context_screener.py | M01.T01–T02 | Implemented → Pass |
+| SRD-018.002 | D01 | M36 | test_stock_context.py | M36.T01–T03 | Implemented → Pass |
+| SRD-018.003 | D01 | M37 | test_stock_context.py | M37.T01 | Implemented → Pass |
+| SRD-018.004 | D01 | M35 | test_stock_context.py | M35.T01–T02 | Implemented → Pass |
+| SRD-018.005 | D01 | M37 | test_stock_context.py | .005.M37.T01 | Implemented → Pass |
+| SRD-018.006 | D01 | M37, M06 | test_stock_context.py, test_stock_context_screener.py | .006.M37.T01, M06.T01–T02 | Implemented → Pass |
+| SRD-018.007 | D01 | M10 | test_stock_context_screener.py | M10.T01–T02 | Implemented → Pass |

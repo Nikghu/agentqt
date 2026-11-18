@@ -82,9 +82,9 @@ Registered as `acc_dist` in `src/us_swing/screener/__init__.py`. M33 opens from 
 
 | Module ID | Parent SRD | File | Responsibility | Public API | Deps | Status |
 |---|---|---|---|---|---|---|
-| MD-SCR-018.004.M35 | SRD-SCR-018.004 | `src/us_swing/core/stock_context/_sector.py` | Sector ETF list, moves vs RSP, GICS → ETF map. | `sector_moves()`, `SECTOR_SYMBOLS`, `GICS_TO_ETF` | — | Draft |
-| MD-SCR-018.002.M36 | SRD-SCR-018.002 | `src/us_swing/core/stock_context/_earnings.py` | Next earnings date per stock with a daily JSON cache. | `EarningsLookup` | `yfinance` | Draft |
-| MD-SCR-018.003.M37 | SRD-SCR-018.003, .005, .006 | `src/us_swing/core/stock_context/_context.py` | Earnings and sector levels, flags, market regime, prompt text. | `StockContext`, `build_context()`, `market_regime()`, `context_text()` | M35 | Draft |
+| MD-SCR-018.004.M35 | SRD-SCR-018.004 | `src/us_swing/core/stock_context/_sector.py` | Sector ETF list, moves vs RSP, GICS → ETF map. | `sector_moves()`, `SECTOR_SYMBOLS`, `GICS_TO_ETF` | — | Implemented |
+| MD-SCR-018.002.M36 | SRD-SCR-018.002 | `src/us_swing/core/stock_context/_earnings.py` | Next earnings date per stock with a daily JSON cache. | `EarningsLookup` | `yfinance` | Implemented |
+| MD-SCR-018.003.M37 | SRD-SCR-018.003, .005, .006 | `src/us_swing/core/stock_context/_context.py` | Earnings and sector levels, flags, market regime, prompt text. | `StockContext`, `build_context()`, `market_regime()`, `context_text()` | M35 | Implemented |
 
 M01 `preset.py` gains `ai_context`; M10 `executor.py` builds and merges context; M06 `cloud_ai.py` adds the context block to every prompt path.
 
