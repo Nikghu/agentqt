@@ -2117,7 +2117,7 @@ class ScreenerPanel(QWidget):
     def _build_left_pane(self) -> QFrame:
         """Header, search box, folder tree and a status line at the bottom."""
         self._tree_host = QWidget()
-        self._tree_host.setObjectName("result_detail")
+        self._tree_host.setObjectName("tree_host")
         self._tree_box = QVBoxLayout(self._tree_host)
         self._tree_box.setContentsMargins(8, 2, 8, 8)
         self._tree_box.setSpacing(1)
@@ -2413,6 +2413,7 @@ class ScreenerPanel(QWidget):
             if groups[key]:
                 self._add_folder(key, title, role, groups[key], searching=bool(search.strip()))
         self._tree_box.addStretch(1)
+        self._tree_host.update()
 
     def _clear_tree(self) -> None:
         self._open_section.hide()
