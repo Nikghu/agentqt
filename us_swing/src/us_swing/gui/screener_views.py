@@ -42,6 +42,8 @@ from PyQt6.QtWidgets import (
     QPushButton,
     QScrollArea,
     QSizePolicy,
+    QStackedWidget,
+    QTabBar,
     QVBoxLayout,
     QWidget,
 )
@@ -54,7 +56,7 @@ from us_swing.core.stock_context import (
     surprise_text,
 )
 from us_swing.data.market_calendar import ET
-from us_swing.gui.icons import icon, set_icon
+from us_swing.gui.icons import icon, icon_button, set_icon
 from us_swing.gui.theme import C, active_palette, colors
 
 STRONG_MIN = 0.70
@@ -67,6 +69,8 @@ SORT_KEYS: tuple[tuple[str, str], ...] = (
 CSV_HEADER = ["Symbol", "Score", "Details", "AI Reasoning", "Entry", "Stop", "Target", "R:R"]
 
 _DASH = "—"
+_TABS_H = 200
+_TAB_RULES, _TAB_NEWS, _TAB_FUNDAMENTALS, _TAB_REVIEW = 1, 2, 3, 4
 _SESSION_CLOSE = datetime.time(16, 0)
 _ONE_DAY = datetime.timedelta(days=1)
 
@@ -251,6 +255,7 @@ class ResultRow:
     stop: float | None = None
     target: float | None = None
     name: str = ""
+    sector: str = ""
     chips: list[ContextChip] = field(default_factory=list)
     flags: list[str] = field(default_factory=list)
     news: list[Mapping[str, Any]] = field(default_factory=list)
@@ -329,17 +334,20 @@ def _price(plan: Any, key: str) -> float | None:
 
 
 def rows_from_result(results: Mapping[str, Mapping[str, Any]],
-                     names: Mapping[str, str] | None = None) -> list[ResultRow]:
+                     names: Mapping[str, str] | None = None,
+                     sectors: Mapping[str, str] | None = None) -> list[ResultRow]:
     """Build ranked rows from ``ScreenerRunResult.results``.
 
     Args:
         results: Symbol → result metadata (``score``, ``details``, ``ai_reasoning``, ``ai_plan``).
         names: Optional symbol → company name.
+        sectors: Optional symbol → sector name.
 
     Returns:
         Rows sorted by score, highest first, with ``rank`` set from 1.
     """
     names = names or {}
+    sectors = sectors or {}
     rows: list[ResultRow] = []
     for symbol, meta in results.items():
         plan = meta.get("ai_plan")
@@ -353,6 +361,7 @@ def rows_from_result(results: Mapping[str, Mapping[str, Any]],
             stop=_price(plan, "stop"),
             target=_price(plan, "target"),
             name=names.get(symbol, ""),
+            sector=sectors.get(symbol, ""),
             chips=_context_chips(meta.get("ai_context")),
             flags=[str(flag) for flag in meta.get("ai_flags") or []],
             news=_saved_news(meta.get("ai_context")),
@@ -992,8 +1001,32 @@ class _ListRow(QWidget):
         line.addLayout(lines, 1)
 
 
+def _tab_page(parts: Sequence[QWidget | QLayout]) -> QScrollArea:
+    """Frameless scroll page holding ``parts`` from the top down."""
+    page = QWidget()
+    page.setObjectName("result_detail")
+    box = QVBoxLayout(page)
+    box.setContentsMargins(0, 0, 8, 0)
+    box.setSpacing(6)
+    for part in parts:
+        if isinstance(part, QLayout):
+            box.addLayout(part)
+        else:
+            box.addWidget(part)
+    box.addStretch(1)
+    scroll = QScrollArea()
+    scroll.setWidgetResizable(True)
+    scroll.setFrameShape(QFrame.Shape.NoFrame)
+    scroll.setWidget(page)
+    return scroll
+
+
 class ListDetailView(QWidget):
-    """Ranked list on the left, detail of the selected stock on the right."""
+    """Ranked stock list and the detail of the selected stock.
+
+    The panel moves the list into its left pane (``detach_list``); the detail is a
+    header, plan strip, chart and tabs (SRD-GUI-043.007–.010).
+    """
 
     chart_requested = pyqtSignal(str)
     watchlist_requested = pyqtSignal(str)
@@ -1027,14 +1060,28 @@ class ListDetailView(QWidget):
         scroll.setFrameShape(QFrame.Shape.NoFrame)
         detail = QWidget()
         detail.setObjectName("result_detail")
-        body = QVBoxLayout(detail)
-        body.setContentsMargins(24, 18, 24, 18)
-        body.setSpacing(16)
+        self._body = QVBoxLayout(detail)
+        self._body.setContentsMargins(24, 18, 24, 18)
+        self._body.setSpacing(14)
+        self._body.addLayout(self._build_header())
+        self._body.addWidget(self._build_plan())
 
-        head = QHBoxLayout()
-        head.setSpacing(10)
-        title = QVBoxLayout()
-        title.setSpacing(2)
+        self.chart_slot = QFrame()
+        self.chart_slot.setObjectName("chart_slot")
+        self.chart_slot.setMinimumHeight(260)
+        self._chart_layout = QVBoxLayout(self.chart_slot)
+        self._chart_layout.setContentsMargins(1, 1, 1, 1)
+        if chart_factory is None:
+            self.chart_slot.hide()
+        self._body.addWidget(self.chart_slot, 1)
+        self._body.addWidget(self._build_tabs())
+        self._hide_company_sections()
+
+        scroll.setWidget(detail)
+        layout.addWidget(scroll, 1)
+
+    def _build_header(self) -> QVBoxLayout:
+        """Symbol, tier and context chips, previous / next, actions, meta line."""
         top = QHBoxLayout()
         top.setSpacing(10)
         self.symbol_lbl = QLabel()
@@ -1046,32 +1093,35 @@ class ListDetailView(QWidget):
         self._chips_box = _FlowLayout(spacing=6)
         self._chips_box.setContentsMargins(0, 7, 0, 0)
         top.addLayout(self._chips_box, 1)
-        title.addLayout(top)
-        self.meta_lbl = _key_label("")
-        title.addWidget(self.meta_lbl)
-        head.addLayout(title, 1)
+        self.prev_btn = icon_button("chevron-up", "neutral", "Previous stock")
+        self.prev_btn.setFixedWidth(C.BTN_H)
+        self.prev_btn.clicked.connect(lambda: self._step(-1))
+        top.addWidget(self.prev_btn, 0, Qt.AlignmentFlag.AlignTop)
+        self.next_btn = icon_button("chevron-down", "neutral", "Next stock")
+        self.next_btn.setFixedWidth(C.BTN_H)
+        self.next_btn.clicked.connect(lambda: self._step(1))
+        top.addWidget(self.next_btn, 0, Qt.AlignmentFlag.AlignTop)
         self.chart_btn = _action_button("Open in Charts", "chart-candlestick", "info")
         self.chart_btn.clicked.connect(lambda: self._emit_selected(self.chart_requested))
-        head.addWidget(self.chart_btn)
+        top.addWidget(self.chart_btn, 0, Qt.AlignmentFlag.AlignTop)
         self.watch_btn = _action_button("Add to watchlist", "plus", "add")
         self.watch_btn.clicked.connect(lambda: self._emit_selected(self.watchlist_requested))
-        head.addWidget(self.watch_btn)
-        body.addLayout(head)
+        top.addWidget(self.watch_btn, 0, Qt.AlignmentFlag.AlignTop)
 
-        self.chart_slot = QFrame()
-        self.chart_slot.setObjectName("chart_slot")
-        self.chart_slot.setMinimumHeight(260)
-        self._chart_layout = QVBoxLayout(self.chart_slot)
-        self._chart_layout.setContentsMargins(1, 1, 1, 1)
-        if chart_factory is None:
-            self.chart_slot.hide()
-        body.addWidget(self.chart_slot)
+        head = QVBoxLayout()
+        head.setSpacing(2)
+        head.addLayout(top)
+        self.meta_lbl = _key_label("")
+        head.addWidget(self.meta_lbl)
+        return head
 
+    def _build_plan(self) -> QFrame:
+        """Stop, Entry, Target and Reward : risk strip with the risk bar (SRD-GUI-043.008)."""
         plan = QFrame()
         plan.setObjectName("detail_plan")
         plan_box = QVBoxLayout(plan)
-        plan_box.setContentsMargins(16, 12, 16, 12)
-        plan_box.setSpacing(10)
+        plan_box.setContentsMargins(16, 10, 16, 10)
+        plan_box.setSpacing(8)
         values = QGridLayout()
         values.setHorizontalSpacing(12)
         values.setVerticalSpacing(2)
@@ -1098,63 +1148,36 @@ class ListDetailView(QWidget):
         self.reward_lbl = _key_label("")
         amounts.addWidget(self.reward_lbl)
         plan_box.addLayout(amounts)
-        body.addWidget(plan)
+        return plan
 
-        lower = QHBoxLayout()
-        lower.setSpacing(24)
-        rules_col = QVBoxLayout()
-        rules_col.setSpacing(6)
-        self.rules_head = QLabel("RULES")
-        self.rules_head.setObjectName("view_head")
-        rules_col.addWidget(self.rules_head)
-        self._rules_box = QVBoxLayout()
-        self._rules_box.setSpacing(4)
-        rules_col.addLayout(self._rules_box)
-        self.flags_head = QLabel("RED FLAGS")
-        self.flags_head.setObjectName("view_head")
-        self.flags_head.hide()
-        rules_col.addSpacing(8)
-        rules_col.addWidget(self.flags_head)
-        self._flags_box = QVBoxLayout()
-        self._flags_box.setSpacing(4)
-        rules_col.addLayout(self._flags_box)
-        rules_col.addStretch(1)
-        lower.addLayout(rules_col, 1)
-        why_col = QVBoxLayout()
-        why_col.setSpacing(6)
-        why_head = QLabel("AI REASONING")
-        why_head.setObjectName("view_head")
-        why_col.addWidget(why_head)
+    def _build_tabs(self) -> QWidget:
+        """Tabs that show one long detail section at a time (SRD-GUI-043.010)."""
+        self.tabs = QTabBar()
+        self.tabs.setObjectName("detail_tabs")
+        self.tabs.setDrawBase(False)
+        self.tabs.setExpanding(False)
+        self._pages = QStackedWidget()
+        self.tabs.currentChanged.connect(self._pages.setCurrentIndex)
+
         self.reasoning_lbl = QLabel()
         self.reasoning_lbl.setWordWrap(True)
         self.reasoning_lbl.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
-        why_col.addWidget(self.reasoning_lbl)
+
+        self.rules_head = QLabel("RULES")
+        self.rules_head.setObjectName("view_head")
+        self._rules_box = QVBoxLayout()
+        self._rules_box.setSpacing(4)
+        self.flags_head = QLabel("RED FLAGS")
+        self.flags_head.setObjectName("view_head")
+        self.flags_head.hide()
+        self._flags_box = QVBoxLayout()
+        self._flags_box.setSpacing(4)
+
         self.news_head = QLabel("NEWS, LAST 5 DAYS")
         self.news_head.setObjectName("view_head")
         self.news_head.hide()
-        why_col.addSpacing(8)
-        why_col.addWidget(self.news_head)
         self._news_box = QVBoxLayout()
         self._news_box.setSpacing(4)
-        why_col.addLayout(self._news_box)
-        self.fundamentals_head = QLabel("FUNDAMENTALS")
-        self.fundamentals_head.setObjectName("view_head")
-        why_col.addSpacing(8)
-        why_col.addWidget(self.fundamentals_head)
-        self.fundamentals_lbl = QLabel()
-        self.fundamentals_lbl.setWordWrap(True)
-        why_col.addWidget(self.fundamentals_lbl)
-        self.analysts_head = QLabel("ANALYST CHANGES, LAST 30 DAYS")
-        self.analysts_head.setObjectName("view_head")
-        why_col.addSpacing(8)
-        why_col.addWidget(self.analysts_head)
-        self._analysts_box = QVBoxLayout()
-        self._analysts_box.setSpacing(4)
-        why_col.addLayout(self._analysts_box)
-        why_col.addStretch(1)
-        lower.addLayout(why_col, 3)
-        body.addLayout(lower)
-
         self.research_box = QFrame()
         self.research_box.setObjectName("detail_plan")
         research_vl = QVBoxLayout(self.research_box)
@@ -1172,15 +1195,20 @@ class ListDetailView(QWidget):
         self.research_links.setOpenExternalLinks(True)
         research_vl.addWidget(self.research_links)
         self.research_box.hide()
-        body.addWidget(self.research_box)
+
+        self.fundamentals_head = QLabel("FUNDAMENTALS")
+        self.fundamentals_head.setObjectName("view_head")
+        self.fundamentals_lbl = QLabel()
+        self.fundamentals_lbl.setWordWrap(True)
+        self.analysts_head = QLabel("ANALYST CHANGES, LAST 30 DAYS")
+        self.analysts_head.setObjectName("view_head")
+        self._analysts_box = QVBoxLayout()
+        self._analysts_box.setSpacing(4)
+
         self.review_box = QFrame()
-        self.review_box.setObjectName("detail_plan")
         review_vl = QVBoxLayout(self.review_box)
-        review_vl.setContentsMargins(16, 12, 16, 12)
+        review_vl.setContentsMargins(0, 0, 0, 0)
         review_vl.setSpacing(6)
-        review_head = QLabel("BULL VS BEAR")
-        review_head.setObjectName("view_head")
-        review_vl.addWidget(review_head)
         self.review_bull_lbl = QLabel()
         self.review_bear_lbl = QLabel()
         self.review_verdict_lbl = QLabel()
@@ -1191,12 +1219,54 @@ class ListDetailView(QWidget):
             label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
             review_vl.addWidget(label)
         self.review_box.hide()
-        body.addWidget(self.review_box)
-        self._hide_company_sections()
-        body.addStretch(1)
 
-        scroll.setWidget(detail)
-        layout.addWidget(scroll, 1)
+        sections: list[tuple[str, list[QWidget | QLayout]]] = [
+            ("AI reasoning", [self.reasoning_lbl]),
+            ("Rules", [self.rules_head, self._rules_box, self.flags_head, self._flags_box]),
+            ("News", [self.news_head, self._news_box, self.research_box]),
+            ("Fundamentals", [self.fundamentals_head, self.fundamentals_lbl,
+                              self.analysts_head, self._analysts_box]),
+            ("Bull vs bear", [self.review_box]),
+        ]
+        for title, parts in sections:
+            self.tabs.addTab(title)
+            self._pages.addWidget(_tab_page(parts))
+
+        box = QWidget()
+        box.setFixedHeight(_TABS_H)
+        vl = QVBoxLayout(box)
+        vl.setContentsMargins(0, 0, 0, 0)
+        vl.setSpacing(8)
+        vl.addWidget(self.tabs)
+        vl.addWidget(self._pages, 1)
+        return box
+
+    def _step(self, delta: int) -> None:
+        row = self.list.currentRow() + delta
+        if 0 <= row < len(self._rows):
+            self.list.setCurrentRow(row)
+
+    def _refresh_nav(self) -> None:
+        row = self.list.currentRow()
+        self.prev_btn.setEnabled(row > 0)
+        self.next_btn.setEnabled(0 <= row < len(self._rows) - 1)
+
+    def _refresh_tabs(self, row: ResultRow | None) -> None:
+        """Rules count on its tab; tabs with nothing to show are greyed (SRD-GUI-043.010)."""
+        if row is not None and row.rule_count:
+            self.tabs.setTabText(_TAB_RULES, f"Rules {row.passed_count}/{row.rule_count}")
+        else:
+            self.tabs.setTabText(_TAB_RULES, "Details" if row is not None else "Rules")
+        has = {
+            _TAB_NEWS: not (self.news_head.isHidden() and self.research_box.isHidden()),
+            _TAB_FUNDAMENTALS: not (self.fundamentals_lbl.isHidden()
+                                    and self.analysts_head.isHidden()),
+            _TAB_REVIEW: not self.review_box.isHidden(),
+        }
+        if not has.get(self.tabs.currentIndex(), True):
+            self.tabs.setCurrentIndex(0)
+        for index, enabled in has.items():
+            self.tabs.setTabEnabled(index, enabled)
 
     def load(self, rows: list[ResultRow], timeframe: str = "1d",
              run_timestamp: str | None = None) -> None:
@@ -1258,7 +1328,9 @@ class ListDetailView(QWidget):
         self.news_head.hide()
         self.research_box.hide()
         self._hide_company_sections()
+        self._refresh_nav()
         if not 0 <= index < len(self._rows):
+            self._refresh_tabs(None)
             self.symbol_lbl.setText("")
             self.meta_lbl.setText("")
             self.reasoning_lbl.setText("")
@@ -1273,7 +1345,7 @@ class ListDetailView(QWidget):
         row = self._rows[index]
         self.symbol_lbl.setText(row.symbol)
         self._tier_slot.addWidget(_tier_chip(row.tier), 0, Qt.AlignmentFlag.AlignTop)
-        parts = [row.name] if row.name else []
+        parts = [part for part in (row.name, row.sector) if part]
         parts += [f"rank {row.rank} of {len(self._rows)}", f"AI score {row.score:.2f}"]
         self.meta_lbl.setText(" · ".join(parts))
         self._fill_plan(row, _T)
@@ -1285,6 +1357,7 @@ class ListDetailView(QWidget):
         self._fill_news_research(row, _T)
         self._fill_company_review(row, _T)
         self.reasoning_lbl.setText(row.reasoning or "No AI reasoning for this run.")
+        self._refresh_tabs(row)
         return True
 
     def _fill_news_research(self, row: ResultRow, palette: Any) -> None:

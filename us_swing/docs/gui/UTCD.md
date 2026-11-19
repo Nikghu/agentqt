@@ -1142,3 +1142,9 @@ Test files:
 | UT-GUI-043.004.M01.T01 | MD-GUI-043.001.M01 | Positive | Search filters folded rows | open A; type B's name | only B row shown; card still shows A; a section with only the open preset hides its header | Pass |
 | UT-GUI-043.005.M01.T01 | MD-GUI-043.001.M01 | Positive | Hide panel saved | hide; new panel with the same settings | strip shown, width 44 | Pass |
 | UT-GUI-043.006.M01.T01 | MD-GUI-043.001.M01 | Negative | Toolbar and Cards gone | new panel | no view switch, no Cards view; right side holds only the detail | Pass |
+| UT-GUI-043.007.M03.T01 | MD-GUI-043.007.M03 | Positive | Header line and next stock | rows with name and sector; click Next | meta has company, sector, "rank 1 of 3", score; row 2 shown | Pass |
+| UT-GUI-043.007.M03.T02 | MD-GUI-043.007.M03 | Edge | Previous and next stop at the ends | first row; then last row | Previous off on first; Next off on last | Pass |
+| UT-GUI-043.008.M03.T01 | MD-GUI-043.007.M03 | Positive | Plan strip over the chart | new view | order: header, plan strip, chart, tabs | Pass |
+| UT-GUI-043.009.M03.T01 | MD-GUI-043.007.M03 | Positive | Chart takes the free height | new view | chart slot has stretch 1; others 0 | Pass |
+| UT-GUI-043.010.M03.T01 | MD-GUI-043.007.M03 | Positive | Tabs show one section | NVDA with 1 of 2 rules; click Rules | tabs AI reasoning, Rules 1/2, News, Fundamentals, Bull vs bear; Rules page shown | Pass |
+| UT-GUI-043.010.M03.T02 | MD-GUI-043.007.M03 | Negative | Empty tabs greyed | row with no news, company data or review; News was current | News, Fundamentals, Bull vs bear disabled; AI reasoning shown | Pass |

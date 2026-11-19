@@ -194,3 +194,75 @@ def test_toolbar_and_cards_gone(make_panel):
         panel._empty_lbl, panel._list_view]
     assert panel._views.currentWidget() is panel._list_view
     assert panel._stock_list.count() == 3
+
+
+_NAMES = {"NVDA": "NVIDIA Corp", "JCI": "Johnson Controls", "DHR": "Danaher"}
+_SECTORS = {"NVDA": "Information Technology", "JCI": "Industrials", "DHR": "Health Care"}
+
+
+def _detail(qtbot: Any) -> ListDetailView:
+    view = ListDetailView(_FakeChart)
+    qtbot.addWidget(view)
+    stock_list = view.detach_list()
+    qtbot.addWidget(stock_list)
+    view.load(rows_from_result(_RESULTS, _NAMES, _SECTORS))
+    return view
+
+
+def test_header_line_and_next_stock(qtbot):
+    """UT-GUI-043.007.M03.T01: Header line and next stock."""
+    view = _detail(qtbot)
+    meta = view.meta_lbl.text()
+    assert meta.startswith("NVIDIA Corp · Information Technology · rank 1 of 3")
+    assert "AI score 0.85" in meta
+    view.next_btn.click()
+    assert view.selected_symbol() == "JCI" and view.symbol_lbl.text() == "JCI"
+
+
+def test_prev_next_stop_at_ends(qtbot):
+    """UT-GUI-043.007.M03.T02: Previous and next stop at the ends."""
+    view = _detail(qtbot)
+    assert not view.prev_btn.isEnabled() and view.next_btn.isEnabled()
+    view.list.setCurrentRow(2)
+    assert view.prev_btn.isEnabled() and not view.next_btn.isEnabled()
+    view.next_btn.click()
+    assert view.selected_symbol() == "DHR"
+
+
+def test_plan_strip_over_chart(qtbot):
+    """UT-GUI-043.008.M03.T01: Plan strip over the chart."""
+    view = _detail(qtbot)
+    body = view._body
+    order = [body.itemAt(i) for i in range(body.count())]
+    assert order[0].layout() is not None
+    assert order[1].widget().objectName() == "detail_plan"
+    assert order[2].widget() is view.chart_slot
+    assert view.tabs in order[3].widget().findChildren(type(view.tabs))
+
+
+def test_chart_takes_free_height(qtbot):
+    """UT-GUI-043.009.M03.T01: Chart takes the free height."""
+    view = _detail(qtbot)
+    stretches = [view._body.stretch(i) for i in range(view._body.count())]
+    assert stretches == [0, 0, 1, 0]
+
+
+def test_tabs_show_one_section(qtbot):
+    """UT-GUI-043.010.M03.T01: Tabs show one section."""
+    view = _detail(qtbot)
+    titles = [view.tabs.tabText(i) for i in range(view.tabs.count())]
+    assert titles == ["AI reasoning", "Rules 1/2", "News", "Fundamentals", "Bull vs bear"]
+    assert view._pages.currentIndex() == 0
+    view.tabs.setCurrentIndex(1)
+    page = view._pages.currentWidget().widget()
+    assert view.rules_head.parent() is page
+
+
+def test_empty_tabs_greyed(qtbot):
+    """UT-GUI-043.010.M03.T02: Empty tabs greyed."""
+    view = _detail(qtbot)
+    view.tabs.setTabEnabled(2, True)
+    view.tabs.setCurrentIndex(2)
+    view.list.setCurrentRow(1)
+    assert [view.tabs.isTabEnabled(i) for i in range(5)] == [True, True, False, False, False]
+    assert view.tabs.currentIndex() == 0 and view._pages.currentIndex() == 0

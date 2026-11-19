@@ -2033,6 +2033,7 @@ class ScreenerPanel(QWidget):
         self._run_timestamp:     str | None = None     # run time of the rows shown
         self._run_meta:          dict[str, str] = {}   # preset id → last-run line
         self._names:             dict[str, str] = {}   # symbol → company name
+        self._sectors:           dict[str, str] = {}   # symbol → sector
         self._preset_names:      dict[str, str] = {}   # preset id → name
 
         # ── DB status subscription (SRD-SCR-004.007) ──────────────────────
@@ -2710,10 +2711,15 @@ class ScreenerPanel(QWidget):
         self._type_tag.setVisible(True)
 
     def _company_names(self) -> dict[str, str]:
-        """Symbol → company name from the S&P 500 universe, read once it is loaded."""
+        """Symbol → company name from the S&P 500 universe, read once it is loaded.
+
+        Also fills ``_sectors`` (symbol → sector) from the same list.
+        """
         if not self._names:
             try:
-                self._names = {r.symbol: r.name for r in self._demo.get_sp500_universe()}
+                records = list(self._demo.get_sp500_universe())
+                self._names = {r.symbol: r.name for r in records}
+                self._sectors = {r.symbol: str(getattr(r, "sector", "") or "") for r in records}
             except Exception:  # noqa: BLE001
                 _log.debug("[Screener] Company names are not available", exc_info=True)
         return self._names
@@ -2721,7 +2727,7 @@ class ScreenerPanel(QWidget):
     def _display_result(self, result: Any) -> None:
         """Show a ScreenerRunResult in the result views."""
         self._rows = rows_from_result(getattr(result, "results", {}) or {},
-                                      self._company_names())
+                                      self._company_names(), self._sectors)
         self._run_timestamp = getattr(result, "run_timestamp", None)
         count = len(self._rows)
 

@@ -1438,6 +1438,14 @@ QTabBar#exec_tabs::tab {{
 }}
 QTabBar#exec_tabs::tab:hover {{ color: {text}; }}
 QTabBar#exec_tabs::tab:selected {{ color: {text}; border-bottom-color: {accent}; }}
+QTabBar#detail_tabs {{ border-bottom: 1px solid {line}; }}
+QTabBar#detail_tabs::tab {{
+    background: transparent; color: {sub}; border: none; border-bottom: 2px solid transparent;
+    padding: 7px 2px; margin-right: 20px; font-size: 9pt;
+}}
+QTabBar#detail_tabs::tab:hover {{ color: {text}; }}
+QTabBar#detail_tabs::tab:selected {{ color: {accent}; border-bottom-color: {accent}; }}
+QTabBar#detail_tabs::tab:disabled {{ color: #66{sub[1:]}; }}
 QTreeWidget#exec_watch {{ background: transparent; border: none; outline: none; }}
 QTreeWidget#exec_watch::item {{ min-height: 26px; border-bottom: 1px solid {line}; }}
 QTreeWidget#exec_watch::item:hover {{ background: {hover}; }}

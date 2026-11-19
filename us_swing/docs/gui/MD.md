@@ -451,3 +451,4 @@ us_swing/src/us_swing/gui/
 |---|---|---|---|---|---|---|
 | MD-GUI-043.001.M01 | SRD-GUI-043.001 | `us_swing/src/us_swing/gui/screener_panel.py` | Left pane: open-preset card, ⋯ menu, folded presets, hide strip, toolbar removed | `ScreenerPanel._open_preset()`, `_sync_folded_rows()`, `_preset_menu()`, `_set_pane_hidden()` | `screener_views`, `theme` | No |
 | MD-GUI-043.003.M02 | SRD-GUI-043.003 | `us_swing/src/us_swing/gui/screener_views.py` | Two-line stock row, list taken out of the detail view, Cards view removed | `ListDetailView.detach_list()`, `_ListRow` | `theme` | No |
+| MD-GUI-043.007.M03 | SRD-GUI-043.007 | `us_swing/src/us_swing/gui/screener_views.py` | Stock header with previous / next, plan strip over a stretching chart, detail tabs | `ListDetailView.prev_btn`, `next_btn`, `tabs`, `_refresh_tabs()`, `ResultRow.sector` | `theme` | No |

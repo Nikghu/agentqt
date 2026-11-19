@@ -1868,7 +1868,7 @@ Layout "Library + slim table" was chosen by the user on 2026-10-22. All pattern 
 
 ## DD-GUI-043.001.D01 — Screener Focus Layout
 
-**Traces:** SRD-GUI-043.001–.006 (Phase 1). Phase 2 (.007–.010) is added when that phase starts.
+**Traces:** SRD-GUI-043.001–.010 (Phase 1 = .001–.006, Phase 2 = .007–.010).
 
 **Left pane.** `ScreenerPanel._build_left_pane` builds a 300 px `QFrame#preset_pane` with two states: the full pane and a 44 px strip holding only a show button. Full pane, top to bottom: header (SCREENER, New preset, Hide panel); the open-preset card `QFrame#open_preset`; the folded section (OTHER PRESETS label, search box, style chips, `_preset_list`). Card and folded section share the height 3 : 2.
 
@@ -1885,3 +1885,11 @@ Layout "Library + slim table" was chosen by the user on 2026-10-22. All pattern 
 **Stock row.** `_ListRow` becomes two lines: a 3 px tier bar; line 1 symbol and score; line 2 company (elided), rules passed ("5/6") and flag count. Rank and score bar are dropped; `flag_lbl` stays.
 
 **Removed.** Page toolbar (`_build_toolbar`), List / Cards switch, `CardsView`, `_Card`, `ViewSwitch`, `VIEWS`, `_ScoreBar`, `_rule_chip`. The rule strip and AI transcript drawer stay over the right side.
+
+**Right side (Phase 2).** `ListDetailView` body, top to bottom: header, plan strip, chart, tabs. The outer scroll area stays so small windows can scroll; the chart slot gets stretch 1, so it takes all free height.
+
+**Header.** Row 1: symbol, tier chip, context chips, then Previous and Next stock icon buttons (`prev_btn`, `next_btn`), Open in Charts, Add to watchlist. Row 2 (meta): company, sector, "rank N of M", "AI score 0.85", joined by " · ". Previous / Next call `list.setCurrentRow(row ∓ 1)` and are disabled at the first / last row. Sector comes from `ResultRow.sector`, filled by `rows_from_result(results, names, sectors)`; the panel builds the symbol → sector map from the S&P 500 list next to the names.
+
+**Plan strip.** The existing `detail_plan` frame (Stop, Entry, Target, Reward : risk, risk bar and amounts) moves above the chart; values and the R:R rule are unchanged.
+
+**Tabs.** A `QTabBar#detail_tabs` over a `QStackedWidget` of five frameless scroll pages, fixed height 200: AI reasoning (`reasoning_lbl`); Rules (rules list, red flags); News (news list, web research box); Fundamentals (fundamentals line, analyst changes); Bull vs bear (`review_box`). The existing widgets move into the pages and keep their show / hide rules. After a stock is filled, `_refresh_tabs()` sets the Rules tab text to "Rules 5/6" (or "Details" when the run has no rules) and disables News, Fundamentals and Bull vs bear when their sections are all hidden; if the current tab is disabled it goes back to AI reasoning. Disabled tabs are greyed in QSS.

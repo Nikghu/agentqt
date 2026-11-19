@@ -1,10 +1,11 @@
 # Software Requirements Document — GUI Module (GUI)
 
 **Document ID:** SRD-GUI
-**Version:** 2.131.2
+**Version:** 2.131.3
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-11-19
+> v2.131.3: SRD-GUI-043.007–.010 Implemented (Phase 2).
 > v2.131.2: SRD-GUI-043.001–.006 Implemented (Phase 1); SRD-GUI-022.001, .003, .008 replaced by SRD-GUI-043.006 (user agreed 2026-11-19).
 > v2.131.1: SRD-GUI-043.001–.010 approved by user 2026-11-19.
 > v2.131.0: SRD-GUI-043.001–.010 added as Draft — Screener focus layout (FO-GUI-043, user request 2026-11-19).
@@ -804,8 +805,8 @@ Phase 1 = .001–.006 (left pane). Phase 2 = .007–.010 (right side).
 | SRD-GUI-043.004 | FO-GUI-043 | Should | The search box and All, Swing, Day, Position filter sit above the folded rows and filter them. | text, chip | shown presets | Same matching as today (SRD-GUI-022.007); the open preset stays shown | Implemented |
 | SRD-GUI-043.005 | FO-GUI-043 | Should | A hide button folds the left pane to a thin strip, and a show button brings it back. | button click | pane shown or hidden | Choice is saved and kept after restart | Implemented |
 | SRD-GUI-043.006 | FO-GUI-043 | Must | The top page toolbar and the List and Cards switch are removed, and the right side shows only the selected stock. | — | right side | Replaces SRD-GUI-022.001, .003 and .008; right-click menu on the card and folded rows keeps today's preset actions | Implemented |
-| SRD-GUI-043.007 | FO-GUI-043 | Must | The stock header shows symbol, tier and context chips, a company, sector and score line, previous and next stock, Open in Charts and Add to watchlist. | selected stock | header | Previous and next follow the left list order and stop at the ends | Approved |
-| SRD-GUI-043.008 | FO-GUI-043 | Must | A plan strip under the header shows Stop, Entry, Target and Reward : risk in four cells. | selected stock | plan strip | Same values and R:R rule as today (SRD-GUI-022.005) | Approved |
-| SRD-GUI-043.009 | FO-GUI-043 | Must | The chart fills the height between the plan strip and the tabs. | selected stock | chart | Same compact chart and plan lines as today | Approved |
-| SRD-GUI-043.010 | FO-GUI-043 | Must | Tabs AI reasoning, Rules, News, Fundamentals and Bull vs bear show one detail section at a time. | tab click | shown section | Red flags in Rules, analyst changes in Fundamentals, web research in News; a tab with no data is greyed out | Approved |
+| SRD-GUI-043.007 | FO-GUI-043 | Must | The stock header shows symbol, tier and context chips, a company, sector and score line, previous and next stock, Open in Charts and Add to watchlist. | selected stock | header | Previous and next follow the left list order and stop at the ends | Implemented |
+| SRD-GUI-043.008 | FO-GUI-043 | Must | A plan strip under the header shows Stop, Entry, Target and Reward : risk in four cells. | selected stock | plan strip | Same values and R:R rule as today (SRD-GUI-022.005) | Implemented |
+| SRD-GUI-043.009 | FO-GUI-043 | Must | The chart fills the height between the plan strip and the tabs. | selected stock | chart | Same compact chart and plan lines as today | Implemented |
+| SRD-GUI-043.010 | FO-GUI-043 | Must | Tabs AI reasoning, Rules, News, Fundamentals and Bull vs bear show one detail section at a time. | tab click | shown section | Red flags in Rules, analyst changes in Fundamentals, web research in News; a tab with no data is greyed out | Implemented |
 
