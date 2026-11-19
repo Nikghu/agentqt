@@ -4,7 +4,8 @@
 
 ## [20261119] GUI — Screener preset tree (FO-GUI-044)
 
-- Type: Feature (branch `feat/gui-screener-accordion`, not pushed, no PR yet)
+- Type: Feature (branch `feat/gui-screener-accordion`, pushed and merged to main via PR to main)
+- Delivery: tree background repaint fix (commit 92e7e02e) in the same PR; awaits user confirmation
 - FO(s): FO-GUI-044 (SRD-GUI-044.001–.007) — all Implemented; SRD-GUI-043.001–.005 replaced by SRD-GUI-044.007 (user approved 2026-11-19); SRD-GUI-043.011 volume drag bar added earlier in the session
 - RN: RN-GUI-2.5.0-20261119
 - Artifacts: FO, SRD, DD, MD, UTCD (14 UT-GUI-044 Pass; 8 UT-GUI-043 Removed), Code, Tests (784 GUI tests pass in three parts), TRACE, TODO T213 open, RN, CONTEXT, DEVLOG

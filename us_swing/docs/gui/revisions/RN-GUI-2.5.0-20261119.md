@@ -21,7 +21,7 @@ The same session also added a drag bar between the chart and the detail tabs to 
 | MD ID | File | Change |
 |---|---|---|
 | MD-GUI-044.001.M01 | `src/us_swing/gui/screener_tree.py` | New: folder row, preset row, branch frame, folder for a preset |
-| MD-GUI-044.001.M02 | `src/us_swing/gui/screener_panel.py` | Left pane rebuilt as a 360 px tree; search box, collapse all, saved closed folders, status line; hide strip, chips, card and old preset list removed |
+| MD-GUI-044.001.M02 | `src/us_swing/gui/screener_panel.py` | Left pane rebuilt as a tree, 380 px by default (drag 300–600 px); search box, collapse all, saved closed folders, status line; hide strip, chips, card and old preset list removed |
 | MD-GUI-044.001.M02 | `assets/icons/folder.svg`, `assets/icons/chevrons-down-up.svg` | New icons |
 | MD-GUI-044.004.M03 | `src/us_swing/gui/screener_views.py` | One-line stock row with `_ScoreBar`; `STOCK_ROW_H` |
 | MD-GUI-044.001.M02 | `src/us_swing/gui/theme.py` | Tree row, branch guide line and footer rules; open card rules removed |
@@ -56,6 +56,7 @@ The same session also added a drag bar between the chart and the detail tabs to 
 - Pane widened from 300 to 380 px (user asked for more width); date and Sort share one borderless line, tags on the next.
 - Several presets can stay open; the last clicked is active (only it shows Run and ⋯; header date and status line follow it); open presets kept after restart; tags in the status line; panel width dragged 300–600 px (user answers 2026-11-19). Review fixes: folder chevron toggles again, a finished run refreshes an open background preset, unknown open ids dropped at start, Enter opens a background stock.
 - Opening a preset opens its folder; folder clicks during a search are not saved; Collapse all closes the search first (review fixes).
+- Repaint fix (commit 92e7e02e): solid background painted under the preset tree.
 
 ---
 
