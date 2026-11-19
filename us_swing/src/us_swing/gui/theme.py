@@ -1347,9 +1347,17 @@ QListWidget#result_list::item:hover {{ background: {hover}; }}
 QListWidget#result_list::item:selected {{ background: {hover}; border-color: {accent}; }}
 QWidget#result_row, QWidget#result_row QLabel {{ background: transparent; }}
 QLabel#row_symbol {{ color: {text}; font-size: 10pt; font-weight: bold; }}
-QFrame#open_preset {{ background: transparent; border: 1px solid {line}; border-radius: 6px; }}
-QFrame#open_preset_head {{ background: transparent; border: none; border-bottom: 1px solid {line}; }}
-QLabel#open_preset_name {{ color: {text}; font-size: 10pt; font-weight: bold; }}
+QFrame#tree_row, QFrame#tree_folder {{ background: transparent; border-radius: 5px; }}
+QFrame#tree_row:hover, QFrame#tree_folder:hover {{ background: {hover}; }}
+QFrame#tree_row[open="true"] {{ background: {hover}; }}
+QFrame#tree_row QLabel, QFrame#tree_folder QLabel {{ background: transparent; }}
+QFrame#tree_branch {{
+    background: transparent; margin-left: 14px; border: none; border-left: 1px solid {line};
+}}
+QFrame#tree_footer {{ background: transparent; border: none; border-top: 1px solid {line}; }}
+QLabel#tree_folder_name {{ color: {text}; font-weight: bold; }}
+QLabel#tree_preset_name {{ color: {text}; }}
+QLabel#open_preset_name {{ color: {text}; font-weight: bold; }}
 QPushButton#more_btn::menu-indicator {{ image: none; width: 0; }}
 QLabel#card_symbol {{ color: {text}; font-size: 12pt; font-weight: bold; }}
 QWidget#result_detail, QWidget#rule_strip {{ background: transparent; }}

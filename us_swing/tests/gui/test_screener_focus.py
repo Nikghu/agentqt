@@ -6,10 +6,13 @@ from types import SimpleNamespace
 from typing import Any
 
 import pytest
-from PyQt6.QtCore import QObject, QSettings, Qt, pyqtSignal
+from PyQt6.QtCore import QObject, QSettings, pyqtSignal
 
 from tests.gui.test_screener_views import _RESULTS, _FakeChart
 from us_swing.gui import screener_panel as sp
+from us_swing.gui.chart_drawings import ChartBridge
+from us_swing.gui.chart_panel import _build_html
+from us_swing.gui.screener_tree import FolderRow, folder_key
 from us_swing.gui.screener_views import ListDetailView, ResultRow, _ListRow, rows_from_result
 
 
@@ -30,16 +33,18 @@ class _Mgr:
         self.presets = [
             SimpleNamespace(id="a", name="Momentum Breakout", style="swing"),
             SimpleNamespace(id="b", name="Pullback to EMA", style="swing"),
+            SimpleNamespace(id="c", name="Gap and Go", style="day"),
         ]
+        self.admin = [SimpleNamespace(id="r", name="Classic Breakout", style="swing")]
 
     def list_admin_presets(self, style_filter: str | None = None) -> list[Any]:
-        return [p for p in self.presets if style_filter in (None, p.style)]
+        return list(self.admin)
 
     def list_user_presets(self, uid: str, style_filter: str | None = None) -> list[Any]:
-        return []
+        return list(self.presets)
 
     def load_preset(self, pid: str, uid: str) -> Any:
-        name = next(p.name for p in self.presets if p.id == pid)
+        name = next(p.name for p in self.presets + self.admin if p.id == pid)
         return SimpleNamespace(id=pid, name=name, timeframe="1d", preset_type="weighted",
                                enable_llm_ranking=False, screeners=[], groups=[])
 
@@ -78,64 +83,123 @@ def make_panel(qtbot: Any, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> A
     return build
 
 
-def _row_hidden(panel: sp.ScreenerPanel) -> dict[str, bool]:
-    rows = {}
-    for i in range(panel._preset_list.count()):
-        item = panel._preset_list.item(i)
-        pid = item.data(Qt.ItemDataRole.UserRole) if item is not None else None
-        if item is not None and pid:
-            rows[pid] = item.isHidden()
-    return rows
+def _folder_rows(panel: sp.ScreenerPanel) -> list[FolderRow]:
+    box = panel._tree_box
+    items = (box.itemAt(i) for i in range(box.count()))
+    return [w for w in (it.widget() for it in items if it is not None)
+            if isinstance(w, FolderRow)]
 
 
-def test_folded_row_opens_and_folds_current(make_panel):
-    """UT-GUI-043.001.M01.T01: Folded row opens and folds the current one."""
+def _folders(panel: sp.ScreenerPanel) -> dict[str, tuple[str, bool]]:
+    """Folder key → (count text, open) for every folder row in the tree."""
+    return {r.key: (r.count_lbl.text(), bool(r.property("open"))) for r in _folder_rows(panel)}
+
+
+def test_folders_by_style(make_panel):
+    """UT-GUI-044.001.M02.T01: Presets grouped into style folders and Ready-made."""
+    panel = make_panel()
+    assert [r.key for r in _folder_rows(panel)] == ["swing", "day", "ready"]
+    assert {k: v[0] for k, v in _folders(panel).items()} == {
+        "swing": "2", "day": "1", "ready": "1"}
+    assert folder_key(SimpleNamespace(style="odd"), admin=False) == "swing"
+
+
+def test_closed_folder_kept(make_panel):
+    """UT-GUI-044.001.M02.T02: A closed folder stays closed after restart."""
+    panel = make_panel()
+    day = next(r for r in _folder_rows(panel) if r.key == "day")
+    day.clicked.emit()
+    assert _folders(panel)["day"][1] is False
+    again = make_panel()
+    assert _folders(again)["day"][1] is False and _folders(again)["swing"][1] is True
+
+
+def test_open_preset_in_place(make_panel):
+    """UT-GUI-044.002.M02.T01: Opening a preset closes the one that was open."""
     panel = make_panel()
     panel._open_preset("a")
     assert panel._title_lbl.text() == "Momentum Breakout"
-    assert _row_hidden(panel) == {"a": True, "b": False}
+    assert set(panel._preset_rows) == {"b", "c", "r"}
+    assert panel._open_section.isVisibleTo(panel)
     panel._open_preset("b")
-    assert panel._title_lbl.text() == "Pullback to EMA"
-    assert _row_hidden(panel) == {"a": False, "b": True}
+    assert set(panel._preset_rows) == {"a", "c", "r"}
+    panel._preset_rows["c"].clicked.emit()
+    assert panel._selected_preset_id == "c"
+
+
+def test_open_reveals_closed_folder(make_panel):
+    """UT-GUI-044.002.M02.T04: Opening a preset opens its closed folder."""
+    panel = make_panel()
+    panel._collapse_all()
+    panel._open_preset("c")
+    folders = _folders(panel)
+    assert folders["day"][1] is True and folders["swing"][1] is False
+    panel._collapse_all()
+    assert _folders(panel)["day"][1] is False
+
+
+def test_folder_click_during_search_not_saved(make_panel):
+    """UT-GUI-044.005.M02.T03: Folder clicks during a search are not saved."""
+    panel = make_panel()
+    panel._search_btn.click()
+    panel._preset_search.setText("gap")
+    day = next(r for r in _folder_rows(panel) if r.key == "day")
+    day.clicked.emit()
+    assert panel._settings.value("closed_folders") is None
 
 
 def test_last_open_preset_reopens(make_panel):
-    """UT-GUI-043.001.M01.T02: Last open preset reopens."""
+    """UT-GUI-044.002.M02.T02: Last open preset reopens."""
     make_panel()._open_preset("b")
     again = make_panel()
     assert again._selected_preset_id == "b"
     assert again._title_lbl.text() == "Pullback to EMA"
 
 
-def test_more_menu_holds_run_actions(make_panel, qtbot):
-    """UT-GUI-043.002.M01.T01: ⋯ menu holds the run actions."""
+def test_delete_open_preset_clears(make_panel, monkeypatch):
+    """UT-GUI-044.002.M02.T03: Deleting the open preset clears it."""
+    monkeypatch.setattr(sp, "confirm", lambda *_a, **_k: True)
     panel = make_panel()
     panel._open_preset("a")
+    panel._mgr.delete_preset = lambda pid, uid: panel._mgr.presets.pop(0)
+    panel._on_delete_preset("a")
+    assert panel._title_lbl.text() == "No preset open"
+    assert panel._available_dates == [] and not panel._run_btn.isEnabled()
+    assert not panel._open_section.isVisibleTo(panel)
+    assert panel._settings.value("open_preset") is None
+
+
+def test_open_row_actions(make_panel, qtbot):
+    """UT-GUI-044.003.M02.T01: Open preset row shows count, Run and the ⋯ menu."""
+    panel = make_panel()
+    panel._open_preset("a")
+    assert panel._count_lbl.text() == "3" and panel._run_btn.isEnabled()
     menu = panel._more_btn.menu()
     assert [a.text() for a in menu.actions() if a.isVisible()] == ["Export CSV", "Quick test"]
-    assert panel._export_act.isEnabled()
     with qtbot.waitSignal(panel.quick_test_requested) as blocker:
         panel._quick_act.trigger()
     assert blocker.args == ["a"]
 
 
-def test_two_line_stock_row(qtbot):
-    """UT-GUI-043.003.M02.T01: Two-line stock row."""
+def test_one_line_stock_row(qtbot):
+    """UT-GUI-044.004.M03.T01: One-line stock row with score bar and flags."""
     row = ResultRow("NVDA", 0.85, name="NVIDIA Corp",
                     rules=rows_from_result(_RESULTS)[0].rules, flags=["Earnings in 2 days"])
     widget = _ListRow(row)
     qtbot.addWidget(widget)
     assert widget.symbol_lbl.text() == "NVDA"
-    assert widget.score_lbl.text() == "0.85"
-    assert widget.rules_lbl.text() == row.rules_text
+    assert widget.score_bar._fill == 0.85
     assert widget.flag_lbl.text() == row.flag_text != ""
 
 
-def test_preset_with_no_run(make_panel):
-    """UT-GUI-043.003.M01.T01: Preset with no run."""
-    panel = make_panel(runs={})
+def test_stock_list_fits_rows(make_panel):
+    """UT-GUI-044.004.M02.T01: Stock list sized to its rows; no run shows a hint."""
+    panel = make_panel()
     panel._open_preset("a")
-    assert panel._list_stack.currentWidget() is panel._list_empty_lbl
+    assert panel._stock_list.height() >= 3 * sp.STOCK_ROW_H
+    assert not panel._stock_list.isHidden() and panel._list_empty_lbl.isHidden()
+    panel._open_preset("b")
+    assert panel._stock_list.isHidden()
     assert panel._list_empty_lbl.text() == "No runs yet — press Run now"
 
 
@@ -151,37 +215,40 @@ def test_detached_list_still_drives_detail(qtbot):
     assert view.layout().indexOf(stock_list) == -1
 
 
-def test_delete_open_preset_clears_card(make_panel, monkeypatch):
-    """UT-GUI-043.001.M01.T03: Deleting the open preset clears the card."""
-    monkeypatch.setattr(sp, "confirm", lambda *_a, **_k: True)
+def test_search_box(make_panel):
+    """UT-GUI-044.005.M02.T01: Search shows a box that filters and opens folders."""
     panel = make_panel()
-    panel._open_preset("a")
-    panel._mgr.delete_preset = lambda pid, uid: panel._mgr.presets.pop(0)
-    panel._on_delete_preset("a")
-    assert panel._title_lbl.text() == "No preset open"
-    assert panel._available_dates == [] and not panel._run_btn.isEnabled()
-    assert panel._list_empty_lbl.text() == "No preset open"
-    assert panel._settings.value("open_preset") is None
-
-
-def test_search_filters_folded_rows(make_panel):
-    """UT-GUI-043.004.M01.T01: Search filters folded rows."""
-    panel = make_panel()
-    panel._open_preset("a")
+    panel._collapse_all()
+    assert panel._search_wrap.isHidden()
+    panel._search_btn.click()
+    assert not panel._search_wrap.isHidden()
     panel._preset_search.setText("pull")
-    assert _row_hidden(panel) == {"b": False}
-    assert panel._title_lbl.text() == "Momentum Breakout"
-    panel._preset_search.setText("momentum")
-    header = panel._preset_list.item(0)
-    assert header is not None and header.isHidden()
+    assert set(panel._preset_rows) == {"b"} and _folders(panel)["swing"][1] is True
+    panel._search_btn.click()
+    assert panel._search_wrap.isHidden() and panel._preset_search.text() == ""
+    assert _folders(panel)["swing"][1] is False
 
 
-def test_hide_panel_is_saved(make_panel):
-    """UT-GUI-043.005.M01.T01: Hide panel saved."""
-    make_panel()._set_pane_hidden(True)
-    again = make_panel()
-    assert again._pane_full.isHidden() and not again._pane_strip.isHidden()
-    assert again._left_frame.width() == sp._PANE_STRIP_W
+def test_collapse_all(make_panel):
+    """UT-GUI-044.005.M02.T02: Collapse all closes every folder."""
+    panel = make_panel()
+    panel._collapse_btn.click()
+    assert all(not is_open for _count, is_open in _folders(panel).values())
+
+
+def test_status_line(make_panel):
+    """UT-GUI-044.006.M02.T01: Status line shows the last run and matches."""
+    panel = make_panel()
+    panel._open_preset("a")
+    assert panel._status_lbl.text().startswith("3 matches")
+
+
+def test_removed_parts(make_panel):
+    """UT-GUI-044.007.M02.T01: Hide panel, style chips and the open card are gone."""
+    panel = make_panel()
+    for name in ("_pane_strip", "_style_chips", "_open_card", "_set_pane_hidden",
+                 "_preset_list"):
+        assert not hasattr(panel, name)
 
 
 def test_toolbar_and_cards_gone(make_panel):
@@ -270,9 +337,6 @@ def test_empty_tabs_greyed(qtbot):
 
 def test_volume_strip_drag_height():
     """UT-GUI-043.011.M04.T01: Volume strip can be dragged and keeps its height."""
-    from us_swing.gui.chart_drawings import ChartBridge
-    from us_swing.gui.chart_panel import _build_html
-
     html = _build_html([{"time": 1, "open": 1, "high": 1, "low": 1, "close": 1}],
                        [{"time": 1, "value": 1}], "MPC", "1d", volume_height=150)
     assert 'id="volume-handle"' in html

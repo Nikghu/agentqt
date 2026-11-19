@@ -1,7 +1,7 @@
 # Design Document — GUI Module (GUI)
 
 **Document ID:** DD-GUI
-**Version:** 1.35.0
+**Version:** 1.36.0
 **Traces To:** SRD-GUI v2.16.0
 **Status:** Draft
 **Last Updated:** 2026-09-17
@@ -1893,3 +1893,19 @@ Layout "Library + slim table" was chosen by the user on 2026-10-22. All pattern 
 **Plan strip.** The existing `detail_plan` frame (Stop, Entry, Target, Reward : risk, risk bar and amounts) moves above the chart; values and the R:R rule are unchanged.
 
 **Tabs.** A `QTabBar#detail_tabs` over a `QStackedWidget` of five frameless scroll pages, fixed height 200: AI reasoning (`reasoning_lbl`); Rules (rules list, red flags); News (news list, web research box); Fundamentals (fundamentals line, analyst changes); Bull vs bear (`review_box`). The existing widgets move into the pages and keep their show / hide rules. After a stock is filled, `_refresh_tabs()` sets the Rules tab text to "Rules 5/6" (or "Details" when the run has no rules) and disables News, Fundamentals and Bull vs bear when their sections are all hidden; if the current tab is disabled it goes back to AI reasoning. Disabled tabs are greyed in QSS.
+
+## DD-GUI-044.001.D01 — Screener Preset Tree
+
+**Traces:** SRD-GUI-044.001–.007. Replaces the left pane part of DD-GUI-043.001.D01 (open card, folded rows, hide strip, style chips).
+
+**Pane.** `_build_left_pane` builds a 320 px `QFrame#preset_pane`: header (SCREENER, Search, New preset, Collapse all), a search box hidden until Search is pressed, a frameless scroll area holding `_tree_host`, and a footer `QFrame#tree_footer` with `_status_lbl` (run line, run progress, errors, watchlist note, as before).
+
+**Tree.** `_populate_preset_list` clears `_tree_box` and rebuilds it: one `FolderRow` per non-empty folder in `FOLDERS` order (Swing, Day, Position, Ready-made) followed by its `branch()` frame. User presets go to the folder of their style (`folder_key`, unknown style → Swing); admin presets go to Ready-made. `QFrame#tree_branch` has a 14 px left margin and a 1 px left border, which draws the guide line. A folder opens or closes on click; closed keys are saved under `closed_folders`. While the search text is not empty every folder with a match is shown open, without changing the saved state. Collapse all saves every key as closed and rebuilds.
+
+**Open preset.** `_open_section` is built once: `_open_row` (a `TreeRow` with name, stock count, Run, ⋯ menu), then a branch with the run stepper, the tag line (type and run-mode tags, Sort) and a second branch holding the stock list and the empty label. `_clear_tree` first hides it and reparents it to `_tree_host`, so it survives the rebuild; `_add_folder` puts it back in place of the open preset's row. Other presets are `PresetRow`s (name, last run line); left click opens, right click shows Edit, Duplicate, Delete. Clicking the open row folds its branch. Old rows are hidden before `deleteLater` so they never show for a frame.
+
+**Stock list.** Still `ListDetailView.list` via `detach_list()`. Its vertical scroll bar is off and `_fit_stock_list` sets its height to rows × `STOCK_ROW_H` (30) + frame + padding on every row insert or remove, so the tree scrolls as one. `_ListRow` is one line: symbol (44 px), company (elided), `_ScoreBar` (46 × 4 px, filled to the score in the tier colour), red flag count.
+
+**Search.** `_search_btn` is checkable; on it shows the box and focuses it, off hides and clears it. Esc in the box (widget shortcut) turns the button off.
+
+**Removed.** `_set_pane_hidden`, the strip and show button, `_style_chips`, `_preset_list`, `_open_card`, `_sync_folded_rows`, `_add_section_header`, `_section_font`, the card and folded-row context menu handlers, `_STYLE_CHIPS`, `_PANE_STRIP_W`, the `open_preset` and `open_preset_head` QSS rules.

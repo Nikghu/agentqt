@@ -1,9 +1,9 @@
 # Traceability Matrix — GUI Module (GUI)
 
 **Document ID:** TRACE-GUI
-**Version:** 1.18.0
+**Version:** 1.19.0
 **Project:** US Swing Trading System
-**Last Updated:** 2026-11-19 (FO-GUI-043 Screener focus layout rows added (Phases 1–2). Earlier: FO-GUI-042 Edit Preset side navigation rows added, RN-GUI-2.3.0-20261118. Earlier: SRD-GUI-004.014 row added, ISS-GUI-0021. Earlier: AI Desk and Market Floor removed: FO-GUI-034 to FO-GUI-041 rows dropped; SRD-GUI-029.007–.008 now trace to DD-GUI-029.007.D01; see docs/audit/DESK_REMOVAL_2026-11-17.md)
+**Last Updated:** 2026-11-19 (FO-GUI-044 Screener preset tree rows added. Earlier: FO-GUI-043 Screener focus layout rows added (Phases 1–2). Earlier: FO-GUI-042 Edit Preset side navigation rows added, RN-GUI-2.3.0-20261118. Earlier: SRD-GUI-004.014 row added, ISS-GUI-0021. Earlier: AI Desk and Market Floor removed: FO-GUI-034 to FO-GUI-041 rows dropped; SRD-GUI-029.007–.008 now trace to DD-GUI-029.007.D01; see docs/audit/DESK_REMOVAL_2026-11-17.md)
 
 ---
 
@@ -130,6 +130,7 @@
 | FO-GUI-029 | SRD-GUI-029.007–.008 | DD-GUI-029.007.D01 | MD-GUI-029.004.M02, MD-GUI-029.001.M01 | UT-GUI-029.007–.008 (4, Pass) | `gui/scheduler_dialog.py`, `gui/scheduler_table.py`, `gui/scheduler_store.py` | Implemented | RN-GUI-1.61.0-20261111 |
 | FO-GUI-042 | SRD-GUI-042.001–.006 | DD-GUI-042.001.D01 | MD-GUI-042.001.M01 | UT-GUI-042.001.M01.T01, .002.M01.T01, .003.M01.T01–T03, .004.M01.T01, .005.M01.T01–T03, .006.M01.T01 (10, Pass) | `gui/screener_panel.py` | Implemented | RN-GUI-2.3.0-20261118 |
 | FO-GUI-043 | SRD-GUI-043.001–.011 | DD-GUI-043.001.D01 | MD-GUI-043.001.M01, MD-GUI-043.003.M02, MD-GUI-043.007.M03, MD-GUI-043.011.M04 | UT-GUI-043.001.M01.T01–T03, .002.M01.T01, .003.M01.T01, .003.M02.T01–T02, .004.M01.T01, .005.M01.T01, .006.M01.T01, .007.M03.T01–T02, .008.M03.T01, .009.M03.T01, .010.M03.T01–T02, .011.M04.T01 (17, Pass) | `gui/screener_panel.py`, `gui/screener_views.py`, `gui/chart_panel.py` | Implemented | RN-GUI-2.4.0-20261119 |
+| FO-GUI-044 | SRD-GUI-044.001–.007 | DD-GUI-044.001.D01 | MD-GUI-044.001.M01, MD-GUI-044.001.M02, MD-GUI-044.004.M03 | UT-GUI-044.001.M02.T01–T02, .002.M02.T01–T04, .003.M02.T01, .004.M03.T01, .004.M02.T01, .005.M02.T01–T03, .006.M02.T01, .007.M02.T01 (14, Pass) | `gui/screener_tree.py`, `gui/screener_panel.py`, `gui/screener_views.py` | Implemented | RN-GUI-2.5.0-20261119 |
 
 ---
 
@@ -186,6 +187,7 @@
 | `gui/ai_settings_block.py` | MD-GUI-033.001.M01 | SRD-GUI-033.001–.004, .006 | FO-GUI-033 |
 | `gui/screener_panel.py` (Edit Preset side navigation) | MD-GUI-042.001.M01 | SRD-GUI-042.001–.006 | FO-GUI-042 |
 | `gui/screener_panel.py`, `gui/screener_views.py` (Screener focus layout) | MD-GUI-043.001.M01, MD-GUI-043.003.M02, MD-GUI-043.007.M03 | SRD-GUI-043.001–.010 | FO-GUI-043 |
+| `gui/screener_tree.py`, `gui/screener_panel.py`, `gui/screener_views.py` (Screener preset tree) | MD-GUI-044.001.M01, MD-GUI-044.001.M02, MD-GUI-044.004.M03 | SRD-GUI-044.001–.007 | FO-GUI-044 |
 
 ---
 

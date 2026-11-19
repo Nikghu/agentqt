@@ -71,6 +71,7 @@ CSV_HEADER = ["Symbol", "Score", "Details", "AI Reasoning", "Entry", "Stop", "Ta
 _DASH = "—"
 _RULE_NAME_W = 160
 _TABS_H = 200
+STOCK_ROW_H = 30
 _TAB_RULES, _TAB_NEWS, _TAB_FUNDAMENTALS, _TAB_REVIEW = 1, 2, 3, 4
 _SESSION_CLOSE = datetime.time(16, 0)
 _ONE_DAY = datetime.timedelta(days=1)
@@ -956,8 +957,31 @@ class _ChartLike(Protocol):
                  start: int | None = None) -> None: ...
 
 
+class _ScoreBar(QWidget):
+    """Thin bar filled to the score, in the tier colour (SRD-GUI-044.004)."""
+
+    def __init__(self, score: float, colour: str, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self._fill = max(0.0, min(1.0, score))
+        self._colour = QColor(colour)
+        self.setFixedSize(46, 4)
+
+    def paintEvent(self, event: QPaintEvent | None) -> None:
+        _T: Any = active_palette()
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(QColor(_T.OVERLAY))
+        painter.drawRoundedRect(self.rect(), 2, 2)
+        if self._fill > 0:
+            painter.setBrush(self._colour)
+            painter.drawRoundedRect(0, 0, max(4, round(self.width() * self._fill)),
+                                    self.height(), 2, 2)
+        painter.end()
+
+
 class _ListRow(QWidget):
-    """Two-line stock row: tier bar; symbol and score; company, rules passed and flags."""
+    """One-line stock row: symbol, company, score bar and red flags (SRD-GUI-044.004)."""
 
     def __init__(self, row: ResultRow, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -966,40 +990,21 @@ class _ListRow(QWidget):
         _T: Any = active_palette()
         tier_fg, _ = _tier_colours(row.tier)
         line = QHBoxLayout(self)
-        line.setContentsMargins(8, 4, 10, 4)
-        line.setSpacing(9)
-        bar = QFrame()
-        bar.setFixedWidth(3)
-        bar.setStyleSheet(f"background: {tier_fg}; border-radius: 1px;")
-        bar.setToolTip(row.tier)
-        line.addWidget(bar)
-
-        lines = QVBoxLayout()
-        lines.setSpacing(1)
-        top = QHBoxLayout()
-        top.setSpacing(6)
+        line.setContentsMargins(8, 0, 6, 0)
+        line.setSpacing(8)
         self.symbol_lbl = QLabel(row.symbol)
         self.symbol_lbl.setObjectName("row_symbol")
-        top.addWidget(self.symbol_lbl, 1)
-        self.score_lbl = _value_label(f"{row.score:.2f}", bold=True)
-        top.addWidget(self.score_lbl)
-        lines.addLayout(top)
-
-        bottom = QHBoxLayout()
-        bottom.setSpacing(6)
+        self.symbol_lbl.setFixedWidth(44)
+        line.addWidget(self.symbol_lbl)
         company = _key_label(row.name)
-        company.setToolTip(row.name)
         company.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
-        bottom.addWidget(company, 1)
-        self.rules_lbl = _value_label(row.rules_text, _T.SUBTEXT, "8pt")
-        self.rules_lbl.setToolTip("Rules passed")
-        bottom.addWidget(self.rules_lbl)
+        line.addWidget(company, 1)
+        self.score_bar = _ScoreBar(row.score, tier_fg)
+        line.addWidget(self.score_bar)
         self.flag_lbl = _value_label(row.flag_text, _T.RED, "8pt", bold=True)
-        self.flag_lbl.setToolTip("\n".join(row.flags))
-        self.flag_lbl.setVisible(bool(row.flag_text))
-        bottom.addWidget(self.flag_lbl)
-        lines.addLayout(bottom)
-        line.addLayout(lines, 1)
+        self.flag_lbl.setFixedWidth(22)
+        self.flag_lbl.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+        line.addWidget(self.flag_lbl)
 
 
 def _tab_page(parts: Sequence[QWidget | QLayout]) -> QScrollArea:
@@ -1279,7 +1284,7 @@ class ListDetailView(QWidget):
         self.list.clear()
         for row in rows:
             item = QListWidgetItem()
-            item.setSizeHint(QSize(0, 44))
+            item.setSizeHint(QSize(0, STOCK_ROW_H))
             self.list.addItem(item)
             self.list.setItemWidget(item, _ListRow(row))
         self.list.blockSignals(False)

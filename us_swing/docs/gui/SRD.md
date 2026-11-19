@@ -1,10 +1,13 @@
 # Software Requirements Document — GUI Module (GUI)
 
 **Document ID:** SRD-GUI
-**Version:** 2.132.0
+**Version:** 2.133.2
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-11-19
+> v2.133.2: SRD-GUI-044.001–.007 Implemented; SRD-GUI-043.001–.005 replaced by SRD-GUI-044.007 (user approved 2026-11-19).
+> v2.133.1: SRD-GUI-044.001–.007 approved by user 2026-11-19.
+> v2.133.0: SRD-GUI-044.001–.007 added as Draft — Screener preset tree (FO-GUI-044, user request 2026-11-19).
 > v2.131.3: SRD-GUI-043.007–.010 Implemented (Phase 2).
 > v2.131.2: SRD-GUI-043.001–.006 Implemented (Phase 1); SRD-GUI-022.001, .003, .008 replaced by SRD-GUI-043.006 (user agreed 2026-11-19).
 > v2.131.1: SRD-GUI-043.001–.010 approved by user 2026-11-19.
@@ -799,11 +802,11 @@ Phase 1 = .001–.006 (left pane). Phase 2 = .007–.010 (right side).
 
 | ID | Parent | P | Description | In | Out | Constraints | Status |
 |---|---|---|---|---|---|---|---|
-| SRD-GUI-043.001 | FO-GUI-043 | Must | The left pane shows one open preset as a card with its ranked stocks under it and the other presets as folded rows below. | preset click | open card | 300 px pane; clicking a folded row opens it and folds the current one; last open preset is saved and reopened | Implemented |
-| SRD-GUI-043.002 | FO-GUI-043 | Must | The card header shows the preset name, type and run-mode pills, Run now, a ⋯ menu, the run stepper and Sort. | — | card header | ⋯ menu holds Export CSV, Quick test and AI transcript; each works as today (SRD-GUI-022.006, .009, .010) | Implemented |
-| SRD-GUI-043.003 | FO-GUI-043 | Must | Each stock row shows a tier colour bar, symbol, score, company, rules passed and red flag count; clicking it shows the stock on the right. | row click | selected stock | Selected row in accent colour; a preset with no run shows "No runs yet — press Run now" | Implemented |
-| SRD-GUI-043.004 | FO-GUI-043 | Should | The search box and All, Swing, Day, Position filter sit above the folded rows and filter them. | text, chip | shown presets | Same matching as today (SRD-GUI-022.007); the open preset stays shown | Implemented |
-| SRD-GUI-043.005 | FO-GUI-043 | Should | A hide button folds the left pane to a thin strip, and a show button brings it back. | button click | pane shown or hidden | Choice is saved and kept after restart | Implemented |
+| SRD-GUI-043.001 | FO-GUI-043 | Must | The left pane shows one open preset as a card with its ranked stocks under it and the other presets as folded rows below. | preset click | open card | 300 px pane; clicking a folded row opens it and folds the current one; last open preset is saved and reopened | Replaced by SRD-GUI-044.007 (user, 2026-11-19) |
+| SRD-GUI-043.002 | FO-GUI-043 | Must | The card header shows the preset name, type and run-mode pills, Run now, a ⋯ menu, the run stepper and Sort. | — | card header | ⋯ menu holds Export CSV, Quick test and AI transcript; each works as today (SRD-GUI-022.006, .009, .010) | Replaced by SRD-GUI-044.007 (user, 2026-11-19) |
+| SRD-GUI-043.003 | FO-GUI-043 | Must | Each stock row shows a tier colour bar, symbol, score, company, rules passed and red flag count; clicking it shows the stock on the right. | row click | selected stock | Selected row in accent colour; a preset with no run shows "No runs yet — press Run now" | Replaced by SRD-GUI-044.007 (user, 2026-11-19) |
+| SRD-GUI-043.004 | FO-GUI-043 | Should | The search box and All, Swing, Day, Position filter sit above the folded rows and filter them. | text, chip | shown presets | Same matching as today (SRD-GUI-022.007); the open preset stays shown | Replaced by SRD-GUI-044.007 (user, 2026-11-19) |
+| SRD-GUI-043.005 | FO-GUI-043 | Should | A hide button folds the left pane to a thin strip, and a show button brings it back. | button click | pane shown or hidden | Choice is saved and kept after restart | Replaced by SRD-GUI-044.007 (user, 2026-11-19) |
 | SRD-GUI-043.006 | FO-GUI-043 | Must | The top page toolbar and the List and Cards switch are removed, and the right side shows only the selected stock. | — | right side | Replaces SRD-GUI-022.001, .003 and .008; right-click menu on the card and folded rows keeps today's preset actions | Implemented |
 | SRD-GUI-043.007 | FO-GUI-043 | Must | The stock header shows symbol, tier and context chips, a company, sector and score line, previous and next stock, Open in Charts and Add to watchlist. | selected stock | header | Previous and next follow the left list order and stop at the ends | Implemented |
 | SRD-GUI-043.008 | FO-GUI-043 | Must | A plan strip under the header shows Stop, Entry, Target and Reward : risk in four cells. | selected stock | plan strip | Same values and R:R rule as today (SRD-GUI-022.005) | Implemented |
@@ -811,3 +814,16 @@ Phase 1 = .001–.006 (left pane). Phase 2 = .007–.010 (right side).
 | SRD-GUI-043.010 | FO-GUI-043 | Must | Tabs AI reasoning, Rules, News, Fundamentals and Bull vs bear show one detail section at a time. | tab click | shown section | Red flags in Rules, analyst changes in Fundamentals, web research in News; a tab with no data is greyed out | Implemented |
 | SRD-GUI-043.011 | FO-GUI-043 | Should | The user can drag the bar above the volume strip to change its height; the height is kept. | drag | volume height | 40 px up to 60% of the chart; same height in every candle chart | Implemented |
 
+## FO-GUI-044 — Screener Preset Tree
+
+One phase (left pane).
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-GUI-044.001 | FO-GUI-044 | Must | The left pane shows folders Swing, Day and Position for my presets and Ready-made for admin presets, each with a preset count. | folder click | folder open or closed | Empty folders hidden; open or closed state saved and kept after restart | Implemented |
+| SRD-GUI-044.002 | FO-GUI-044 | Must | Clicking a preset opens it in place with its stocks under it, and the preset that was open closes. | preset click | open preset | Last open preset saved and reopened; closed rows show last run date and matches | Implemented |
+| SRD-GUI-044.003 | FO-GUI-044 | Must | The open preset row shows its stock count, Run and a ⋯ menu; lines under it hold the run stepper, Sort and the type and run-mode tags. | — | open preset rows | ⋯ menu as SRD-GUI-043.002; right-click on any preset row keeps Edit, Duplicate and Delete | Implemented |
+| SRD-GUI-044.004 | FO-GUI-044 | Must | Each stock row shows symbol, company, a score bar in tier colour and the red flag count; clicking it shows the stock on the right. | row click | selected stock | Tree guide lines; selected row gets an accent edge; no-run text as SRD-GUI-043.003 | Implemented |
+| SRD-GUI-044.005 | FO-GUI-044 | Should | The header holds Search, New preset and Collapse all; Search shows a box that filters presets and opens folders with matches. | text | shown presets | Esc or Search again hides and clears the box; Collapse all closes every folder | Implemented |
+| SRD-GUI-044.006 | FO-GUI-044 | Should | A status line at the bottom shows the open preset's last run time and matches, or the run progress. | run | status line | Same text as today's run line | Implemented |
+| SRD-GUI-044.007 | FO-GUI-044 | Must | The hide panel button and thin strip, the style chips and the open preset card are removed. | — | — | Replaces SRD-GUI-043.001–.005 | Implemented |

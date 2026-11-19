@@ -2,6 +2,16 @@
 
 ---
 
+## [20261119] GUI — Screener preset tree (FO-GUI-044)
+
+- Type: Feature (branch `feat/gui-screener-accordion`, not pushed, no PR yet)
+- FO(s): FO-GUI-044 (SRD-GUI-044.001–.007) — all Implemented; SRD-GUI-043.001–.005 replaced by SRD-GUI-044.007 (user approved 2026-11-19); SRD-GUI-043.011 volume drag bar added earlier in the session
+- RN: RN-GUI-2.5.0-20261119
+- Artifacts: FO, SRD, DD, MD, UTCD (14 UT-GUI-044 Pass; 8 UT-GUI-043 Removed), Code, Tests (784 GUI tests pass in three parts), TRACE, TODO T213 open, RN, CONTEXT, DEVLOG
+- Decisions: design option B; only Hide panel dropped (Collapse all kept); Ready-made folder; search box from 🔍; closed folders remembered; pane 320 px; dashboard tile tests crash a full GUI run on the last commit too
+
+---
+
 ## [20261119] GUI — Screener focus layout (FO-GUI-043)
 
 - Type: Feature (branch `feat/gui-screener-accordion`, not pushed, no PR yet; commits f196309a Phase 1, dcd1d82b Phase 2)
