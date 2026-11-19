@@ -1,9 +1,9 @@
 """
 Module: MD-GUI-022.001.M01 — Screener result views
-Parent SRD: SRD-GUI-022.001, SRD-GUI-022.017, SRD-GUI-022.019
+Parent SRD: SRD-GUI-022.001, SRD-GUI-022.017, SRD-GUI-022.019, SRD-GUI-043.003
 
-Result rows, sorting and CSV rows, the List / Cards switch, the List + detail
-view and the Signal cards view shown by the screener panel (FO-GUI-022).
+Result rows, sorting and CSV rows, and the List + detail view shown by the
+screener panel (FO-GUI-022). The list sits in the panel's left pane (FO-GUI-043).
 """
 from __future__ import annotations
 
@@ -23,12 +23,11 @@ from PyQt6.QtCore import (
     QPropertyAnimation,
     QRect,
     QRectF,
-    QSettings,
     QSize,
     Qt,
     pyqtSignal,
 )
-from PyQt6.QtGui import QColor, QCursor, QKeyEvent, QPainter, QPaintEvent, QResizeEvent
+from PyQt6.QtGui import QColor, QCursor, QKeyEvent, QPainter, QPaintEvent
 from PyQt6.QtWidgets import (
     QButtonGroup,
     QFrame,
@@ -42,6 +41,7 @@ from PyQt6.QtWidgets import (
     QMenu,
     QPushButton,
     QScrollArea,
+    QSizePolicy,
     QVBoxLayout,
     QWidget,
 )
@@ -59,7 +59,6 @@ from us_swing.gui.theme import C, active_palette, colors
 
 STRONG_MIN = 0.70
 WATCH_MIN = 0.40
-VIEWS = ("list", "cards")
 SORT_KEYS: tuple[tuple[str, str], ...] = (
     ("score", "AI score"),
     ("rr", "Reward : risk"),
@@ -67,7 +66,6 @@ SORT_KEYS: tuple[tuple[str, str], ...] = (
 )
 CSV_HEADER = ["Symbol", "Score", "Details", "AI Reasoning", "Entry", "Stop", "Target", "R:R"]
 
-_CARD_MIN_W = 320
 _DASH = "—"
 _SESSION_CLOSE = datetime.time(16, 0)
 _ONE_DAY = datetime.timedelta(days=1)
@@ -242,7 +240,7 @@ _DETAIL_NAMES: dict[str, tuple[str, str, str]] = {
 
 @dataclass
 class ResultRow:
-    """One screener result, shared by both views."""
+    """One screener result, shown in the stock list and the detail."""
 
     symbol: str
     score: float
@@ -540,23 +538,6 @@ def _tier_chip(tier: str) -> QLabel:
     return chip
 
 
-def _rule_chip(rule: RuleCheck) -> QLabel:
-    _T: Any = active_palette()
-    if rule.passed is None:
-        text, fg = f"{rule.name} {rule.value}", _T.TEXT
-    elif rule.passed:
-        text, fg = f"✓ {rule.name}", _T.GREEN
-    else:
-        text, fg = f"✕ {rule.name}", _T.MUTED
-    chip = QLabel(text)
-    chip.setToolTip(rule.tip)
-    chip.setStyleSheet(
-        f"color: {fg}; background: transparent; border: 1px solid {_T.OVERLAY2};"
-        " border-radius: 10px; padding: 2px 9px; font-size: 8pt;"
-    )
-    return chip
-
-
 _LEVEL_TIERS = {"green": "Strong", "yellow": "Watch", "red": "Weak"}
 
 
@@ -669,28 +650,6 @@ def _clear_layout(layout: Any) -> None:
 
 # ── Small painted widgets ─────────────────────────────────────────────────────
 
-class _ScoreBar(QWidget):
-    """Thin rounded bar filled to the score."""
-
-    def __init__(self, score: float, colour: str, parent: QWidget | None = None) -> None:
-        super().__init__(parent)
-        self._fraction = max(0.0, min(1.0, score))
-        self._colour = colour
-        self.setFixedHeight(6)
-
-    def paintEvent(self, event: QPaintEvent | None) -> None:
-        _T: Any = active_palette()
-        painter = QPainter(self)
-        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        painter.setPen(Qt.PenStyle.NoPen)
-        rect = QRectF(self.rect())
-        painter.setBrush(QColor(_T.OVERLAY))
-        painter.drawRoundedRect(rect, 3, 3)
-        painter.setBrush(QColor(self._colour))
-        painter.drawRoundedRect(QRectF(0, 0, rect.width() * self._fraction, rect.height()), 3, 3)
-        painter.end()
-
-
 class _RiskRewardBar(QWidget):
     """Stop-to-target bar: risk share in red, reward share in green, entry as a tick."""
 
@@ -725,54 +684,6 @@ class _RiskRewardBar(QWidget):
         painter.setBrush(QColor(_T.TEXT))
         painter.drawRect(QRectF(split - 1, 0, 2, height))
         painter.end()
-
-
-# ── View switch ───────────────────────────────────────────────────────────────
-
-class ViewSwitch(QWidget):
-    """List / Cards toggle that remembers the choice in ``settings``."""
-
-    view_changed = pyqtSignal(str)
-
-    def __init__(self, settings: QSettings, parent: QWidget | None = None) -> None:
-        super().__init__(parent)
-        self._settings = settings
-        saved = str(settings.value("view", "list"))
-        self._view = saved if saved in VIEWS else "list"
-
-        row = QHBoxLayout(self)
-        row.setContentsMargins(0, 0, 0, 0)
-        row.setSpacing(0)
-        self._group = QButtonGroup(self)
-        self._group.setExclusive(True)
-        self.buttons: dict[str, QPushButton] = {}
-        for name, icon_name, tip in (("list", "list", "List view"),
-                                     ("cards", "layout-grid", "Cards view")):
-            button = QPushButton()
-            button.setObjectName("view_btn")
-            button.setCheckable(True)
-            button.setChecked(name == self._view)
-            set_icon(button, icon_name, "neutral", 16)
-            button.setFixedWidth(C.BTN_H + 6)
-            button.setToolTip(tip)
-            button.setAccessibleName(tip)
-            button.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-            button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-            button.clicked.connect(lambda _checked=False, n=name: self._select(n))
-            self._group.addButton(button)
-            self.buttons[name] = button
-            row.addWidget(button)
-
-    @property
-    def view(self) -> str:
-        return self._view
-
-    def _select(self, name: str) -> None:
-        if name == self._view:
-            return
-        self._view = name
-        self._settings.setValue("view", name)
-        self.view_changed.emit(name)
 
 
 # ── Preset rail pieces (SRD-GUI-022.007) ─────────────────────────────────────
@@ -833,7 +744,7 @@ class PresetItem(QWidget):
         self.meta_lbl.setText(text)
 
 
-# ── Page header pieces (SRD-GUI-022.009 / .010) ──────────────────────────────
+# ── Run stepper and drawer (SRD-GUI-022.009 / .010) ──────────────────────────
 
 class RunStepper(QFrame):
     """Older / newer arrows around the run date; the date opens a menu of saved runs.
@@ -1036,7 +947,7 @@ class _ChartLike(Protocol):
 
 
 class _ListRow(QWidget):
-    """One line of the ranked list: rank, symbol and company, score bar, rules passed."""
+    """Two-line stock row: tier bar; symbol and score; company, rules passed and flags."""
 
     def __init__(self, row: ResultRow, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -1045,36 +956,40 @@ class _ListRow(QWidget):
         _T: Any = active_palette()
         tier_fg, _ = _tier_colours(row.tier)
         line = QHBoxLayout(self)
-        line.setContentsMargins(10, 0, 12, 0)
-        line.setSpacing(10)
-        rank = _value_label(str(row.rank), _T.MUTED)
-        rank.ensurePolished()
-        rank.setFixedWidth(rank.fontMetrics().horizontalAdvance("999") + 2)
-        line.addWidget(rank)
-        names = QVBoxLayout()
-        names.setSpacing(0)
-        symbol = QLabel(row.symbol)
-        symbol.setObjectName("row_symbol")
-        names.addWidget(symbol)
-        if row.name:
-            company = _key_label(row.name)
-            company.setToolTip(row.name)
-            names.addWidget(company)
-        line.addLayout(names, 1)
-        score = _value_label(f"{row.score:.2f}", bold=True)
-        score.setFixedWidth(32)
-        line.addWidget(score)
-        bar = _ScoreBar(row.score, tier_fg)
-        bar.setFixedWidth(60)
+        line.setContentsMargins(8, 4, 10, 4)
+        line.setSpacing(9)
+        bar = QFrame()
+        bar.setFixedWidth(3)
+        bar.setStyleSheet(f"background: {tier_fg}; border-radius: 1px;")
+        bar.setToolTip(row.tier)
         line.addWidget(bar)
-        rules = _value_label(row.rules_text, _T.SUBTEXT)
-        rules.setFixedWidth(30)
-        rules.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
-        line.addWidget(rules)
-        self.flag_lbl = _value_label(row.flag_text, _T.RED, bold=True)
-        self.flag_lbl.setFixedWidth(30)
+
+        lines = QVBoxLayout()
+        lines.setSpacing(1)
+        top = QHBoxLayout()
+        top.setSpacing(6)
+        self.symbol_lbl = QLabel(row.symbol)
+        self.symbol_lbl.setObjectName("row_symbol")
+        top.addWidget(self.symbol_lbl, 1)
+        self.score_lbl = _value_label(f"{row.score:.2f}", bold=True)
+        top.addWidget(self.score_lbl)
+        lines.addLayout(top)
+
+        bottom = QHBoxLayout()
+        bottom.setSpacing(6)
+        company = _key_label(row.name)
+        company.setToolTip(row.name)
+        company.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
+        bottom.addWidget(company, 1)
+        self.rules_lbl = _value_label(row.rules_text, _T.SUBTEXT, "8pt")
+        self.rules_lbl.setToolTip("Rules passed")
+        bottom.addWidget(self.rules_lbl)
+        self.flag_lbl = _value_label(row.flag_text, _T.RED, "8pt", bold=True)
         self.flag_lbl.setToolTip("\n".join(row.flags))
-        line.addWidget(self.flag_lbl)
+        self.flag_lbl.setVisible(bool(row.flag_text))
+        bottom.addWidget(self.flag_lbl)
+        lines.addLayout(bottom)
+        line.addLayout(lines, 1)
 
 
 class ListDetailView(QWidget):
@@ -1102,6 +1017,7 @@ class ListDetailView(QWidget):
         self.list.setMinimumWidth(320)
         self.list.setMaximumWidth(400)
         self.list.setSpacing(1)
+        self.list.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.list.setResizeMode(QListWidget.ResizeMode.Adjust)
         self.list.currentRowChanged.connect(self._show_row)
         layout.addWidget(self.list)
@@ -1292,7 +1208,7 @@ class ListDetailView(QWidget):
         self.list.clear()
         for row in rows:
             item = QListWidgetItem()
-            item.setSizeHint(QSize(0, 50))
+            item.setSizeHint(QSize(0, 44))
             self.list.addItem(item)
             self.list.setItemWidget(item, _ListRow(row))
         self.list.blockSignals(False)
@@ -1300,6 +1216,18 @@ class ListDetailView(QWidget):
             self.list.setCurrentRow(0)
         else:
             self._show_row(-1)
+
+    def detach_list(self) -> QListWidget:
+        """Take the stock list out of this view so the caller can place it elsewhere.
+
+        The view keeps loading, selecting and restyling the list (SRD-GUI-043.003).
+        """
+        layout = self.layout()
+        if layout is not None:
+            layout.removeWidget(self.list)
+        self.list.setMinimumWidth(0)
+        self.list.setMaximumWidth(16777215)
+        return self.list
 
     def selected_symbol(self) -> str | None:
         index = self.list.currentRow()
@@ -1505,148 +1433,3 @@ class ListDetailView(QWidget):
         index = self.list.currentRow()
         if self._fill_detail(index):
             self._show_plan(self._rows[index])
-
-
-# ── Cards view ────────────────────────────────────────────────────────────────
-
-class _Card(QFrame):
-    """Signal card for one stock."""
-
-    chart_requested = pyqtSignal(str)
-    watchlist_requested = pyqtSignal(str)
-
-    def __init__(self, row: ResultRow, parent: QWidget | None = None) -> None:
-        super().__init__(parent)
-        self.setObjectName("result_card")
-        _T: Any = active_palette()
-        tier_fg, _ = _tier_colours(row.tier)
-        body = QVBoxLayout(self)
-        body.setContentsMargins(14, 12, 14, 12)
-        body.setSpacing(10)
-
-        head = QHBoxLayout()
-        head.setSpacing(8)
-        self.rank_lbl = _value_label(f"#{row.rank}", _T.MUTED)
-        head.addWidget(self.rank_lbl)
-        self.symbol_lbl = QLabel(row.symbol)
-        self.symbol_lbl.setObjectName("card_symbol")
-        head.addWidget(self.symbol_lbl)
-        self.tier_lbl = _tier_chip(row.tier)
-        head.addWidget(self.tier_lbl)
-        head.addStretch(1)
-        if row.flags:
-            flag = _value_label(row.flag_text, _T.RED, bold=True)
-            flag.setToolTip("\n".join(row.flags))
-            head.addWidget(flag)
-        head.addWidget(_value_label(f"{row.score:.2f}", tier_fg, "14pt", bold=True))
-        body.addLayout(head)
-        body.addWidget(_ScoreBar(row.score, tier_fg))
-        if row.chips:
-            context = QGridLayout()
-            context.setSpacing(6)
-            for i, chip in enumerate(row.chips):
-                context.addWidget(_context_chip(chip), i // 2, i % 2)
-            body.addLayout(context)
-
-        chips = QGridLayout()
-        chips.setSpacing(6)
-        for i, rule in enumerate(row.rules):
-            chips.addWidget(_rule_chip(rule), i // 2, i % 2)
-        body.addLayout(chips)
-
-        why = QLabel(row.reasoning or "No AI reasoning for this run.")
-        why.setObjectName("view_key")
-        why.setWordWrap(True)
-        why.setToolTip(row.reasoning)
-        why.ensurePolished()
-        why.setMaximumHeight(why.fontMetrics().lineSpacing() * 3)
-        why.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
-        body.addWidget(why)
-
-        plan = QGridLayout()
-        plan.setHorizontalSpacing(8)
-        plan.setVerticalSpacing(0)
-        for col, (title, text, colour) in enumerate((
-            ("Entry", _price_text(row.entry), ""),
-            ("Stop", _price_text(row.stop), _T.RED),
-            ("Target", _price_text(row.target), _T.GREEN),
-            ("R:R", _DASH if row.rr is None else f"{row.rr:.1f}", ""),
-        )):
-            plan.addWidget(_key_label(title), 0, col)
-            plan.addWidget(_value_label(text, colour, bold=True), 1, col)
-        body.addLayout(plan)
-
-        actions = QHBoxLayout()
-        actions.setSpacing(8)
-        self.chart_btn = _action_button("Chart", "chart-candlestick", "info")
-        self.chart_btn.clicked.connect(lambda: self.chart_requested.emit(row.symbol))
-        actions.addWidget(self.chart_btn)
-        self.watch_btn = _action_button("Watchlist", "plus", "add")
-        self.watch_btn.clicked.connect(lambda: self.watchlist_requested.emit(row.symbol))
-        actions.addWidget(self.watch_btn)
-        body.addLayout(actions)
-
-
-class CardsView(QScrollArea):
-    """Grid of signal cards whose column count follows the width."""
-
-    chart_requested = pyqtSignal(str)
-    watchlist_requested = pyqtSignal(str)
-
-    def __init__(self, parent: QWidget | None = None) -> None:
-        super().__init__(parent)
-        self.setWidgetResizable(True)
-        self.setFrameShape(QFrame.Shape.NoFrame)
-        host = QWidget()
-        host.setObjectName("cards_host")
-        self._grid = QGridLayout(host)
-        self._grid.setContentsMargins(16, 16, 16, 16)
-        self._grid.setSpacing(14)
-        self.setWidget(host)
-        self._rows: list[ResultRow] = []
-        self.cards: list[_Card] = []
-        self._cols = 0
-
-    def load(self, rows: list[ResultRow]) -> None:
-        """Replace the cards with one per row."""
-        self._rows = rows
-        for card in self.cards:
-            card.hide()
-            card.setParent(None)
-            card.deleteLater()
-        self.cards = []
-        for row in rows:
-            card = _Card(row)
-            card.chart_requested.connect(self.chart_requested)
-            card.watchlist_requested.connect(self.watchlist_requested)
-            self.cards.append(card)
-        self._cols = 0
-        self._relayout()
-
-    def _relayout(self) -> None:
-        viewport = self.viewport()
-        width = viewport.width() if viewport is not None else _CARD_MIN_W
-        cols = max(1, width // _CARD_MIN_W)
-        if cols == self._cols:
-            return
-        self._cols = cols
-        while self._grid.count():
-            self._grid.takeAt(0)
-        for i, card in enumerate(self.cards):
-            self._grid.addWidget(card, i // cols, i % cols, Qt.AlignmentFlag.AlignTop)
-        for col in range(cols):
-            self._grid.setColumnStretch(col, 1)
-        self._grid.setRowStretch((len(self.cards) + cols - 1) // cols, 1)
-
-    def resizeEvent(self, event: QResizeEvent | None) -> None:
-        super().resizeEvent(event)
-        self._relayout()
-
-    def changeEvent(self, event: QEvent | None) -> None:
-        super().changeEvent(event)
-        if event is not None and event.type() == QEvent.Type.StyleChange and self._rows:
-            bar = self.verticalScrollBar()
-            position = bar.value() if bar is not None else 0
-            self.load(self._rows)
-            if bar is not None:
-                bar.setValue(position)

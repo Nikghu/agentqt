@@ -445,3 +445,9 @@ us_swing/src/us_swing/gui/
 |---|---|---|---|---|---|---|
 | MD-GUI-042.001.M01 | SRD-GUI-042.001 | `us_swing/src/us_swing/gui/screener_panel.py` | Preset dialog side list, four section pages, summaries and dots | `_PresetBuilderDialog._nav`, `_pages`, `_refresh_nav()`, `_nav_summary()`, `_nav_states` | `screener_views.PresetItem`, `theme` | No |
 
+## FO-GUI-043 — Screener Focus Layout
+
+| MD ID | SRD | File | Purpose | Public API | Depends on | Async |
+|---|---|---|---|---|---|---|
+| MD-GUI-043.001.M01 | SRD-GUI-043.001 | `us_swing/src/us_swing/gui/screener_panel.py` | Left pane: open-preset card, ⋯ menu, folded presets, hide strip, toolbar removed | `ScreenerPanel._open_preset()`, `_sync_folded_rows()`, `_preset_menu()`, `_set_pane_hidden()` | `screener_views`, `theme` | No |
+| MD-GUI-043.003.M02 | SRD-GUI-043.003 | `us_swing/src/us_swing/gui/screener_views.py` | Two-line stock row, list taken out of the detail view, Cards view removed | `ListDetailView.detach_list()`, `_ListRow` | `theme` | No |

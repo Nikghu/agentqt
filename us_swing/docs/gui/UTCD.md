@@ -670,15 +670,15 @@ Test files:
 
 | ID | Module | Type | Description | Input | Expected | Status |
 |---|---|---|---|---|---|---|
-| UT-GUI-022.001.M01.T01 | MD-GUI-022.001.M01 | Positive | View switch saves and restores | default; click Cards; new switch on same settings | "list"; `view_changed("cards")`; new switch is "cards" | Pass |
-| UT-GUI-022.001.M01.T02 | MD-GUI-022.001.M01 | Negative | Unknown saved view falls back | settings view "grid" | "list" | Pass |
+| UT-GUI-022.001.M01.T01 | MD-GUI-022.001.M01 | Positive | View switch saves and restores | default; click Cards; new switch on same settings | "list"; `view_changed("cards")`; new switch is "cards" | Removed (user, 2026-11-19, SRD-GUI-043.006) |
+| UT-GUI-022.001.M01.T02 | MD-GUI-022.001.M01 | Negative | Unknown saved view falls back | settings view "grid" | "list" | Removed (user, 2026-11-19, SRD-GUI-043.006) |
 | UT-GUI-022.002.M01.T01 | MD-GUI-022.001.M01 | Positive | List loads and shows first stock | 3 rows | 3 items; first selected; detail symbol, tier, "$222.00", "3.3 R", reasoning | Pass |
 | UT-GUI-022.002.M01.T02 | MD-GUI-022.001.M01 | Positive | Selection updates detail and chart | select row 2 | detail shows JCI; fake chart `show_symbol("JCI", "1d")`; chart built once | Pass |
 | UT-GUI-022.002.M01.T03 | MD-GUI-022.001.M01 | Negative | Missing plan shows dashes | row without plan | Entry, Stop, Target, R:R tiles "—" | Pass |
 | UT-GUI-022.002.M01.T04 | MD-GUI-022.001.M01 | Positive | Detail buttons emit symbol | click Open chart, Watchlist | `chart_requested("NVDA")`, `watchlist_requested("NVDA")` | Pass |
 | UT-GUI-022.002.M01.T05 | MD-GUI-022.001.M01 | Edge | Theme change keeps selection, no chart reload | select JCI; restyle | JCI still selected and shown; no new `show_symbol` call | Pass |
-| UT-GUI-022.003.M01.T01 | MD-GUI-022.001.M01 | Positive | One card per stock with actions | 3 rows; click card 2 Chart | 3 cards; "#1", "NVDA", "Strong"; `chart_requested("JCI")` | Pass |
-| UT-GUI-022.003.M01.T02 | MD-GUI-022.001.M01 | Edge | Empty rows clear cards | load 3 then [] | 0 cards | Pass |
+| UT-GUI-022.003.M01.T01 | MD-GUI-022.001.M01 | Positive | One card per stock with actions | 3 rows; click card 2 Chart | 3 cards; "#1", "NVDA", "Strong"; `chart_requested("JCI")` | Removed (user, 2026-11-19, SRD-GUI-043.006) |
+| UT-GUI-022.003.M01.T02 | MD-GUI-022.001.M01 | Edge | Empty rows clear cards | load 3 then [] | 0 cards | Removed (user, 2026-11-19, SRD-GUI-043.006) |
 | UT-GUI-022.004.M01.T01 | MD-GUI-022.001.M01 | Positive | Rows built from result meta | details bool + float, `ai_plan`, scores 0.85 / 0.55 / 0.2 | pass/fail/value checks; plan read; tiers Strong / Watch / Weak; ranked by score | Pass |
 | UT-GUI-022.005.M01.T01 | MD-GUI-022.001.M01 | Positive | R:R and sort | plans valid, short-shaped, missing; sort rr, rules | 3.3; None; None; None last; most rules first | Pass |
 | UT-GUI-022.006.M01.T01 | MD-GUI-022.001.M01 | Positive | CSV rows carry the plan | 2 rows, one without plan | header has Entry, Stop, Target, R:R; values and "" | Pass |
@@ -1128,3 +1128,17 @@ Test files:
 | UT-GUI-042.005.M01.T02 | MD-GUI-042.001.M01 | Edge | Grey when AI off | AI off | AI Ranking and AI Context state off, text "Off" | Pass |
 | UT-GUI-042.006.M01.T01 | MD-GUI-042.001.M01 | Positive | Same preset saved | edit a saved composite preset with AI on; build without changes | built preset fields equal the saved ones | Pass |
 
+## FO-GUI-043 — Screener Focus Layout
+
+| UT ID | MD | Type | Description | Input | Expected | Status |
+|---|---|---|---|---|---|---|
+| UT-GUI-043.001.M01.T01 | MD-GUI-043.001.M01 | Positive | Folded row opens and folds the current one | presets A, B; open A; click B | card shows B; B row hidden; A row shown | Pass |
+| UT-GUI-043.001.M01.T02 | MD-GUI-043.001.M01 | Edge | Last open preset reopens | open B; new panel with the same settings | card shows B | Pass |
+| UT-GUI-043.001.M01.T03 | MD-GUI-043.001.M01 | Negative | Deleting the open preset clears the card | open A; delete A | card reads "No preset open"; no run dates; Run now off; saved id removed | Pass |
+| UT-GUI-043.002.M01.T01 | MD-GUI-043.001.M01 | Positive | ⋯ menu holds the run actions | open a preset with saved rows | menu has Export CSV, Quick test; Quick test emits the preset id | Pass |
+| UT-GUI-043.003.M02.T01 | MD-GUI-043.003.M02 | Positive | Two-line stock row | NVDA row with 2 of 3 rules and 1 flag | symbol, score, "2/3" and flag text shown | Pass |
+| UT-GUI-043.003.M01.T01 | MD-GUI-043.001.M01 | Negative | Preset with no run | open a preset with no saved run | list area shows "No runs yet — press Run now" | Pass |
+| UT-GUI-043.003.M02.T02 | MD-GUI-043.003.M02 | Positive | Detached list still drives the detail | detach list; load rows; pick row 2 | detail shows row 2 stock | Pass |
+| UT-GUI-043.004.M01.T01 | MD-GUI-043.001.M01 | Positive | Search filters folded rows | open A; type B's name | only B row shown; card still shows A; a section with only the open preset hides its header | Pass |
+| UT-GUI-043.005.M01.T01 | MD-GUI-043.001.M01 | Positive | Hide panel saved | hide; new panel with the same settings | strip shown, width 44 | Pass |
+| UT-GUI-043.006.M01.T01 | MD-GUI-043.001.M01 | Negative | Toolbar and Cards gone | new panel | no view switch, no Cards view; right side holds only the detail | Pass |

@@ -1865,3 +1865,23 @@ Layout "Library + slim table" was chosen by the user on 2026-10-22. All pattern 
 | context | `7 data · 2 top picks`, or `Off` | off when AI is off |
 
 `_refresh_nav()` writes `● Name` in the dot colour (GREEN / YELLOW / MUTED) into each row's name label, sets the meta line, and keeps the state in `_nav_states` for tests. It is called at the end of `_refresh_preview` (covers name, groups, screeners, weights) and from timeframe, style ticks, Top N, provider, model text and context tick signals. `_nav_rows` starts empty, so calls made while pages are still being built do nothing. Save checks (`_validate`) are unchanged; the dot only warns. Because the failing field may sit on a page that is not shown, Save and Save As also write the `_validate` message into a red footer label (`_save_error_lbl`), cleared on the next successful check; the dialog does not change page.
+
+## DD-GUI-043.001.D01 — Screener Focus Layout
+
+**Traces:** SRD-GUI-043.001–.006 (Phase 1). Phase 2 (.007–.010) is added when that phase starts.
+
+**Left pane.** `ScreenerPanel._build_left_pane` builds a 300 px `QFrame#preset_pane` with two states: the full pane and a 44 px strip holding only a show button. Full pane, top to bottom: header (SCREENER, New preset, Hide panel); the open-preset card `QFrame#open_preset`; the folded section (OTHER PRESETS label, search box, style chips, `_preset_list`). Card and folded section share the height 3 : 2.
+
+**Open card.** Row 1: preset name (elided), ⋯ menu button, icon-only Run now (`primary_btn`). Row 2: type pill (Weighted / Composite), run-mode pill (Auto run / Manual run), Sort combo on the right. Row 3: `RunStepper`. Row 4: status line (word wrap). Then a `QStackedWidget` of the stock list and an empty label. The stock list is `ListDetailView.list`, taken out of the detail view with `ListDetailView.detach_list()`, so loading, selection and restyle stay in `ListDetailView`. While a run is going, Run now is disabled and its tooltip reads "Running…".
+
+**⋯ menu.** `QAction`s: Export CSV (`_export_act`), Quick test (`_quick_act`), AI transcript (`_tx_act`, text from `transcript_pill_text`, shown only when the pill rule of SRD-GUI-022.010 holds; it toggles the drawer).
+
+**Accordion.** `_open_preset(pid)` replaces the click handler: it loads the preset, saves the id under `open_preset` in the panel's `QSettings`, hides that preset's row in `_preset_list` and shows the rest (`_sync_folded_rows`). At start the saved id is reopened when it is still in the list. Search and chips rebuild the folded rows as today and then re-hide the open one.
+
+**Preset actions.** `_preset_menu(pid, pos)` shows Edit, Duplicate, Delete; it opens from a folded row and from a right-click on the card. `_on_edit_preset`, `_on_duplicate_preset`, `_on_delete_preset` take the preset id; the name comes from `_preset_names` filled in `_populate_preset_list`.
+
+**Hide panel.** `_set_pane_hidden(hidden)` swaps full pane and strip, sets the frame width 300 or 44, and saves `pane_hidden`.
+
+**Stock row.** `_ListRow` becomes two lines: a 3 px tier bar; line 1 symbol and score; line 2 company (elided), rules passed ("5/6") and flag count. Rank and score bar are dropped; `flag_lbl` stays.
+
+**Removed.** Page toolbar (`_build_toolbar`), List / Cards switch, `CardsView`, `_Card`, `ViewSwitch`, `VIEWS`, `_ScoreBar`, `_rule_chip`. The rule strip and AI transcript drawer stay over the right side.

@@ -1339,28 +1339,24 @@ QPushButton#login_fold {{
 }}
 QPushButton#login_fold:hover {{ color: {accent}; }}
 QPushButton#login_fold:focus {{ outline: none; }}
-QPushButton#view_btn {{
-    background: transparent; border: 1px solid {line}; border-radius: 0; padding: 0;
-    outline: none;
-}}
-QPushButton#view_btn:hover {{ background: {hover}; }}
-QPushButton#view_btn:checked {{ background: {line}; }}
-QPushButton#view_btn:focus {{ outline: none; }}
 QListWidget#result_list {{
-    background: transparent; border: none; border-right: 1px solid {line}; outline: none;
-    padding: 6px;
+    background: transparent; border: none; outline: none; padding: 4px;
 }}
-QListWidget#result_list::item {{ border-radius: 6px; border: 1px solid transparent; }}
+QListWidget#result_list::item {{ border-radius: 5px; border: 1px solid transparent; }}
 QListWidget#result_list::item:hover {{ background: {hover}; }}
-QListWidget#result_list::item:selected {{ background: {hover}; border-color: {line}; }}
+QListWidget#result_list::item:selected {{ background: {hover}; border-color: {accent}; }}
 QWidget#result_row, QWidget#result_row QLabel {{ background: transparent; }}
 QLabel#row_symbol {{ color: {text}; font-size: 10pt; font-weight: bold; }}
+QFrame#open_preset {{ background: transparent; border: 1px solid {line}; border-radius: 6px; }}
+QFrame#open_preset_head {{ background: transparent; border: none; border-bottom: 1px solid {line}; }}
+QLabel#open_preset_name {{ color: {text}; font-size: 10pt; font-weight: bold; }}
+QPushButton#more_btn::menu-indicator {{ image: none; width: 0; }}
 QLabel#card_symbol {{ color: {text}; font-size: 12pt; font-weight: bold; }}
-QWidget#result_detail, QWidget#cards_host, QWidget#rule_strip {{ background: transparent; }}
-QFrame#result_card, QFrame#detail_tile, QFrame#chart_slot, QFrame#detail_plan {{
+QWidget#result_detail, QWidget#rule_strip {{ background: transparent; }}
+QFrame#detail_tile, QFrame#chart_slot, QFrame#detail_plan {{
     background: transparent; border: 1px solid {line}; border-radius: 6px;
 }}
-QFrame#result_card QLabel, QFrame#detail_tile QLabel, QFrame#detail_plan QLabel {{
+QFrame#detail_tile QLabel, QFrame#detail_plan QLabel {{
     border: none;
 }}
 QLabel#detail_symbol {{ color: {text}; font-size: 17pt; font-weight: bold; }}

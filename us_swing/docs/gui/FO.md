@@ -1,12 +1,13 @@
 # Functional Overview — GUI Module (GUI)
 
 **Document ID:** FO-GUI
-**Version:** 2.32.0
+**Version:** 2.33.0
 **Traces To:** requirements.md §21, §22, §23.3, §24, §25, §28.1, §29.1, §32
 **Status:** Draft
-**Last Updated:** 2026-11-18
+**Last Updated:** 2026-11-19
 **Project:** US Swing Trading System
 
+> v2.33.0: FO-GUI-043 Screener focus layout added as Draft (user, 2026-11-19).
 > v2.32.0: FO-GUI-042 Edit Preset side navigation added as Draft (user, 2026-11-18). FO-GUI-034 is not reused because the removed AI Desk used it.
 > v2.31.0: AI Desk and Market Floor removed (user, 2026-11-17; docs/audit/DESK_REMOVAL_2026-11-17.md): FO-GUI-034 to FO-GUI-041 removed.
 > v2.30.2: The FO-GUI-041 M7b part and the FO-GUI-034 Tool builder bullet Implemented 2026-11-16.
@@ -1010,4 +1011,27 @@ The system shall split the screener preset dialog into sections picked from a li
 1. The dialog opens on General, and clicking a list item shows that section.
 2. Changing the AI model updates the AI Ranking summary line at once.
 3. Saving an edited preset with no changes stores the same preset as before.
+
+---
+
+## FO-GUI-043: Screener Focus Layout
+
+**Status:** Approved (user, 2026-11-19)
+**Priority:** Should
+**Depends on:** FO-GUI-022 (Screener result views)
+**Source:** design page https://claude.ai/artifact/QYMXwU8iBB7k9zzbR9e5UF (Option C, Focus accordion), picked by user 2026-11-19. Minimal requirements. Layout only, two phases.
+
+The system shall move the Screener stock list into the left pane under the open preset, so the stock detail gets the full right side.
+
+- The system shall show one open preset at a time as a card with its ranked stocks under it, and the other presets folded below.
+- The system shall keep run, run history, sort, export, quick test, AI transcript, search and style filter inside the left pane.
+- The system shall remove the top page toolbar and the Cards view.
+- The system shall show the selected stock with a header, a plan strip, a tall chart and tabs for the long text.
+
+### Acceptance Criteria
+
+1. Clicking a folded preset opens it and folds the one that was open.
+2. Clicking a stock in the left list shows that stock on the right.
+3. Export CSV, Quick test and AI transcript work from the card's ⋯ menu.
+4. Each detail section (AI reasoning, Rules, News, Fundamentals, Bull vs bear) opens from its tab.
 
