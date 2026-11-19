@@ -191,7 +191,7 @@ def test_only_scheduled_run_sends_message(mode: str, send: bool) -> None:
     panel._storage = MagicMock()
     panel._auto_run_queue = []
     panel._selected_preset_id = "p1"
-    for name in ("_run_btn", "_export_btn", "_update_date_display", "_display_result",
+    for name in ("_run_btn", "_export_act", "_update_date_display", "_display_result",
                  "_refresh_preset_meta"):
         setattr(panel, name, MagicMock())
 

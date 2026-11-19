@@ -1,12 +1,13 @@
 # Unit Test Case Document â€” GUI Module (GUI)
 
 **Document ID:** UTCD-GUI
-**Version:** 1.53.0
+**Version:** 1.54.0
 **Traces To:** MD-GUI v1.7.0
 **Status:** Draft
 **Last Updated:** 2026-11-17
 **Project:** US Swing Trading System
 
+> v1.54.0: UT-GUI-044.001–.007 rows added (14) (FO-GUI-044); 8 UT-GUI-043 rows marked Removed.
 > v1.53.0: UT-GUI-022.020.M01.T01, UT-GUI-022.021.M01.T01–T02 added (SRD-GUI-022.020–.021).
 > v1.52.0: UT-GUI-022.018.M01.T01, UT-GUI-022.019.M01.T01–T02 added (SRD-GUI-022.018–.019).
 > v1.51.0: UT-GUI-022.016.M01.T01, UT-GUI-022.017.M01.T01–T02 added — AI context ticks and chips (SRD-GUI-022.016–.017).
@@ -670,15 +671,15 @@ Test files:
 
 | ID | Module | Type | Description | Input | Expected | Status |
 |---|---|---|---|---|---|---|
-| UT-GUI-022.001.M01.T01 | MD-GUI-022.001.M01 | Positive | View switch saves and restores | default; click Cards; new switch on same settings | "list"; `view_changed("cards")`; new switch is "cards" | Pass |
-| UT-GUI-022.001.M01.T02 | MD-GUI-022.001.M01 | Negative | Unknown saved view falls back | settings view "grid" | "list" | Pass |
+| UT-GUI-022.001.M01.T01 | MD-GUI-022.001.M01 | Positive | View switch saves and restores | default; click Cards; new switch on same settings | "list"; `view_changed("cards")`; new switch is "cards" | Removed (user, 2026-11-19, SRD-GUI-043.006) |
+| UT-GUI-022.001.M01.T02 | MD-GUI-022.001.M01 | Negative | Unknown saved view falls back | settings view "grid" | "list" | Removed (user, 2026-11-19, SRD-GUI-043.006) |
 | UT-GUI-022.002.M01.T01 | MD-GUI-022.001.M01 | Positive | List loads and shows first stock | 3 rows | 3 items; first selected; detail symbol, tier, "$222.00", "3.3 R", reasoning | Pass |
 | UT-GUI-022.002.M01.T02 | MD-GUI-022.001.M01 | Positive | Selection updates detail and chart | select row 2 | detail shows JCI; fake chart `show_symbol("JCI", "1d")`; chart built once | Pass |
 | UT-GUI-022.002.M01.T03 | MD-GUI-022.001.M01 | Negative | Missing plan shows dashes | row without plan | Entry, Stop, Target, R:R tiles "—" | Pass |
 | UT-GUI-022.002.M01.T04 | MD-GUI-022.001.M01 | Positive | Detail buttons emit symbol | click Open chart, Watchlist | `chart_requested("NVDA")`, `watchlist_requested("NVDA")` | Pass |
 | UT-GUI-022.002.M01.T05 | MD-GUI-022.001.M01 | Edge | Theme change keeps selection, no chart reload | select JCI; restyle | JCI still selected and shown; no new `show_symbol` call | Pass |
-| UT-GUI-022.003.M01.T01 | MD-GUI-022.001.M01 | Positive | One card per stock with actions | 3 rows; click card 2 Chart | 3 cards; "#1", "NVDA", "Strong"; `chart_requested("JCI")` | Pass |
-| UT-GUI-022.003.M01.T02 | MD-GUI-022.001.M01 | Edge | Empty rows clear cards | load 3 then [] | 0 cards | Pass |
+| UT-GUI-022.003.M01.T01 | MD-GUI-022.001.M01 | Positive | One card per stock with actions | 3 rows; click card 2 Chart | 3 cards; "#1", "NVDA", "Strong"; `chart_requested("JCI")` | Removed (user, 2026-11-19, SRD-GUI-043.006) |
+| UT-GUI-022.003.M01.T02 | MD-GUI-022.001.M01 | Edge | Empty rows clear cards | load 3 then [] | 0 cards | Removed (user, 2026-11-19, SRD-GUI-043.006) |
 | UT-GUI-022.004.M01.T01 | MD-GUI-022.001.M01 | Positive | Rows built from result meta | details bool + float, `ai_plan`, scores 0.85 / 0.55 / 0.2 | pass/fail/value checks; plan read; tiers Strong / Watch / Weak; ranked by score | Pass |
 | UT-GUI-022.005.M01.T01 | MD-GUI-022.001.M01 | Positive | R:R and sort | plans valid, short-shaped, missing; sort rr, rules | 3.3; None; None; None last; most rules first | Pass |
 | UT-GUI-022.006.M01.T01 | MD-GUI-022.001.M01 | Positive | CSV rows carry the plan | 2 rows, one without plan | header has Entry, Stop, Target, R:R; values and "" | Pass |
@@ -1127,4 +1128,46 @@ Test files:
 | UT-GUI-042.005.M01.T03 | MD-GUI-042.001.M01 | Negative | Save reason in footer | name set, no group; on AI Context page; Save, then Save As | footer reads "Add at least one group."; dialog stays open | Pass |
 | UT-GUI-042.005.M01.T02 | MD-GUI-042.001.M01 | Edge | Grey when AI off | AI off | AI Ranking and AI Context state off, text "Off" | Pass |
 | UT-GUI-042.006.M01.T01 | MD-GUI-042.001.M01 | Positive | Same preset saved | edit a saved composite preset with AI on; build without changes | built preset fields equal the saved ones | Pass |
+| UT-GUI-042.007.M01.T01 | MD-GUI-042.001.M01 | Negative | Only one trading style | tick Day then Position; untick Position; open a preset with Position and Day | only Position; none; only Day | Pass |
 
+## FO-GUI-043 — Screener Focus Layout
+
+| UT ID | MD | Type | Description | Input | Expected | Status |
+|---|---|---|---|---|---|---|
+| UT-GUI-043.001.M01.T01 | MD-GUI-043.001.M01 | Positive | Folded row opens and folds the current one | presets A, B; open A; click B | card shows B; B row hidden; A row shown | Removed (SRD-GUI-044.007) |
+| UT-GUI-043.001.M01.T02 | MD-GUI-043.001.M01 | Edge | Last open preset reopens | open B; new panel with the same settings | card shows B | Removed (SRD-GUI-044.007) |
+| UT-GUI-043.001.M01.T03 | MD-GUI-043.001.M01 | Negative | Deleting the open preset clears the card | open A; delete A | card reads "No preset open"; no run dates; Run now off; saved id removed | Removed (SRD-GUI-044.007) |
+| UT-GUI-043.002.M01.T01 | MD-GUI-043.001.M01 | Positive | ⋯ menu holds the run actions | open a preset with saved rows | menu has Export CSV, Quick test; Quick test emits the preset id | Removed (SRD-GUI-044.007) |
+| UT-GUI-043.003.M02.T01 | MD-GUI-043.003.M02 | Positive | Two-line stock row | NVDA row with 2 of 3 rules and 1 flag | symbol, score, "2/3" and flag text shown | Removed (SRD-GUI-044.007) |
+| UT-GUI-043.003.M01.T01 | MD-GUI-043.001.M01 | Negative | Preset with no run | open a preset with no saved run | list area shows "No runs yet — press Run now" | Removed (SRD-GUI-044.007) |
+| UT-GUI-043.003.M02.T02 | MD-GUI-043.003.M02 | Positive | Detached list still drives the detail | detach list; load rows; pick row 2 | detail shows row 2 stock | Pass |
+| UT-GUI-043.004.M01.T01 | MD-GUI-043.001.M01 | Positive | Search filters folded rows | open A; type B's name | only B row shown; card still shows A; a section with only the open preset hides its header | Removed (SRD-GUI-044.007) |
+| UT-GUI-043.005.M01.T01 | MD-GUI-043.001.M01 | Positive | Hide panel saved | hide; new panel with the same settings | strip shown, width 44 | Removed (SRD-GUI-044.007) |
+| UT-GUI-043.006.M01.T01 | MD-GUI-043.001.M01 | Negative | Toolbar and Cards gone | new panel | no view switch, no Cards view; right side holds only the detail | Pass |
+| UT-GUI-043.007.M03.T01 | MD-GUI-043.007.M03 | Positive | Header line and next stock | rows with name and sector; click Next | meta has company, sector, "rank 1 of 3", score; row 2 shown | Pass |
+| UT-GUI-043.007.M03.T02 | MD-GUI-043.007.M03 | Edge | Previous and next stop at the ends | first row; then last row | Previous off on first; Next off on last | Pass |
+| UT-GUI-043.008.M03.T01 | MD-GUI-043.007.M03 | Positive | Plan strip over the chart | new view | order: header, plan strip, chart, drag bar, tabs | Pass |
+| UT-GUI-043.009.M03.T01 | MD-GUI-043.007.M03 | Positive | Chart takes the free height | new view | chart slot has stretch 1; others 0 (drag bar and tabs too) | Pass |
+| UT-GUI-043.010.M03.T01 | MD-GUI-043.007.M03 | Positive | Tabs show one section | NVDA with 1 of 2 rules; click Rules | tabs AI reasoning, Rules 1/2, News, Fundamentals, Bull vs bear; Rules page shown | Pass |
+| UT-GUI-043.010.M03.T02 | MD-GUI-043.007.M03 | Negative | Empty tabs greyed | row with no news, company data or review; News was current | News, Fundamentals, Bull vs bear disabled; AI reasoning shown | Pass |
+| UT-GUI-043.011.M04.T01 | MD-GUI-043.011.M04 | Positive | Volume strip drag height | page built with height 150; bridge gets 150 | handle in page, strip 150 px, height sent | Pass |
+| UT-GUI-043.012.M03.T01 | MD-GUI-043.007.M03 | Positive | Drag tabs taller | drag bar up 100; release; drag far down; new view | tabs +100; then 110 px floor; new view keeps the saved +100 | Pass |
+| UT-GUI-044.001.M02.T01 | MD-GUI-044.001.M02 | Positive | Presets grouped into folders | 2 swing, 1 day, 1 admin preset | folders Swing 2, Day 1, Ready-made 1; no Position; odd style goes to Swing | Pass |
+| UT-GUI-044.001.M02.T02 | MD-GUI-044.001.M02 | Edge | Closed folder kept after restart | close Day; new panel with the same settings | Day closed, Swing open | Pass |
+| UT-GUI-044.002.M02.T01 | MD-GUI-044.001.M02 | Positive | Open preset in place | open A, then B, then click C | A stays open when B opens, B active; C opens on click | Pass |
+| UT-GUI-044.002.M02.T02 | MD-GUI-044.001.M02 | Edge | Last open preset reopens | open B; new panel with the same settings | B open | Pass |
+| UT-GUI-044.002.M02.T03 | MD-GUI-044.001.M02 | Negative | Deleting the open preset clears it | open A; delete A | "No preset open"; no run dates; Run off; open section hidden; saved id removed | Pass |
+| UT-GUI-044.002.M02.T04 | MD-GUI-044.001.M02 | Edge | Opening a preset opens its closed folder | collapse all; open the Day preset; collapse all | Day open, Swing closed; then Day closed | Pass |
+| UT-GUI-044.003.M02.T01 | MD-GUI-044.001.M02 | Positive | Open row actions | open a preset with 3 saved rows | count 3; Run on; ⋯ has Export CSV, Quick test, Sort by; Quick test emits the id | Pass |
+| UT-GUI-044.003.M02.T02 | MD-GUI-044.001.M02 | Positive | Controls moved | new panel; open A; pick Sort by → Rules passed | stepper hidden, then in the header; tags in the footer with the status line; no Sort box; sort key rules, only that choice ticked | Pass |
+| UT-GUI-044.004.M03.T01 | MD-GUI-044.004.M03 | Positive | One-line stock row | NVDA score 0.85 with 1 flag | symbol, bar filled 0.85, flag text | Pass |
+| UT-GUI-044.004.M02.T01 | MD-GUI-044.001.M02 | Negative | Stock list fits rows; no run hint | open A (3 rows), then B (no run) | list at least 3 rows high; then list hidden and "No runs yet — press Run now" | Pass |
+| UT-GUI-044.005.M02.T01 | MD-GUI-044.001.M02 | Positive | Search box | collapse all; press Search; type "pull"; press Search | box shown; only B, Swing open; box hidden and cleared, Swing closed again | Pass |
+| UT-GUI-044.005.M02.T02 | MD-GUI-044.001.M02 | Positive | Collapse all | press Collapse all | every folder closed | Pass |
+| UT-GUI-044.005.M02.T03 | MD-GUI-044.001.M02 | Negative | Folder click during search not saved | search "gap"; close Day | closed folders not saved | Pass |
+| UT-GUI-044.006.M02.T01 | MD-GUI-044.001.M02 | Positive | Status line | open a preset with 3 saved rows | status starts "3 matches" | Pass |
+| UT-GUI-044.007.M02.T01 | MD-GUI-044.001.M02 | Negative | Removed parts | new panel | no hide strip, style chips, open card or old preset list | Pass |
+| UT-GUI-044.009.M02.T01 | MD-GUI-044.001.M02 | Positive | Drag panel width | drag +60; release; drag far left; far right; new panel | 440; 300 with title hidden; 600; new panel 440 | Pass |
+| UT-GUI-044.010.M02.T01 | MD-GUI-044.001.M02 | Positive | Several presets open | open A, then B; click 2nd stock of A's preview | A preview 3 stocks; Run on B row; A active with that stock selected | Pass |
+| UT-GUI-044.010.M02.T02 | MD-GUI-044.001.M02 | Negative | Chevron closes | open A, B; chevron on active twice; chevron on C | A active; none active, date hidden; C open | Pass |
+| UT-GUI-044.010.M02.T03 | MD-GUI-044.001.M02 | Edge | Open presets kept | open C, A; new panel | C and A open, A active | Pass |

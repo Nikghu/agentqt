@@ -1339,28 +1339,44 @@ QPushButton#login_fold {{
 }}
 QPushButton#login_fold:hover {{ color: {accent}; }}
 QPushButton#login_fold:focus {{ outline: none; }}
-QPushButton#view_btn {{
-    background: transparent; border: 1px solid {line}; border-radius: 0; padding: 0;
-    outline: none;
-}}
-QPushButton#view_btn:hover {{ background: {hover}; }}
-QPushButton#view_btn:checked {{ background: {line}; }}
-QPushButton#view_btn:focus {{ outline: none; }}
 QListWidget#result_list {{
-    background: transparent; border: none; border-right: 1px solid {line}; outline: none;
-    padding: 6px;
+    background: transparent; border: none; outline: none; padding: 4px;
 }}
-QListWidget#result_list::item {{ border-radius: 6px; border: 1px solid transparent; }}
+QListWidget#result_list::item {{ border-radius: 5px; border: 1px solid transparent; }}
 QListWidget#result_list::item:hover {{ background: {hover}; }}
-QListWidget#result_list::item:selected {{ background: {hover}; border-color: {line}; }}
+QListWidget#result_list::item:selected {{ background: {active_bg}; border-color: transparent; }}
 QWidget#result_row, QWidget#result_row QLabel {{ background: transparent; }}
 QLabel#row_symbol {{ color: {text}; font-size: 10pt; font-weight: bold; }}
+QFrame#tree_row, QFrame#tree_folder {{ background: transparent; border-radius: 5px; }}
+QFrame#tree_row:hover, QFrame#tree_folder:hover {{ background: {hover}; }}
+QFrame#tree_row[active="true"] {{ background: {hover}; }}
+QFrame#tree_row QLabel, QFrame#tree_folder QLabel {{ background: transparent; }}
+QFrame#tree_row QLabel#page_tag {{
+    background: {line}; color: {sub}; border-radius: 3px; padding: 1px 5px; font-size: 7.5pt;
+}}
+QFrame#tree_branch {{
+    background: transparent; margin-left: 14px; border: none; border-left: 1px solid {line};
+}}
+QFrame#tree_footer {{ background: transparent; border: none; border-top: 1px solid {line}; }}
+QLabel#tree_folder_name {{ color: {text}; font-weight: bold; }}
+QLabel#tree_preset_name {{ color: {text}; }}
+QLabel#open_preset_name {{ color: {text}; font-weight: bold; }}
+QFrame#tree_stepper {{ background: transparent; border: none; }}
+QComboBox#flat_combo {{
+    background: transparent; border: none; color: {sub}; padding: 0 2px 0 6px;
+    outline: none;
+}}
+QComboBox#flat_combo:hover {{ color: {text}; background: {hover}; }}
+QComboBox#flat_combo:focus {{ outline: none; }}
+QFrame#drag_bar {{ background: transparent; border: none; border-radius: 3px; }}
+QFrame#drag_bar:hover {{ background: {line}; }}
+QPushButton#more_btn::menu-indicator {{ image: none; width: 0; }}
 QLabel#card_symbol {{ color: {text}; font-size: 12pt; font-weight: bold; }}
-QWidget#result_detail, QWidget#cards_host, QWidget#rule_strip {{ background: transparent; }}
-QFrame#result_card, QFrame#detail_tile, QFrame#chart_slot, QFrame#detail_plan {{
+QWidget#result_detail, QWidget#rule_strip {{ background: transparent; }}
+QFrame#detail_tile, QFrame#chart_slot, QFrame#detail_plan {{
     background: transparent; border: 1px solid {line}; border-radius: 6px;
 }}
-QFrame#result_card QLabel, QFrame#detail_tile QLabel, QFrame#detail_plan QLabel {{
+QFrame#detail_tile QLabel, QFrame#detail_plan QLabel {{
     border: none;
 }}
 QLabel#detail_symbol {{ color: {text}; font-size: 17pt; font-weight: bold; }}
@@ -1442,6 +1458,14 @@ QTabBar#exec_tabs::tab {{
 }}
 QTabBar#exec_tabs::tab:hover {{ color: {text}; }}
 QTabBar#exec_tabs::tab:selected {{ color: {text}; border-bottom-color: {accent}; }}
+QTabBar#detail_tabs {{ border-bottom: 1px solid {line}; }}
+QTabBar#detail_tabs::tab {{
+    background: transparent; color: {sub}; border: none; border-bottom: 2px solid transparent;
+    padding: 7px 2px; margin-right: 20px; font-size: 9pt;
+}}
+QTabBar#detail_tabs::tab:hover {{ color: {text}; }}
+QTabBar#detail_tabs::tab:selected {{ color: {accent}; border-bottom-color: {accent}; }}
+QTabBar#detail_tabs::tab:disabled {{ color: #66{sub[1:]}; }}
 QTreeWidget#exec_watch {{ background: transparent; border: none; outline: none; }}
 QTreeWidget#exec_watch::item {{ min-height: 26px; border-bottom: 1px solid {line}; }}
 QTreeWidget#exec_watch::item:hover {{ background: {hover}; }}

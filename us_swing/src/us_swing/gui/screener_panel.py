@@ -1,14 +1,18 @@
 """
 Module: MD-GUI-003.001.M01 — screener_panel.py  (v2 — Phase 5 GUI integration)
-Parent SRD: SRD-SCR-007.001–012, SRD-SCR-004.007, SRD-GUI-022.014, SRD-GUI-022.016, SRD-GUI-022.018
+Parent SRD: SRD-SCR-007.001–012, SRD-SCR-004.007, SRD-GUI-022.014, SRD-GUI-022.016,
+    SRD-GUI-022.018, SRD-GUI-043.001
 
-Screener Panel — Preset-based v2 (layout: SRD-GUI-022.008–.012):
+Screener Panel — Preset-based v2 (layout: SRD-GUI-043.001–.006):
   ┌──────────────────────┬───────────────────────────────────────────────────┐
-  │  PRESETS        [+]  │  HEADER  preset name · tags · run line · AI pill  │
-  │  search · segments   │          ‹ run date › · Sort · view · CSV · Run   │
-  │  ADMIN / MY PRESETS  ├───────────────────────────────────────────────────┤
-  │  · name, last run    │  Rule pills, then List + detail or Cards view;    │
-  │                      │  AI transcript drawer slides in from the right    │
+  │  SCREENER     [+][«] │  Rule pills                                       │
+  │ ┌ Preset name  ⋯  ▶ ┐├───────────────────────────────────────────────────┤
+  │ │ tags        Sort  ││  Detail of the stock picked on the left;          │
+  │ │ ‹ run date ›      ││  AI transcript drawer slides in from the right    │
+  │ │ stocks            ││                                                   │
+  │ └───────────────────┘│                                                   │
+  │  OTHER PRESETS       │                                                   │
+  │  search · segments   │                                                   │
   └──────────────────────┴───────────────────────────────────────────────────┘
 """
 from __future__ import annotations
@@ -31,7 +35,7 @@ from PyQt6.QtCore import (
     QThread,
     pyqtSignal,
 )
-from PyQt6.QtGui import QAction, QColor, QCursor, QFont, QTextCursor
+from PyQt6.QtGui import QAction, QActionGroup, QColor, QKeySequence, QShortcut, QTextCursor
 from PyQt6.QtWidgets import (
     QAbstractItemView,
     QButtonGroup,
@@ -75,17 +79,16 @@ from us_swing.gui.indicator_rules_dialog import IndicatorRulesDialog
 from us_swing.gui.acc_dist_settings_dialog import AccDistSettingsDialog
 from us_swing.gui.price_action_rules_dialog import PriceActionRulesDialog
 from us_swing.gui.icons import icon as make_icon
-from us_swing.gui.icons import mark_danger, set_icon
+from us_swing.gui.icons import icon_button, mark_danger, set_icon
 from us_swing.gui.screener_views import (
     SORT_KEYS,
-    CardsView,
-    ChipGroup,
+    STOCK_ROW_H,
     ListDetailView,
     PresetItem,
     ResultRow,
     RunStepper,
     SideDrawer,
-    ViewSwitch,
+    _ListRow,
     csv_rows,
     filter_presets,
     last_run_text,
@@ -95,6 +98,16 @@ from us_swing.gui.screener_views import (
     transcript_pill_text,
 )
 from us_swing.gui.popups import confirm, notify
+from us_swing.gui.screener_tree import (
+    FOLDERS,
+    ElidedLabel,
+    FolderRow,
+    PresetRow,
+    TreeRow,
+    WidthHandle,
+    branch,
+    folder_key,
+)
 from us_swing.gui.theme import C, active_palette, colors
 from us_swing.screener.screeners import _api_key_store
 from us_swing.screener.storage import INPUT_COST_PER_1K, OUTPUT_COST_PER_1K
@@ -133,11 +146,6 @@ _STYLE_OPTIONS: list[tuple[str, str | None]] = [
     ("Position Trading", "position"),
 ]
 
-# Short labels for the preset rail chips (SRD-GUI-022.007).
-_STYLE_CHIPS: list[tuple[str, str | None]] = [
-    ("All", None), ("Swing", "swing"), ("Day", "day"), ("Position", "position"),
-]
-
 # Canonical display names for all registered screener IDs.
 _SCREENER_DISPLAY: dict[str, str] = {
     "indicator_composite": "Indicators",
@@ -164,8 +172,15 @@ def _in_auto_run_window() -> bool:
 
 
 def _view_settings() -> QSettings:
-    """Settings store for the List / Cards choice (SRD-GUI-022.001)."""
+    """Settings store for the open preset and closed folders (SRD-GUI-044.001, .002)."""
     return QSettings("USSwing", "ScreenerPanel")
+
+
+# Left pane width: default and drag limits (SRD-GUI-044.009); stock list padding in theme QSS.
+_PANE_W = 380
+_PANE_MIN_W = 300
+_PANE_MAX_W = 600
+_STOCK_LIST_PAD = 8
 
 
 # ── Preset run worker ─────────────────────────────────────────────────────────
@@ -978,6 +993,7 @@ class _PresetBuilderDialog(_FramelessDialog):
             cb.setEnabled(_is_creator)
             cb.setStyleSheet(f"color: {_T.TEXT}; font-size: 9pt;")
             cb.toggled.connect(self._refresh_nav)
+            cb.toggled.connect(lambda on, val=style_val: self._keep_one_style(val, on))
             self._style_checks[style_val] = cb
             style_row.addWidget(cb)
         style_row.addStretch()
@@ -1537,11 +1553,21 @@ class _PresetBuilderDialog(_FramelessDialog):
     def _collect_trading_styles(self) -> list[str]:
         return [v for v, cb in self._style_checks.items() if cb.isChecked()]
 
+    def _keep_one_style(self, style_val: str, checked: bool) -> None:
+        """Only one trading style can be ticked; it can still be unticked (SRD-GUI-042.007)."""
+        if not checked:
+            return
+        for val, cb in self._style_checks.items():
+            if val != style_val:
+                cb.setChecked(False)
+
     def _populate_from_preset(self, preset: Any) -> None:
         self._name.setText(preset.name)
         self._desc.setText(getattr(preset, "description", ""))
+        saved = list(getattr(preset, "trading_styles", None) or [])
+        first = next((val for val in self._style_checks if val in saved), None)
         for val, cb in self._style_checks.items():
-            cb.setChecked(val in getattr(preset, "trading_styles", []))
+            cb.setChecked(val == first)
         tf = getattr(preset, "timeframe", "1d")
         idx = self._tf_preset.findData(tf)
         if idx >= 0:
@@ -1992,9 +2018,9 @@ class _NewPresetDialog(QDialog):
 class ScreenerPanel(QWidget):
     """FO-SCR-007 Screener Panel v2 — preset-based execution.
 
-    Left:    Preset list (admin + user) with a New preset button.
-    Right:   Page header (title, run line, run stepper, sort, view, CSV, Run now), rule
-             chips, then the List + detail or Cards view (SRD-GUI-022.001–.012).
+    Left:    Open-preset card (name, ⋯ menu, Run now, tags, Sort, run stepper, stocks)
+             over the folded presets with search and style chips (SRD-GUI-043.001–.006).
+    Right:   Rule chips, then the detail of the stock picked on the left.
     """
 
     watchlist_add_requested = pyqtSignal(str)   # preserved — wired in main_window
@@ -2022,39 +2048,57 @@ class ScreenerPanel(QWidget):
         self._db_info_fresh: bool = False  # a status arrived since auto-run last used one
         self._db_check_requested_at: float = float("-inf")
         self._behind_warned_for: str = ""  # trading day already warned about
-        self._rows:              list[ResultRow] = []  # rows shown by both views
+        self._rows:              list[ResultRow] = []  # rows in the stock list
         self._run_timestamp:     str | None = None     # run time of the rows shown
         self._run_meta:          dict[str, str] = {}   # preset id → last-run line
         self._names:             dict[str, str] = {}   # symbol → company name
+        self._sectors:           dict[str, str] = {}   # symbol → sector
+        self._preset_names:      dict[str, str] = {}   # preset id → name
+        self._preset_rows:       dict[str, PresetRow] = {}  # closed preset rows by id
+        self._reveal_open = False  # next tree build opens the open preset's folder
+        self._sort_key = "score"  # stock list order, picked in the ⋯ menu
 
         # ── DB status subscription (SRD-SCR-004.007) ──────────────────────
         demo.candle_db_status_changed.connect(self._on_db_status_changed)
         demo.market_status_updated.connect(self._maybe_auto_run)
 
         # ── Build UI ───────────────────────────────────────────────────────
-        header       = self._build_toolbar()
-        left_frame   = self._build_left_pane()
+        self._settings = _view_settings()
+        self._closed_folders: set[str] = {
+            str(key) for key in self._settings.value("closed_folders", [], type=list) or []}
+        self._open_ids: list[str] = [
+            str(pid) for pid in self._settings.value("open_presets", [], type=list) or []]
+        self._preview_rows: dict[str, list[ResultRow]] = {}  # latest-run rows of open presets
         right_widget = self._build_right_pane()
+        left_frame = self._build_left_pane()
 
-        right_col = QWidget()
-        rl = QVBoxLayout(right_col)
-        rl.setContentsMargins(0, 0, 0, 0)
-        rl.setSpacing(0)
-        rl.addWidget(header)
-        rl.addWidget(right_widget, 1)
-
-        # Preset rail and results are two cards on the gutter (SRD-GUI-023.002)
+        # Preset pane and stock detail are two cards on the gutter (SRD-GUI-023.002)
         body = gutter(QWidget())
         bl = QHBoxLayout(body)
         bl.setContentsMargins(0, 0, 0, 0)
-        bl.setSpacing(GAP)
+        bl.setSpacing(0)
         bl.addWidget(card(left_frame))
-        bl.addWidget(card(right_col), 1)
+        self._pane_handle = WidthHandle(GAP)
+        self._pane_handle.moved.connect(self._drag_pane)
+        self._pane_handle.released.connect(self._save_pane_width)
+        bl.addWidget(self._pane_handle)
+        bl.addWidget(card(right_widget), 1)
 
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(0)
         root.addWidget(body, 1)
+
+        known = [pid for pid in self._open_ids if pid in self._preset_names]
+        if known != self._open_ids:
+            self._open_ids = known
+            self._save_open_ids()
+        saved = str(self._settings.value("open_preset", "") or "")
+        if saved in self._preset_names:
+            self._set_open_preset(saved)
+            self._update_header()
+            self._refresh_date_nav()
+            self._refresh_transcript_visibility()
 
     # ── Backend init ──────────────────────────────────────────────────────
 
@@ -2068,125 +2112,82 @@ class ScreenerPanel(QWidget):
             self._mgr     = None
             self._storage = None
 
-    # ── Toolbar ───────────────────────────────────────────────────────────
-
-    def _build_toolbar(self) -> QFrame:
-        """Page header: preset title, run line, transcript pill and run controls."""
-        self._title_lbl = QLabel("Screener")
-        self._title_lbl.setObjectName("page_title")
-        self._type_tag = QLabel()
-        self._type_tag.setObjectName("page_tag")
-        self._type_tag.setVisible(False)
-        self._mode_badge = QLabel()
-        self._mode_badge.setObjectName("page_tag")
-        self._mode_badge.setVisible(False)
-
-        self._status_lbl = QLabel("Select a preset to begin")
-        self._status_lbl.setObjectName("view_key")
-
-        # AI transcript pill (SRD-GUI-022.010)
-        self._tx_pill = QPushButton()
-        self._tx_pill.setObjectName("tx_pill")
-        self._tx_pill.setCheckable(True)
-        set_icon(self._tx_pill, "message-square", "neutral", 13)
-        self._tx_pill.setToolTip("Show the AI conversation for this run")
-        self._tx_pill.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-        self._tx_pill.setVisible(False)
-        self._tx_pill.clicked.connect(self._toggle_transcript)
-
-        title_row = QHBoxLayout()
-        title_row.setSpacing(8)
-        title_row.addWidget(self._title_lbl)
-        title_row.addWidget(self._type_tag)
-        title_row.addWidget(self._mode_badge)
-        title_row.addStretch(1)
-        meta_row = QHBoxLayout()
-        meta_row.setSpacing(8)
-        meta_row.addWidget(self._status_lbl)
-        meta_row.addWidget(self._tx_pill)
-        meta_row.addStretch(1)
-        title_box = QVBoxLayout()
-        title_box.setSpacing(4)
-        title_box.addLayout(title_row)
-        title_box.addLayout(meta_row)
-
-        # Saved-run stepper (SRD-GUI-022.009)
-        self._run_stepper = RunStepper()
-        self._run_stepper.index_changed.connect(self._on_run_picked)
-
-        sort_lbl = QLabel("Sort")
-        sort_lbl.setObjectName("view_key")
-        self._sort_combo = QComboBox()
-        for key, label in SORT_KEYS:
-            self._sort_combo.addItem(label, key)
-        self._sort_combo.setFixedWidth(130)
-        self._sort_combo.setToolTip("Sort results")
-        self._sort_combo.setAccessibleName("Sort results")
-        self._sort_combo.currentIndexChanged.connect(self._refresh_views)
-
-        self._view_switch = ViewSwitch(_view_settings())
-        self._view_switch.view_changed.connect(self._on_view_changed)
-
-        self._export_btn = QPushButton()
-        set_icon(self._export_btn, "download", "neutral")
-        self._export_btn.setFixedWidth(C.BTN_H + 4)
-        self._export_btn.setEnabled(False)
-        self._export_btn.setToolTip("Export results to CSV")
-        self._export_btn.setAccessibleName("Export results to CSV")
-        self._export_btn.clicked.connect(self._export_csv)
-
-        self._quick_btn = QPushButton("Quick test")
-        set_icon(self._quick_btn, "zap", "neutral", 14)
-        self._quick_btn.setToolTip("Backtest strategies on this preset's saved lists")
-        self._quick_btn.setEnabled(False)
-        self._quick_btn.clicked.connect(
-            lambda: self.quick_test_requested.emit(self._selected_preset_id or ""))
-
-        self._run_btn = QPushButton("Run now")
-        set_icon(self._run_btn, "play", "inverse", 14)
-        self._run_btn.setObjectName("primary_btn")
-        self._run_btn.setMinimumWidth(100)
-        self._run_btn.setEnabled(False)
-        self._run_btn.clicked.connect(self._run_preset)
-
-        header = QFrame()
-        header.setObjectName("screener_header")
-        row = QHBoxLayout(header)
-        row.setContentsMargins(20, 12, 20, 12)
-        row.setSpacing(8)
-        row.addLayout(title_box, 1)
-        row.addWidget(self._run_stepper, 0, Qt.AlignmentFlag.AlignVCenter)
-        row.addSpacing(4)
-        row.addWidget(sort_lbl)
-        row.addWidget(self._sort_combo)
-        row.addWidget(self._view_switch)
-        row.addWidget(self._export_btn)
-        row.addSpacing(4)
-        row.addWidget(self._quick_btn)
-        row.addWidget(self._run_btn)
-        return header
-
-    # ── Left pane (preset list) ───────────────────────────────────────────
+    # ── Left pane: preset tree (SRD-GUI-044.001–.006) ─────────────────────
 
     def _build_left_pane(self) -> QFrame:
-        title = QLabel("PRESETS")
-        title.setObjectName("view_head")
-        self._new_btn = QPushButton()
-        set_icon(self._new_btn, "plus", "add")
-        self._new_btn.setFixedWidth(C.BTN_H)
-        self._new_btn.setToolTip("New preset")
-        self._new_btn.setAccessibleName("New preset")
+        """Header, search box, folder tree and a status line at the bottom."""
+        self._tree_host = QWidget()
+        self._tree_host.setObjectName("tree_host")
+        self._tree_box = QVBoxLayout(self._tree_host)
+        self._tree_box.setContentsMargins(8, 2, 8, 8)
+        self._tree_box.setSpacing(1)
+        self._open_section = self._build_open_section()
+        self._open_section.setParent(self._tree_host)
+        self._open_section.hide()
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        scroll.setWidget(self._tree_host)
+
+        self._status_lbl = QLabel("Pick a preset to begin")
+        self._status_lbl.setObjectName("view_key")
+        self._status_lbl.setWordWrap(True)
+        footer = QFrame()
+        footer.setObjectName("tree_footer")
+        fl = QVBoxLayout(footer)
+        fl.setContentsMargins(14, 8, 14, 8)
+        fl.setSpacing(4)
+        tags = QHBoxLayout()
+        tags.setSpacing(4)
+        tags.addWidget(self._type_tag)
+        tags.addWidget(self._mode_badge)
+        tags.addStretch(1)
+        fl.addLayout(tags)
+        fl.addWidget(self._status_lbl)
+
+        self._left_frame = QFrame()
+        self._left_frame.setObjectName("preset_pane")
+        pl = QVBoxLayout(self._left_frame)
+        pl.setContentsMargins(0, 0, 0, 0)
+        pl.setSpacing(0)
+        pl.addWidget(self._build_pane_header())
+        pl.addWidget(self._build_search_box())
+        pl.addWidget(scroll, 1)
+        pl.addWidget(footer)
+        self._set_pane_width(int(self._settings.value("pane_width", _PANE_W, type=int) or _PANE_W))
+        self._drag_start_w = self._left_frame.width()
+
+        self._populate_preset_list()
+        return self._left_frame
+
+    def _build_pane_header(self) -> QWidget:
+        """SCREENER title with Search, New preset and Collapse all (SRD-GUI-044.005)."""
+        self._pane_title = QLabel("SCREENER")
+        self._pane_title.setObjectName("view_head")
+        self._search_btn = icon_button("search", "neutral", "Search presets")
+        self._search_btn.setCheckable(True)
+        self._search_btn.toggled.connect(self._set_search_open)
+        self._new_btn = icon_button("plus", "add", "New preset")
         self._new_btn.setEnabled(self._mgr is not None)
         self._new_btn.clicked.connect(self._on_new_preset)
+        self._collapse_btn = icon_button("chevrons-down-up", "neutral", "Collapse all")
+        self._collapse_btn.clicked.connect(self._collapse_all)
         header = QWidget()
         header.setObjectName("rule_strip")
         hl = QHBoxLayout(header)
-        hl.setContentsMargins(12, 12, 8, 8)
-        hl.addWidget(title)
+        hl.setContentsMargins(12, 10, 8, 6)
+        hl.setSpacing(4)
+        hl.addWidget(self._pane_title)
         hl.addStretch(1)
-        hl.addWidget(self._new_btn)
+        hl.addWidget(self._run_stepper)
+        for button in (self._search_btn, self._new_btn, self._collapse_btn):
+            button.setFixedWidth(C.BTN_H)
+            hl.addWidget(button)
+        return header
 
-        # Search and style chips (SRD-GUI-022.007; style filter SRD-SCR-007.010)
+    def _build_search_box(self) -> QWidget:
+        """Search box under the header, hidden until Search is pressed."""
         self._preset_search = QLineEdit()
         self._preset_search.setPlaceholderText("Search presets")
         self._preset_search.setAccessibleName("Search presets")
@@ -2194,53 +2195,163 @@ class ScreenerPanel(QWidget):
         self._preset_search.addAction(
             make_icon("search", "neutral"), QLineEdit.ActionPosition.LeadingPosition
         )
-        self._preset_search.textChanged.connect(self._on_style_filter_changed)
+        self._preset_search.textChanged.connect(self._populate_preset_list)
+        esc = QShortcut(QKeySequence(Qt.Key.Key_Escape), self._preset_search)
+        esc.setContext(Qt.ShortcutContext.WidgetShortcut)
+        esc.activated.connect(lambda: self._search_btn.setChecked(False))
+        self._search_wrap = QWidget()
+        self._search_wrap.setObjectName("rule_strip")
+        sl = QVBoxLayout(self._search_wrap)
+        sl.setContentsMargins(8, 0, 8, 6)
+        sl.addWidget(self._preset_search)
+        self._search_wrap.hide()
+        return self._search_wrap
 
-        self._style_chips = ChipGroup(_STYLE_CHIPS)
-        self._style_chips.changed.connect(self._on_style_filter_changed)
+    def _set_search_open(self, is_open: bool) -> None:
+        self._search_wrap.setVisible(is_open)
+        if is_open:
+            self._preset_search.setFocus()
+        else:
+            self._preset_search.clear()
 
-        filters = QWidget()
-        filters.setObjectName("rule_strip")
-        fbox = QVBoxLayout(filters)
-        fbox.setContentsMargins(8, 0, 8, 6)
-        fbox.setSpacing(8)
-        fbox.addWidget(self._preset_search)
-        fbox.addWidget(self._style_chips)
+    def _build_open_section(self) -> QWidget:
+        """Open preset row with Run and ⋯, its run controls and its stocks (SRD-GUI-044.003)."""
+        self._title_lbl = ElidedLabel("No preset open")
+        self._title_lbl.setObjectName("open_preset_name")
+        self._title_lbl.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
+        self._type_tag = QLabel()
+        self._type_tag.setObjectName("page_tag")
+        self._type_tag.setVisible(False)
+        self._mode_badge = QLabel()
+        self._mode_badge.setObjectName("page_tag")
+        self._mode_badge.setVisible(False)
+        self._count_lbl = QLabel()
+        self._count_lbl.setObjectName("view_key")
+        self._run_btn = icon_button("play", "inverse", "Run now")
+        self._run_btn.setObjectName("primary_btn")
+        self._run_btn.setFixedWidth(C.BTN_H)
+        self._run_btn.setEnabled(False)
+        self._run_btn.clicked.connect(self._run_preset)
+        self._more_btn = icon_button("ellipsis", "neutral", "More actions")
+        self._more_btn.setObjectName("more_btn")
+        self._more_btn.setFixedWidth(C.BTN_H)
+        self._more_btn.setMenu(self._build_more_menu())
+        self._open_row = TreeRow()
+        self._open_row.row.setSpacing(5)
+        self._open_row.set_open(True)
+        self._open_row.setProperty("active", True)
+        for widget, stretch in ((self._title_lbl, 1), (self._count_lbl, 0),
+                                (self._run_btn, 0), (self._more_btn, 0)):
+            self._open_row.row.addWidget(widget, stretch, Qt.AlignmentFlag.AlignVCenter)
+        self._open_row.chevron_clicked.connect(
+            lambda: self._toggle_preset(self._selected_preset_id or ""))
+        self._open_row.menu_requested.connect(self._on_open_row_menu)
 
-        self._preset_list = QListWidget()
-        self._preset_list.setObjectName("preset_list")
-        self._preset_list.setResizeMode(QListWidget.ResizeMode.Adjust)
-        self._preset_list.setHorizontalScrollBarPolicy(
-            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
-        )
-        self._preset_list.itemClicked.connect(self._on_preset_clicked)
-        self._preset_list.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        self._preset_list.customContextMenuRequested.connect(self._on_preset_context_menu)
+        # Saved-run stepper (SRD-GUI-022.009); it sits in the pane header
+        self._run_stepper = RunStepper()
+        self._run_stepper.setObjectName("tree_stepper")
+        for arrow in (self._run_stepper.older_btn, self._run_stepper.newer_btn):
+            arrow.setFixedWidth(20)
+        self._run_stepper.index_changed.connect(self._on_run_picked)
+        self._run_stepper.hide()
 
-        frame = QFrame()
-        frame.setObjectName("preset_pane")
-        frame.setFixedWidth(260)
-        fl = QVBoxLayout(frame)
-        fl.setContentsMargins(0, 0, 0, 0)
-        fl.setSpacing(0)
-        fl.addWidget(header)
-        fl.addWidget(filters)
-        fl.addWidget(self._preset_list, 1)
+        self._stock_list = self._list_view.detach_list()
+        self._stock_list.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        model = self._stock_list.model()
+        if model is not None:
+            model.rowsInserted.connect(self._fit_stock_list)
+            model.rowsRemoved.connect(self._fit_stock_list)
+        self._list_empty_lbl = QLabel("No preset open")
+        self._list_empty_lbl.setObjectName("view_key")
+        self._list_empty_lbl.setWordWrap(True)
+        self._list_empty_lbl.setContentsMargins(10, 6, 6, 6)
+        self._open_branch, ob = branch()
+        ob.addWidget(self._stock_list)
+        ob.addWidget(self._list_empty_lbl)
+        self._show_stock_list(False)
+        section = QWidget()
+        vl = QVBoxLayout(section)
+        vl.setContentsMargins(0, 0, 0, 0)
+        vl.setSpacing(1)
+        vl.addWidget(self._open_row)
+        vl.addWidget(self._open_branch)
+        return section
 
+    def _build_more_menu(self) -> QMenu:
+        """⋯ menu of the open preset: Export CSV, Quick test, AI transcript (SRD-GUI-043.002)."""
+        menu = QMenu(self)
+        self._export_act = QAction(make_icon("download"), "Export CSV", self)
+        self._export_act.setEnabled(False)
+        self._export_act.triggered.connect(self._export_csv)
+        self._quick_act = QAction(make_icon("zap"), "Quick test", self)
+        self._quick_act.setToolTip("Backtest strategies on this preset's saved lists")
+        self._quick_act.setEnabled(False)
+        self._quick_act.triggered.connect(
+            lambda: self.quick_test_requested.emit(self._selected_preset_id or ""))
+        self._tx_act = QAction(make_icon("message-square"), "AI transcript", self)
+        self._tx_act.setVisible(False)
+        self._tx_act.triggered.connect(self._toggle_transcript)
+        for action in (self._export_act, self._quick_act, self._tx_act):
+            menu.addAction(action)
+        menu.addSeparator()
+        sort_menu = menu.addMenu("Sort by")
+        group = QActionGroup(self)
+        group.setExclusive(True)
+        self._sort_acts: dict[str, QAction] = {}
+        for key, label in SORT_KEYS:
+            act = QAction(label, self)
+            act.setCheckable(True)
+            act.setChecked(key == self._sort_key)
+            act.triggered.connect(lambda _checked=False, k=key: self._set_sort(k))
+            group.addAction(act)
+            if sort_menu is not None:
+                sort_menu.addAction(act)
+            self._sort_acts[key] = act
+        return menu
+
+    def _set_sort(self, key: str) -> None:
+        """Sort the stock list by ``key`` from the ⋯ menu (SRD-GUI-044.003)."""
+        self._sort_key = key
+        self._refresh_views()
         self._populate_preset_list()
-        return frame
 
-    # ── Right pane (results) ──────────────────────────────────────────────
+    def _set_pane_width(self, width: int) -> None:
+        """Left panel width within 300–600 px; the title hides when narrow (SRD-GUI-044.009)."""
+        width = max(_PANE_MIN_W, min(_PANE_MAX_W, width))
+        self._left_frame.setFixedWidth(width)
+        self._pane_title.setVisible(width >= _PANE_W)
+
+    def _drag_pane(self, dx: int) -> None:
+        self._set_pane_width(self._drag_start_w + dx)
+
+    def _save_pane_width(self) -> None:
+        self._drag_start_w = self._left_frame.width()
+        self._settings.setValue("pane_width", self._drag_start_w)
+
+    def _on_open_row_menu(self, global_pos: QPoint) -> None:
+        if self._selected_preset_id:
+            self._preset_menu(self._selected_preset_id, global_pos)
+
+    def _fit_stock_list(self) -> None:
+        """Size the stock list to its rows so the tree scrolls, not the list."""
+        rows = max(1, self._stock_list.count())
+        self._stock_list.setFixedHeight(
+            rows * STOCK_ROW_H + 2 * self._stock_list.frameWidth() + _STOCK_LIST_PAD)
+
+    def _show_stock_list(self, has_rows: bool) -> None:
+        self._stock_list.setVisible(has_rows)
+        self._list_empty_lbl.setVisible(not has_rows)
+
+    # ── Right side (selected stock) ───────────────────────────────────────
 
     def _build_right_pane(self) -> QWidget:
-        # Empty state overlay
-        self._empty_lbl = QLabel("Select a preset from the list\nand click Run now")
+        self._empty_lbl = QLabel("No stock selected")
         self._empty_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._empty_lbl.setStyleSheet(
             f"color: {C.MUTED}; font-size: 12pt; padding: 40px;"
         )
 
-        # Preset rules, shown once above the results (SRD-GUI-022.004)
+        # Preset rules, shown once above the detail (SRD-GUI-022.004)
         self._rule_strip = QWidget()
         self._rule_strip.setObjectName("rule_strip")
         self._rule_row = QHBoxLayout(self._rule_strip)
@@ -2248,18 +2359,14 @@ class ScreenerPanel(QWidget):
         self._rule_row.setSpacing(6)
         self._rule_strip.setVisible(False)
 
-        # Result views (SRD-GUI-022.001–.003)
+        # Detail of the stock picked in the left list (SRD-GUI-022.002, SRD-GUI-043.006)
         self._list_view = ListDetailView(self._make_chart)
         self._list_view.chart_requested.connect(self._on_view_chart)
         self._list_view.watchlist_requested.connect(self._on_view_watchlist)
-        self._cards_view = CardsView()
-        self._cards_view.chart_requested.connect(self._on_view_chart)
-        self._cards_view.watchlist_requested.connect(self._on_view_watchlist)
 
         self._views = QStackedWidget()
         self._views.addWidget(self._empty_lbl)
         self._views.addWidget(self._list_view)
-        self._views.addWidget(self._cards_view)
 
         table_container = QWidget()
         cl = QVBoxLayout(table_container)
@@ -2268,72 +2375,207 @@ class ScreenerPanel(QWidget):
         cl.addWidget(self._rule_strip)
         cl.addWidget(self._views, 1)
 
-        # AI transcript drawer over the results (SRD-GUI-022.010)
+        # AI transcript drawer over the detail (SRD-GUI-022.010)
         self._transcript_panel = AITranscriptPanel()
         self._transcript_panel.hide_title()
         self._tx_drawer = SideDrawer("AI transcript", self._transcript_panel, table_container)
-        self._tx_drawer.closed.connect(lambda: self._tx_pill.setChecked(False))
         return table_container
 
-    # ── Preset list population ────────────────────────────────────────────
-
-    def _on_style_filter_changed(self) -> None:
-        self._populate_preset_list()
+    # ── Preset tree population (SRD-GUI-044.001–.002) ─────────────────────
 
     def _populate_preset_list(self) -> None:
-        self._preset_list.clear()
+        """Rebuild the folders from the saved presets; the open preset sits in its folder."""
+        self._clear_tree()
+        self._preset_names.clear()
+        self._preset_rows.clear()
         if self._mgr is None:
-            item = QListWidgetItem("Backend unavailable")
-            item.setForeground(QColor(C.RED))
-            item.setFlags(Qt.ItemFlag.NoItemFlags)
-            self._preset_list.addItem(item)
+            self._tree_note("Backend unavailable", C.RED)
             return
 
-        style_filter = self._style_chips.value
         search = self._preset_search.text()
         uid = str(self._demo.get_active_user().user_id)
         try:
-            admin_presets = filter_presets(
-                self._mgr.list_admin_presets(style_filter=style_filter), search)
-            user_presets = filter_presets(
-                self._mgr.list_user_presets(uid, style_filter=style_filter), search)
+            admin_presets = filter_presets(self._mgr.list_admin_presets(), search)
+            user_presets = filter_presets(self._mgr.list_user_presets(uid), search)
         except Exception:  # noqa: BLE001
             admin_presets, user_presets = [], []
 
         if not admin_presets and not user_presets:
-            empty = "No presets match" if search.strip() else "No presets yet — create one below"
-            item = QListWidgetItem(empty)
-            item.setForeground(QColor(C.MUTED))
-            item.setFlags(Qt.ItemFlag.NoItemFlags)
-            self._preset_list.addItem(item)
+            self._tree_note("No presets match" if search.strip()
+                            else "No presets yet — press + to create one", C.MUTED)
             return
 
-        if admin_presets:
-            self._add_section_header("ADMIN")
-            for p in admin_presets:
-                self._add_preset_item(p)
+        groups: dict[str, list[Any]] = {key: [] for key, _title, _role in FOLDERS}
+        for preset in user_presets:
+            groups[folder_key(preset, admin=False)].append(preset)
+        groups["ready"].extend(admin_presets)
+        for key, title, role in FOLDERS:
+            if groups[key]:
+                self._add_folder(key, title, role, groups[key], searching=bool(search.strip()))
+        self._tree_box.addStretch(1)
+        self._tree_host.update()
 
-        if user_presets:
-            self._add_section_header("MY PRESETS")
-            for p in user_presets:
-                self._add_preset_item(p)
+    def _clear_tree(self) -> None:
+        self._open_section.hide()
+        self._open_section.setParent(self._tree_host)
+        while self._tree_box.count():
+            item = self._tree_box.takeAt(0)
+            widget = item.widget() if item is not None else None
+            if widget is not None:
+                widget.hide()
+                widget.deleteLater()
 
-    def _add_section_header(self, text: str) -> None:
-        item = QListWidgetItem(f"  {text}")
-        item.setForeground(QColor(C.MUTED))
-        item.setFont(self._section_font())
-        item.setFlags(Qt.ItemFlag.NoItemFlags)
-        self._preset_list.addItem(item)
+    def _tree_note(self, text: str, colour: str) -> None:
+        note = QLabel(text)
+        note.setWordWrap(True)
+        note.setContentsMargins(6, 8, 6, 8)
+        note.setStyleSheet(f"color: {colour};")
+        self._tree_box.addWidget(note)
+        self._tree_box.addStretch(1)
 
-    def _add_preset_item(self, preset: Any) -> None:
-        item = QListWidgetItem()
-        item.setData(Qt.ItemDataRole.UserRole, preset.id)
-        item.setToolTip(preset.name)
-        item.setSizeHint(QSize(0, 50))
-        self._preset_list.addItem(item)
-        self._preset_list.setItemWidget(
-            item, PresetItem(preset.name, self._last_run_meta(preset.id))
-        )
+    def _add_folder(self, key: str, title: str, role: str, presets: list[Any], *,
+                    searching: bool) -> None:
+        """One folder row and its presets; a search, or the open preset, opens the folder."""
+        row = FolderRow(key, title, role, len(presets))
+        frame, box = branch()
+        if self._reveal_open and any(p.id == self._selected_preset_id for p in presets):
+            self._closed_folders.discard(key)
+            self._settings.setValue("closed_folders", sorted(self._closed_folders))
+        is_open = searching or key not in self._closed_folders
+        row.set_open(is_open)
+        frame.setVisible(is_open)
+        row.clicked.connect(lambda: self._toggle_folder(row, frame))
+        row.chevron_clicked.connect(lambda: self._toggle_folder(row, frame))
+        self._tree_box.addWidget(row)
+        self._tree_box.addWidget(frame)
+        for preset in presets:
+            self._preset_names[preset.id] = preset.name
+            if preset.id == self._selected_preset_id:
+                box.addWidget(self._open_section)
+                self._open_section.show()
+                continue
+            is_open = preset.id in self._open_ids
+            prow = PresetRow(preset.id, preset.name, self._last_run_meta(preset.id))
+            prow.set_open(is_open)
+            prow.clicked.connect(lambda pid=preset.id: self._open_preset(pid))
+            prow.chevron_clicked.connect(lambda pid=preset.id: self._toggle_preset(pid))
+            prow.menu_requested.connect(
+                lambda pos, pid=preset.id: self._preset_menu(pid, pos))
+            self._preset_rows[preset.id] = prow
+            box.addWidget(prow)
+            if is_open:
+                box.addWidget(self._preview_branch(preset.id))
+
+    def _preview_branch(self, pid: str) -> QFrame:
+        """Latest run's stocks of an open preset that is not active (SRD-GUI-044.010)."""
+        frame, box = branch()
+        rows = self._latest_rows(pid)
+        if not rows:
+            note = QLabel("No runs yet")
+            note.setObjectName("view_key")
+            note.setContentsMargins(10, 6, 6, 6)
+            box.addWidget(note)
+            return frame
+        stocks = QListWidget()
+        stocks.setObjectName("result_list")
+        stocks.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
+        stocks.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        stocks.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        for row in rows:
+            item = QListWidgetItem()
+            item.setSizeHint(QSize(0, STOCK_ROW_H))
+            stocks.addItem(item)
+            stocks.setItemWidget(item, _ListRow(row))
+        stocks.setFixedHeight(
+            len(rows) * STOCK_ROW_H + 2 * stocks.frameWidth() + _STOCK_LIST_PAD)
+        symbols = [row.symbol for row in rows]
+        stocks.itemClicked.connect(
+            lambda item: self._open_stock(pid, symbols[stocks.row(item)]))
+        stocks.itemActivated.connect(
+            lambda item: self._open_stock(pid, symbols[stocks.row(item)]))
+        box.addWidget(stocks)
+        return frame
+
+    def _latest_rows(self, pid: str) -> list[ResultRow]:
+        """Rows of a preset's latest saved run, read once and sorted like the active list."""
+        if pid not in self._preview_rows:
+            rows: list[ResultRow] = []
+            if self._storage is not None:
+                try:
+                    dates = self._storage.list_results(pid, limit=1)
+                    if dates:
+                        result = self._storage.load_result(pid, dates[0])
+                        rows = rows_from_result(getattr(result, "results", {}) or {},
+                                                self._company_names(), self._sectors)
+                except Exception:  # noqa: BLE001
+                    _log.debug("[Screener] Could not read a preset's latest run", exc_info=True)
+            self._preview_rows[pid] = rows
+        return sort_rows(self._preview_rows[pid], self._sort_key)
+
+    def _open_stock(self, pid: str, symbol: str) -> None:
+        """Make the preset active and show the clicked stock on the right."""
+        self._open_preset(pid)
+        self._list_view.select_symbol(symbol)
+
+    def _toggle_preset(self, pid: str) -> None:
+        """Chevron: open a closed preset, close an open one (SRD-GUI-044.010)."""
+        if not pid:
+            return
+        if pid in self._open_ids or pid == self._selected_preset_id:
+            self._close_preset(pid)
+        else:
+            self._open_preset(pid)
+
+    def _close_preset(self, pid: str) -> None:
+        """Close an open preset; closing the active one makes the last other open one active."""
+        if pid in self._open_ids:
+            self._open_ids.remove(pid)
+        self._save_open_ids()
+        if pid != self._selected_preset_id:
+            self._populate_preset_list()
+            return
+        others = [other for other in self._open_ids if other in self._preset_names]
+        if others:
+            self._open_preset(others[-1])
+            return
+        self._clear_active()
+        self._populate_preset_list()
+
+    def _save_open_ids(self) -> None:
+        self._settings.setValue("open_presets", list(self._open_ids))
+
+    def _clear_active(self) -> None:
+        """No preset active: empty the right side, header date and status line."""
+        self._selected_preset_id = None
+        self._selected_preset = None
+        self._settings.remove("open_preset")
+        self._run_btn.setEnabled(False)
+        self._quick_act.setEnabled(False)
+        self._update_header()
+        self._refresh_date_nav()
+        self._refresh_transcript_visibility()
+        self._status_lbl.setText("Pick a preset to begin")
+        self._status_lbl.setStyleSheet("")
+        self._show_empty()
+
+    def _toggle_folder(self, row: FolderRow, frame: QFrame) -> None:
+        """Open or close a folder; the closed folders are saved (SRD-GUI-044.001)."""
+        is_open = frame.isHidden()
+        frame.setVisible(is_open)
+        row.set_open(is_open)
+        if self._preset_search.text().strip():
+            return
+        if is_open:
+            self._closed_folders.discard(row.key)
+        else:
+            self._closed_folders.add(row.key)
+        self._settings.setValue("closed_folders", sorted(self._closed_folders))
+
+    def _collapse_all(self) -> None:
+        self._search_btn.setChecked(False)
+        self._closed_folders = {key for key, _title, _role in FOLDERS}
+        self._settings.setValue("closed_folders", sorted(self._closed_folders))
+        self._populate_preset_list()
 
     def _last_run_meta(self, preset_id: str) -> str:
         """Last-run line for a preset, read once from saved results (SRD-GUI-022.007)."""
@@ -2357,46 +2599,45 @@ class ScreenerPanel(QWidget):
 
     def _refresh_preset_meta(self, preset_id: str) -> None:
         self._run_meta.pop(preset_id, None)
-        for i in range(self._preset_list.count()):
-            item = self._preset_list.item(i)
-            if item is not None and item.data(Qt.ItemDataRole.UserRole) == preset_id:
-                widget = self._preset_list.itemWidget(item)
-                if isinstance(widget, PresetItem):
-                    widget.set_meta(self._last_run_meta(preset_id))
-                return
-
-    @staticmethod
-    def _section_font() -> QFont:
-        f = QFont()
-        f.setPointSize(7)
-        f.setBold(True)
-        return f
+        self._preview_rows.pop(preset_id, None)
+        row = self._preset_rows.get(preset_id)
+        if row is not None:
+            row.set_meta(self._last_run_meta(preset_id))
 
     # ── Preset selection ──────────────────────────────────────────────────
 
-    def _on_preset_clicked(self, item: QListWidgetItem) -> None:
-        pid = item.data(Qt.ItemDataRole.UserRole)
-        if not pid:
-            return
-        self._selected_preset_id = pid
-        if self._mgr is not None:
-            try:
-                uid = str(self._demo.get_active_user().user_id)
-                _p = self._mgr.load_preset(pid, uid)
-                self._selected_preset_timeframe = getattr(_p, "timeframe", "1d")
-                self._selected_preset = _p
-            except Exception:  # noqa: BLE001
-                self._selected_preset_timeframe = "1d"
-                self._selected_preset = None
-        self._run_btn.setEnabled(True)
-        self._quick_btn.setEnabled(True)
+    def _open_preset(self, preset_id: str) -> None:
+        """Open a preset in its folder and close the one that was open (SRD-GUI-044.002)."""
+        self._set_open_preset(preset_id)
         self._update_header()
         self._refresh_date_nav()
         self._refresh_transcript_visibility()
         self._maybe_auto_run()
 
+    def _set_open_preset(self, preset_id: str) -> None:
+        self._selected_preset_id = preset_id
+        if self._mgr is not None:
+            try:
+                uid = str(self._demo.get_active_user().user_id)
+                _p = self._mgr.load_preset(preset_id, uid)
+                self._selected_preset_timeframe = getattr(_p, "timeframe", "1d")
+                self._selected_preset = _p
+            except Exception:  # noqa: BLE001
+                self._selected_preset_timeframe = "1d"
+                self._selected_preset = None
+        self._run_btn.setEnabled(not (self._worker is not None and self._worker.isRunning()))
+        self._quick_act.setEnabled(True)
+        self._settings.setValue("open_preset", preset_id)
+        if preset_id not in self._open_ids:
+            self._open_ids.append(preset_id)
+            self._save_open_ids()
+        self._reveal_open = True
+        self._populate_preset_list()
+        self._reveal_open = False
+
     def _refresh_date_nav(self) -> None:
         self._date_idx = 0
+        self._run_stepper.setVisible(bool(self._selected_preset_id))
         if not self._selected_preset_id or self._storage is None:
             self._available_dates = []
             self._update_date_display()
@@ -2411,7 +2652,7 @@ class ScreenerPanel(QWidget):
         if self._available_dates:
             self._load_result_for_current_date()
         else:
-            self._show_empty("Run the screener to see results")
+            self._show_empty("No runs yet — press Run now")
 
     def _update_date_display(self) -> None:
         self._run_stepper.set_runs(self._available_dates, self._date_idx)
@@ -2541,8 +2782,7 @@ class ScreenerPanel(QWidget):
             return
         if not manual:
             self._select_preset_in_list(preset_id)
-        self._run_btn.setEnabled(False)
-        self._run_btn.setText("Running…")
+        self._set_running(True)
         status_msg = "Scanning symbols…" if manual else "Auto-running screener…"
         self._status_lbl.setText(status_msg)
         self._status_lbl.setStyleSheet(f"color: {C.SUBTEXT}; font-size: 9pt;")
@@ -2564,30 +2804,18 @@ class ScreenerPanel(QWidget):
         self._worker.start()
 
     def _select_preset_in_list(self, preset_id: str) -> None:
-        """Programmatically select a preset in the left list without re-triggering auto-run."""
-        for i in range(self._preset_list.count()):
-            item = self._preset_list.item(i)
-            if item and item.data(Qt.ItemDataRole.UserRole) == preset_id:
-                self._preset_list.setCurrentItem(item)
-                self._selected_preset_id = preset_id
-                if self._mgr is not None:
-                    try:
-                        uid = str(self._demo.get_active_user().user_id)
-                        p = self._mgr.load_preset(preset_id, uid)
-                        self._selected_preset_timeframe = getattr(p, "timeframe", "1d")
-                        self._selected_preset = p
-                    except Exception:  # noqa: BLE001
-                        self._selected_preset_timeframe = "1d"
-                        self._selected_preset = None
-                self._run_btn.setEnabled(True)
-                self._update_header()
-                self._refresh_transcript_visibility()
-                break
+        """Open a preset for an auto-run without starting another auto-run check."""
+        self._set_open_preset(preset_id)
+        self._update_header()
+        self._refresh_transcript_visibility()
+
+    def _set_running(self, running: bool) -> None:
+        self._run_btn.setEnabled(not running)
+        self._run_btn.setToolTip("Running…" if running else "Run now")
 
     def _on_run_finished(self, result: Any) -> None:
-        self._run_btn.setEnabled(True)
-        self._run_btn.setText("Run now")
-        self._export_btn.setEnabled(True)
+        self._set_running(False)
+        self._export_act.setEnabled(True)
 
         # Refresh date list (new file was just written)
         try:
@@ -2598,7 +2826,10 @@ class ScreenerPanel(QWidget):
             pass
 
         self._display_result(result)
-        self._refresh_preset_meta(str(getattr(result, "preset_id", self._selected_preset_id)))
+        run_id = str(getattr(result, "preset_id", self._selected_preset_id))
+        self._refresh_preset_meta(run_id)
+        if run_id in self._open_ids and run_id != self._selected_preset_id:
+            self._populate_preset_list()
 
         # Notify Execution panel so its Filtered Stocks pane refreshes immediately;
         # only a scheduled run sends the "screener approved" message (SRD-GUI-004.014)
@@ -2611,8 +2842,7 @@ class ScreenerPanel(QWidget):
             self._run_preset_as(preset_id=next_id, manual=False)
 
     def _on_run_failed(self, reason: str) -> None:
-        self._run_btn.setEnabled(True)
-        self._run_btn.setText("Run now")
+        self._set_running(False)
         self._show_error(reason)
 
     # ── Display helpers ───────────────────────────────────────────────────
@@ -2624,18 +2854,17 @@ class ScreenerPanel(QWidget):
         if not llm_enabled:
             self._transcript_panel.clear()
         show = llm_enabled and self._transcript_panel.has_turns()
-        self._tx_pill.setVisible(show)
+        self._tx_act.setVisible(show)
         if not show:
             self._tx_drawer.close_drawer()
 
     def _toggle_transcript(self) -> None:
         self._tx_drawer.toggle()
-        self._tx_pill.setChecked(self._tx_drawer.is_open)
 
     def _update_header(self) -> None:
-        """Show the selected preset's name and type tag (SRD-GUI-022.008)."""
+        """Show the open preset's name and type tag on its row (SRD-GUI-044.003)."""
         preset = self._selected_preset
-        self._title_lbl.setText(str(getattr(preset, "name", "") or "Screener"))
+        self._title_lbl.setText(str(getattr(preset, "name", "") or "No preset open"))
         if preset is None:
             self._type_tag.setVisible(False)
             return
@@ -2644,10 +2873,15 @@ class ScreenerPanel(QWidget):
         self._type_tag.setVisible(True)
 
     def _company_names(self) -> dict[str, str]:
-        """Symbol → company name from the S&P 500 universe, read once it is loaded."""
+        """Symbol → company name from the S&P 500 universe, read once it is loaded.
+
+        Also fills ``_sectors`` (symbol → sector) from the same list.
+        """
         if not self._names:
             try:
-                self._names = {r.symbol: r.name for r in self._demo.get_sp500_universe()}
+                records = list(self._demo.get_sp500_universe())
+                self._names = {r.symbol: r.name for r in records}
+                self._sectors = {r.symbol: str(getattr(r, "sector", "") or "") for r in records}
             except Exception:  # noqa: BLE001
                 _log.debug("[Screener] Company names are not available", exc_info=True)
         return self._names
@@ -2655,7 +2889,7 @@ class ScreenerPanel(QWidget):
     def _display_result(self, result: Any) -> None:
         """Show a ScreenerRunResult in the result views."""
         self._rows = rows_from_result(getattr(result, "results", {}) or {},
-                                      self._company_names())
+                                      self._company_names(), self._sectors)
         self._run_timestamp = getattr(result, "run_timestamp", None)
         count = len(self._rows)
 
@@ -2667,7 +2901,8 @@ class ScreenerPanel(QWidget):
             run_meta_text(count, getattr(result, "run_timestamp", None), ai_ranked)
         )
         self._status_lbl.setStyleSheet("")
-        self._export_btn.setEnabled(count > 0)
+        self._export_act.setEnabled(count > 0)
+        self._count_lbl.setText(str(count))
         self._show_rule_strip(self._rule_summary())
         self._refresh_views()
         self._show_table(has_data=count > 0)
@@ -2679,7 +2914,7 @@ class ScreenerPanel(QWidget):
                 cost_per_1k_in=INPUT_COST_PER_1K,
                 cost_per_1k_out=OUTPUT_COST_PER_1K,
             )
-            self._tx_pill.setText(
+            self._tx_act.setText(
                 transcript_pill_text(transcript, INPUT_COST_PER_1K, OUTPUT_COST_PER_1K)
             )
         else:
@@ -2730,21 +2965,16 @@ class ScreenerPanel(QWidget):
         self._rule_strip.setVisible(True)
 
     def _refresh_views(self) -> None:
-        """Load the current rows, in the chosen sort order, into both views."""
-        rows = sort_rows(self._rows, str(self._sort_combo.currentData() or "score"))
+        """Load the current rows, in the chosen sort order, into the list and detail."""
+        rows = sort_rows(self._rows, self._sort_key)
         self._list_view.load(rows, self._selected_preset_timeframe,
                              self._run_timestamp)
-        self._cards_view.load(rows)
 
     def _make_chart(self) -> QWidget:
         from us_swing.gui.chart_panel import CandleChartPanel
         chart = CandleChartPanel(self._demo)
         chart.hide_toolbar()
         return chart
-
-    def _on_view_changed(self, view: str) -> None:
-        if self._rows:
-            self._show_table(has_data=True)
 
     def _on_view_chart(self, symbol: str) -> None:
         self.chart_requested.emit(symbol, self._selected_preset_timeframe)
@@ -2759,49 +2989,53 @@ class ScreenerPanel(QWidget):
         self._mode_badge.setVisible(True)
 
     def _show_table(self, *, has_data: bool) -> None:
+        self._views.setCurrentWidget(self._list_view if has_data else self._empty_lbl)
         if not has_data:
-            self._views.setCurrentWidget(self._empty_lbl)
-        elif self._view_switch.view == "cards":
-            self._views.setCurrentWidget(self._cards_view)
-        else:
-            self._views.setCurrentWidget(self._list_view)
+            self._list_empty_lbl.setText("No stocks passed this run")
+            self._list_empty_lbl.setStyleSheet("")
+        self._show_stock_list(has_data)
 
-    def _show_empty(self, message: str = "Select a preset from the list\nand click Run now") -> None:
+    def _show_empty(self, message: str = "No preset open") -> None:
         self._rows = []
-        self._export_btn.setEnabled(False)
+        self._export_act.setEnabled(False)
+        self._count_lbl.setText("")
         self._mode_badge.setVisible(False)
         self._rule_strip.setVisible(False)
-        self._empty_lbl.setText(message)
-        self._empty_lbl.setStyleSheet(f"color: {C.MUTED}; font-size: 12pt; padding: 40px;")
+        self._list_empty_lbl.setText(message)
+        self._list_empty_lbl.setStyleSheet("")
+        self._show_stock_list(False)
         self._views.setCurrentWidget(self._empty_lbl)
 
     def _show_error(self, reason: str) -> None:
         self._status_lbl.setText(f"⚠  {reason[:120]}")
         self._status_lbl.setStyleSheet(f"color: {C.RED}; font-size: 9pt;")
         self._show_empty(f"⚠  Run failed:\n{reason[:200]}")
-        self._empty_lbl.setStyleSheet(f"color: {C.RED}; font-size: 10pt; padding: 40px;")
+        self._list_empty_lbl.setStyleSheet(f"color: {C.RED};")
 
     # ── Preset context menu ───────────────────────────────────────────────
 
-    def _on_preset_context_menu(self, pos: Any) -> None:
-        item = self._preset_list.itemAt(pos)
-        if not item or not item.data(Qt.ItemDataRole.UserRole):
-            return
+    def _preset_menu(self, pid: str, global_pos: QPoint) -> None:
+        """Edit, Duplicate and Delete for one preset (SRD-GUI-044.003)."""
         menu = QMenu(self)
-        menu.addAction(QAction(make_icon("pencil"), "Edit", self, triggered=self._on_edit_preset))
-        menu.addAction(QAction(make_icon("copy"), "Duplicate", self, triggered=self._on_duplicate_preset))
-        menu.addSeparator()
-        menu.addAction(QAction(make_icon("trash-2", "danger"), "Delete", self, triggered=self._on_delete_preset))
-        menu.exec(self._preset_list.viewport().mapToGlobal(pos))
+        for name, role, text, handler in (
+            ("pencil", "neutral", "Edit", self._on_edit_preset),
+            ("copy", "neutral", "Duplicate", self._on_duplicate_preset),
+            ("trash-2", "danger", "Delete", self._on_delete_preset),
+        ):
+            if text == "Delete":
+                menu.addSeparator()
+            action = QAction(make_icon(name, role), text, menu)
+            action.triggered.connect(lambda _checked=False, h=handler: h(pid))
+            menu.addAction(action)
+        menu.exec(global_pos)
 
-    def _on_edit_preset(self) -> None:
+    def _preset_name(self, pid: str) -> str:
+        if pid == self._selected_preset_id and self._selected_preset is not None:
+            return str(getattr(self._selected_preset, "name", ""))
+        return self._preset_names.get(pid, "")
+
+    def _on_edit_preset(self, pid: str) -> None:
         if self._mgr is None:
-            return
-        item = self._preset_list.currentItem()
-        if not item:
-            return
-        pid = item.data(Qt.ItemDataRole.UserRole)
-        if not pid:
             return
         uid = str(self._demo.get_active_user().user_id)
         try:
@@ -2815,14 +3049,8 @@ class ScreenerPanel(QWidget):
             if saved:
                 self._select_preset_by_id(saved)
 
-    def _on_duplicate_preset(self) -> None:
+    def _on_duplicate_preset(self, pid: str) -> None:
         if self._mgr is None:
-            return
-        item = self._preset_list.currentItem()
-        if not item:
-            return
-        pid = item.data(Qt.ItemDataRole.UserRole)
-        if not pid:
             return
         uid = str(self._demo.get_active_user().user_id)
         try:
@@ -2839,17 +3067,10 @@ class ScreenerPanel(QWidget):
             if saved:
                 self._select_preset_by_id(saved)
 
-    def _on_delete_preset(self) -> None:
+    def _on_delete_preset(self, pid: str) -> None:
         if self._mgr is None:
             return
-        item = self._preset_list.currentItem()
-        if not item:
-            return
-        pid = item.data(Qt.ItemDataRole.UserRole)
-        if not pid:
-            return
-        row = self._preset_list.itemWidget(item)
-        name = row.name_lbl.text() if isinstance(row, PresetItem) else item.text().strip()
+        name = self._preset_name(pid)
         if not confirm(self, "Delete Preset", f'Delete preset "{name}"?\nThis cannot be undone.',
                        confirm_text="Delete", danger=True):
             return
@@ -2859,10 +3080,12 @@ class ScreenerPanel(QWidget):
         except Exception as exc:  # noqa: BLE001
             notify(self, "Delete Failed", str(exc), "error")
             return
+        if pid in self._open_ids:
+            self._open_ids.remove(pid)
+            self._save_open_ids()
+        self._preview_rows.pop(pid, None)
         if self._selected_preset_id == pid:
-            self._selected_preset_id = None
-            self._run_btn.setEnabled(False)
-            self._show_empty()
+            self._clear_active()
         self._populate_preset_list()
 
     # ── New preset dialog ─────────────────────────────────────────────────
@@ -2879,12 +3102,8 @@ class ScreenerPanel(QWidget):
                 self._select_preset_by_id(new_pid)
 
     def _select_preset_by_id(self, preset_id: str) -> None:
-        for i in range(self._preset_list.count()):
-            item = self._preset_list.item(i)
-            if item and item.data(Qt.ItemDataRole.UserRole) == preset_id:
-                self._preset_list.setCurrentItem(item)
-                self._on_preset_clicked(item)
-                break
+        if preset_id in self._preset_names:
+            self._open_preset(preset_id)
 
     # ── Quick chart ───────────────────────────────────────────────────────
 

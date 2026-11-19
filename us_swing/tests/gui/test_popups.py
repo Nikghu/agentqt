@@ -8,13 +8,12 @@ from unittest.mock import MagicMock
 
 import pytest
 from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QDialog, QListWidget, QListWidgetItem, QPushButton
+from PyQt6.QtWidgets import QDialog, QPushButton
 
 import us_swing.gui.main_window  # noqa: F401  — loads the GUI package in app order
 import us_swing.gui.screener_panel as sp
 from us_swing.gui import popups
 from us_swing.gui.active_cycles_panel import _ConfirmDialog
-from us_swing.gui.screener_views import PresetItem
 
 _GUI = Path(popups.__file__).parent
 
@@ -67,15 +66,10 @@ def test_delete_preset_names_the_preset(qtbot, monkeypatch):
     monkeypatch.setattr(sp, "confirm", lambda _p, _t, text, **_k: asked.append(text) or False)
     panel = sp.ScreenerPanel.__new__(sp.ScreenerPanel)
     panel._mgr = MagicMock()
-    panel._preset_list = QListWidget()
-    qtbot.addWidget(panel._preset_list)
-    item = QListWidgetItem()
-    item.setData(Qt.ItemDataRole.UserRole, "p1")
-    panel._preset_list.addItem(item)
-    panel._preset_list.setItemWidget(item, PresetItem("Momentun_Price", "Not run yet"))
-    panel._preset_list.setCurrentItem(item)
+    panel._selected_preset_id = None
+    panel._preset_names = {"p1": "Momentun_Price"}
 
-    panel._on_delete_preset()
+    panel._on_delete_preset("p1")
 
     assert asked == ['Delete preset "Momentun_Price"?\nThis cannot be undone.']
     panel._mgr.delete_preset.assert_not_called()

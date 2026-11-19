@@ -1,7 +1,7 @@
 # Design Document — GUI Module (GUI)
 
 **Document ID:** DD-GUI
-**Version:** 1.35.0
+**Version:** 1.36.0
 **Traces To:** SRD-GUI v2.16.0
 **Status:** Draft
 **Last Updated:** 2026-09-17
@@ -1865,3 +1865,49 @@ Layout "Library + slim table" was chosen by the user on 2026-10-22. All pattern 
 | context | `7 data · 2 top picks`, or `Off` | off when AI is off |
 
 `_refresh_nav()` writes `● Name` in the dot colour (GREEN / YELLOW / MUTED) into each row's name label, sets the meta line, and keeps the state in `_nav_states` for tests. It is called at the end of `_refresh_preview` (covers name, groups, screeners, weights) and from timeframe, style ticks, Top N, provider, model text and context tick signals. `_nav_rows` starts empty, so calls made while pages are still being built do nothing. Save checks (`_validate`) are unchanged; the dot only warns. Because the failing field may sit on a page that is not shown, Save and Save As also write the `_validate` message into a red footer label (`_save_error_lbl`), cleared on the next successful check; the dialog does not change page.
+
+## DD-GUI-043.001.D01 — Screener Focus Layout
+
+**Traces:** SRD-GUI-043.001–.010 (Phase 1 = .001–.006, Phase 2 = .007–.010).
+
+**Left pane.** `ScreenerPanel._build_left_pane` builds a 300 px `QFrame#preset_pane` with two states: the full pane and a 44 px strip holding only a show button. Full pane, top to bottom: header (SCREENER, New preset, Hide panel); the open-preset card `QFrame#open_preset`; the folded section (OTHER PRESETS label, search box, style chips, `_preset_list`). Card and folded section share the height 3 : 2.
+
+**Open card.** Row 1: preset name (elided), ⋯ menu button, icon-only Run now (`primary_btn`). Row 2: type pill (Weighted / Composite), run-mode pill (Auto run / Manual run), Sort combo on the right. Row 3: `RunStepper`. Row 4: status line (word wrap). Then a `QStackedWidget` of the stock list and an empty label. The stock list is `ListDetailView.list`, taken out of the detail view with `ListDetailView.detach_list()`, so loading, selection and restyle stay in `ListDetailView`. While a run is going, Run now is disabled and its tooltip reads "Running…".
+
+**⋯ menu.** `QAction`s: Export CSV (`_export_act`), Quick test (`_quick_act`), AI transcript (`_tx_act`, text from `transcript_pill_text`, shown only when the pill rule of SRD-GUI-022.010 holds; it toggles the drawer).
+
+**Accordion.** `_open_preset(pid)` replaces the click handler: it loads the preset, saves the id under `open_preset` in the panel's `QSettings`, hides that preset's row in `_preset_list` and shows the rest (`_sync_folded_rows`). At start the saved id is reopened when it is still in the list. Search and chips rebuild the folded rows as today and then re-hide the open one.
+
+**Preset actions.** `_preset_menu(pid, pos)` shows Edit, Duplicate, Delete; it opens from a folded row and from a right-click on the card. `_on_edit_preset`, `_on_duplicate_preset`, `_on_delete_preset` take the preset id; the name comes from `_preset_names` filled in `_populate_preset_list`.
+
+**Hide panel.** `_set_pane_hidden(hidden)` swaps full pane and strip, sets the frame width 300 or 44, and saves `pane_hidden`.
+
+**Stock row.** `_ListRow` becomes two lines: a 3 px tier bar; line 1 symbol and score; line 2 company (elided), rules passed ("5/6") and flag count. Rank and score bar are dropped; `flag_lbl` stays.
+
+**Removed.** Page toolbar (`_build_toolbar`), List / Cards switch, `CardsView`, `_Card`, `ViewSwitch`, `VIEWS`, `_ScoreBar`, `_rule_chip`. The rule strip and AI transcript drawer stay over the right side.
+
+**Right side (Phase 2).** `ListDetailView` body, top to bottom: header, plan strip, chart, tabs. The outer scroll area stays so small windows can scroll; the chart slot gets stretch 1, so it takes all free height.
+
+**Header.** Row 1: symbol, tier chip, context chips, then Previous and Next stock icon buttons (`prev_btn`, `next_btn`), Open in Charts, Add to watchlist. Row 2 (meta): company, sector, "rank N of M", "AI score 0.85", joined by " · ". Previous / Next call `list.setCurrentRow(row ∓ 1)` and are disabled at the first / last row. Sector comes from `ResultRow.sector`, filled by `rows_from_result(results, names, sectors)`; the panel builds the symbol → sector map from the S&P 500 list next to the names.
+
+**Plan strip.** The existing `detail_plan` frame (Stop, Entry, Target, Reward : risk, risk bar and amounts) moves above the chart; values and the R:R rule are unchanged.
+
+**Tabs.** A `QTabBar#detail_tabs` over a `QStackedWidget` of five frameless scroll pages, fixed height 200: AI reasoning (`reasoning_lbl`); Rules (rules list, red flags); News (news list, web research box); Fundamentals (fundamentals line, analyst changes); Bull vs bear (`review_box`). The existing widgets move into the pages and keep their show / hide rules. After a stock is filled, `_refresh_tabs()` sets the Rules tab text to "Rules 5/6" (or "Details" when the run has no rules) and disables News, Fundamentals and Bull vs bear when their sections are all hidden; if the current tab is disabled it goes back to AI reasoning. Disabled tabs are greyed in QSS.
+
+## DD-GUI-044.001.D01 — Screener Preset Tree
+
+**Traces:** SRD-GUI-044.001–.007. Replaces the left pane part of DD-GUI-043.001.D01 (open card, folded rows, hide strip, style chips).
+
+**Pane.** `_build_left_pane` builds a 380 px `QFrame#preset_pane`: header (SCREENER, the open preset's borderless run stepper — hidden while no preset is open — Search, New preset, Collapse all), a search box hidden until Search is pressed, a frameless scroll area holding `_tree_host`, and a footer `QFrame#tree_footer` with `_status_lbl` (run line, run progress, errors, watchlist note, as before).
+
+**Tree.** `_populate_preset_list` clears `_tree_box` and rebuilds it: one `FolderRow` per non-empty folder in `FOLDERS` order (Swing, Day, Position, Ready-made) followed by its `branch()` frame. User presets go to the folder of their first ticked trading style in Swing, Day, Position order (`folder_key` reads `trading_styles`; none ticked → Swing); admin presets go to Ready-made. `QFrame#tree_branch` has a 14 px left margin and a 1 px left border, which draws the guide line. A folder opens or closes on click; closed keys are saved under `closed_folders`. While the search text is not empty every folder with a match is shown open, without changing the saved state. Collapse all saves every key as closed and rebuilds.
+
+**Open preset.** `_open_section` is built once: `_open_row` (a `TreeRow` with the name as an `ElidedLabel` — "…" when long, full name as tooltip — type and run-mode tags, stock count, Run, ⋯ menu; the menu ends with a "Sort by" submenu of exclusive actions that sets `_sort_key`), then a branch and a second branch holding the stock list and the empty label. `_clear_tree` first hides it and reparents it to `_tree_host`, so it survives the rebuild; `_add_folder` puts it back in place of the open preset's row. Other presets are `PresetRow`s (name, last run line); left click opens, right click shows Edit, Duplicate, Delete. Clicking the open row folds its branch. Old rows are hidden before `deleteLater` so they never show for a frame.
+
+**Stock list.** Still `ListDetailView.list` via `detach_list()`. Its vertical scroll bar is off and `_fit_stock_list` sets its height to rows × `STOCK_ROW_H` (30) + frame + padding on every row insert or remove, so the tree scrolls as one. `_ListRow` is one line: symbol (44 px), company (elided), `_ScoreBar` (46 × 4 px, filled to the score in the tier colour), red flag count.
+
+**Search.** `_search_btn` is checkable; on it shows the box and focuses it, off hides and clears it. Esc in the box (widget shortcut) turns the button off.
+
+**Several open presets (SRD-GUI-044.008–.010).** `_open_ids` (saved as `open_presets`) lists the open presets; `_selected_preset_id` is the active one and is always in the list. The active preset uses `_open_section`; every other open preset gets an open `PresetRow` and `_preview_branch(pid)`: a no-selection `QListWidget#result_list` of `_ListRow`s from `_latest_rows(pid)` (latest saved run, cached in `_preview_rows`, cleared when that preset's run line refreshes or it is deleted, sorted by `_sort_key`). Clicking a preview stock makes its preset active and selects the symbol (`ListDetailView.select_symbol`). `TreeRow` emits `chevron_clicked` for a click on its chevron and `clicked` elsewhere: a row click activates, a chevron click opens or closes (`_toggle_preset`). Closing the active preset activates the last other open one, or `_clear_active()` empties the right side, header date and status line. Only the active row carries `active=true` for the highlight. The type and run-mode tags sit in the footer above the status line. A `WidthHandle` between the two cards drags the panel width (`_set_pane_width`, 300–600 px, default 380, saved as `pane_width`); below 380 px the SCREENER title hides so the header fits.
+
+**Removed.** `_set_pane_hidden`, the strip and show button, `_style_chips`, `_preset_list`, `_open_card`, `_sync_folded_rows`, `_add_section_header`, `_section_font`, the card and folded-row context menu handlers, `_STYLE_CHIPS`, `_PANE_STRIP_W`, the `open_preset` and `open_preset_head` QSS rules.

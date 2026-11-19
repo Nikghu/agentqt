@@ -1,10 +1,24 @@
 # Software Requirements Document — GUI Module (GUI)
 
 **Document ID:** SRD-GUI
-**Version:** 2.128.0
+**Version:** 2.136.2
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
-**Last Updated:** 2026-11-18
+**Last Updated:** 2026-11-19
+> v2.136.2: SRD-GUI-044.008–.010 Implemented.
+> v2.136.1: SRD-GUI-044.008–.010 approved by user 2026-11-19.
+> v2.136.0: SRD-GUI-044.008–.010 added as Draft — tags in status line, drag panel width, several open presets (user request 2026-11-19).
+> v2.135.2: SRD-GUI-044.003 note — the run stepper moved to the pane header (left of Search), the type and run-mode tags to the open preset row, and Sort into the ⋯ menu as "Sort by"; pane 380 px; long preset names end in "…" (user request 2026-11-19).
+> v2.135.1: SRD-GUI-044.004 note — the selected stock row now uses a filled highlight in place of the accent edge (user request 2026-11-19).
+> v2.135.0: SRD-GUI-043.012 added and Implemented — drag bar for the detail tabs height (user request 2026-11-19).
+> v2.134.0: SRD-GUI-042.007 added and Implemented — one trading style per preset (user request 2026-11-19).
+> v2.133.2: SRD-GUI-044.001–.007 Implemented; SRD-GUI-043.001–.005 replaced by SRD-GUI-044.007 (user approved 2026-11-19).
+> v2.133.1: SRD-GUI-044.001–.007 approved by user 2026-11-19.
+> v2.133.0: SRD-GUI-044.001–.007 added as Draft — Screener preset tree (FO-GUI-044, user request 2026-11-19).
+> v2.131.3: SRD-GUI-043.007–.010 Implemented (Phase 2).
+> v2.131.2: SRD-GUI-043.001–.006 Implemented (Phase 1); SRD-GUI-022.001, .003, .008 replaced by SRD-GUI-043.006 (user agreed 2026-11-19).
+> v2.131.1: SRD-GUI-043.001–.010 approved by user 2026-11-19.
+> v2.131.0: SRD-GUI-043.001–.010 added as Draft — Screener focus layout (FO-GUI-043, user request 2026-11-19).
 > v2.130.1: SRD-GUI-042.001–.006 approved by user 2026-11-18 (amber dot warns only; AI fields greyed out when AI Ranking is off).
 > v2.130.0: SRD-GUI-042.001–.006 added as Draft — Edit Preset side navigation (FO-GUI-042, user request 2026-11-18).
 > v2.129.2: SRD-GUI-022.020–.021 Implemented (RN-SCR-2.13.0-20261118).
@@ -532,14 +546,14 @@
 
 | ID | Parent | Priority | Description | Input | Output | Constraints | Status |
 |---|---|---|---|---|---|---|---|
-| SRD-GUI-022.001 | FO-GUI-022 | Must | A List / Cards switch in the screener toolbar swaps the result views; the choice is saved in `QSettings` and List is the default. | click | current view | Unknown saved value → List | Implemented |
+| SRD-GUI-022.001 | FO-GUI-022 | Must | A List / Cards switch in the screener toolbar swaps the result views; the choice is saved in `QSettings` and List is the default. | click | current view | Unknown saved value → List | Replaced by SRD-GUI-043.006 (user, 2026-11-19) |
 | SRD-GUI-022.002 | FO-GUI-022 | Must | The List view shows a ranked list (rank, symbol, score bar, rule dots) and a detail panel with tier, score, Open chart, Watchlist, a compact chart, Entry / Stop / Target / R:R tiles, rule checklist and AI reasoning. | rows, selection | detail panel, `chart_requested`, `watchlist_requested` | Chart created once, on first selection | Implemented |
-| SRD-GUI-022.003 | FO-GUI-022 | Must | The Cards view shows one card per stock with rank, symbol, tier, score bar, rule chips, three lines of reasoning, plan row and Chart / Watchlist buttons. | rows | cards, `chart_requested`, `watchlist_requested` | Column count follows the view width | Implemented |
+| SRD-GUI-022.003 | FO-GUI-022 | Must | The Cards view shows one card per stock with rank, symbol, tier, score bar, rule chips, three lines of reasoning, plan row and Chart / Watchlist buttons. | rows | cards, `chart_requested`, `watchlist_requested` | Column count follows the view width | Replaced by SRD-GUI-043.006 (user, 2026-11-19) |
 | SRD-GUI-022.004 | FO-GUI-022 | Must | The preset's rule summary shows once as chips above the results; tiers are Strong ≥ 0.70, Watch ≥ 0.40, else Weak. | preset config | rule chips, tier | Same thresholds as the old score colours | Implemented |
 | SRD-GUI-022.005 | FO-GUI-022 | Should | A Sort box orders both views by AI score, reward : risk or rules passed; R:R = (target − entry) / (entry − stop) when stop < entry < target, else "—". | sort choice | row order | Rows without R:R sort last | Implemented |
 | SRD-GUI-022.006 | FO-GUI-022 | Must | Chart, Watchlist, CSV, date navigation and AI transcript keep working with the new views; CSV adds Entry, Stop, Target and R:R columns; the old table is removed. | — | — | `chart_requested` and `watchlist_add_requested` unchanged | Implemented |
 | SRD-GUI-022.007 | FO-GUI-022 | Should | The preset rail has a search box, All / Swing / Day / Position chips in place of the style combo, and per preset a type tag (Weighted / Composite) and a last-run line from saved results. | search text, chip, storage | filtered list | Same preset sections and context menu | Implemented |
-| SRD-GUI-022.008 | FO-GUI-022 | Must | A page header over the results shows the preset name, a Weighted / Composite tag, an Auto / Manual run tag and a run line (matches, ranking, run date and time); Run now is the only filled accent button and the toolbar Watchlist button is removed. | preset, result | header | Detail and cards keep their Watchlist buttons | Implemented |
+| SRD-GUI-022.008 | FO-GUI-022 | Must | A page header over the results shows the preset name, a Weighted / Composite tag, an Auto / Manual run tag and a run line (matches, ranking, run date and time); Run now is the only filled accent button and the toolbar Watchlist button is removed. | preset, result | header | Detail and cards keep their Watchlist buttons | Replaced by SRD-GUI-043.006 (user, 2026-11-19) |
 | SRD-GUI-022.009 | FO-GUI-022 | Must | A run stepper joins older / newer arrows and the run date ("Oct 22, 2026", Latest tag on the newest run); clicking the date lists all saved runs. | saved run dates | loaded run | Arrows disabled at either end | Implemented |
 | SRD-GUI-022.010 | FO-GUI-022 | Must | A header pill "AI transcript · N steps · $cost" opens the run transcript in a drawer over the right side of the results; the bottom transcript panel is removed. | transcript | drawer | Pill shown only for AI-ranked presets with a transcript | Implemented |
 | SRD-GUI-022.011 | FO-GUI-022 | Should | List rows show rank, symbol, company name, score bar and rules passed ("2/4"); the detail shows a company line, Open in Charts, Add to watchlist, a chart without its input bar, one plan box with a risk / reward bar and a ✓ / ✕ rule list; on a daily chart the AI plan is drawn from the first candle after the run's last completed session, and the plan box shows Not entered, Open, Target hit or Stop hit with the date. | rows, run time, bars | list, detail | Supersedes the rule dots of SRD-GUI-022.002; Target and Stop in one candle count as Stop | Implemented |
@@ -788,4 +802,40 @@
 | SRD-GUI-042.004 | FO-GUI-042 | Should | Each list item shows a one-line summary that updates when its fields change. | page fields | summary text | e.g. "Daily · Swing", "1 group · AND", "Top 5 · claude-opus-5-5", "7 data · 2 top picks"; "Off" when AI is off | Implemented |
 | SRD-GUI-042.005 | FO-GUI-042 | Should | Each list item shows a dot: green when set, amber when something is missing, grey when off. | page fields | dot state | Amber: no name, no screener, or AI on with no model; amber only warns, Save checks stay as today | Implemented |
 | SRD-GUI-042.006 | FO-GUI-042 | Must | Saving gives the same preset as before for the same choices. | page fields | saved preset | Existing widget names and populate, build and validate steps unchanged | Implemented |
+| SRD-GUI-042.007 | FO-GUI-042 | Must | Trading Style allows only one choice; ticking one unticks the others. | tick | trading style | None ticked stays valid; an old preset with several opens with the first (Swing, Day, Position); changes SRD-SCR-007.011 "check multiple" (user, 2026-11-19) | Implemented |
 
+## FO-GUI-043 — Screener Focus Layout
+
+Phase 1 = .001–.006 (left pane). Phase 2 = .007–.010 (right side).
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-GUI-043.001 | FO-GUI-043 | Must | The left pane shows one open preset as a card with its ranked stocks under it and the other presets as folded rows below. | preset click | open card | 300 px pane; clicking a folded row opens it and folds the current one; last open preset is saved and reopened | Replaced by SRD-GUI-044.007 (user, 2026-11-19) |
+| SRD-GUI-043.002 | FO-GUI-043 | Must | The card header shows the preset name, type and run-mode pills, Run now, a ⋯ menu, the run stepper and Sort. | — | card header | ⋯ menu holds Export CSV, Quick test and AI transcript; each works as today (SRD-GUI-022.006, .009, .010) | Replaced by SRD-GUI-044.007 (user, 2026-11-19) |
+| SRD-GUI-043.003 | FO-GUI-043 | Must | Each stock row shows a tier colour bar, symbol, score, company, rules passed and red flag count; clicking it shows the stock on the right. | row click | selected stock | Selected row in accent colour; a preset with no run shows "No runs yet — press Run now" | Replaced by SRD-GUI-044.007 (user, 2026-11-19) |
+| SRD-GUI-043.004 | FO-GUI-043 | Should | The search box and All, Swing, Day, Position filter sit above the folded rows and filter them. | text, chip | shown presets | Same matching as today (SRD-GUI-022.007); the open preset stays shown | Replaced by SRD-GUI-044.007 (user, 2026-11-19) |
+| SRD-GUI-043.005 | FO-GUI-043 | Should | A hide button folds the left pane to a thin strip, and a show button brings it back. | button click | pane shown or hidden | Choice is saved and kept after restart | Replaced by SRD-GUI-044.007 (user, 2026-11-19) |
+| SRD-GUI-043.006 | FO-GUI-043 | Must | The top page toolbar and the List and Cards switch are removed, and the right side shows only the selected stock. | — | right side | Replaces SRD-GUI-022.001, .003 and .008; right-click menu on the card and folded rows keeps today's preset actions | Implemented |
+| SRD-GUI-043.007 | FO-GUI-043 | Must | The stock header shows symbol, tier and context chips, a company, sector and score line, previous and next stock, Open in Charts and Add to watchlist. | selected stock | header | Previous and next follow the left list order and stop at the ends | Implemented |
+| SRD-GUI-043.008 | FO-GUI-043 | Must | A plan strip under the header shows Stop, Entry, Target and Reward : risk in four cells. | selected stock | plan strip | Same values and R:R rule as today (SRD-GUI-022.005) | Implemented |
+| SRD-GUI-043.009 | FO-GUI-043 | Must | The chart fills the height between the plan strip and the tabs. | selected stock | chart | Same compact chart and plan lines as today | Implemented |
+| SRD-GUI-043.010 | FO-GUI-043 | Must | Tabs AI reasoning, Rules, News, Fundamentals and Bull vs bear show one detail section at a time. | tab click | shown section | Red flags in Rules, analyst changes in Fundamentals, web research in News; a tab with no data is greyed out | Implemented |
+| SRD-GUI-043.011 | FO-GUI-043 | Should | The user can drag the bar above the volume strip to change its height; the height is kept. | drag | volume height | 40 px up to 60% of the chart; same height in every candle chart | Implemented |
+| SRD-GUI-043.012 | FO-GUI-043 | Should | The user can drag the bar between the chart and the detail tabs to change the tabs height; the height is kept. | drag | tabs height | 110 px up to 70% of the detail area; default 200 px; the chart takes the rest | Implemented |
+
+## FO-GUI-044 — Screener Preset Tree
+
+One phase (left pane).
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-GUI-044.001 | FO-GUI-044 | Must | The left pane shows folders Swing, Day and Position for my presets and Ready-made for admin presets, each with a preset count. | folder click | folder open or closed | Empty folders hidden; open or closed state saved and kept after restart | Implemented |
+| SRD-GUI-044.002 | FO-GUI-044 | Must | Clicking a preset opens it in place with its stocks under it, and the preset that was open closes. | preset click | open preset | Last open preset saved and reopened; closed rows show last run date and matches | Implemented |
+| SRD-GUI-044.003 | FO-GUI-044 | Must | The open preset row shows its stock count, Run and a ⋯ menu; lines under it hold the run stepper, Sort and the type and run-mode tags. | — | open preset rows | ⋯ menu as SRD-GUI-043.002; right-click on any preset row keeps Edit, Duplicate and Delete | Implemented |
+| SRD-GUI-044.004 | FO-GUI-044 | Must | Each stock row shows symbol, company, a score bar in tier colour and the red flag count; clicking it shows the stock on the right. | row click | selected stock | Tree guide lines; selected row gets an accent edge; no-run text as SRD-GUI-043.003 | Implemented |
+| SRD-GUI-044.005 | FO-GUI-044 | Should | The header holds Search, New preset and Collapse all; Search shows a box that filters presets and opens folders with matches. | text | shown presets | Esc or Search again hides and clears the box; Collapse all closes every folder | Implemented |
+| SRD-GUI-044.006 | FO-GUI-044 | Should | A status line at the bottom shows the open preset's last run time and matches, or the run progress. | run | status line | Same text as today's run line | Implemented |
+| SRD-GUI-044.007 | FO-GUI-044 | Must | The hide panel button and thin strip, the style chips and the open preset card are removed. | — | — | Replaces SRD-GUI-043.001–.005 | Implemented |
+| SRD-GUI-044.008 | FO-GUI-044 | Should | The type and run-mode tags (Weighted, Auto run) show in the bottom status line, not on the preset row. | open preset | status line | Same tag texts as today | Implemented |
+| SRD-GUI-044.009 | FO-GUI-044 | Should | The user can drag the left panel's right edge to set its width; the width is kept after restart. | drag | panel width | 300 px to 600 px; default 380 px | Implemented |
+| SRD-GUI-044.010 | FO-GUI-044 | Must | Several presets can be open at once, each showing its latest run's stocks; the last clicked one is active. | preset or stock click | open presets, active preset | Only the active row shows Run and ⋯; header date and status line follow it; open presets and the active one kept after restart; changes "the preset that was open closes" in SRD-GUI-044.002 | Implemented |

@@ -2,22 +2,19 @@
 from __future__ import annotations
 
 import datetime
-from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
-from PyQt6.QtCore import QSettings, Qt
+from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QWidget
 
 from us_swing.gui.screener_views import (
     CSV_HEADER,
-    CardsView,
     ListDetailView,
     ResultRow,
     RuleCheck,
     RunStepper,
     SideDrawer,
-    ViewSwitch,
     csv_rows,
     filter_presets,
     last_run_text,
@@ -65,35 +62,12 @@ class _FakeChart(QWidget):
 
 
 @pytest.fixture()
-def settings(tmp_path: Path) -> QSettings:
-    return QSettings(str(tmp_path / "views.ini"), QSettings.Format.IniFormat)
-
-
-@pytest.fixture()
 def rows() -> list[ResultRow]:
     return rows_from_result(_RESULTS)
 
 
-def test_view_switch_saves_and_restores(qtbot, settings):
-    """UT-GUI-022.001.M01.T01: View switch saves and restores."""
-    switch = ViewSwitch(settings)
-    qtbot.addWidget(switch)
-    assert switch.view == "list"
-    with qtbot.waitSignal(switch.view_changed) as blocker:
-        switch.buttons["cards"].click()
-    assert blocker.args == ["cards"]
-    again = ViewSwitch(settings)
-    qtbot.addWidget(again)
-    assert again.view == "cards"
-    assert again.buttons["cards"].isChecked()
 
 
-def test_view_switch_unknown_value_falls_back(qtbot, settings):
-    """UT-GUI-022.001.M01.T02: Unknown saved view falls back."""
-    settings.setValue("view", "grid")
-    switch = ViewSwitch(settings)
-    qtbot.addWidget(switch)
-    assert switch.view == "list"
 
 
 def test_list_loads_and_shows_first(qtbot, rows):
@@ -162,27 +136,8 @@ def test_detail_buttons_emit_symbol(qtbot, rows):
     assert watch.args == ["NVDA"]
 
 
-def test_cards_one_per_stock_with_actions(qtbot, rows):
-    """UT-GUI-022.003.M01.T01: One card per stock with actions."""
-    view = CardsView()
-    qtbot.addWidget(view)
-    view.load(rows)
-    assert len(view.cards) == 3
-    first = view.cards[0]
-    assert (first.rank_lbl.text(), first.symbol_lbl.text(), first.tier_lbl.text()) == (
-        "#1", "NVDA", "Strong")
-    with qtbot.waitSignal(view.chart_requested) as blocker:
-        view.cards[1].chart_btn.click()
-    assert blocker.args == ["JCI"]
 
 
-def test_cards_cleared_by_empty_load(qtbot, rows):
-    """UT-GUI-022.003.M01.T02: Empty rows clear cards."""
-    view = CardsView()
-    qtbot.addWidget(view)
-    view.load(rows)
-    view.load([])
-    assert view.cards == []
 
 
 def test_rows_built_from_result_meta(rows):

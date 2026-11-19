@@ -137,3 +137,15 @@ def test_same_preset_saved(qtbot) -> None:  # type: ignore[no-untyped-def]
     assert [(g.group_id, g.logic, [r.screener_id for r in g.screeners]) for g in built.groups] == [
         (g.group_id, g.logic, [r.screener_id for r in g.screeners]) for g in saved.groups
     ]
+
+
+def test_one_trading_style(qtbot) -> None:  # type: ignore[no-untyped-def]
+    """UT-GUI-042.007.M01.T01: Only one trading style can be ticked."""
+    dlg = _dialog(qtbot)
+    dlg._style_checks["day"].setChecked(True)
+    dlg._style_checks["position"].setChecked(True)
+    assert dlg._collect_trading_styles() == ["position"]
+    dlg._style_checks["position"].setChecked(False)
+    assert dlg._collect_trading_styles() == []
+    old = _dialog(qtbot, replace(make_composite_preset(), trading_styles=["position", "day"]))
+    assert old._collect_trading_styles() == ["day"]
