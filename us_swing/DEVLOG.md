@@ -2,6 +2,16 @@
 
 ---
 
+## [20261119] GUI — Screener focus layout (FO-GUI-043)
+
+- Type: Feature (branch `feat/gui-screener-accordion`, not pushed, no PR yet; commits f196309a Phase 1, dcd1d82b Phase 2)
+- FO(s): FO-GUI-043 (SRD-GUI-043.001–.010) — all Implemented; SRD-GUI-022.001, .003, .008 replaced by SRD-GUI-043.006 (user agreed 2026-11-19)
+- RN: RN-GUI-2.4.0-20261119
+- Artifacts: FO, SRD, DD, MD, UTCD (16 UT-GUI-043 cases, Pass; UT-GUI-022.001/.003 Removed), Code, Tests (777 GUI tests pass), TRACE, TODO T212 open, RN, CONTEXT, DEVLOG
+- Decisions: Cards view and top toolbar removed; 300 px left pane with open-preset card and folded presets; right side shows one stock with header, plan strip, chart and detail tabs
+
+---
+
 ## [20261119] GUI — Edit Preset follow-up fixes (FO-GUI-042)
 
 - Type: Bugfix/polish (branch `feat/gui-preset-side-nav`, not committed by the agent; commits 82c647df, 3b27b3bb)
