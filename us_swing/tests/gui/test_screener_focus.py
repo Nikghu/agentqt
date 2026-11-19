@@ -176,10 +176,27 @@ def test_open_row_actions(make_panel, qtbot):
     panel._open_preset("a")
     assert panel._count_lbl.text() == "3" and panel._run_btn.isEnabled()
     menu = panel._more_btn.menu()
-    assert [a.text() for a in menu.actions() if a.isVisible()] == ["Export CSV", "Quick test"]
+    shown = [a.text() for a in menu.actions() if a.isVisible() and not a.isSeparator()]
+    assert shown == ["Export CSV", "Quick test", "Sort by"]
     with qtbot.waitSignal(panel.quick_test_requested) as blocker:
         panel._quick_act.trigger()
     assert blocker.args == ["a"]
+
+
+def test_controls_moved(make_panel):
+    """UT-GUI-044.003.M02.T02: Date in the header, tags on the name row, Sort in the ⋯ menu."""
+    panel = make_panel()
+    assert panel._run_stepper.isHidden()
+    panel._open_preset("a")
+    header = panel._search_btn.parentWidget()
+    assert panel._run_stepper.parentWidget() is header and not panel._run_stepper.isHidden()
+    row = panel._open_row.row
+    assert row.indexOf(panel._type_tag) > row.indexOf(panel._title_lbl) >= 0
+    assert row.indexOf(panel._mode_badge) > row.indexOf(panel._type_tag)
+    assert not hasattr(panel, "_sort_combo")
+    panel._sort_acts["rules"].trigger()
+    assert panel._sort_key == "rules" and panel._sort_acts["rules"].isChecked()
+    assert not panel._sort_acts["score"].isChecked()
 
 
 def test_one_line_stock_row(qtbot):

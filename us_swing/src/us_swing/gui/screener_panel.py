@@ -35,7 +35,7 @@ from PyQt6.QtCore import (
     QThread,
     pyqtSignal,
 )
-from PyQt6.QtGui import QAction, QColor, QKeySequence, QShortcut, QTextCursor
+from PyQt6.QtGui import QAction, QActionGroup, QColor, QKeySequence, QShortcut, QTextCursor
 from PyQt6.QtWidgets import (
     QAbstractItemView,
     QButtonGroup,
@@ -97,7 +97,15 @@ from us_swing.gui.screener_views import (
     transcript_pill_text,
 )
 from us_swing.gui.popups import confirm, notify
-from us_swing.gui.screener_tree import FOLDERS, FolderRow, PresetRow, TreeRow, branch, folder_key
+from us_swing.gui.screener_tree import (
+    FOLDERS,
+    ElidedLabel,
+    FolderRow,
+    PresetRow,
+    TreeRow,
+    branch,
+    folder_key,
+)
 from us_swing.gui.theme import C, active_palette, colors
 from us_swing.screener.screeners import _api_key_store
 from us_swing.screener.storage import INPUT_COST_PER_1K, OUTPUT_COST_PER_1K
@@ -167,7 +175,7 @@ def _view_settings() -> QSettings:
 
 
 # Left pane width (SRD-GUI-044.001); the stock list's top and bottom padding in theme QSS.
-_PANE_W = 360
+_PANE_W = 380
 _STOCK_LIST_PAD = 8
 
 
@@ -2044,6 +2052,7 @@ class ScreenerPanel(QWidget):
         self._preset_names:      dict[str, str] = {}   # preset id → name
         self._preset_rows:       dict[str, PresetRow] = {}  # closed preset rows by id
         self._reveal_open = False  # next tree build opens the open preset's folder
+        self._sort_key = "score"  # stock list order, picked in the ⋯ menu
 
         # ── DB status subscription (SRD-SCR-004.007) ──────────────────────
         demo.candle_db_status_changed.connect(self._on_db_status_changed)
@@ -2148,6 +2157,7 @@ class ScreenerPanel(QWidget):
         hl.setSpacing(4)
         hl.addWidget(title)
         hl.addStretch(1)
+        hl.addWidget(self._run_stepper)
         for button in (self._search_btn, self._new_btn, self._collapse_btn):
             button.setFixedWidth(C.BTN_H)
             hl.addWidget(button)
@@ -2183,9 +2193,15 @@ class ScreenerPanel(QWidget):
 
     def _build_open_section(self) -> QWidget:
         """Open preset row with Run and ⋯, its run controls and its stocks (SRD-GUI-044.003)."""
-        self._title_lbl = QLabel("No preset open")
+        self._title_lbl = ElidedLabel("No preset open")
         self._title_lbl.setObjectName("open_preset_name")
         self._title_lbl.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
+        self._type_tag = QLabel()
+        self._type_tag.setObjectName("page_tag")
+        self._type_tag.setVisible(False)
+        self._mode_badge = QLabel()
+        self._mode_badge.setObjectName("page_tag")
+        self._mode_badge.setVisible(False)
         self._count_lbl = QLabel()
         self._count_lbl.setObjectName("view_key")
         self._run_btn = icon_button("play", "inverse", "Run now")
@@ -2198,50 +2214,21 @@ class ScreenerPanel(QWidget):
         self._more_btn.setFixedWidth(C.BTN_H)
         self._more_btn.setMenu(self._build_more_menu())
         self._open_row = TreeRow()
+        self._open_row.row.setSpacing(5)
         self._open_row.set_open(True)
-        for widget, stretch in ((self._title_lbl, 1), (self._count_lbl, 0),
-                                (self._run_btn, 0), (self._more_btn, 0)):
-            self._open_row.row.addWidget(widget, stretch)
+        for widget, stretch in ((self._title_lbl, 1), (self._type_tag, 0), (self._mode_badge, 0),
+                                (self._count_lbl, 0), (self._run_btn, 0), (self._more_btn, 0)):
+            self._open_row.row.addWidget(widget, stretch, Qt.AlignmentFlag.AlignVCenter)
         self._open_row.clicked.connect(self._toggle_open_branch)
         self._open_row.menu_requested.connect(self._on_open_row_menu)
 
-        # Saved-run stepper (SRD-GUI-022.009)
+        # Saved-run stepper (SRD-GUI-022.009); it sits in the pane header
         self._run_stepper = RunStepper()
         self._run_stepper.setObjectName("tree_stepper")
         for arrow in (self._run_stepper.older_btn, self._run_stepper.newer_btn):
             arrow.setFixedWidth(20)
         self._run_stepper.index_changed.connect(self._on_run_picked)
-        self._type_tag = QLabel()
-        self._type_tag.setObjectName("page_tag")
-        self._type_tag.setVisible(False)
-        self._mode_badge = QLabel()
-        self._mode_badge.setObjectName("page_tag")
-        self._mode_badge.setVisible(False)
-        self._sort_combo = QComboBox()
-        self._sort_combo.setObjectName("flat_combo")
-        for key, label in SORT_KEYS:
-            self._sort_combo.addItem(label, key)
-        self._sort_combo.setToolTip("Sort results")
-        self._sort_combo.setAccessibleName("Sort results")
-        self._sort_combo.currentIndexChanged.connect(self._refresh_views)
-        self._sort_combo.currentIndexChanged.connect(self._fit_sort_combo)
-        self._fit_sort_combo()
-        run_row = QHBoxLayout()
-        run_row.setSpacing(4)
-        run_row.addWidget(self._run_stepper)
-        run_row.addStretch(1)
-        run_row.addWidget(self._sort_combo)
-        tag_row = QHBoxLayout()
-        tag_row.setSpacing(4)
-        tag_row.addWidget(self._type_tag, 0, Qt.AlignmentFlag.AlignVCenter)
-        tag_row.addWidget(self._mode_badge, 0, Qt.AlignmentFlag.AlignVCenter)
-        tag_row.addStretch(1)
-        controls = QWidget()
-        cl = QVBoxLayout(controls)
-        cl.setContentsMargins(2, 2, 2, 4)
-        cl.setSpacing(4)
-        cl.addLayout(run_row)
-        cl.addLayout(tag_row)
+        self._run_stepper.hide()
 
         self._stock_list = self._list_view.detach_list()
         self._stock_list.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
@@ -2259,7 +2246,6 @@ class ScreenerPanel(QWidget):
         self._show_stock_list(False)
 
         self._open_branch, ob = branch()
-        ob.addWidget(controls)
         ob.addWidget(stocks)
         section = QWidget()
         vl = QVBoxLayout(section)
@@ -2285,12 +2271,26 @@ class ScreenerPanel(QWidget):
         self._tx_act.triggered.connect(self._toggle_transcript)
         for action in (self._export_act, self._quick_act, self._tx_act):
             menu.addAction(action)
+        menu.addSeparator()
+        sort_menu = menu.addMenu("Sort by")
+        group = QActionGroup(self)
+        group.setExclusive(True)
+        self._sort_acts: dict[str, QAction] = {}
+        for key, label in SORT_KEYS:
+            act = QAction(label, self)
+            act.setCheckable(True)
+            act.setChecked(key == self._sort_key)
+            act.triggered.connect(lambda _checked=False, k=key: self._set_sort(k))
+            group.addAction(act)
+            if sort_menu is not None:
+                sort_menu.addAction(act)
+            self._sort_acts[key] = act
         return menu
 
-    def _fit_sort_combo(self) -> None:
-        """Size Sort to its current choice so it sits at the right edge of the date line."""
-        text = self._sort_combo.currentText()
-        self._sort_combo.setFixedWidth(self._sort_combo.fontMetrics().horizontalAdvance(text) + 44)
+    def _set_sort(self, key: str) -> None:
+        """Sort the stock list by ``key`` from the ⋯ menu (SRD-GUI-044.003)."""
+        self._sort_key = key
+        self._refresh_views()
 
     def _toggle_open_branch(self) -> None:
         is_open = self._open_branch.isHidden()
@@ -2505,6 +2505,7 @@ class ScreenerPanel(QWidget):
 
     def _refresh_date_nav(self) -> None:
         self._date_idx = 0
+        self._run_stepper.setVisible(bool(self._selected_preset_id))
         if not self._selected_preset_id or self._storage is None:
             self._available_dates = []
             self._update_date_display()
@@ -2830,7 +2831,7 @@ class ScreenerPanel(QWidget):
 
     def _refresh_views(self) -> None:
         """Load the current rows, in the chosen sort order, into the list and detail."""
-        rows = sort_rows(self._rows, str(self._sort_combo.currentData() or "score"))
+        rows = sort_rows(self._rows, self._sort_key)
         self._list_view.load(rows, self._selected_preset_timeframe,
                              self._run_timestamp)
 

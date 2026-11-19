@@ -8,8 +8,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from PyQt6.QtCore import QPoint, Qt, pyqtSignal
-from PyQt6.QtGui import QMouseEvent
+from PyQt6.QtCore import QPoint, QSize, Qt, pyqtSignal
+from PyQt6.QtGui import QMouseEvent, QPainter, QPaintEvent
 from PyQt6.QtWidgets import QFrame, QHBoxLayout, QLabel, QSizePolicy, QVBoxLayout, QWidget
 
 from us_swing.gui.icons import icon
@@ -41,6 +41,25 @@ def _icon_label(name: str, role: str = "neutral") -> QLabel:
     label.setPixmap(icon(name, role).pixmap(_ICON_PX, _ICON_PX))
     label.setFixedWidth(_ICON_PX)
     return label
+
+
+class ElidedLabel(QLabel):
+    """Label that ends in "…" when its text does not fit; the full text is the tooltip."""
+
+    def setText(self, text: str | None) -> None:  # noqa: N802 - Qt override
+        super().setText(text)
+        self.setToolTip(text or "")
+
+    def minimumSizeHint(self) -> QSize:  # noqa: N802 - Qt override
+        return QSize(0, super().minimumSizeHint().height())
+
+    def paintEvent(self, event: QPaintEvent | None) -> None:  # noqa: N802 - Qt override
+        painter = QPainter(self)
+        rect = self.contentsRect()
+        text = self.fontMetrics().elidedText(self.text(), Qt.TextElideMode.ElideRight,
+                                             rect.width())
+        painter.drawText(rect, int(self.alignment()), text)
+        painter.end()
 
 
 class TreeRow(QFrame):
@@ -125,4 +144,4 @@ def branch() -> tuple[QFrame, QVBoxLayout]:
     return frame, box
 
 
-__all__ = ["FOLDERS", "FolderRow", "PresetRow", "TreeRow", "branch", "folder_key"]
+__all__ = ["FOLDERS", "ElidedLabel", "FolderRow", "PresetRow", "TreeRow", "branch", "folder_key"]

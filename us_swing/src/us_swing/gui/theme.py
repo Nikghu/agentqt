@@ -1351,6 +1351,9 @@ QFrame#tree_row, QFrame#tree_folder {{ background: transparent; border-radius: 5
 QFrame#tree_row:hover, QFrame#tree_folder:hover {{ background: {hover}; }}
 QFrame#tree_row[open="true"] {{ background: {hover}; }}
 QFrame#tree_row QLabel, QFrame#tree_folder QLabel {{ background: transparent; }}
+QFrame#tree_row QLabel#page_tag {{
+    background: {line}; color: {sub}; border-radius: 3px; padding: 1px 5px; font-size: 7.5pt;
+}}
 QFrame#tree_branch {{
     background: transparent; margin-left: 14px; border: none; border-left: 1px solid {line};
 }}

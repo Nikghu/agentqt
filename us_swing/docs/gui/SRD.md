@@ -1,10 +1,11 @@
 # Software Requirements Document — GUI Module (GUI)
 
 **Document ID:** SRD-GUI
-**Version:** 2.135.1
+**Version:** 2.135.2
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-11-19
+> v2.135.2: SRD-GUI-044.003 note — the run stepper moved to the pane header (left of Search), the type and run-mode tags to the open preset row, and Sort into the ⋯ menu as "Sort by"; pane 380 px; long preset names end in "…" (user request 2026-11-19).
 > v2.135.1: SRD-GUI-044.004 note — the selected stock row now uses a filled highlight in place of the accent edge (user request 2026-11-19).
 > v2.135.0: SRD-GUI-043.012 added and Implemented — drag bar for the detail tabs height (user request 2026-11-19).
 > v2.134.0: SRD-GUI-042.007 added and Implemented — one trading style per preset (user request 2026-11-19).
