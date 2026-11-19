@@ -69,6 +69,7 @@ SORT_KEYS: tuple[tuple[str, str], ...] = (
 CSV_HEADER = ["Symbol", "Score", "Details", "AI Reasoning", "Entry", "Stop", "Target", "R:R"]
 
 _DASH = "—"
+_RULE_NAME_W = 160
 _TABS_H = 200
 _TAB_RULES, _TAB_NEWS, _TAB_FUNDAMENTALS, _TAB_REVIEW = 1, 2, 3, 4
 _SESSION_CLOSE = datetime.time(16, 0)
@@ -1454,9 +1455,11 @@ class ListDetailView(QWidget):
         label = QLabel(rule.name)
         label.setStyleSheet(f"color: {text_clr};")
         label.setToolTip(rule.tip)
-        box.addWidget(label, 1)
+        label.setMinimumWidth(_RULE_NAME_W)
+        box.addWidget(label)
         if rule.passed is None:
             box.addWidget(QLabel(rule.value))
+        box.addStretch(1)
         return line
 
     def _show_chart(self, symbol: str) -> None:
