@@ -1344,7 +1344,7 @@ QListWidget#result_list {{
 }}
 QListWidget#result_list::item {{ border-radius: 5px; border: 1px solid transparent; }}
 QListWidget#result_list::item:hover {{ background: {hover}; }}
-QListWidget#result_list::item:selected {{ background: {hover}; border-color: {accent}; }}
+QListWidget#result_list::item:selected {{ background: {active_bg}; border-color: transparent; }}
 QWidget#result_row, QWidget#result_row QLabel {{ background: transparent; }}
 QLabel#row_symbol {{ color: {text}; font-size: 10pt; font-weight: bold; }}
 QFrame#tree_row, QFrame#tree_folder {{ background: transparent; border-radius: 5px; }}

@@ -48,6 +48,7 @@ The same session also added a drag bar between the chart and the detail tabs to 
 - Ready-made presets get their own folder; search box opens from 🔍; closed folders are remembered (user, 2026-11-19).
 - A preset goes to the folder of its first ticked trading style (Swing, Day, Position order); none ticked → Swing. Fixed after the user saw a Day preset stay in Swing (the tree read a wrong field).
 - Trading Style in Edit Preset allows one choice only (SRD-GUI-042.007, user request); this changes "check multiple" in SRD-SCR-007.011.
+- Selected stock row uses a filled highlight, no border (user request).
 - Pane widened from 300 to 360 px (user asked for more width); date and Sort share one borderless line, tags on the next.
 - Opening a preset opens its folder; folder clicks during a search are not saved; Collapse all closes the search first (review fixes).
 

@@ -1,10 +1,11 @@
 # Software Requirements Document — GUI Module (GUI)
 
 **Document ID:** SRD-GUI
-**Version:** 2.135.0
+**Version:** 2.135.1
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-11-19
+> v2.135.1: SRD-GUI-044.004 note — the selected stock row now uses a filled highlight in place of the accent edge (user request 2026-11-19).
 > v2.135.0: SRD-GUI-043.012 added and Implemented — drag bar for the detail tabs height (user request 2026-11-19).
 > v2.134.0: SRD-GUI-042.007 added and Implemented — one trading style per preset (user request 2026-11-19).
 > v2.133.2: SRD-GUI-044.001–.007 Implemented; SRD-GUI-043.001–.005 replaced by SRD-GUI-044.007 (user approved 2026-11-19).
