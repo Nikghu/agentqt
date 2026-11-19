@@ -357,8 +357,7 @@ def test_drag_tabs_taller(qtbot, tmp_path, monkeypatch):
     monkeypatch.setattr(sv, "_detail_settings",
                         lambda: QSettings(ini, QSettings.Format.IniFormat))
     view = _detail(qtbot)
-    view.resize(900, 1000)
-    view.show()
+    view._tabs_box.parentWidget().resize(900, 1000)
     start = view._tabs_box.height()
     view.tabs_bar.moved.emit(-100)
     view.tabs_bar.released.emit()
