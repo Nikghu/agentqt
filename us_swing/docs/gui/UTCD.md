@@ -1148,3 +1148,4 @@ Test files:
 | UT-GUI-043.009.M03.T01 | MD-GUI-043.007.M03 | Positive | Chart takes the free height | new view | chart slot has stretch 1; others 0 | Pass |
 | UT-GUI-043.010.M03.T01 | MD-GUI-043.007.M03 | Positive | Tabs show one section | NVDA with 1 of 2 rules; click Rules | tabs AI reasoning, Rules 1/2, News, Fundamentals, Bull vs bear; Rules page shown | Pass |
 | UT-GUI-043.010.M03.T02 | MD-GUI-043.007.M03 | Negative | Empty tabs greyed | row with no news, company data or review; News was current | News, Fundamentals, Bull vs bear disabled; AI reasoning shown | Pass |
+| UT-GUI-043.011.M04.T01 | MD-GUI-043.011.M04 | Positive | Volume strip drag height | page built with height 150; bridge gets 150 | handle in page, strip 150 px, height sent | Pass |

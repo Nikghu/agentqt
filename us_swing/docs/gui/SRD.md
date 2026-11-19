@@ -1,7 +1,7 @@
 # Software Requirements Document — GUI Module (GUI)
 
 **Document ID:** SRD-GUI
-**Version:** 2.131.3
+**Version:** 2.132.0
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-11-19
@@ -809,4 +809,5 @@ Phase 1 = .001–.006 (left pane). Phase 2 = .007–.010 (right side).
 | SRD-GUI-043.008 | FO-GUI-043 | Must | A plan strip under the header shows Stop, Entry, Target and Reward : risk in four cells. | selected stock | plan strip | Same values and R:R rule as today (SRD-GUI-022.005) | Implemented |
 | SRD-GUI-043.009 | FO-GUI-043 | Must | The chart fills the height between the plan strip and the tabs. | selected stock | chart | Same compact chart and plan lines as today | Implemented |
 | SRD-GUI-043.010 | FO-GUI-043 | Must | Tabs AI reasoning, Rules, News, Fundamentals and Bull vs bear show one detail section at a time. | tab click | shown section | Red flags in Rules, analyst changes in Fundamentals, web research in News; a tab with no data is greyed out | Implemented |
+| SRD-GUI-043.011 | FO-GUI-043 | Should | The user can drag the bar above the volume strip to change its height; the height is kept. | drag | volume height | 40 px up to 60% of the chart; same height in every candle chart | Implemented |
 

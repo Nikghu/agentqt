@@ -19,7 +19,9 @@ import logging
 
 import numpy as np
 import talib
-from PyQt6.QtCore import QFile, QIODevice, pyqtSignal, Qt, QStringListModel, QUrl
+from PyQt6.QtCore import (
+    QFile, QIODevice, pyqtSignal, QSettings, Qt, QStringListModel, QUrl,
+)
 from PyQt6.QtWebChannel import QWebChannel
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWidgets import (
@@ -46,7 +48,12 @@ _LWCHART_JS = _RESOURCES / "lightweight-charts.standalone.production.js"
 _log = logging.getLogger(__name__)
 
 RSI_PERIOD = 14
+VOLUME_H = 80
 _OVERLAY_TOKENS = ("BLUE", "TEAL", "MAUVE", "GREEN", "ORANGE")
+
+
+def _chart_settings() -> QSettings:
+    return QSettings("USSwing", "ChartPanel")
 
 
 def study_points(candles: list[dict[str, Any]], kind: str,
@@ -71,6 +78,7 @@ def _build_html(
     show_reset_menu: bool = False,
     timezone: str = "America/New_York",
     webchannel_js: str = "",
+    volume_height: int = VOLUME_H,
 ) -> str:
     """Return a self-contained HTML page with a TradingView Lightweight Chart.
 
@@ -255,9 +263,17 @@ def _build_html(
     box-shadow: 0 2px 6px rgba(0,0,0,0.4);
   }}
   #volume-container {{
-    height: 80px;
+    height: {volume_height}px;
     background: {ct.BG};
   }}
+  #volume-handle {{
+    height: 5px;
+    flex-shrink: 0;
+    cursor: row-resize;
+    background: {ct.BG};
+    border-top: 1px solid {ct.OVERLAY};
+  }}
+  #volume-handle:hover, #volume-handle.dragging {{ background: {ct.OVERLAY}; }}
   #no-data {{
     display: none;
     color: {ct.MUTED};
@@ -280,6 +296,7 @@ def _build_html(
     <div id="measure-label"></div>
   </div>
 </div>
+<div id="volume-handle" title="Drag to resize the volume"></div>
 <div id="volume-container"></div>
 <div id="no-data">No candle data found for this symbol.</div>
 {ctx_menu_html}
@@ -417,6 +434,27 @@ def _build_html(
   }});
   ro.observe(chartEl);
   ro.observe(volEl);
+
+  // Drag the bar above the volume to make it taller or shorter; the height is saved.
+  const volHandle = document.getElementById('volume-handle');
+  volHandle.addEventListener('mousedown', e => {{
+    e.preventDefault();
+    const startY = e.clientY, startH = volEl.clientHeight;
+    volHandle.classList.add('dragging');
+    const onMove = ev => {{
+      const maxH = Math.round(document.body.clientHeight * 0.6);
+      const h = Math.max(40, Math.min(maxH, startH + startY - ev.clientY));
+      volEl.style.height = h + 'px';
+    }};
+    const onUp = () => {{
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      volHandle.classList.remove('dragging');
+      if (bridge) bridge.set_volume_height(volEl.clientHeight);
+    }};
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  }});
 
   // ── Measure tool (long-press to activate) ───────────────────────────────────
   // States: IDLE → PENDING (mousedown) → MEASURING (held 450 ms) → SHOWN
@@ -1026,6 +1064,8 @@ class CandleChartPanel(QWidget):
         self._bridge = ChartBridge(self)
         self._bridge.drawing_added.connect(self.drawing_added)
         self._bridge.drawing_deleted.connect(self.drawing_deleted)
+        self._bridge.volume_height_changed.connect(
+            lambda h: _chart_settings().setValue("volume_height", h))
         self._channel = QWebChannel(self)
         self._channel.registerObject("bridge", self._bridge)
         page = self._web.page()
@@ -1211,7 +1251,8 @@ class CandleChartPanel(QWidget):
 
         tz = self._svc.get_system_config().market_timezone
         html = _build_html(candles, volume_data, symbol, timeframe, timezone=tz,
-                           webchannel_js=self._webchannel_js)
+                           webchannel_js=self._webchannel_js,
+                           volume_height=int(_chart_settings().value("volume_height", VOLUME_H)))
         self._web.setHtml(html, QUrl("about:blank"))
         self._current_symbol = symbol
         self._current_tf = timeframe

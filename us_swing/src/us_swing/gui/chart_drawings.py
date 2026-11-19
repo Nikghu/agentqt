@@ -131,6 +131,7 @@ class ChartBridge(QObject):
 
     drawing_added = pyqtSignal(object)   # Drawing
     drawing_deleted = pyqtSignal(int)    # drawing id
+    volume_height_changed = pyqtSignal(int)
 
     @pyqtSlot(str)
     def add_drawing(self, payload: str) -> None:
@@ -143,6 +144,10 @@ class ChartBridge(QObject):
     @pyqtSlot(int)
     def delete_drawing(self, drawing_id: int) -> None:
         self.drawing_deleted.emit(drawing_id)
+
+    @pyqtSlot(int)
+    def set_volume_height(self, height: int) -> None:
+        self.volume_height_changed.emit(height)
 
 
 __all__ = [

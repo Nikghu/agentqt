@@ -266,3 +266,19 @@ def test_empty_tabs_greyed(qtbot):
     view.list.setCurrentRow(1)
     assert [view.tabs.isTabEnabled(i) for i in range(5)] == [True, True, False, False, False]
     assert view.tabs.currentIndex() == 0 and view._pages.currentIndex() == 0
+
+
+def test_volume_strip_drag_height():
+    """UT-GUI-043.011.M04.T01: Volume strip can be dragged and keeps its height."""
+    from us_swing.gui.chart_drawings import ChartBridge
+    from us_swing.gui.chart_panel import _build_html
+
+    html = _build_html([{"time": 1, "open": 1, "high": 1, "low": 1, "close": 1}],
+                       [{"time": 1, "value": 1}], "MPC", "1d", volume_height=150)
+    assert 'id="volume-handle"' in html
+    assert "height: 150px" in html and "bridge.set_volume_height" in html
+    bridge = ChartBridge()
+    got: list[int] = []
+    bridge.volume_height_changed.connect(got.append)
+    bridge.set_volume_height(150)
+    assert got == [150]
