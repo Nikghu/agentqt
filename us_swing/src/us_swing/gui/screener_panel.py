@@ -981,6 +981,7 @@ class _PresetBuilderDialog(_FramelessDialog):
             cb.setEnabled(_is_creator)
             cb.setStyleSheet(f"color: {_T.TEXT}; font-size: 9pt;")
             cb.toggled.connect(self._refresh_nav)
+            cb.toggled.connect(lambda on, val=style_val: self._keep_one_style(val, on))
             self._style_checks[style_val] = cb
             style_row.addWidget(cb)
         style_row.addStretch()
@@ -1540,11 +1541,21 @@ class _PresetBuilderDialog(_FramelessDialog):
     def _collect_trading_styles(self) -> list[str]:
         return [v for v, cb in self._style_checks.items() if cb.isChecked()]
 
+    def _keep_one_style(self, style_val: str, checked: bool) -> None:
+        """Only one trading style can be ticked; it can still be unticked (SRD-GUI-042.007)."""
+        if not checked:
+            return
+        for val, cb in self._style_checks.items():
+            if val != style_val:
+                cb.setChecked(False)
+
     def _populate_from_preset(self, preset: Any) -> None:
         self._name.setText(preset.name)
         self._desc.setText(getattr(preset, "description", ""))
+        saved = list(getattr(preset, "trading_styles", None) or [])
+        first = next((val for val in self._style_checks if val in saved), None)
         for val, cb in self._style_checks.items():
-            cb.setChecked(val in getattr(preset, "trading_styles", []))
+            cb.setChecked(val == first)
         tf = getattr(preset, "timeframe", "1d")
         idx = self._tf_preset.findData(tf)
         if idx >= 0:

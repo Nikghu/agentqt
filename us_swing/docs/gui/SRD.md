@@ -1,10 +1,11 @@
 # Software Requirements Document — GUI Module (GUI)
 
 **Document ID:** SRD-GUI
-**Version:** 2.133.2
+**Version:** 2.134.0
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-11-19
+> v2.134.0: SRD-GUI-042.007 added and Implemented — one trading style per preset (user request 2026-11-19).
 > v2.133.2: SRD-GUI-044.001–.007 Implemented; SRD-GUI-043.001–.005 replaced by SRD-GUI-044.007 (user approved 2026-11-19).
 > v2.133.1: SRD-GUI-044.001–.007 approved by user 2026-11-19.
 > v2.133.0: SRD-GUI-044.001–.007 added as Draft — Screener preset tree (FO-GUI-044, user request 2026-11-19).
@@ -795,6 +796,7 @@
 | SRD-GUI-042.004 | FO-GUI-042 | Should | Each list item shows a one-line summary that updates when its fields change. | page fields | summary text | e.g. "Daily · Swing", "1 group · AND", "Top 5 · claude-opus-5-5", "7 data · 2 top picks"; "Off" when AI is off | Implemented |
 | SRD-GUI-042.005 | FO-GUI-042 | Should | Each list item shows a dot: green when set, amber when something is missing, grey when off. | page fields | dot state | Amber: no name, no screener, or AI on with no model; amber only warns, Save checks stay as today | Implemented |
 | SRD-GUI-042.006 | FO-GUI-042 | Must | Saving gives the same preset as before for the same choices. | page fields | saved preset | Existing widget names and populate, build and validate steps unchanged | Implemented |
+| SRD-GUI-042.007 | FO-GUI-042 | Must | Trading Style allows only one choice; ticking one unticks the others. | tick | trading style | None ticked stays valid; an old preset with several opens with the first (Swing, Day, Position); changes SRD-SCR-007.011 "check multiple" (user, 2026-11-19) | Implemented |
 
 ## FO-GUI-043 — Screener Focus Layout
 

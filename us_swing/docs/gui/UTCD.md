@@ -1128,6 +1128,7 @@ Test files:
 | UT-GUI-042.005.M01.T03 | MD-GUI-042.001.M01 | Negative | Save reason in footer | name set, no group; on AI Context page; Save, then Save As | footer reads "Add at least one group."; dialog stays open | Pass |
 | UT-GUI-042.005.M01.T02 | MD-GUI-042.001.M01 | Edge | Grey when AI off | AI off | AI Ranking and AI Context state off, text "Off" | Pass |
 | UT-GUI-042.006.M01.T01 | MD-GUI-042.001.M01 | Positive | Same preset saved | edit a saved composite preset with AI on; build without changes | built preset fields equal the saved ones | Pass |
+| UT-GUI-042.007.M01.T01 | MD-GUI-042.001.M01 | Negative | Only one trading style | tick Day then Position; untick Position; open a preset with Position and Day | only Position; none; only Day | Pass |
 
 ## FO-GUI-043 — Screener Focus Layout
 

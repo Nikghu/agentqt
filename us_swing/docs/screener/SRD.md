@@ -5,6 +5,7 @@
 **Traces To:** FO-SCR v2.2.0
 **Status:** Draft
 **Last Updated:** 2026-11-18
+> Note 2026-11-19: SRD-SCR-007.011 "Creator can check multiple" is changed by SRD-GUI-042.007 — one trading style only (user request).
 > v2.12.2: SRD-SCR-020.001–.009 Implemented (RN-SCR-2.13.0-20261118).
 > v2.12.1: FO-SCR-018 and SRD-SCR-020.001–.009 approved by user 2026-11-18.
 > v2.12.0: FO-SCR-018 Section 20 added as Draft — AI Ranking company data and bull vs bear review (phase 3); user request 2026-11-18.
