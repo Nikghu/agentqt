@@ -31,11 +31,11 @@ class _Demo(QObject):
 class _Mgr:
     def __init__(self) -> None:
         self.presets = [
-            SimpleNamespace(id="a", name="Momentum Breakout", style="swing"),
-            SimpleNamespace(id="b", name="Pullback to EMA", style="swing"),
-            SimpleNamespace(id="c", name="Gap and Go", style="day"),
+            SimpleNamespace(id="a", name="Momentum Breakout", trading_styles=["swing"]),
+            SimpleNamespace(id="b", name="Pullback to EMA", trading_styles=[]),
+            SimpleNamespace(id="c", name="Gap and Go", trading_styles=["day"]),
         ]
-        self.admin = [SimpleNamespace(id="r", name="Classic Breakout", style="swing")]
+        self.admin = [SimpleNamespace(id="r", name="Classic Breakout", trading_styles=["swing"])]
 
     def list_admin_presets(self, style_filter: str | None = None) -> list[Any]:
         return list(self.admin)
@@ -101,7 +101,8 @@ def test_folders_by_style(make_panel):
     assert [r.key for r in _folder_rows(panel)] == ["swing", "day", "ready"]
     assert {k: v[0] for k, v in _folders(panel).items()} == {
         "swing": "2", "day": "1", "ready": "1"}
-    assert folder_key(SimpleNamespace(style="odd"), admin=False) == "swing"
+    assert folder_key(SimpleNamespace(trading_styles=["position", "day"]), admin=False) == "day"
+    assert folder_key(SimpleNamespace(trading_styles=["position"]), admin=False) == "position"
 
 
 def test_closed_folder_kept(make_panel):

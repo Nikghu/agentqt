@@ -26,11 +26,14 @@ FOLDERS: tuple[tuple[str, str, str], ...] = (
 
 
 def folder_key(preset: Any, *, admin: bool) -> str:
-    """Folder a preset belongs in: Ready-made for admin presets, else its style."""
+    """Folder a preset belongs in: Ready-made for admin presets, else its first ticked style.
+
+    Styles are taken in Swing, Day, Position order; a preset with none goes to Swing.
+    """
     if admin:
         return "ready"
-    style = str(getattr(preset, "style", "") or "swing").lower()
-    return style if style in ("swing", "day", "position") else "swing"
+    styles = {str(s).lower() for s in getattr(preset, "trading_styles", None) or []}
+    return next((key for key in ("swing", "day", "position") if key in styles), "swing")
 
 
 def _icon_label(name: str, role: str = "neutral") -> QLabel:
