@@ -66,6 +66,7 @@ class TreeRow(QFrame):
     """A clickable tree row with a chevron; right-click asks for the row's menu."""
 
     clicked = pyqtSignal()
+    chevron_clicked = pyqtSignal()
     menu_requested = pyqtSignal(QPoint)
 
     def __init__(self, parent: QWidget | None = None) -> None:
@@ -90,7 +91,11 @@ class TreeRow(QFrame):
 
     def mouseReleaseEvent(self, event: QMouseEvent | None) -> None:
         if event is not None and event.button() == Qt.MouseButton.LeftButton:
-            self.clicked.emit()
+            hit = self._chevron.geometry().adjusted(-6, -8, 6, 8)
+            if hit.contains(event.position().toPoint()):
+                self.chevron_clicked.emit()
+            else:
+                self.clicked.emit()
         super().mouseReleaseEvent(event)
 
     def contextMenuEvent(self, event: Any) -> None:
@@ -134,6 +139,34 @@ class PresetRow(TreeRow):
         self.meta_lbl.setText(meta)
 
 
+class WidthHandle(QFrame):
+    """Thin upright bar dragged left or right; reports the move since the press."""
+
+    moved = pyqtSignal(int)
+    released = pyqtSignal()
+
+    def __init__(self, width: int, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setObjectName("width_handle")
+        self.setFixedWidth(width)
+        self.setCursor(Qt.CursorShape.SplitHCursor)
+        self.setToolTip("Drag to resize")
+        self._press_x: float | None = None
+
+    def mousePressEvent(self, event: QMouseEvent | None) -> None:
+        if event is not None and event.button() == Qt.MouseButton.LeftButton:
+            self._press_x = event.globalPosition().x()
+
+    def mouseMoveEvent(self, event: QMouseEvent | None) -> None:
+        if event is not None and self._press_x is not None:
+            self.moved.emit(round(event.globalPosition().x() - self._press_x))
+
+    def mouseReleaseEvent(self, event: QMouseEvent | None) -> None:
+        if self._press_x is not None:
+            self._press_x = None
+            self.released.emit()
+
+
 def branch() -> tuple[QFrame, QVBoxLayout]:
     """Indented box with a guide line on its left, for a row's children."""
     frame = QFrame()
@@ -144,4 +177,7 @@ def branch() -> tuple[QFrame, QVBoxLayout]:
     return frame, box
 
 
-__all__ = ["FOLDERS", "ElidedLabel", "FolderRow", "PresetRow", "TreeRow", "branch", "folder_key"]
+__all__ = [
+    "FOLDERS", "ElidedLabel", "FolderRow", "PresetRow", "TreeRow", "WidthHandle", "branch",
+    "folder_key",
+]

@@ -8,6 +8,7 @@
 - FO(s): FO-GUI-044 (SRD-GUI-044.001–.007) — all Implemented; SRD-GUI-043.001–.005 replaced by SRD-GUI-044.007 (user approved 2026-11-19); SRD-GUI-043.011 volume drag bar added earlier in the session
 - RN: RN-GUI-2.5.0-20261119
 - Artifacts: FO, SRD, DD, MD, UTCD (14 UT-GUI-044 Pass; 8 UT-GUI-043 Removed), Code, Tests (784 GUI tests pass in three parts), TRACE, TODO T213 open, RN, CONTEXT, DEVLOG
+- Follow-ups same day: SRD-GUI-044.008–.010 (tags in status line, drag panel width, several open presets; user approved), SRD-GUI-042.007 one trading style, SRD-GUI-043.012 tabs drag bar, folder fix (trading_styles field), filled selected row, date in header and Sort in ⋯
 - Decisions: design option B; only Hide panel dropped (Collapse all kept); Ready-made folder; search box from 🔍; closed folders remembered; pane 320 px; dashboard tile tests crash a full GUI run on the last commit too
 
 ---

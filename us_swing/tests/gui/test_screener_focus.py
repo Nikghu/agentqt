@@ -111,12 +111,15 @@ def test_closed_folder_kept(make_panel):
     day = next(r for r in _folder_rows(panel) if r.key == "day")
     day.clicked.emit()
     assert _folders(panel)["day"][1] is False
+    day.chevron_clicked.emit()
+    assert _folders(panel)["day"][1] is True
+    day.chevron_clicked.emit()
     again = make_panel()
     assert _folders(again)["day"][1] is False and _folders(again)["swing"][1] is True
 
 
 def test_open_preset_in_place(make_panel):
-    """UT-GUI-044.002.M02.T01: Opening a preset closes the one that was open."""
+    """UT-GUI-044.002.M02.T01: Opening a preset keeps the other open ones open."""
     panel = make_panel()
     panel._open_preset("a")
     assert panel._title_lbl.text() == "Momentum Breakout"
@@ -124,6 +127,8 @@ def test_open_preset_in_place(make_panel):
     assert panel._open_section.isVisibleTo(panel)
     panel._open_preset("b")
     assert set(panel._preset_rows) == {"a", "c", "r"}
+    assert panel._preset_rows["a"].property("open") is True
+    assert panel._open_ids == ["a", "b"] and panel._selected_preset_id == "b"
     panel._preset_rows["c"].clicked.emit()
     assert panel._selected_preset_id == "c"
 
@@ -190,9 +195,9 @@ def test_controls_moved(make_panel):
     panel._open_preset("a")
     header = panel._search_btn.parentWidget()
     assert panel._run_stepper.parentWidget() is header and not panel._run_stepper.isHidden()
-    row = panel._open_row.row
-    assert row.indexOf(panel._type_tag) > row.indexOf(panel._title_lbl) >= 0
-    assert row.indexOf(panel._mode_badge) > row.indexOf(panel._type_tag)
+    assert panel._open_row.row.indexOf(panel._type_tag) == -1
+    assert panel._status_lbl.parentWidget() is panel._type_tag.parentWidget()
+    assert not panel._type_tag.isHidden() and not panel._mode_badge.isHidden()
     assert not hasattr(panel, "_sort_combo")
     panel._sort_acts["rules"].trigger()
     assert panel._sort_key == "rules" and panel._sort_acts["rules"].isChecked()
@@ -383,4 +388,62 @@ def test_drag_tabs_taller(qtbot, tmp_path, monkeypatch):
     assert view._tabs_box.height() == sv._TABS_MIN_H
     again = _detail(qtbot)
     assert again._tabs_box.height() == start + 100
+
+
+def _preview_lists(panel: sp.ScreenerPanel) -> list[Any]:
+    from PyQt6.QtWidgets import QListWidget
+    return [w for w in panel._tree_host.findChildren(QListWidget)
+            if w is not panel._stock_list and w.isVisibleTo(panel._tree_host)]
+
+
+def test_several_presets_open(make_panel):
+    """UT-GUI-044.010.M02.T01: Several presets open; others show their latest run."""
+    panel = make_panel(runs={"a": ["2026-11-19"], "b": ["2026-11-18"]})
+    panel._open_preset("a")
+    panel._open_preset("b")
+    previews = _preview_lists(panel)
+    assert len(previews) == 1 and previews[0].count() == 3
+    assert panel._selected_preset_id == "b" and panel._run_btn.parentWidget() is panel._open_row
+    previews[0].itemClicked.emit(previews[0].item(1))
+    assert panel._selected_preset_id == "a"
+    assert panel._list_view.selected_symbol() == panel._latest_rows("a")[1].symbol
+
+
+def test_chevron_closes_preset(make_panel):
+    """UT-GUI-044.010.M02.T02: Chevron closes a preset; closing the active one moves on."""
+    panel = make_panel()
+    panel._open_preset("a")
+    panel._open_preset("b")
+    panel._open_row.chevron_clicked.emit()
+    assert panel._open_ids == ["a"] and panel._selected_preset_id == "a"
+    panel._open_row.chevron_clicked.emit()
+    assert panel._open_ids == [] and panel._selected_preset_id is None
+    assert panel._run_stepper.isHidden()
+    panel._preset_rows["c"].chevron_clicked.emit()
+    assert panel._open_ids == ["c"]
+
+
+def test_open_presets_kept(make_panel):
+    """UT-GUI-044.010.M02.T03: Open presets and the active one kept after restart."""
+    panel = make_panel()
+    panel._open_preset("c")
+    panel._open_preset("a")
+    panel._settings.setValue("open_presets", ["gone", "c", "a"])
+    again = make_panel()
+    assert again._open_ids == ["c", "a"] and again._selected_preset_id == "a"
+    assert again._preset_rows["c"].property("open") is True
+
+
+def test_drag_pane_width(make_panel):
+    """UT-GUI-044.009.M02.T01: Drag the panel edge; width kept within 300–600 px."""
+    panel = make_panel()
+    assert panel._left_frame.width() == sp._PANE_W
+    panel._pane_handle.moved.emit(60)
+    panel._pane_handle.released.emit()
+    assert panel._left_frame.width() == sp._PANE_W + 60
+    panel._pane_handle.moved.emit(-1000)
+    assert panel._left_frame.width() == sp._PANE_MIN_W and panel._pane_title.isHidden()
+    panel._pane_handle.moved.emit(5000)
+    assert panel._left_frame.width() == sp._PANE_MAX_W
+    assert make_panel()._left_frame.width() == sp._PANE_W + 60
 

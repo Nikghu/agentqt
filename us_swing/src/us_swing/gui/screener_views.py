@@ -1368,6 +1368,14 @@ class ListDetailView(QWidget):
         self.list.setMaximumWidth(16777215)
         return self.list
 
+    def select_symbol(self, symbol: str) -> bool:
+        """Select ``symbol`` in the stock list; False when it is not in the rows."""
+        for index, row in enumerate(self._rows):
+            if row.symbol == symbol:
+                self.list.setCurrentRow(index)
+                return True
+        return False
+
     def selected_symbol(self) -> str | None:
         index = self.list.currentRow()
         return self._rows[index].symbol if 0 <= index < len(self._rows) else None

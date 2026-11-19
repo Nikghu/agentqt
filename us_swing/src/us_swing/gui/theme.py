@@ -1349,7 +1349,7 @@ QWidget#result_row, QWidget#result_row QLabel {{ background: transparent; }}
 QLabel#row_symbol {{ color: {text}; font-size: 10pt; font-weight: bold; }}
 QFrame#tree_row, QFrame#tree_folder {{ background: transparent; border-radius: 5px; }}
 QFrame#tree_row:hover, QFrame#tree_folder:hover {{ background: {hover}; }}
-QFrame#tree_row[open="true"] {{ background: {hover}; }}
+QFrame#tree_row[active="true"] {{ background: {hover}; }}
 QFrame#tree_row QLabel, QFrame#tree_folder QLabel {{ background: transparent; }}
 QFrame#tree_row QLabel#page_tag {{
     background: {line}; color: {sub}; border-radius: 3px; padding: 1px 5px; font-size: 7.5pt;

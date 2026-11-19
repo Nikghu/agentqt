@@ -1154,12 +1154,12 @@ Test files:
 | UT-GUI-043.012.M03.T01 | MD-GUI-043.007.M03 | Positive | Drag tabs taller | drag bar up 100; release; drag far down; new view | tabs +100; then 110 px floor; new view keeps the saved +100 | Pass |
 | UT-GUI-044.001.M02.T01 | MD-GUI-044.001.M02 | Positive | Presets grouped into folders | 2 swing, 1 day, 1 admin preset | folders Swing 2, Day 1, Ready-made 1; no Position; odd style goes to Swing | Pass |
 | UT-GUI-044.001.M02.T02 | MD-GUI-044.001.M02 | Edge | Closed folder kept after restart | close Day; new panel with the same settings | Day closed, Swing open | Pass |
-| UT-GUI-044.002.M02.T01 | MD-GUI-044.001.M02 | Positive | Open preset in place | open A, then B, then click C | A row back when B opens; C opens on click | Pass |
+| UT-GUI-044.002.M02.T01 | MD-GUI-044.001.M02 | Positive | Open preset in place | open A, then B, then click C | A stays open when B opens, B active; C opens on click | Pass |
 | UT-GUI-044.002.M02.T02 | MD-GUI-044.001.M02 | Edge | Last open preset reopens | open B; new panel with the same settings | B open | Pass |
 | UT-GUI-044.002.M02.T03 | MD-GUI-044.001.M02 | Negative | Deleting the open preset clears it | open A; delete A | "No preset open"; no run dates; Run off; open section hidden; saved id removed | Pass |
 | UT-GUI-044.002.M02.T04 | MD-GUI-044.001.M02 | Edge | Opening a preset opens its closed folder | collapse all; open the Day preset; collapse all | Day open, Swing closed; then Day closed | Pass |
 | UT-GUI-044.003.M02.T01 | MD-GUI-044.001.M02 | Positive | Open row actions | open a preset with 3 saved rows | count 3; Run on; ⋯ has Export CSV, Quick test, Sort by; Quick test emits the id | Pass |
-| UT-GUI-044.003.M02.T02 | MD-GUI-044.001.M02 | Positive | Controls moved | new panel; open A; pick Sort by → Rules passed | stepper hidden, then in the header; tags after the name; no Sort box; sort key rules, only that choice ticked | Pass |
+| UT-GUI-044.003.M02.T02 | MD-GUI-044.001.M02 | Positive | Controls moved | new panel; open A; pick Sort by → Rules passed | stepper hidden, then in the header; tags in the footer with the status line; no Sort box; sort key rules, only that choice ticked | Pass |
 | UT-GUI-044.004.M03.T01 | MD-GUI-044.004.M03 | Positive | One-line stock row | NVDA score 0.85 with 1 flag | symbol, bar filled 0.85, flag text | Pass |
 | UT-GUI-044.004.M02.T01 | MD-GUI-044.001.M02 | Negative | Stock list fits rows; no run hint | open A (3 rows), then B (no run) | list at least 3 rows high; then list hidden and "No runs yet — press Run now" | Pass |
 | UT-GUI-044.005.M02.T01 | MD-GUI-044.001.M02 | Positive | Search box | collapse all; press Search; type "pull"; press Search | box shown; only B, Swing open; box hidden and cleared, Swing closed again | Pass |
@@ -1167,3 +1167,7 @@ Test files:
 | UT-GUI-044.005.M02.T03 | MD-GUI-044.001.M02 | Negative | Folder click during search not saved | search "gap"; close Day | closed folders not saved | Pass |
 | UT-GUI-044.006.M02.T01 | MD-GUI-044.001.M02 | Positive | Status line | open a preset with 3 saved rows | status starts "3 matches" | Pass |
 | UT-GUI-044.007.M02.T01 | MD-GUI-044.001.M02 | Negative | Removed parts | new panel | no hide strip, style chips, open card or old preset list | Pass |
+| UT-GUI-044.009.M02.T01 | MD-GUI-044.001.M02 | Positive | Drag panel width | drag +60; release; drag far left; far right; new panel | 440; 300 with title hidden; 600; new panel 440 | Pass |
+| UT-GUI-044.010.M02.T01 | MD-GUI-044.001.M02 | Positive | Several presets open | open A, then B; click 2nd stock of A's preview | A preview 3 stocks; Run on B row; A active with that stock selected | Pass |
+| UT-GUI-044.010.M02.T02 | MD-GUI-044.001.M02 | Negative | Chevron closes | open A, B; chevron on active twice; chevron on C | A active; none active, date hidden; C open | Pass |
+| UT-GUI-044.010.M02.T03 | MD-GUI-044.001.M02 | Edge | Open presets kept | open C, A; new panel | C and A open, A active | Pass |

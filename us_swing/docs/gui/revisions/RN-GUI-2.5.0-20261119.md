@@ -3,7 +3,7 @@
 **Version:** 2.5.0
 **Date:** 2026-11-19
 **Tool:** GUI
-**Artifact:** FO-GUI-044 / SRD-GUI-044.001–.007
+**Artifact:** FO-GUI-044 / SRD-GUI-044.001–.010
 **Type:** Feature
 
 ---
@@ -39,6 +39,9 @@ The same session also added a drag bar between the chart and the detail tabs to 
 | SRD-GUI-044.005 | Search box, New preset and Collapse all in the header | Implemented |
 | SRD-GUI-044.006 | Status line at the bottom | Implemented |
 | SRD-GUI-044.007 | Hide panel, style chips and open card removed | Implemented |
+| SRD-GUI-044.008 | Weighted / run-mode tags in the bottom status line | Implemented |
+| SRD-GUI-044.009 | Drag the panel edge to set its width (300–600 px), kept | Implemented |
+| SRD-GUI-044.010 | Several presets open at once; last clicked is active; kept after restart | Implemented |
 
 ---
 
@@ -51,6 +54,7 @@ The same session also added a drag bar between the chart and the detail tabs to 
 - Selected stock row uses a filled highlight, no border (user request).
 - Date stepper moved to the pane header, Weighted / Auto run tags to the preset name row, Sort into the ⋯ menu; long names end in "…" (user request).
 - Pane widened from 300 to 380 px (user asked for more width); date and Sort share one borderless line, tags on the next.
+- Several presets can stay open; the last clicked is active (only it shows Run and ⋯; header date and status line follow it); open presets kept after restart; tags in the status line; panel width dragged 300–600 px (user answers 2026-11-19). Review fixes: folder chevron toggles again, a finished run refreshes an open background preset, unknown open ids dropped at start, Enter opens a background stock.
 - Opening a preset opens its folder; folder clicks during a search are not saved; Collapse all closes the search first (review fixes).
 
 ---

@@ -1,10 +1,13 @@
 # Software Requirements Document — GUI Module (GUI)
 
 **Document ID:** SRD-GUI
-**Version:** 2.135.2
+**Version:** 2.136.2
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-11-19
+> v2.136.2: SRD-GUI-044.008–.010 Implemented.
+> v2.136.1: SRD-GUI-044.008–.010 approved by user 2026-11-19.
+> v2.136.0: SRD-GUI-044.008–.010 added as Draft — tags in status line, drag panel width, several open presets (user request 2026-11-19).
 > v2.135.2: SRD-GUI-044.003 note — the run stepper moved to the pane header (left of Search), the type and run-mode tags to the open preset row, and Sort into the ⋯ menu as "Sort by"; pane 380 px; long preset names end in "…" (user request 2026-11-19).
 > v2.135.1: SRD-GUI-044.004 note — the selected stock row now uses a filled highlight in place of the accent edge (user request 2026-11-19).
 > v2.135.0: SRD-GUI-043.012 added and Implemented — drag bar for the detail tabs height (user request 2026-11-19).
@@ -833,3 +836,6 @@ One phase (left pane).
 | SRD-GUI-044.005 | FO-GUI-044 | Should | The header holds Search, New preset and Collapse all; Search shows a box that filters presets and opens folders with matches. | text | shown presets | Esc or Search again hides and clears the box; Collapse all closes every folder | Implemented |
 | SRD-GUI-044.006 | FO-GUI-044 | Should | A status line at the bottom shows the open preset's last run time and matches, or the run progress. | run | status line | Same text as today's run line | Implemented |
 | SRD-GUI-044.007 | FO-GUI-044 | Must | The hide panel button and thin strip, the style chips and the open preset card are removed. | — | — | Replaces SRD-GUI-043.001–.005 | Implemented |
+| SRD-GUI-044.008 | FO-GUI-044 | Should | The type and run-mode tags (Weighted, Auto run) show in the bottom status line, not on the preset row. | open preset | status line | Same tag texts as today | Implemented |
+| SRD-GUI-044.009 | FO-GUI-044 | Should | The user can drag the left panel's right edge to set its width; the width is kept after restart. | drag | panel width | 300 px to 600 px; default 380 px | Implemented |
+| SRD-GUI-044.010 | FO-GUI-044 | Must | Several presets can be open at once, each showing its latest run's stocks; the last clicked one is active. | preset or stock click | open presets, active preset | Only the active row shows Run and ⋯; header date and status line follow it; open presets and the active one kept after restart; changes "the preset that was open closes" in SRD-GUI-044.002 | Implemented |
