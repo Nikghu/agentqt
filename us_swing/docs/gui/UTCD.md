@@ -1146,11 +1146,12 @@ Test files:
 | UT-GUI-043.006.M01.T01 | MD-GUI-043.001.M01 | Negative | Toolbar and Cards gone | new panel | no view switch, no Cards view; right side holds only the detail | Pass |
 | UT-GUI-043.007.M03.T01 | MD-GUI-043.007.M03 | Positive | Header line and next stock | rows with name and sector; click Next | meta has company, sector, "rank 1 of 3", score; row 2 shown | Pass |
 | UT-GUI-043.007.M03.T02 | MD-GUI-043.007.M03 | Edge | Previous and next stop at the ends | first row; then last row | Previous off on first; Next off on last | Pass |
-| UT-GUI-043.008.M03.T01 | MD-GUI-043.007.M03 | Positive | Plan strip over the chart | new view | order: header, plan strip, chart, tabs | Pass |
-| UT-GUI-043.009.M03.T01 | MD-GUI-043.007.M03 | Positive | Chart takes the free height | new view | chart slot has stretch 1; others 0 | Pass |
+| UT-GUI-043.008.M03.T01 | MD-GUI-043.007.M03 | Positive | Plan strip over the chart | new view | order: header, plan strip, chart, drag bar, tabs | Pass |
+| UT-GUI-043.009.M03.T01 | MD-GUI-043.007.M03 | Positive | Chart takes the free height | new view | chart slot has stretch 1; others 0 (drag bar and tabs too) | Pass |
 | UT-GUI-043.010.M03.T01 | MD-GUI-043.007.M03 | Positive | Tabs show one section | NVDA with 1 of 2 rules; click Rules | tabs AI reasoning, Rules 1/2, News, Fundamentals, Bull vs bear; Rules page shown | Pass |
 | UT-GUI-043.010.M03.T02 | MD-GUI-043.007.M03 | Negative | Empty tabs greyed | row with no news, company data or review; News was current | News, Fundamentals, Bull vs bear disabled; AI reasoning shown | Pass |
 | UT-GUI-043.011.M04.T01 | MD-GUI-043.011.M04 | Positive | Volume strip drag height | page built with height 150; bridge gets 150 | handle in page, strip 150 px, height sent | Pass |
+| UT-GUI-043.012.M03.T01 | MD-GUI-043.007.M03 | Positive | Drag tabs taller | drag bar up 100; release; drag far down; new view | tabs +100; then 110 px floor; new view keeps the saved +100 | Pass |
 | UT-GUI-044.001.M02.T01 | MD-GUI-044.001.M02 | Positive | Presets grouped into folders | 2 swing, 1 day, 1 admin preset | folders Swing 2, Day 1, Ready-made 1; no Position; odd style goes to Swing | Pass |
 | UT-GUI-044.001.M02.T02 | MD-GUI-044.001.M02 | Edge | Closed folder kept after restart | close Day; new panel with the same settings | Day closed, Swing open | Pass |
 | UT-GUI-044.002.M02.T01 | MD-GUI-044.001.M02 | Positive | Open preset in place | open A, then B, then click C | A row back when B opens; C opens on click | Pass |

@@ -1,10 +1,11 @@
 # Software Requirements Document — GUI Module (GUI)
 
 **Document ID:** SRD-GUI
-**Version:** 2.134.0
+**Version:** 2.135.0
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-11-19
+> v2.135.0: SRD-GUI-043.012 added and Implemented — drag bar for the detail tabs height (user request 2026-11-19).
 > v2.134.0: SRD-GUI-042.007 added and Implemented — one trading style per preset (user request 2026-11-19).
 > v2.133.2: SRD-GUI-044.001–.007 Implemented; SRD-GUI-043.001–.005 replaced by SRD-GUI-044.007 (user approved 2026-11-19).
 > v2.133.1: SRD-GUI-044.001–.007 approved by user 2026-11-19.
@@ -815,6 +816,7 @@ Phase 1 = .001–.006 (left pane). Phase 2 = .007–.010 (right side).
 | SRD-GUI-043.009 | FO-GUI-043 | Must | The chart fills the height between the plan strip and the tabs. | selected stock | chart | Same compact chart and plan lines as today | Implemented |
 | SRD-GUI-043.010 | FO-GUI-043 | Must | Tabs AI reasoning, Rules, News, Fundamentals and Bull vs bear show one detail section at a time. | tab click | shown section | Red flags in Rules, analyst changes in Fundamentals, web research in News; a tab with no data is greyed out | Implemented |
 | SRD-GUI-043.011 | FO-GUI-043 | Should | The user can drag the bar above the volume strip to change its height; the height is kept. | drag | volume height | 40 px up to 60% of the chart; same height in every candle chart | Implemented |
+| SRD-GUI-043.012 | FO-GUI-043 | Should | The user can drag the bar between the chart and the detail tabs to change the tabs height; the height is kept. | drag | tabs height | 110 px up to 70% of the detail area; default 200 px; the chart takes the rest | Implemented |
 
 ## FO-GUI-044 — Screener Preset Tree
 

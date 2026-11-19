@@ -12,7 +12,7 @@
 
 The Screener left pane is now a tree. My presets sit in Swing, Day and Position folders, and ready-made presets sit in their own folder. The open preset opens in place inside its folder, with Run, the ⋯ menu, the run stepper, tags, Sort and its stocks under it. Stock rows are one line with a score bar. The header has Search (opens a box), New preset and Collapse all; the Hide panel button, style chips and the open-preset card are gone. A status line sits at the bottom. The user picked design option B on https://claude.ai/artifact/62FR3QeEZdYmjNN2tV956p. SRD-GUI-043.001–.005 are replaced by SRD-GUI-044.007 (user approved 2026-11-19).
 
-The same session also added a drag bar above the chart's volume strip (SRD-GUI-043.011, commit 7be11f9b) and kept rule values next to their names in the detail tabs (commit 05f7d537).
+The same session also added a drag bar between the chart and the detail tabs to change the tabs height (SRD-GUI-043.012; the user's first ask was this, it was first misread as the volume strip), a drag bar above the chart's volume strip (SRD-GUI-043.011, commit 7be11f9b) and kept rule values next to their names in the detail tabs (commit 05f7d537).
 
 ---
 

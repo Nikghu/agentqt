@@ -23,11 +23,12 @@ from PyQt6.QtCore import (
     QPropertyAnimation,
     QRect,
     QRectF,
+    QSettings,
     QSize,
     Qt,
     pyqtSignal,
 )
-from PyQt6.QtGui import QColor, QCursor, QKeyEvent, QPainter, QPaintEvent
+from PyQt6.QtGui import QColor, QCursor, QKeyEvent, QMouseEvent, QPainter, QPaintEvent
 from PyQt6.QtWidgets import (
     QButtonGroup,
     QFrame,
@@ -71,6 +72,7 @@ CSV_HEADER = ["Symbol", "Score", "Details", "AI Reasoning", "Entry", "Stop", "Ta
 _DASH = "—"
 _RULE_NAME_W = 160
 _TABS_H = 200
+_TABS_MIN_H = 110
 STOCK_ROW_H = 30
 _TAB_RULES, _TAB_NEWS, _TAB_FUNDAMENTALS, _TAB_REVIEW = 1, 2, 3, 4
 _SESSION_CLOSE = datetime.time(16, 0)
@@ -957,6 +959,49 @@ class _ChartLike(Protocol):
                  start: int | None = None) -> None: ...
 
 
+def _detail_settings() -> QSettings:
+    """Settings store for the stock detail tabs height (SRD-GUI-043.012)."""
+    return QSettings("USSwing", "ScreenerDetail")
+
+
+class _DragBar(QFrame):
+    """Thin bar the user drags up or down; reports the move since the press."""
+
+    moved = pyqtSignal(int)
+    released = pyqtSignal()
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setObjectName("drag_bar")
+        self.setFixedHeight(6)
+        self.setCursor(Qt.CursorShape.SplitVCursor)
+        self.setToolTip("Drag to resize")
+        self._press_y: float | None = None
+
+    def paintEvent(self, event: QPaintEvent | None) -> None:
+        super().paintEvent(event)
+        _T: Any = active_palette()
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(QColor(_T.OVERLAY2))
+        painter.drawRoundedRect((self.width() - 40) // 2, (self.height() - 3) // 2, 40, 3, 1.5, 1.5)
+        painter.end()
+
+    def mousePressEvent(self, event: QMouseEvent | None) -> None:
+        if event is not None and event.button() == Qt.MouseButton.LeftButton:
+            self._press_y = event.globalPosition().y()
+
+    def mouseMoveEvent(self, event: QMouseEvent | None) -> None:
+        if event is not None and self._press_y is not None:
+            self.moved.emit(round(event.globalPosition().y() - self._press_y))
+
+    def mouseReleaseEvent(self, event: QMouseEvent | None) -> None:
+        if self._press_y is not None:
+            self._press_y = None
+            self.released.emit()
+
+
 class _ScoreBar(QWidget):
     """Thin bar filled to the score, in the tier colour (SRD-GUI-044.004)."""
 
@@ -1080,6 +1125,10 @@ class ListDetailView(QWidget):
         if chart_factory is None:
             self.chart_slot.hide()
         self._body.addWidget(self.chart_slot, 1)
+        self.tabs_bar = _DragBar()
+        self.tabs_bar.moved.connect(self._drag_tabs)
+        self.tabs_bar.released.connect(self._save_tabs_height)
+        self._body.addWidget(self.tabs_bar)
         self._body.addWidget(self._build_tabs())
         self._hide_company_sections()
 
@@ -1239,13 +1288,27 @@ class ListDetailView(QWidget):
             self._pages.addWidget(_tab_page(parts))
 
         box = QWidget()
-        box.setFixedHeight(_TABS_H)
+        saved = _detail_settings().value("tabs_height", _TABS_H, type=int)
+        box.setFixedHeight(max(_TABS_MIN_H, int(saved or _TABS_H)))
+        self._tabs_box = box
+        self._drag_start_h = box.height()
         vl = QVBoxLayout(box)
         vl.setContentsMargins(0, 0, 0, 0)
         vl.setSpacing(8)
         vl.addWidget(self.tabs)
         vl.addWidget(self._pages, 1)
         return box
+
+    def _drag_tabs(self, dy: int) -> None:
+        """Dragging the bar up makes the tabs taller (SRD-GUI-043.012)."""
+        detail = self._tabs_box.parentWidget()
+        top = int(detail.height() * 0.7) if detail is not None else _TABS_MIN_H
+        self._tabs_box.setFixedHeight(
+            max(_TABS_MIN_H, min(max(top, _TABS_MIN_H), self._drag_start_h - dy)))
+
+    def _save_tabs_height(self) -> None:
+        self._drag_start_h = self._tabs_box.height()
+        _detail_settings().setValue("tabs_height", self._drag_start_h)
 
     def _step(self, delta: int) -> None:
         row = self.list.currentRow() + delta

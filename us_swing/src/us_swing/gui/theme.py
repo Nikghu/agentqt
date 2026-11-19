@@ -1358,6 +1358,8 @@ QFrame#tree_footer {{ background: transparent; border: none; border-top: 1px sol
 QLabel#tree_folder_name {{ color: {text}; font-weight: bold; }}
 QLabel#tree_preset_name {{ color: {text}; }}
 QLabel#open_preset_name {{ color: {text}; font-weight: bold; }}
+QFrame#drag_bar {{ background: transparent; border: none; border-radius: 3px; }}
+QFrame#drag_bar:hover {{ background: {line}; }}
 QPushButton#more_btn::menu-indicator {{ image: none; width: 0; }}
 QLabel#card_symbol {{ color: {text}; font-size: 12pt; font-weight: bold; }}
 QWidget#result_detail, QWidget#rule_strip {{ background: transparent; }}

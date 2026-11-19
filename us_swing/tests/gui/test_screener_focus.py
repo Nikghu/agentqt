@@ -305,14 +305,15 @@ def test_plan_strip_over_chart(qtbot):
     assert order[0].layout() is not None
     assert order[1].widget().objectName() == "detail_plan"
     assert order[2].widget() is view.chart_slot
-    assert view.tabs in order[3].widget().findChildren(type(view.tabs))
+    assert order[3].widget() is view.tabs_bar
+    assert view.tabs in order[4].widget().findChildren(type(view.tabs))
 
 
 def test_chart_takes_free_height(qtbot):
     """UT-GUI-043.009.M03.T01: Chart takes the free height."""
     view = _detail(qtbot)
     stretches = [view._body.stretch(i) for i in range(view._body.count())]
-    assert stretches == [0, 0, 1, 0]
+    assert stretches == [0, 0, 1, 0, 0]
 
 
 def test_tabs_show_one_section(qtbot):
@@ -347,3 +348,23 @@ def test_volume_strip_drag_height():
     bridge.volume_height_changed.connect(got.append)
     bridge.set_volume_height(150)
     assert got == [150]
+
+
+def test_drag_tabs_taller(qtbot, tmp_path, monkeypatch):
+    """UT-GUI-043.012.M03.T01: Dragging the bar up makes the tabs taller; height kept."""
+    from us_swing.gui import screener_views as sv
+    ini = str(tmp_path / "detail.ini")
+    monkeypatch.setattr(sv, "_detail_settings",
+                        lambda: QSettings(ini, QSettings.Format.IniFormat))
+    view = _detail(qtbot)
+    view.resize(900, 1000)
+    view.show()
+    start = view._tabs_box.height()
+    view.tabs_bar.moved.emit(-100)
+    view.tabs_bar.released.emit()
+    assert view._tabs_box.height() == start + 100
+    view.tabs_bar.moved.emit(5000)
+    assert view._tabs_box.height() == sv._TABS_MIN_H
+    again = _detail(qtbot)
+    assert again._tabs_box.height() == start + 100
+
