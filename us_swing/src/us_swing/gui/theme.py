@@ -1358,6 +1358,13 @@ QFrame#tree_footer {{ background: transparent; border: none; border-top: 1px sol
 QLabel#tree_folder_name {{ color: {text}; font-weight: bold; }}
 QLabel#tree_preset_name {{ color: {text}; }}
 QLabel#open_preset_name {{ color: {text}; font-weight: bold; }}
+QFrame#tree_stepper {{ background: transparent; border: none; }}
+QComboBox#flat_combo {{
+    background: transparent; border: none; color: {sub}; padding: 0 2px 0 6px;
+    outline: none;
+}}
+QComboBox#flat_combo:hover {{ color: {text}; background: {hover}; }}
+QComboBox#flat_combo:focus {{ outline: none; }}
 QFrame#drag_bar {{ background: transparent; border: none; border-radius: 3px; }}
 QFrame#drag_bar:hover {{ background: {line}; }}
 QPushButton#more_btn::menu-indicator {{ image: none; width: 0; }}

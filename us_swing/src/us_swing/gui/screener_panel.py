@@ -167,7 +167,7 @@ def _view_settings() -> QSettings:
 
 
 # Left pane width (SRD-GUI-044.001); the stock list's top and bottom padding in theme QSS.
-_PANE_W = 320
+_PANE_W = 360
 _STOCK_LIST_PAD = 8
 
 
@@ -2207,6 +2207,9 @@ class ScreenerPanel(QWidget):
 
         # Saved-run stepper (SRD-GUI-022.009)
         self._run_stepper = RunStepper()
+        self._run_stepper.setObjectName("tree_stepper")
+        for arrow in (self._run_stepper.older_btn, self._run_stepper.newer_btn):
+            arrow.setFixedWidth(20)
         self._run_stepper.index_changed.connect(self._on_run_picked)
         self._type_tag = QLabel()
         self._type_tag.setObjectName("page_tag")
@@ -2215,23 +2218,29 @@ class ScreenerPanel(QWidget):
         self._mode_badge.setObjectName("page_tag")
         self._mode_badge.setVisible(False)
         self._sort_combo = QComboBox()
+        self._sort_combo.setObjectName("flat_combo")
         for key, label in SORT_KEYS:
             self._sort_combo.addItem(label, key)
-        self._sort_combo.setFixedWidth(96)
         self._sort_combo.setToolTip("Sort results")
         self._sort_combo.setAccessibleName("Sort results")
         self._sort_combo.currentIndexChanged.connect(self._refresh_views)
+        self._sort_combo.currentIndexChanged.connect(self._fit_sort_combo)
+        self._fit_sort_combo()
+        run_row = QHBoxLayout()
+        run_row.setSpacing(4)
+        run_row.addWidget(self._run_stepper)
+        run_row.addStretch(1)
+        run_row.addWidget(self._sort_combo)
         tag_row = QHBoxLayout()
         tag_row.setSpacing(4)
         tag_row.addWidget(self._type_tag, 0, Qt.AlignmentFlag.AlignVCenter)
         tag_row.addWidget(self._mode_badge, 0, Qt.AlignmentFlag.AlignVCenter)
         tag_row.addStretch(1)
-        tag_row.addWidget(self._sort_combo)
         controls = QWidget()
         cl = QVBoxLayout(controls)
-        cl.setContentsMargins(6, 4, 2, 4)
-        cl.setSpacing(6)
-        cl.addWidget(self._run_stepper, 0, Qt.AlignmentFlag.AlignLeft)
+        cl.setContentsMargins(2, 2, 2, 4)
+        cl.setSpacing(4)
+        cl.addLayout(run_row)
         cl.addLayout(tag_row)
 
         self._stock_list = self._list_view.detach_list()
@@ -2277,6 +2286,11 @@ class ScreenerPanel(QWidget):
         for action in (self._export_act, self._quick_act, self._tx_act):
             menu.addAction(action)
         return menu
+
+    def _fit_sort_combo(self) -> None:
+        """Size Sort to its current choice so it sits at the right edge of the date line."""
+        text = self._sort_combo.currentText()
+        self._sort_combo.setFixedWidth(self._sort_combo.fontMetrics().horizontalAdvance(text) + 44)
 
     def _toggle_open_branch(self) -> None:
         is_open = self._open_branch.isHidden()

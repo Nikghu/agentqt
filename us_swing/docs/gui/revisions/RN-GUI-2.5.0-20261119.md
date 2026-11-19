@@ -21,7 +21,7 @@ The same session also added a drag bar between the chart and the detail tabs to 
 | MD ID | File | Change |
 |---|---|---|
 | MD-GUI-044.001.M01 | `src/us_swing/gui/screener_tree.py` | New: folder row, preset row, branch frame, folder for a preset |
-| MD-GUI-044.001.M02 | `src/us_swing/gui/screener_panel.py` | Left pane rebuilt as a 320 px tree; search box, collapse all, saved closed folders, status line; hide strip, chips, card and old preset list removed |
+| MD-GUI-044.001.M02 | `src/us_swing/gui/screener_panel.py` | Left pane rebuilt as a 360 px tree; search box, collapse all, saved closed folders, status line; hide strip, chips, card and old preset list removed |
 | MD-GUI-044.001.M02 | `assets/icons/folder.svg`, `assets/icons/chevrons-down-up.svg` | New icons |
 | MD-GUI-044.004.M03 | `src/us_swing/gui/screener_views.py` | One-line stock row with `_ScoreBar`; `STOCK_ROW_H` |
 | MD-GUI-044.001.M02 | `src/us_swing/gui/theme.py` | Tree row, branch guide line and footer rules; open card rules removed |
@@ -48,7 +48,7 @@ The same session also added a drag bar between the chart and the detail tabs to 
 - Ready-made presets get their own folder; search box opens from 🔍; closed folders are remembered (user, 2026-11-19).
 - A preset goes to the folder of its first ticked trading style (Swing, Day, Position order); none ticked → Swing. Fixed after the user saw a Day preset stay in Swing (the tree read a wrong field).
 - Trading Style in Edit Preset allows one choice only (SRD-GUI-042.007, user request); this changes "check multiple" in SRD-SCR-007.011.
-- Pane widened from 300 to 320 px so the tag line and Sort fit.
+- Pane widened from 300 to 360 px (user asked for more width); date and Sort share one borderless line, tags on the next.
 - Opening a preset opens its folder; folder clicks during a search are not saved; Collapse all closes the search first (review fixes).
 
 ---
