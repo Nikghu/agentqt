@@ -1,10 +1,11 @@
 # Software Requirements Document — GUI Module (GUI)
 
 **Document ID:** SRD-GUI
-**Version:** 2.137.0
+**Version:** 2.137.1
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-11-19
+> v2.137.1: SRD-GUI-045.001–.005 approved by user 2026-11-20; Implemented.
 > v2.137.0: SRD-GUI-045.001–.005 added as Draft — chart plan strategy (user answers 2026-11-20).
 > v2.136.2: SRD-GUI-044.008–.010 Implemented.
 > v2.136.1: SRD-GUI-044.008–.010 approved by user 2026-11-19.
@@ -847,8 +848,8 @@ One phase. No engine change: uses the existing include scope, rex count and perc
 
 | ID | Parent | P | Description | In | Out | Constraints | Status |
 |---|---|---|---|---|---|---|---|
-| SRD-GUI-045.001 | FO-GUI-045 | Must | Send to Execution with a valid long plan adds the pick and saves the strategy "Chart plan - SYM" for that stock only. | Entry, Stop, Target | strategy row | Auto, no approval, running, long, Positional, trades once; no valid plan adds the pick only | Draft |
-| SRD-GUI-045.002 | FO-GUI-045 | Must | The strategy buys when a 3-minute candle closes above Entry, on today's date only. | 3m close | entry signal | 09:30–16:00 New York, Mon–Fri | Draft |
-| SRD-GUI-045.003 | FO-GUI-045 | Must | Stop and target are saved as percent of the buy price, measured from the plan Entry. | plan | stop %, target % | Size = Inspector risk size as a whole capital percent, 1–100 | Draft |
-| SRD-GUI-045.004 | FO-GUI-045 | Must | Sending again replaces the stock's chart plan, unless its trade is open. | resend | strategy row or message | Message "SYM already has an open chart plan trade" | Draft |
-| SRD-GUI-045.005 | FO-GUI-045 | Must | A chart plan is removed when its trade closes, when its pick is removed, or at the next start after its day. | close, remove, start | — | Never removed while its trade is open; trade count cleared; Strategies tab reloads | Draft |
+| SRD-GUI-045.001 | FO-GUI-045 | Must | Send to Execution with a valid long plan adds the pick and saves the strategy "Chart plan - SYM" for that stock only. | Entry, Stop, Target | strategy row | Auto, no approval, running, long, Positional, trades once; no valid plan adds the pick only | Implemented |
+| SRD-GUI-045.002 | FO-GUI-045 | Must | The strategy buys when a 3-minute candle closes above Entry, on today's date only. | 3m close | entry signal | 09:30–16:00 New York, Mon–Fri | Implemented |
+| SRD-GUI-045.003 | FO-GUI-045 | Must | Stop and target are saved as percent of the buy price, measured from the plan Entry. | plan | stop %, target % | Size = Inspector risk size as a whole capital percent, 1–100 | Implemented |
+| SRD-GUI-045.004 | FO-GUI-045 | Must | Sending again replaces the stock's chart plan, unless its trade is open. | resend | strategy row or message | Message "SYM already has an open chart plan trade" | Implemented |
+| SRD-GUI-045.005 | FO-GUI-045 | Must | A chart plan is removed when its trade closes, when its pick is removed, or at the next start after its day. | close, remove, start | — | Never removed while its trade is open; trade count cleared; Strategies tab reloads | Implemented |

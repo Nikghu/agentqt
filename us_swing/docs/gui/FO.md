@@ -1,12 +1,13 @@
 # Functional Overview — GUI Module (GUI)
 
 **Document ID:** FO-GUI
-**Version:** 2.35.0
+**Version:** 2.35.1
 **Traces To:** requirements.md §21, §22, §23.3, §24, §25, §28.1, §29.1, §32
 **Status:** Draft
 **Last Updated:** 2026-11-20
 **Project:** US Swing Trading System
 
+> v2.35.1: FO-GUI-045 approved by user 2026-11-20.
 > v2.35.0: FO-GUI-045 Chart plan strategy added as Draft (user answers, 2026-11-20).
 > v2.34.1: FO-GUI-044 approved by user 2026-11-19.
 > v2.34.0: FO-GUI-044 Screener preset tree added as Draft (user, 2026-11-19).
@@ -1059,7 +1060,7 @@ The system shall show the Screener left pane as one tree: style folders, presets
 
 ## FO-GUI-045: Chart Plan Strategy
 
-**Status:** Draft
+**Status:** Approved (user, 2026-11-20)
 **Priority:** Should
 **Depends on:** FO-GUI-026 (Charts Focus + Inspector), FO-EXE-011 (strategy engine)
 **Source:** user answers 2026-11-20 — percent stop and target, buy on 3m close above Entry, auto trade, 1% risk size, hold overnight, removed at day end.
