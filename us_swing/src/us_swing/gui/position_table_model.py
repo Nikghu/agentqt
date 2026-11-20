@@ -1,6 +1,7 @@
 """
 Module: MD-GUI-002.001.M02 — position_table_model.py
-Parent SRD: SRD-GUI-002.001, SRD-GUI-002.002, SRD-GUI-025.016, SRD-GUI-025.017
+Parent SRD: SRD-GUI-002.001, SRD-GUI-002.002, SRD-GUI-025.016, SRD-GUI-025.017,
+SRD-GUI-019.013
 
 QAbstractTableModel implementations for positions and trade history.
 """
@@ -55,6 +56,14 @@ class PositionTableModel(QAbstractTableModel):
         self.endResetModel()
 
     def refresh(self, positions: list[OpenPosition]) -> None:
+        """Show ``positions``; a price-only update keeps the selected row."""
+        keys = [(p.symbol, p.user_id) for p in positions]
+        if self._rows and keys == [(p.symbol, p.user_id) for p in self._rows]:
+            self._rows = positions
+            self.dataChanged.emit(
+                self.index(0, 0), self.index(len(self._rows) - 1, self.columnCount() - 1)
+            )
+            return
         self.beginResetModel()
         self._rows = positions
         self._highlighted_row = -1

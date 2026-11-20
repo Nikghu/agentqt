@@ -1,12 +1,13 @@
 # Unit Test Case Document â€” GUI Module (GUI)
 
 **Document ID:** UTCD-GUI
-**Version:** 1.57.0
+**Version:** 1.57.1
 **Traces To:** MD-GUI v1.7.0
 **Status:** Draft
 **Last Updated:** 2026-11-17
 **Project:** US Swing Trading System
 
+> v1.57.1: UT-GUI-019.013.M02.T03–T04 added — price updates no longer clear the Positions selection.
 > v1.57.0: UT-GUI-019.012–.017 rows added (12) — Dashboard exit and stop through strategy trades.
 > v1.56.0: UT-GUI-045.007–.008 rows added; UT-GUI-026.006.M03.T01–T04 now use available capital; UT-GUI-045.001.M01.T02 Removed (SRD-GUI-045.007–.008).
 > v1.55.1: UT-GUI-045.006.M02.T01 added; UT-GUI-026.010.M01.T01–T02 now send the plan (SRD-GUI-045.006).
@@ -653,6 +654,8 @@ Test files:
 | UT-GUI-019.014.M01.T02 | MD-GUI-019.012.M01 | Negative | A rejected stop shows its error and the popup stays open | stop 500 above price | error shown; stop unchanged | Pass |
 | UT-GUI-019.013.M02.T01 | MD-GUI-019.013.M02 | Positive | Exit on a strategy stock confirms, then exits that trade | DIS with WTrend trade, live, Yes | `force_exit_cycle(id, "manual")` once; no drawer | Pass |
 | UT-GUI-019.013.M02.T02 | MD-GUI-019.013.M02 | Negative | Saying No sends no order | confirm No | no exit | Pass |
+| UT-GUI-019.013.M02.T03 | MD-GUI-019.013.M02 | Positive | A price update keeps the selected row, so Exit still acts | select DIS; prices tick; Exit | row still selected; trade exit sent | Pass |
+| UT-GUI-019.013.M02.T04 | MD-GUI-019.013.M02 | Edge | A changed stock list still reloads the table | DIS → DIS + EW | 2 rows; selection cleared | Pass |
 | UT-GUI-019.014.M02.T01 | MD-GUI-019.013.M02 | Positive | Stop / Trail on a strategy stock opens the trade editor popup | Details Stop / Trail | popup for that trade; no exit | Pass |
 | UT-GUI-019.017.M02.T01 | MD-GUI-019.013.M02 | Negative | A manual stock in live mode shows the TWS message only | DIS, no trade, live | message; no drawer; no exit | Pass |
 | UT-GUI-019.017.M02.T02 | MD-GUI-019.013.M02 | Positive | A manual stock in paper mode keeps the Exit drawer | DIS, no trade, paper | drawer opens | Pass |

@@ -167,6 +167,27 @@ def test_exit_confirmed_sends_trade_exit(qtbot, settings, cycles):
     assert panel._drawer_pos is None
 
 
+def test_exit_works_after_price_update(qtbot, settings, cycles):
+    """UT-GUI-019.013.M02.T03: A price update keeps the selected row, so Exit still acts."""
+    snap = _fill(cycles)
+    panel, svc = _dash(qtbot, settings, cycles, [_pos(), _pos("EW")])
+    ticked = [_pos(), _pos("EW")]
+    ticked[0].current_price = 121.5
+    panel._pos_model.refresh(ticked)
+    assert [i.row() for i in panel._pos_view.selectionModel().selectedRows()] == [0]
+    with patch("us_swing.gui.dashboard_panel.confirm", return_value=True):
+        panel.open_exit(0)
+    svc.force_exit_cycle.assert_called_once_with(snap.cycle_id, "manual")
+
+
+def test_new_stock_list_resets_rows(qtbot, settings, cycles):
+    """UT-GUI-019.013.M02.T04: A changed stock list still reloads the table."""
+    panel, _svc = _dash(qtbot, settings, cycles, [_pos()])
+    panel._pos_model.refresh([_pos(), _pos("EW")])
+    assert panel._pos_model.rowCount() == 2
+    assert panel._pos_view.selectionModel().selectedRows() == []
+
+
 def test_exit_cancelled_sends_nothing(qtbot, settings, cycles):
     """UT-GUI-019.013.M02.T02: Saying No to the confirm sends no order."""
     _fill(cycles)

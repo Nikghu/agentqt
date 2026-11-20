@@ -72,7 +72,7 @@
 | FO-GUI-019 | SRD-GUI-019.010 | — | MD-GUI-019.010.M03 | UT-GUI-019.010.M03.T01–T02 | `gui/main_window.py` | Implemented | RN-GUI-1.56.4-20261103 |
 | FO-GUI-019 | SRD-GUI-019.011 | — | MD-GUI-019.011.M03 | UT-GUI-019.011.M03.T01 | `gui/main_window.py` | Draft | — |
 | FO-GUI-019 | SRD-GUI-019.012 | — | MD-GUI-019.012.M01 | UT-GUI-019.012.M01.T01 | `gui/position_trades.py` | Implemented | — |
-| FO-GUI-019 | SRD-GUI-019.013 | — | MD-GUI-019.013.M02 | UT-GUI-019.013.M01.T01, UT-GUI-019.013.M02.T01–T02 | `gui/dashboard_panel.py` | Implemented | — |
+| FO-GUI-019 | SRD-GUI-019.013 | — | MD-GUI-019.013.M02 | UT-GUI-019.013.M01.T01, UT-GUI-019.013.M02.T01–T04 | `gui/dashboard_panel.py`, `gui/position_table_model.py` | Implemented | — |
 | FO-GUI-019 | SRD-GUI-019.014 | — | MD-GUI-019.012.M01 | UT-GUI-019.014.M01.T01–T02, UT-GUI-019.014.M02.T01 | `gui/position_trades.py` | Implemented | — |
 | FO-GUI-019 | SRD-GUI-019.015 | — | MD-GUI-019.012.M01 | UT-GUI-019.015.M01.T01–T02 | `gui/position_trades.py` | Implemented | — |
 | FO-GUI-019 | SRD-GUI-019.016 | — | MD-GUI-019.013.M02 | UT-GUI-019.016.M02.T01 | `gui/dashboard_panel.py` | Implemented | — |
