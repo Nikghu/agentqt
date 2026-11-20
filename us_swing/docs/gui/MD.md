@@ -1,12 +1,13 @@
 # Module Decomposition — GUI Module (GUI)
 
 **Document ID:** MD-GUI
-**Version:** 1.63.0
+**Version:** 1.64.0
 **Traces To:** SRD-GUI v2.16.0 / DD-GUI v1.7.0
 **Status:** Draft
-**Last Updated:** 2026-11-18
+**Last Updated:** 2026-11-20
 **Project:** US Swing Trading System
 
+> v1.64.0: MD-GUI-045.001.M01 chart plan strategy builder; AppService chart plan methods (SRD-GUI-045.001–.005).
 > v1.63.0: MD-GUI-022.001.M01 — Stock data / Top picks only tick groups with 5 new ticks; company tags, Fundamentals line, Analyst changes list, Bull vs bear box (SRD-GUI-022.020–.021).
 > v1.62.0: MD-GUI-022.001.M01 — News tone / Web research ticks; news chip, News list, Web research box (SRD-GUI-022.018–.019).
 > v1.61.0: MD-GUI-022.001.M01 — context tick boxes in Edit Preset; `ResultRow.context` / `flags`, context chips, Red flags section, ⚑ count (SRD-GUI-022.016–.017).
@@ -456,3 +457,5 @@ us_swing/src/us_swing/gui/
 | MD-GUI-044.001.M01 | SRD-GUI-044.001 | `us_swing/src/us_swing/gui/screener_tree.py` | Tree rows: folder row, preset row, branch frame, folder for a preset | `FolderRow`, `PresetRow`, `TreeRow`, `branch()`, `folder_key()`, `FOLDERS` | `icons` | No |
 | MD-GUI-044.001.M02 | SRD-GUI-044.001 | `us_swing/src/us_swing/gui/screener_panel.py` | Left pane as a preset tree: folders, open preset in place, search box, collapse all, status line | `ScreenerPanel._populate_preset_list()`, `_add_folder()`, `_toggle_folder()`, `_collapse_all()`, `_set_search_open()`, `_fit_stock_list()` | `screener_tree`, `screener_views` | No |
 | MD-GUI-044.004.M03 | SRD-GUI-044.004 | `us_swing/src/us_swing/gui/screener_views.py` | One-line stock row with a score bar | `_ListRow`, `_ScoreBar`, `STOCK_ROW_H` | `theme` | No |
+| MD-GUI-045.001.M01 | SRD-GUI-045.001 | `us_swing/src/us_swing/gui/chart_plan.py` | Builds the one-stock chart plan strategy: entry rule, percent stop and target, risk size | `build_chart_plan()`, `capital_pct()`, `chart_plan_name()`, `is_expired()` | `strategy_store`, `chart_inspector.plan_size` | No |
+| MD-GUI-045.001.M02 | SRD-GUI-045.001 | `us_swing/src/us_swing/gui/app_service.py`, `gui/chart_workspace.py`, `gui/strategies_pane.py` | Send saves or replaces the plan; removed on trade close, pick removal or start after its day; Strategies tab reloads | `AppService.send_chart_plan()`, `purge_old_chart_plans()`, `_drop_chart_plans()`, `strategies_changed`, `ChartWorkspace._on_send()` | `chart_plan`, `manual_picks_store` | No |

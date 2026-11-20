@@ -456,7 +456,13 @@ class ChartWorkspace(QWidget):
             self._draw_plan(plan)
 
     def _on_send(self, symbol: str) -> None:
-        message = self._svc.add_manual_pick(symbol)
+        plan = self._plan_for(symbol)
+        if plan is None:
+            message: str | None = "Set Entry, Stop and Target with Edit first"
+        elif plan_rr(*plan.levels) is None:
+            message = "Stop must be below Entry and Target above Entry"
+        else:
+            message = self._svc.send_chart_plan(symbol, *plan.levels, self._risk()[0])
         if message:
             self.inspector.show_message(message)
             return

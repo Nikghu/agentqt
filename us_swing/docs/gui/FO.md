@@ -1,12 +1,14 @@
 # Functional Overview — GUI Module (GUI)
 
 **Document ID:** FO-GUI
-**Version:** 2.34.1
+**Version:** 2.35.1
 **Traces To:** requirements.md §21, §22, §23.3, §24, §25, §28.1, §29.1, §32
 **Status:** Draft
-**Last Updated:** 2026-11-19
+**Last Updated:** 2026-11-20
 **Project:** US Swing Trading System
 
+> v2.35.1: FO-GUI-045 approved by user 2026-11-20.
+> v2.35.0: FO-GUI-045 Chart plan strategy added as Draft (user answers, 2026-11-20).
 > v2.34.1: FO-GUI-044 approved by user 2026-11-19.
 > v2.34.0: FO-GUI-044 Screener preset tree added as Draft (user, 2026-11-19).
 > v2.33.0: FO-GUI-043 Screener focus layout added as Draft (user, 2026-11-19).
@@ -1055,3 +1057,22 @@ The system shall show the Screener left pane as one tree: style folders, presets
 1. Clicking a preset opens it under its folder and closes the one that was open.
 2. Clicking a stock in the tree shows that stock on the right.
 3. Folder open or closed state is the same after a restart.
+
+## FO-GUI-045: Chart Plan Strategy
+
+**Status:** Approved (user, 2026-11-20)
+**Priority:** Should
+**Depends on:** FO-GUI-026 (Charts Focus + Inspector), FO-EXE-011 (strategy engine)
+**Source:** user answers 2026-11-20 — percent stop and target, buy on 3m close above Entry, auto trade, 1% risk size, hold overnight, removed at day end.
+
+The system shall turn the Charts trade plan into a one-time auto strategy when the user sends the stock to Execution.
+
+- The system shall save a strategy for that one stock that buys once today when a 3-minute candle closes above the plan Entry.
+- The system shall set its stop, target and size from the plan and the user's risk per trade.
+- The system shall remove the strategy when its trade closes, when the pick is removed, or after the day if it never bought.
+
+### Acceptance Criteria
+
+1. Send with a plan shows "Chart plan - SYM" in Strategies, running in Auto.
+2. A 3m close above Entry opens one trade with the plan's stop and target.
+3. The strategy is gone after its trade closes, or the next day if it never bought.

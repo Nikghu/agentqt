@@ -127,6 +127,7 @@ class StrategiesPane(QWidget):
         # Used only for status_for(): RUNNING when an open cycle forces it.
         self._model = StrategyTableModel(self)
         demo.strategy_status_changed.connect(self._on_engine_status)
+        demo.strategies_changed.connect(self._on_strategies_changed)
 
         self.tools = self._build_tools()
 
@@ -358,6 +359,10 @@ class StrategiesPane(QWidget):
             lambda name: self._demo.get_strategy_pnl(name, None),
             lambda name: len(self._demo.get_open_symbols_for_strategy(name)),
         )
+
+    def _on_strategies_changed(self) -> None:
+        self._configs = load_strategies()
+        self._refresh_table(select=self._selected)
 
     def _refresh_table(self, select: str | None = None, open_selected: bool = False) -> None:
         """Reload both views; keep (or move to) the selected strategy."""

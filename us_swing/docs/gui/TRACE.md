@@ -1,9 +1,9 @@
 # Traceability Matrix — GUI Module (GUI)
 
 **Document ID:** TRACE-GUI
-**Version:** 1.19.0
+**Version:** 1.20.0
 **Project:** US Swing Trading System
-**Last Updated:** 2026-11-19 (FO-GUI-044 Screener preset tree rows added. Earlier: FO-GUI-043 Screener focus layout rows added (Phases 1–2). Earlier: FO-GUI-042 Edit Preset side navigation rows added, RN-GUI-2.3.0-20261118. Earlier: SRD-GUI-004.014 row added, ISS-GUI-0021. Earlier: AI Desk and Market Floor removed: FO-GUI-034 to FO-GUI-041 rows dropped; SRD-GUI-029.007–.008 now trace to DD-GUI-029.007.D01; see docs/audit/DESK_REMOVAL_2026-11-17.md)
+**Last Updated:** 2026-11-20 (FO-GUI-045 Chart plan strategy rows added. Earlier: FO-GUI-044 Screener preset tree rows added. Earlier: FO-GUI-043 Screener focus layout rows added (Phases 1–2). Earlier: FO-GUI-042 Edit Preset side navigation rows added, RN-GUI-2.3.0-20261118. Earlier: SRD-GUI-004.014 row added, ISS-GUI-0021. Earlier: AI Desk and Market Floor removed: FO-GUI-034 to FO-GUI-041 rows dropped; SRD-GUI-029.007–.008 now trace to DD-GUI-029.007.D01; see docs/audit/DESK_REMOVAL_2026-11-17.md)
 
 ---
 
@@ -131,6 +131,7 @@
 | FO-GUI-042 | SRD-GUI-042.001–.007 | DD-GUI-042.001.D01 | MD-GUI-042.001.M01 | UT-GUI-042.001.M01.T01, .002.M01.T01, .003.M01.T01–T03, .004.M01.T01, .005.M01.T01–T03, .006.M01.T01, .007.M01.T01 (11, Pass) | `gui/screener_panel.py` | Implemented | RN-GUI-2.3.0-20261118, RN-GUI-2.5.0-20261119 |
 | FO-GUI-043 | SRD-GUI-043.001–.012 | DD-GUI-043.001.D01 | MD-GUI-043.001.M01, MD-GUI-043.003.M02, MD-GUI-043.007.M03, MD-GUI-043.011.M04 | UT-GUI-043.001.M01.T01–T03, .002.M01.T01, .003.M01.T01, .003.M02.T01–T02, .004.M01.T01, .005.M01.T01, .006.M01.T01, .007.M03.T01–T02, .008.M03.T01, .009.M03.T01, .010.M03.T01–T02, .011.M04.T01, .012.M03.T01 (18, Pass) | `gui/screener_panel.py`, `gui/screener_views.py`, `gui/chart_panel.py` | Implemented | RN-GUI-2.4.0-20261119, RN-GUI-2.5.0-20261119 |
 | FO-GUI-044 | SRD-GUI-044.001–.010 | DD-GUI-044.001.D01 | MD-GUI-044.001.M01, MD-GUI-044.001.M02, MD-GUI-044.004.M03 | UT-GUI-044.001.M02.T01–T02, .002.M02.T01–T04, .003.M02.T01–T02, .004.M03.T01, .004.M02.T01, .005.M02.T01–T03, .006.M02.T01, .007.M02.T01, .009.M02.T01, .010.M02.T01–T03 (19, Pass) | `gui/screener_tree.py`, `gui/screener_panel.py`, `gui/screener_views.py` | Implemented | RN-GUI-2.5.0-20261119 |
+| FO-GUI-045 | SRD-GUI-045.001–.006 | — (no DD, minimal GUI docs) | MD-GUI-045.001.M01, MD-GUI-045.001.M02 | UT-GUI-045.001.M01.T01–T08, UT-GUI-045.006.M02.T01 (9, Pass) | `gui/chart_plan.py`, `gui/app_service.py`, `gui/chart_workspace.py`, `gui/strategies_pane.py` | Implemented | RN-GUI-2.6.0-20261120 |
 
 ---
 
@@ -188,6 +189,7 @@
 | `gui/screener_panel.py` (Edit Preset side navigation) | MD-GUI-042.001.M01 | SRD-GUI-042.001–.007 | FO-GUI-042 |
 | `gui/screener_panel.py`, `gui/screener_views.py` (Screener focus layout) | MD-GUI-043.001.M01, MD-GUI-043.003.M02, MD-GUI-043.007.M03 | SRD-GUI-043.001–.010 | FO-GUI-043 |
 | `gui/screener_tree.py`, `gui/screener_panel.py`, `gui/screener_views.py` (Screener preset tree) | MD-GUI-044.001.M01, MD-GUI-044.001.M02, MD-GUI-044.004.M03 | SRD-GUI-044.001–.010 | FO-GUI-044 |
+| `gui/chart_plan.py`, `gui/app_service.py`, `gui/chart_workspace.py`, `gui/strategies_pane.py` (Chart plan strategy) | MD-GUI-045.001.M01, MD-GUI-045.001.M02 | SRD-GUI-045.001–.006 | FO-GUI-045 |
 
 ---
 

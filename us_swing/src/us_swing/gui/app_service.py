@@ -1263,6 +1263,7 @@ class AppService(QObject):
     _auto_exit_requested      = pyqtSignal(int, str)       # (cycle_id, reason) — cross-thread marshal
     _arm_candle_feeds_requested = pyqtSignal(object)       # list[str] — cross-thread marshal (ISS-EXE-0009)
     _clear_pending_exits_requested = pyqtSignal(str, str)  # (strategy_id, symbol) — marshal (ISS-EXE-0010)
+    strategies_changed = pyqtSignal()  # saved strategy list changed outside the Strategies tab
 
     def __init__(self, parent: QObject | None = None) -> None:
         super().__init__(parent)
@@ -1607,6 +1608,7 @@ class AppService(QObject):
             parent=self,
         )
         self._strategy_engine.start()
+        self.purge_old_chart_plans()
         self._event_bus.event_published.connect(self._on_strategy_event)
         self.live_bar_data_updated.connect(self._strategy_engine.on_candle_closed)
 
@@ -1930,6 +1932,81 @@ class AppService(QObject):
         listed = {e.symbol for e in self.get_latest_screener_results()}
         if symbol not in listed and symbol not in self._cycle_symbols:
             self._filtered_symbols = [s for s in self._filtered_symbols if s != symbol]
+        self._drop_chart_plans(lambda cfg: cfg.symbols_include == [symbol])
+
+    # ── Chart plan strategy (SRD-GUI-045.001 – .005) ──────────────────────────
+
+    def send_chart_plan(self, symbol: str, entry: float, stop: float, target: float,
+                        risk_pct: float) -> str | None:
+        """Add *symbol* to the picks and save a one-trade auto strategy from its plan.
+
+        Returns:
+            A message for the user when nothing was saved, else None.
+        """
+        from us_swing.gui.chart_plan import build_chart_plan, capital_pct, chart_plan_name
+        from us_swing.gui.strategy_store import load_strategies, save_strategies
+
+        sym = symbol.strip().upper().replace(" ", ".")
+        if sym not in load_manual_picks(str(self._active_uid)):
+            message = self.add_manual_pick(sym)
+            if message:
+                return message
+        name = chart_plan_name(sym)
+        if self.get_open_symbols_for_strategy(name):
+            return f"{sym} already has an open chart plan trade"
+        try:
+            equity = float(self.get_account_state().equity)
+        except Exception:  # noqa: BLE001
+            equity = 0.0
+        pct = capital_pct(entry, stop, risk_pct, equity, self.effective_capital())
+        cfg = build_chart_plan(sym, entry, stop, target, pct, self._market_today())
+        configs = [c for c in load_strategies() if c.name != name] + [cfg]
+        save_strategies(configs)
+        self._reset_rex(name)
+        self._after_strategies_saved()
+        _log.info("[Execution] Chart plan for %s saved — buys once above %.2f today", sym, entry)
+        return None
+
+    def purge_old_chart_plans(self) -> None:
+        """Remove chart plans whose buy day is over and that hold no open trade."""
+        from us_swing.gui.chart_plan import is_expired
+
+        today = self._market_today()
+        self._drop_chart_plans(lambda cfg: is_expired(cfg, today))
+
+    def _drop_chart_plans(self, match: Callable[[Any], bool]) -> None:
+        from us_swing.gui.chart_plan import is_chart_plan
+        from us_swing.gui.strategy_store import load_strategies, save_strategies
+
+        configs = load_strategies()
+        gone = [c.name for c in configs
+                if is_chart_plan(c) and match(c) and not self.get_open_symbols_for_strategy(c.name)]
+        if not gone:
+            return
+        save_strategies([c for c in configs if c.name not in gone])
+        for name in gone:
+            self._reset_rex(name)
+            _log.info("[Execution] %s removed", name)
+        self._after_strategies_saved()
+
+    def _reset_rex(self, name: str) -> None:
+        if self._rex_counters is None:
+            return
+        try:
+            self._rex_counters.reset(name)
+        except Exception:  # noqa: BLE001
+            _log.warning("[Execution] Could not clear the trade count for %s", name)
+
+    def _after_strategies_saved(self) -> None:
+        engine = getattr(self, "_strategy_engine", None)
+        if engine is not None:
+            engine.reload_registry()
+        self.strategies_changed.emit()
+
+    def _market_today(self) -> datetime.date:
+        from zoneinfo import ZoneInfo
+
+        return datetime.datetime.now(ZoneInfo("America/New_York")).date()
 
     def _refresh_after_pick_change(self) -> None:
         """Re-emit the Execution list without the "screener approved" notification."""
@@ -3705,6 +3782,7 @@ class AppService(QObject):
 
     def _clear_pending_exits(self, strategy_id: str, symbol: str) -> None:
         """Drop any pending exit signal for a position that just closed (GUI thread)."""
+        self._drop_chart_plans(lambda cfg: cfg.name == strategy_id)
         if self._pending_store is None:
             return
         from us_swing.execution.strategy_engine import Action

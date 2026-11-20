@@ -1,12 +1,14 @@
 # Unit Test Case Document â€” GUI Module (GUI)
 
 **Document ID:** UTCD-GUI
-**Version:** 1.54.0
+**Version:** 1.55.1
 **Traces To:** MD-GUI v1.7.0
 **Status:** Draft
 **Last Updated:** 2026-11-17
 **Project:** US Swing Trading System
 
+> v1.55.1: UT-GUI-045.006.M02.T01 added; UT-GUI-026.010.M01.T01–T02 now send the plan (SRD-GUI-045.006).
+> v1.55.0: UT-GUI-045.001.M01.T01–T08 rows added (FO-GUI-045 chart plan strategy).
 > v1.54.0: UT-GUI-044.001–.007 rows added (14) (FO-GUI-044); 8 UT-GUI-043 rows marked Removed.
 > v1.53.0: UT-GUI-022.020.M01.T01, UT-GUI-022.021.M01.T01–T02 added (SRD-GUI-022.020–.021).
 > v1.52.0: UT-GUI-022.018.M01.T01, UT-GUI-022.019.M01.T01–T02 added (SRD-GUI-022.018–.019).
@@ -846,8 +848,8 @@ Test files:
 | UT-GUI-026.008.M03.T04 | MD-GUI-026.005.M03 | Positive | Pattern eye shows and hides its marker | click a pattern's eye twice | no markers, then that one marker, then none | Pass |
 | UT-GUI-026.009.M03.T01 | MD-GUI-026.005.M03 | Positive | Nearest swing levels | bars with pivots 110, 120, 135 and close 125; tick Show on chart | above [135]; below [120, 110]; `levels_changed` [] then all three | Pass |
 | UT-GUI-026.009.M03.T02 | MD-GUI-026.005.M03 | Edge | Too few bars give no levels | 5 bars | ([], []) | Pass |
-| UT-GUI-026.010.M01.T01 | MD-GUI-026.001.M01 | Positive | Send to Execution adds pick | click Send to Execution; `add_manual_pick` returns None | called with "NVDA"; `execution_requested("NVDA")`; no message | Pass |
-| UT-GUI-026.010.M01.T02 | MD-GUI-026.001.M01 | Negative | Existing pick shows message | `add_manual_pick` returns "NVDA is already in your picks" | message shown; no `execution_requested` | Pass |
+| UT-GUI-026.010.M01.T01 | MD-GUI-026.001.M01 | Positive | Send to Execution sends the plan | plan 100 / 95 / 110; click Send; `send_chart_plan` returns None | called with "NVDA", 100, 95, 110; `execution_requested("NVDA")`; no message | Pass |
+| UT-GUI-026.010.M01.T02 | MD-GUI-026.001.M01 | Negative | Refused send shows message | `send_chart_plan` returns "NVDA already has an open chart plan trade" | message shown; no `execution_requested` | Pass |
 | UT-GUI-026.012.M04.T01 | MD-GUI-026.012.M04 | Positive | Save and load drawings | in-memory SQLite; save trend + hline for NVDA 1d | load NVDA 1d returns both with same points | Pass |
 | UT-GUI-026.012.M04.T02 | MD-GUI-026.012.M04 | Negative | Other symbol or timeframe sees none | load NVDA 1w; load AMD 1d | [] and [] | Pass |
 | UT-GUI-026.012.M04.T03 | MD-GUI-026.012.M04 | Positive | Delete all clears one chart only | delete_all NVDA 1d | NVDA 1d []; NVDA 1w kept | Pass |
@@ -1174,3 +1176,12 @@ Test files:
 | UT-GUI-044.010.M02.T01 | MD-GUI-044.001.M02 | Positive | Several presets open | open A, then B; click 2nd stock of A's preview | A preview 3 stocks; Run on B row; A active with that stock selected | Pass |
 | UT-GUI-044.010.M02.T02 | MD-GUI-044.001.M02 | Negative | Chevron closes | open A, B; chevron on active twice; chevron on C | A active; none active, date hidden; C open | Pass |
 | UT-GUI-044.010.M02.T03 | MD-GUI-044.001.M02 | Edge | Open presets kept | open C, A; new panel | C and A open, A active | Pass |
+| UT-GUI-045.001.M01.T01 | MD-GUI-045.001.M02 | Positive | Send saves the chart plan | VRSN 310 / 300 / 330, risk 1% | "Chart plan - VRSN", include VRSN, auto, running, Positional, rex 0, stop 3.23%, target 6.45%, today only; pick added | Pass |
+| UT-GUI-045.001.M01.T02 | MD-GUI-045.001.M01 | Positive | Risk size as capital % | 310 / 300, equity and capital 100,000; stop 309; capital 0 | 31; 100 (capped); 1 | Pass |
+| UT-GUI-045.001.M01.T03 | MD-GUI-045.001.M02 | Negative | Refused pick saves nothing | XYZ not in universe | message shown; no chart plan | Pass |
+| UT-GUI-045.001.M01.T04 | MD-GUI-045.001.M02 | Edge | Resend replaces; open trade blocks | send 310, then 312; open trade; send 320 | entry 312; message "VRSN already has an open chart plan trade"; entry stays 312 | Pass |
+| UT-GUI-045.001.M01.T05 | MD-GUI-045.001.M02 | Positive | Pick removal removes the plan | VRSN and AAPL plans, AAPL trade open; remove both picks | only AAPL plan left; VRSN trade count cleared | Pass |
+| UT-GUI-045.001.M01.T06 | MD-GUI-045.001.M02 | Positive | Trade close removes the plan | VRSN plan; its trade closes | no chart plan; Strategies told to reload | Pass |
+| UT-GUI-045.001.M01.T07 | MD-GUI-045.001.M02 | Edge | Start removes past-day plans only | yesterday AAPL plan, today VRSN plan, other strategy | Breakout and VRSN plan left | Pass |
+| UT-GUI-045.001.M01.T08 | MD-GUI-045.001.M01 | Positive | Entry rule in the engine evaluator | last 3m close 310.5; 309.9 | True; False | Pass |
+| UT-GUI-045.006.M02.T01 | MD-GUI-045.001.M02 | Negative | Send without a valid plan warns | no plan; plan 100 / 105 / 110 | "Set Entry, Stop and Target with Edit first"; "Stop must be below Entry and Target above Entry"; nothing sent | Pass |

@@ -2,6 +2,17 @@
 
 ---
 
+## [20261120] GUI — Chart plan strategy (FO-GUI-045) + Watchlist selection fix
+
+- Type: Feature + Bug fix (branches `feat/gui-chart-plan-strategy` and `fix/gui-watchlist-selection`, pushed and merged to main)
+- FO(s): FO-GUI-045 (SRD-GUI-045.001–.006) — approved by user 2026-11-20, all Implemented; SRD-GUI-045.006 replaces "no plan adds the pick only"
+- RN: RN-GUI-2.6.0-20261120
+- Artifacts: FO, SRD, MD, UTCD (9 UT-GUI-045 Pass; UT-GUI-026.010.M01.T01–T02 updated; UT-GUI-019.004.M02.T04–T06 Pass), Code, Tests, TRACE, TODO T214/T215 open, RN, CONTEXT, DEVLOG; no DD (minimal GUI docs)
+- Decisions (user): percent stop/target, 3m close above Entry, auto with no approval, 1% risk size, hold overnight, removed at day end, warn and send nothing without a plan
+- Watchlist: model reset on every tick cleared the selection; same-symbol updates now emit dataChanged
+
+---
+
 ## [20261119] GUI — Screener preset tree (FO-GUI-044)
 
 - Type: Feature (branch `feat/gui-screener-accordion`, pushed and merged to main via PR to main)
