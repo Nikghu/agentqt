@@ -1,9 +1,9 @@
 # Traceability Matrix — GUI Module (GUI)
 
 **Document ID:** TRACE-GUI
-**Version:** 1.20.0
+**Version:** 1.21.0
 **Project:** US Swing Trading System
-**Last Updated:** 2026-11-20 (FO-GUI-045 Chart plan strategy rows added. Earlier: FO-GUI-044 Screener preset tree rows added. Earlier: FO-GUI-043 Screener focus layout rows added (Phases 1–2). Earlier: FO-GUI-042 Edit Preset side navigation rows added, RN-GUI-2.3.0-20261118. Earlier: SRD-GUI-004.014 row added, ISS-GUI-0021. Earlier: AI Desk and Market Floor removed: FO-GUI-034 to FO-GUI-041 rows dropped; SRD-GUI-029.007–.008 now trace to DD-GUI-029.007.D01; see docs/audit/DESK_REMOVAL_2026-11-17.md)
+**Last Updated:** 2026-11-20 (SRD-GUI-019.012–.017 Dashboard exit through strategy trades added. Earlier: FO-GUI-045 Chart plan strategy rows added. Earlier: FO-GUI-044 Screener preset tree rows added. Earlier: FO-GUI-043 Screener focus layout rows added (Phases 1–2). Earlier: FO-GUI-042 Edit Preset side navigation rows added, RN-GUI-2.3.0-20261118. Earlier: SRD-GUI-004.014 row added, ISS-GUI-0021. Earlier: AI Desk and Market Floor removed: FO-GUI-034 to FO-GUI-041 rows dropped; SRD-GUI-029.007–.008 now trace to DD-GUI-029.007.D01; see docs/audit/DESK_REMOVAL_2026-11-17.md)
 
 ---
 
@@ -71,6 +71,12 @@
 | FO-GUI-019 | SRD-GUI-019.009 | — | MD-GUI-019.009.M03 | UT-GUI-019.009.M03.T01–T02 | `gui/main_window.py` | Implemented | RN-GUI-1.37.3-20261027 |
 | FO-GUI-019 | SRD-GUI-019.010 | — | MD-GUI-019.010.M03 | UT-GUI-019.010.M03.T01–T02 | `gui/main_window.py` | Implemented | RN-GUI-1.56.4-20261103 |
 | FO-GUI-019 | SRD-GUI-019.011 | — | MD-GUI-019.011.M03 | UT-GUI-019.011.M03.T01 | `gui/main_window.py` | Draft | — |
+| FO-GUI-019 | SRD-GUI-019.012 | — | MD-GUI-019.012.M01 | UT-GUI-019.012.M01.T01 | `gui/position_trades.py` | Implemented | — |
+| FO-GUI-019 | SRD-GUI-019.013 | — | MD-GUI-019.013.M02 | UT-GUI-019.013.M01.T01, UT-GUI-019.013.M02.T01–T02 | `gui/dashboard_panel.py` | Implemented | — |
+| FO-GUI-019 | SRD-GUI-019.014 | — | MD-GUI-019.012.M01 | UT-GUI-019.014.M01.T01–T02, UT-GUI-019.014.M02.T01 | `gui/position_trades.py` | Implemented | — |
+| FO-GUI-019 | SRD-GUI-019.015 | — | MD-GUI-019.012.M01 | UT-GUI-019.015.M01.T01–T02 | `gui/position_trades.py` | Implemented | — |
+| FO-GUI-019 | SRD-GUI-019.016 | — | MD-GUI-019.013.M02 | UT-GUI-019.016.M02.T01 | `gui/dashboard_panel.py` | Implemented | — |
+| FO-GUI-019 | SRD-GUI-019.017 | — | MD-GUI-019.013.M02 | UT-GUI-019.017.M02.T01–T02 | `gui/dashboard_panel.py` | Implemented | — |
 | FO-GUI-020 | SRD-GUI-020.001–005 | DD-GUI-020.001.D01 | MD-GUI-020.001.M01 | UT-GUI-020.001.M01.T01–T02, .002.M01.T01, .003.M01.T01–T02, .004.M01.T01 | `gui/chart_workspace.py`, `gui/chart_panel.py`, `gui/screener_panel.py`, `gui/main_window.py` | Implemented | RN-GUI-1.12.0-20261023 |
 | FO-GUI-021 | SRD-GUI-021.001–004 | DD-GUI-021.001.D01 | MD-GUI-021.001.M01 | UT-GUI-021.001.M01.T01–T02, .002.M01.T01–T02, .003.M01.T01, .003.M02.T01, .004.M01.T01–T04, .004.M02.T01–T02 | `gui/settings_panel.py`, `gui/theme.py`, `gui/side_panels.py`, `gui/main_window.py` | Implemented | RN-GUI-1.15.0-20261023 |
 | FO-GUI-022 | SRD-GUI-022.013 | DD-GUI-022.001.D01 | MD-GUI-022.001.M01 | UT-GUI-022.013.M01.T01–T02 | `gui/screener_views.py` | Implemented | RN-GUI-2.2.0-20261118 |

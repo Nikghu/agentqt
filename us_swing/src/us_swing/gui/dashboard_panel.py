@@ -1,6 +1,7 @@
 """
 Module: MD-GUI-002.001.M01 — dashboard_panel.py
-Parent SRD: SRD-GUI-002.001 – SRD-GUI-002.008, SRD-GUI-025.001 – SRD-GUI-025.015
+Parent SRD: SRD-GUI-002.001 – SRD-GUI-002.008, SRD-GUI-025.001 – SRD-GUI-025.015,
+SRD-GUI-019.012 – SRD-GUI-019.017
 
 Dashboard: KPI strip and four tiles — open positions, market watch, trade history and
 P&L by strategy (tiled workspace, FO-GUI-025).
@@ -11,6 +12,7 @@ import csv
 import datetime
 
 import logging
+from typing import TYPE_CHECKING
 from zoneinfo import ZoneInfo
 
 from PyQt6.QtCore import (
@@ -84,9 +86,19 @@ from us_swing.gui.strategy_store import load_strategies
 from us_swing.gui._types import AccountState, OpenPosition
 from us_swing.gui.position_table_model import PositionTableModel, TradeHistoryModel
 from us_swing.gui.icons import icon_button, mark_danger, set_icon, set_tab_icon
-from us_swing.gui.popups import notify
+from us_swing.gui.popups import confirm, notify
+from us_swing.gui.position_trades import (
+    StopTrailDialog,
+    exit_text,
+    open_trades,
+    pick_trade,
+    square_off_text,
+)
 from us_swing.gui.theme import C
 from us_swing.data.models import WatchlistItem
+
+if TYPE_CHECKING:
+    from us_swing.execution.trade_cycle import CycleSnapshot
 
 _log = logging.getLogger(__name__)
 
@@ -1893,11 +1905,55 @@ class DashboardPanel(QWidget):
         )
         return True
 
-    def _on_square_off_all(self) -> None:
-        if self._live_mode_blocked("Square Off All"):
+    def _manual_blocked(self, text: str) -> bool:
+        """In live mode, refuse a position no strategy bought (SRD-GUI-019.017)."""
+        if not self._demo.live_mutations_blocked():
+            return False
+        notify(
+            self, "Not Bought by a Strategy",
+            f"{text}<br><br>Close it in TWS for now. Only stocks bought by a strategy "
+            "can be closed from here.",
+            kind="warning",
+        )
+        return True
+
+    def _act_on_trade(self, trades: list[CycleSnapshot], tab: int) -> None:
+        """Exit or Stop / Trail through the strategy trade (SRD-GUI-019.013–.015)."""
+        snap = pick_trade(self, trades)
+        if snap is None:
             return
-        positions = self._demo.get_positions()
+        if tab == 3:
+            StopTrailDialog(snap, self._demo.cycle_cmd, self).exec()
+            return
+        if confirm(self, "Exit Position", exit_text(snap), confirm_text="Exit", danger=True):
+            self._demo.force_exit_cycle(snap.cycle_id, "manual")
+
+    def _on_square_off_all(self) -> None:
+        all_positions = self._demo.get_positions()
+        if not all_positions:
+            return
+        query = self._demo.cycle_query
+        trades: list[CycleSnapshot] = []
+        positions: list[OpenPosition] = []
+        for pos in all_positions:
+            found = open_trades(query, pos.user_id, pos.symbol)
+            if found:
+                trades.extend(found)
+            else:
+                positions.append(pos)
+        if trades:
+            if not confirm(self, "Square Off All", square_off_text(trades),
+                           confirm_text="Exit All", danger=True):
+                return
+            for snap in trades:
+                self._demo.force_exit_cycle(snap.cycle_id, "manual")
         if not positions:
+            return
+        n = len(positions)
+        if self._manual_blocked(
+            f"{n} {'stock was' if n == 1 else 'stocks were'} not bought by a strategy "
+            "and not closed."
+        ):
             return
         uid = self._demo.get_viewing_uid()
         scope_txt = "all users" if uid is None else self._demo.get_user_label()
@@ -1918,9 +1974,11 @@ class DashboardPanel(QWidget):
             self._demo.close_position(pos.symbol, pos.user_id)
 
     def open_exit(self, tab: int = 0) -> None:
-        """Open the Exit drawer for the selected position on ``tab`` (0–3)."""
-        if self._live_mode_blocked("Managing a position"):
-            return
+        """Exit or Stop / Trail (``tab`` 3) for the selected position.
+
+        A strategy trade goes through that trade; a manual position opens the
+        Exit drawer on ``tab`` (0–3) in paper mode (SRD-GUI-019.012–.017).
+        """
         rows = self._pos_view.selectionModel().selectedRows()
         if not rows:
             return
@@ -1929,6 +1987,12 @@ class DashboardPanel(QWidget):
         if row >= len(positions):
             return
         pos = positions[row]
+        trades = open_trades(self._demo.cycle_query, pos.user_id, pos.symbol)
+        if trades:
+            self._act_on_trade(trades, tab)
+            return
+        if self._manual_blocked(f"{pos.symbol} was not bought by a strategy."):
+            return
         self._pos_model.set_highlighted_row(row)
         self._drawer_pos = pos
         self._esc.setEnabled(True)

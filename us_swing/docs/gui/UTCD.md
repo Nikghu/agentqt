@@ -1,12 +1,13 @@
 # Unit Test Case Document â€” GUI Module (GUI)
 
 **Document ID:** UTCD-GUI
-**Version:** 1.56.0
+**Version:** 1.57.0
 **Traces To:** MD-GUI v1.7.0
 **Status:** Draft
 **Last Updated:** 2026-11-17
 **Project:** US Swing Trading System
 
+> v1.57.0: UT-GUI-019.012–.017 rows added (12) — Dashboard exit and stop through strategy trades.
 > v1.56.0: UT-GUI-045.007–.008 rows added; UT-GUI-026.006.M03.T01–T04 now use available capital; UT-GUI-045.001.M01.T02 Removed (SRD-GUI-045.007–.008).
 > v1.55.1: UT-GUI-045.006.M02.T01 added; UT-GUI-026.010.M01.T01–T02 now send the plan (SRD-GUI-045.006).
 > v1.55.0: UT-GUI-045.001.M01.T01–T08 rows added (FO-GUI-045 chart plan strategy).
@@ -644,6 +645,18 @@ Test files:
 | UT-GUI-019.004.M02.T04 | MD-GUI-019.006.M02 | Positive | Selected row stays selected on price update | select NVDA; prices change | NVDA still selected; delete button on | Pass |
 | UT-GUI-019.004.M02.T05 | MD-GUI-019.006.M02 | Positive | Right-click Delete removes the stock | right-click NVDA; Delete | `remove_from_watchlist("NVDA")` | Pass |
 | UT-GUI-019.004.M02.T06 | MD-GUI-019.006.M02 | Negative | Right-click below rows shows no menu | right-click empty area | no menu; nothing removed | Pass |
+| UT-GUI-019.012.M01.T01 | MD-GUI-019.012.M01 | Positive | Only open trades of the same user and stock count | DIS user 1 open; user 2, EW and a closed DIS trade | one trade found; manual stock → none | Pass |
+| UT-GUI-019.013.M01.T01 | MD-GUI-019.012.M01 | Positive | Confirm text names shares, stock, strategy and value | 8 DIS, WTrend, LTP 120.78; a Short | "Sell 8 DIS … WTrend?", "About $966"; "Buy to cover" | Pass |
+| UT-GUI-019.015.M01.T01 | MD-GUI-019.012.M01 | Positive | One trade needs no question; with two, the picked one is used | 1 trade; 2 trades, pick second | that trade | Pass |
+| UT-GUI-019.015.M01.T02 | MD-GUI-019.012.M01 | Negative | Cancelling the pick returns nothing | 2 trades, Cancel | None | Pass |
+| UT-GUI-019.014.M01.T01 | MD-GUI-019.012.M01 | Positive | Save in the Stop / Trail popup writes the new stop | stop 115, Save | trade stop 115; popup closes | Pass |
+| UT-GUI-019.014.M01.T02 | MD-GUI-019.012.M01 | Negative | A rejected stop shows its error and the popup stays open | stop 500 above price | error shown; stop unchanged | Pass |
+| UT-GUI-019.013.M02.T01 | MD-GUI-019.013.M02 | Positive | Exit on a strategy stock confirms, then exits that trade | DIS with WTrend trade, live, Yes | `force_exit_cycle(id, "manual")` once; no drawer | Pass |
+| UT-GUI-019.013.M02.T02 | MD-GUI-019.013.M02 | Negative | Saying No sends no order | confirm No | no exit | Pass |
+| UT-GUI-019.014.M02.T01 | MD-GUI-019.013.M02 | Positive | Stop / Trail on a strategy stock opens the trade editor popup | Details Stop / Trail | popup for that trade; no exit | Pass |
+| UT-GUI-019.017.M02.T01 | MD-GUI-019.013.M02 | Negative | A manual stock in live mode shows the TWS message only | DIS, no trade, live | message; no drawer; no exit | Pass |
+| UT-GUI-019.017.M02.T02 | MD-GUI-019.013.M02 | Positive | A manual stock in paper mode keeps the Exit drawer | DIS, no trade, paper | drawer opens | Pass |
+| UT-GUI-019.016.M02.T01 | MD-GUI-019.013.M02 | Positive | Square Off All exits strategy trades and counts live manual ones | DIS, EW trades + VRSN manual, live | 2 exits; "1 stock was not bought…" | Pass |
 
 ## FO-GUI-020 — Charts Workspace
 

@@ -1,12 +1,13 @@
 # Module Decomposition — GUI Module (GUI)
 
 **Document ID:** MD-GUI
-**Version:** 1.65.0
+**Version:** 1.66.0
 **Traces To:** SRD-GUI v2.16.0 / DD-GUI v1.7.0
 **Status:** Draft
 **Last Updated:** 2026-11-20
 **Project:** US Swing Trading System
 
+> v1.66.0: MD-GUI-019.012.M01 position trade actions + MD-GUI-019.013.M02 Dashboard routing (SRD-GUI-019.012–.017).
 > v1.65.0: MD-GUI-045.007.M03 Inspector Shares row and Edit shares box; MD-GUI-045.001.M01/.M02 pass a fixed share count (SRD-GUI-045.007–.008).
 > v1.64.0: MD-GUI-045.001.M01 chart plan strategy builder; AppService chart plan methods (SRD-GUI-045.001–.005).
 > v1.63.0: MD-GUI-022.001.M01 — Stock data / Top picks only tick groups with 5 new ticks; company tags, Fundamentals line, Analyst changes list, Bull vs bear box (SRD-GUI-022.020–.021).
@@ -291,6 +292,8 @@ us_swing/src/us_swing/gui/
 | MD-GUI-019.009.M03 | SRD-GUI-019.009 | `us_swing/src/us_swing/gui/main_window.py` | Sidebar mini on right panel click | `MainWindow._on_panel_toggled`, `_MiniState` | `reveal` | No |
 | MD-GUI-019.010.M03 | SRD-GUI-019.010 | `us_swing/src/us_swing/gui/main_window.py` | Screens held in a scroll area | `MainWindow._fit_to_screen` | — | No |
 | MD-GUI-019.011.M03 | SRD-GUI-019.011 | `us_swing/src/us_swing/gui/main_window.py` | Screens held at window height | `MainWindow._fit_to_screen`, `_WidthOnlyBox` | — | No |
+| MD-GUI-019.012.M01 | SRD-GUI-019.012 | `us_swing/src/us_swing/gui/position_trades.py` | Find a position's strategy trades; exit text; pick-trade and Stop / Trail popups | `open_trades()`, `exit_text()`, `square_off_text()`, `pick_trade()`, `StopTrailDialog` | `trade_cycle`, `active_cycles_panel`, `risk_editor_widget` | No |
+| MD-GUI-019.013.M02 | SRD-GUI-019.013 | `us_swing/src/us_swing/gui/dashboard_panel.py` | Exit, Stop / Trail and Square Off All go through the strategy trade; manual live positions get a message | `DashboardPanel.open_exit()`, `_on_square_off_all()` | `position_trades`, `AppService.force_exit_cycle` | No |
 
 ## FO-GUI-020 — Charts Workspace
 
