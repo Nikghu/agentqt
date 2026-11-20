@@ -1002,6 +1002,12 @@ class _WatchlistModel(QAbstractTableModel):
         return len(self._COLS) if self._removable else -1
 
     def refresh(self, items: list[WatchlistItem]) -> None:
+        same_symbols = [r.symbol for r in self._rows] == [i.symbol for i in items]
+        if same_symbols and self._rows:
+            self._rows = list(items)
+            last = self.index(len(self._rows) - 1, self.columnCount() - 1)
+            self.dataChanged.emit(self.index(0, 0), last)
+            return
         self.beginResetModel()
         self._rows = list(items)
         self.endResetModel()
@@ -1205,6 +1211,8 @@ class _WatchlistTab(QWidget):
 
         self._view.selectionModel().selectionChanged.connect(self._on_selection)
         self._view.clicked.connect(self._on_cell_clicked)
+        self._view.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self._view.customContextMenuRequested.connect(self._show_row_menu)
 
         # ── Empty state overlay ───────────────────────────────────────────────
         self._empty_lbl = QLabel(
@@ -1339,6 +1347,19 @@ class _WatchlistTab(QWidget):
         symbol = self._model.row_symbol(rows[0].row())
         if symbol:
             self._remove_item(symbol)
+
+    def _show_row_menu(self, pos: QPoint) -> None:
+        index = self._view.indexAt(pos)
+        symbol = self._model.row_symbol(index.row()) if index.isValid() else ""
+        if not symbol:
+            return
+        self._view.selectRow(index.row())
+        menu = QMenu(self)
+        action = menu.addAction(f"Delete {symbol}")
+        if action is not None:
+            action.triggered.connect(lambda: self._remove_item(symbol))
+        menu.exec(self._view.viewport().mapToGlobal(pos))
+        menu.deleteLater()
 
     def _on_manual_refresh(self) -> None:
         self._refresh_items()

@@ -638,6 +638,9 @@ Test files:
 | UT-GUI-019.004.M02.T01 | MD-GUI-019.006.M02 | Positive | Watchlist box suggests S&P 500 stocks | universe loads after the panel; type "a" | popup list; first match "AAPL - Apple Inc." | Pass |
 | UT-GUI-019.004.M02.T02 | MD-GUI-019.006.M02 | Positive | Picked suggestion adds the symbol | "AAPL - Apple Inc."; Add | `add_to_watchlist("AAPL")` | Pass |
 | UT-GUI-019.004.M02.T03 | MD-GUI-019.006.M02 | Negative | Non-S&P 500 symbol shows the app notice | "AA"; Add | frameless "NOT IN S&P 500" notice, OK only; nothing added | Pass |
+| UT-GUI-019.004.M02.T04 | MD-GUI-019.006.M02 | Positive | Selected row stays selected on price update | select NVDA; prices change | NVDA still selected; delete button on | Pass |
+| UT-GUI-019.004.M02.T05 | MD-GUI-019.006.M02 | Positive | Right-click Delete removes the stock | right-click NVDA; Delete | `remove_from_watchlist("NVDA")` | Pass |
+| UT-GUI-019.004.M02.T06 | MD-GUI-019.006.M02 | Negative | Right-click below rows shows no menu | right-click empty area | no menu; nothing removed | Pass |
 
 ## FO-GUI-020 — Charts Workspace
 
