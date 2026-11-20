@@ -273,6 +273,34 @@ class DatabaseManager:
                 .values(**values)
             )
 
+    def fetch_trades(self, since: datetime) -> list[TradeRecord]:
+        """Return `trades` rows placed on or after *since*, with their order state.
+
+        Times are stored as local wall-clock strings, so they are read back
+        without a time zone, the same way trade-cycle times are.
+        """
+        stmt = sa.select(trades).where(trades.c.entry_time >= _dt_to_str(since))
+        with self._engine.connect() as conn:
+            rows = conn.execute(stmt).mappings().all()
+        return [
+            TradeRecord(
+                trade_id=r["trade_id"],
+                user_id=r["user_id"],
+                symbol=r["symbol"],
+                side=r["side"] or "",
+                quantity=r["quantity"] or 0,
+                entry_price=r["entry_price"] or 0.0,
+                mode=r["mode"],
+                strategy_id=r["strategy_id"] or "",
+                entry_time=datetime.strptime(r["entry_time"], _DT_FORMAT),
+                exit_price=r["exit_price"],
+                exit_time=datetime.strptime(r["exit_time"], _DT_FORMAT) if r["exit_time"] else None,
+                order_state=r["order_state"],
+                filled_quantity=r["filled_quantity"],
+            )
+            for r in rows
+        ]
+
 
     # ── Users ─────────────────────────────────────────────────────────────────
 

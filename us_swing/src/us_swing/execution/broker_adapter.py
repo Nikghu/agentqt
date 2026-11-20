@@ -23,7 +23,14 @@ import logging
 from collections.abc import Callable
 from typing import Any
 
-from us_swing.broker.broker import Broker, OrderEvent, OrderRequest, OrderSide, OrderType
+from us_swing.broker.broker import (
+    Broker,
+    OrderEvent,
+    OrderRequest,
+    OrderSide,
+    OrderStatus,
+    OrderType,
+)
 from us_swing.execution.direction import order_side, risk_levels
 from us_swing.execution.order_ingestion import OrderContext, OrderIngestion
 from us_swing.execution.strategy_engine._signals import Action, TradeSignal
@@ -80,6 +87,10 @@ class BrokerAdapter:
             self._ingestion.discard(signal.signal_id)
             raise
         self._ingestion.on_order_accepted(signal.signal_id, broker_order_id)
+        # Tell the listener the order is now waiting, so screens show it as NEW
+        # before any fill arrives.
+        if self._on_event is not None:
+            self._on_event(OrderEvent(broker_order_id, signal.signal_id, OrderStatus.NEW))
         return int(broker_order_id)
 
     # ── Broker → execution (asynchronous fills) ──────────────────────────────

@@ -543,6 +543,7 @@ class TestRehydrateDedup:
         tc_query.open_cycles.return_value = []
         tc_query.history.return_value = [snap]
         svc._tc_query = tc_query
+        svc._db = None  # keep the real trades ledger out of this cycle-only check
 
         svc._rehydrate_positions_from_cycles()
         first = len(svc._trades)
@@ -565,6 +566,64 @@ class TestRehydrateDedup:
         svc._rehydrate_positions_from_cycles()
 
         assert len([p for p in svc._positions if p.symbol == "V"]) == 1
+
+
+class TestTradeHistoryFromLedger:
+    """ISS-GUI-0022: Trade History reads each order's real state from the trades ledger."""
+
+    @staticmethod
+    def _ledger(tmp_path):
+        from us_swing.db.manager import DatabaseManager
+
+        db = DatabaseManager(f"sqlite:///{(tmp_path / 'trades.db').as_posix()}")
+        db.create_schema()
+        return db
+
+    @staticmethod
+    def _order(trade_id: str, side: str, state: str, **over):
+        import datetime as _dt
+
+        from us_swing.data.models import TradeRecord
+
+        kw = dict(trade_id=trade_id, user_id=1, symbol="SATS", side=side, quantity=1,
+                  entry_price=113.0, mode="paper", strategy_id="SUPERTREND",
+                  entry_time=_dt.datetime.now(), order_state=state)
+        kw.update(over)
+        return TradeRecord(**kw)
+
+    def test_waiting_and_cancelled_orders_show_their_state(self, svc, tmp_path):
+        """UT-GUI-002.005.M01.T04: A waiting order shows NEW and a cancelled one CANCELLED."""
+        db = self._ledger(tmp_path)
+        db.insert_trade(self._order("sell-9", "SELL", "NEW"))
+        db.insert_trade(self._order("sell-8", "SELL", "CANCELLED"))
+        svc._db = db
+        svc._tc_query = MagicMock(**{"open_cycles.return_value": [],
+                                     "history.return_value": []})
+
+        svc._rehydrate_positions_from_cycles()
+
+        assert {t.trade_id: t.order_state for t in svc._trades} == {
+            "sell-9": "NEW", "sell-8": "CANCELLED"}
+
+    def test_ledger_rows_replace_cycle_rows(self, svc, tmp_path):
+        """UT-GUI-002.005.M01.T05: A filled exit shows once, with its fill price; older cycles still show."""
+        db = self._ledger(tmp_path)
+        db.insert_trade(self._order("buy-1", "BUY", "FILLED", filled_quantity=1))
+        db.insert_trade(self._order("sell-1", "SELL", "FILLED", filled_quantity=1,
+                                    exit_price=113.84))
+        svc._db = db
+        svc._tc_query = MagicMock(**{
+            "open_cycles.return_value": [],
+            "history.return_value": [_make_closed_cycle_snapshot(),
+                                     _make_closed_cycle_snapshot("OLD", cycle_id=2)],
+        })
+
+        svc._rehydrate_positions_from_cycles()
+
+        ids = sorted(t.trade_id for t in svc._trades)
+        assert ids == ["buy-1", "buy-2", "sell-1", "sell-2"]
+        sell = next(t for t in svc._trades if t.trade_id == "sell-1")
+        assert sell.entry_price == 113.84
 
 
 class TestFillConfirmedLog:

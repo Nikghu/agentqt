@@ -12,6 +12,7 @@ import os
 import tempfile
 from collections.abc import Callable
 from dataclasses import dataclass
+from datetime import datetime, timedelta
 
 import pytest
 import sqlalchemy as sa
@@ -131,7 +132,7 @@ def test_entry_signal_flows_through_to_trades_and_cycle() -> None:
     assert filled == 10
     assert entry_price == 100.0
     assert len(engine_fills) == 1
-    assert len(broker_events) == 1
+    assert [e.status.value for e in broker_events] == ["NEW", "FILLED"]  # type: ignore[attr-defined]
     # cycle opened with hard stop = 100 * (1 - 5/100) = 95.0
     assert cycles.calls == [("entry", 95.0)]
 
@@ -201,6 +202,65 @@ def test_fill_arriving_before_acceptance_is_not_dropped() -> None:
     assert entry_price == 100.0
     assert len(engine_fills) == 1
     assert cycles.calls == [("entry", 95.0)]
+
+
+# ── ISS-GUI-0022 — Trade History shows the waiting order as NEW ──────────────
+
+
+def _exit_adapter(mgr: DatabaseManager, scheduler: _ManualScheduler,
+                  events: list[object]) -> tuple[BrokerAdapter, SimBroker]:
+    broker = SimBroker(ImmediateFillModel(), scheduler=scheduler)
+    ingestion = OrderIngestion(ledger=mgr, fill_sink=lambda _f: None,
+                               reject_sink=lambda _r: None, cycles=_StubCycles())
+    adapter = BrokerAdapter(
+        broker=broker,
+        ingestion=ingestion,
+        config_provider=lambda _sid: _StubConfig(),
+        user_id_provider=lambda: 1,
+        session_date_provider=lambda: "2026-11-21",
+        on_event=events.append,
+    )
+    return adapter, broker
+
+
+def _exit_signal() -> TradeSignal:
+    return TradeSignal(action=Action.EXIT, symbol="DIS", strategy_id="WTrend",
+                       entry_price=120.78, qty_recommended=8, user_id=1)
+
+
+def test_waiting_exit_reads_back_new_then_filled() -> None:
+    """UT-EXE-015.002.M01.T24: An accepted exit is announced and read back as NEW, then FILLED."""
+    mgr = _make_db()
+    scheduler = _ManualScheduler()
+    events: list[object] = []
+    adapter, _broker = _exit_adapter(mgr, scheduler, events)
+    since = datetime.now() - timedelta(minutes=1)
+
+    order_id = str(adapter.submit(_exit_signal(), 8))
+
+    assert [e.status.value for e in events] == ["NEW"]  # type: ignore[attr-defined]
+    [row] = mgr.fetch_trades(since)
+    assert (row.trade_id, row.side, row.order_state, row.filled_quantity) == (
+        order_id, "SELL", "NEW", 0)
+    scheduler.pump()
+    [row] = mgr.fetch_trades(since)
+    assert (row.order_state, row.filled_quantity, row.exit_price) == ("FILLED", 8, 120.78)
+
+
+def test_cancelled_exit_reads_back_cancelled() -> None:
+    """UT-EXE-015.005.M01.T16: A cancelled exit is read back as CANCELLED with nothing filled."""
+    mgr = _make_db()
+    scheduler = _ManualScheduler()
+    adapter, broker = _exit_adapter(mgr, scheduler, [])
+    since = datetime.now() - timedelta(minutes=1)
+
+    order_id = str(adapter.submit(_exit_signal(), 8))
+    broker.cancel_order(order_id)
+    scheduler.pump()
+
+    [row] = mgr.fetch_trades(since)
+    assert (row.order_state, row.filled_quantity) == ("CANCELLED", 0)
+    assert mgr.fetch_trades(datetime.now() + timedelta(minutes=1)) == []
 
 
 # ── FO-EXE-018 — direction-aware order placement ──────────────────────────────

@@ -497,6 +497,8 @@
 | UT-GUI-002.005.M01.T01 | MD-GUI-004.001.M01 | Positive | Closed short shows SELL entry and BUY cover | history snap `direction="SHORT"`, closed | entry row `SELL`; exit row `BUY` | Pass |
 | UT-GUI-002.005.M01.T02 | MD-GUI-004.001.M01 | Edge | Closed long unchanged | history snap `direction="LONG"`, closed | entry row `BUY`; exit row `SELL` | Pass |
 | UT-GUI-002.005.M01.T03 | MD-GUI-004.001.M01 | Negative | Short entry fill log names a Sell | short snap; `FILLED` event for its entry order | log starts `[Orders] KVUE Sell fill confirmed` | Pass |
+| UT-GUI-002.005.M01.T04 | MD-GUI-004.001.M01 | Positive | Waiting and cancelled orders show their state (ISS-GUI-0022) | ledger rows NEW and CANCELLED; no cycles | Trade History rows NEW and CANCELLED | Pass |
+| UT-GUI-002.005.M01.T05 | MD-GUI-004.001.M01 | Edge | Ledger rows replace cycle rows (ISS-GUI-0022) | ledger buy/sell of one cycle + an older cycle not in ledger | 4 rows, no duplicates; sell shows fill price | Pass |
 
 
 ---

@@ -775,6 +775,8 @@
 | UT-EXE-015.004.M01.T34 | MD-EXE-015.004.M01 | Positive | A healthy submit is unchanged | submitter returns order id 77 | returns 77; `pending_store.add` never called | Pass |
 | UT-EXE-015.004.M01.T35 | MD-EXE-015.004.M01 | Negative | Force-exit into a dead socket reports instead of raising | open cycle; submitter raises `BrokerConnectionError` | `_submit_cycle_exit` returns -1, no exception propagates | Pass |
 | UT-EXE-015.004.M01.T36 | MD-EXE-015.004.M01 | Positive | A healthy exit submit is unchanged | submitter returns order id 91 | `_submit_cycle_exit` returns 91 | Pass |
+| UT-EXE-015.002.M01.T24 | MD-EXE-015.002.M01 | Positive | A waiting exit is announced and read back as NEW, then FILLED (ISS-GUI-0022) | exit submitted, fill held | one NEW event; ledger row NEW 0 filled; after fill FILLED 8 at fill price | Pass |
+| UT-EXE-015.005.M01.T16 | MD-EXE-015.002.M01 | Negative | A cancelled exit is read back as CANCELLED (ISS-GUI-0022) | exit submitted, cancelled before fill | ledger row CANCELLED, 0 filled | Pass |
 
 ---
 
