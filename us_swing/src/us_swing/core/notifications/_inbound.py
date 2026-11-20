@@ -122,6 +122,14 @@ class TelegramPoller:
                             self._poll_timeout_s)
                 await asyncio.sleep(self._poll_timeout_s)
                 continue
+            except httpx.HTTPStatusError as exc:
+                if exc.response.status_code >= 500:
+                    log.warning("[Notify] Telegram server is busy (error %d); retrying in %d "
+                                "seconds", exc.response.status_code, self._poll_timeout_s)
+                else:
+                    log.exception("[Notify] Inbound command polling failed; will retry")
+                await asyncio.sleep(self._poll_timeout_s)
+                continue
             except Exception:
                 log.exception("[Notify] Inbound command polling failed; will retry")
                 await asyncio.sleep(self._poll_timeout_s)
