@@ -1,10 +1,11 @@
 # Software Requirements Document — GUI Module (GUI)
 
 **Document ID:** SRD-GUI
-**Version:** 2.139.0
+**Version:** 2.139.1
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-11-20
+> v2.139.1: SRD-GUI-045.007–.008 approved by user 2026-11-20; Implemented.
 > v2.139.0: SRD-GUI-045.007–.008 added as Draft — shares from available capital, editable, bought exactly (user answers 2026-11-20).
 > v2.138.0: SRD-GUI-045.006 added and Implemented — Send without a valid plan warns and sends nothing (user request and choice 2026-11-20).
 > v2.137.1: SRD-GUI-045.001–.005 approved by user 2026-11-20; Implemented.
@@ -856,5 +857,5 @@ One phase. No engine change: uses the existing include scope, rex count and perc
 | SRD-GUI-045.004 | FO-GUI-045 | Must | Sending again replaces the stock's chart plan, unless its trade is open. | resend | strategy row or message | Message "SYM already has an open chart plan trade" | Implemented |
 | SRD-GUI-045.005 | FO-GUI-045 | Must | A chart plan is removed when its trade closes, when its pick is removed, or at the next start after its day. | close, remove, start | — | Never removed while its trade is open; trade count cleared; Strategies tab reloads | Implemented |
 | SRD-GUI-045.006 | FO-GUI-045 | Must | Send without Entry, Stop and Target, or with Stop not below Entry and Target, shows a warning and sends nothing. | click | warning | "Set Entry, Stop and Target with Edit first" / "Stop must be below Entry and Target above Entry"; changes "no valid plan adds the pick only" in SRD-GUI-045.001 and SRD-GUI-026.010 | Implemented |
-| SRD-GUI-045.007 | FO-GUI-045 | Must | The Inspector Shares row shows the shares the available capital buys at Entry (Max Capital minus open trades) and their cost; Edit can change the shares. | plan, available capital | shares, cost | The shares box cannot go above the available size; replaces the 1% risk size of SRD-GUI-026.006 and SRD-GUI-045.003 | Draft |
-| SRD-GUI-045.008 | FO-GUI-045 | Must | Send buys exactly the shown shares; with no capital available it shows "No capital available for this trade" and sends nothing. | shares | strategy with a fixed share count | Uses SRD-EXE-017.028; the engine still never buys more than the free capital | Draft |
+| SRD-GUI-045.007 | FO-GUI-045 | Must | The Inspector Shares row shows the shares the available capital buys at Entry (Max Capital minus open trades) and their cost; Edit can change the shares. | plan, available capital | shares, cost | The shares box cannot go above the available size; replaces the 1% risk size of SRD-GUI-026.006 and SRD-GUI-045.003 | Implemented |
+| SRD-GUI-045.008 | FO-GUI-045 | Must | Send buys exactly the shown shares; with no capital available it shows "No capital available for this trade" and sends nothing. | shares | strategy with a fixed share count | Uses SRD-EXE-017.028; the engine still never buys more than the free capital | Implemented |

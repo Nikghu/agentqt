@@ -1,12 +1,13 @@
 # Software Requirement Document — Execution & Risk Management (EXE)
 
 **Document ID:** SRD-EXE
-**Version:** 1.37.0
+**Version:** 1.37.1
 **Traces To:** FO-EXE v1.14.0
 **Status:** Draft
 **Last Updated:** 2026-11-20
 **Project:** US Swing Trading System
 
+> v1.37.1: SRD-EXE-017.028 approved by user 2026-11-20; Implemented.
 > v1.37.0: SRD-EXE-017.028 added as Draft — fixed share count per strategy (user request 2026-11-20).
 > v1.36.0: AI Desk and Market Floor removed (user, 2026-11-17; docs/audit/DESK_REMOVAL_2026-11-17.md): section 21 (SRD-EXE-021.001–.007) removed.
 > v1.7.0: Sections 11 + 12 added — SRD-EXE-011.001–015 (Strategy Engine) and SRD-EXE-012.001–013 (Trade Cycle Ledger).
@@ -405,5 +406,5 @@
 | SRD ID | Parent FO | Priority | Description | Inputs | Outputs | Constraints | Status |
 |---|---|---|---|---|---|---|---|
 | SRD-EXE-017.027 | FO-EXE-017 | Must | For a paper user, `get_account_state` returns start-of-day equity = Max Capital, daily P&L = realised P&L of cycles closed today (ET), equity = Max Capital + daily P&L + unrealised P&L, cash = Max Capital + daily P&L − entry value of open positions, and gross position value = market value of open positions. | Max Capital, today's closed cycles, open positions | `AccountState` | Sizing still uses Max Capital (`effective_capital`); live accounts unchanged | Implemented |
-| SRD-EXE-017.028 | FO-EXE-017 | Must | A strategy with a fixed share count (`fixed_qty` > 0) buys exactly that many shares instead of the percent sizing. | `fixed_qty` | `int` shares per trade | The capital cap and `margin_available()` clamp still apply; 0 keeps SRD-EXE-017.024 sizing; used by the Charts chart plan (SRD-GUI-045.008) | Draft |
+| SRD-EXE-017.028 | FO-EXE-017 | Must | A strategy with a fixed share count (`fixed_qty` > 0) buys exactly that many shares instead of the percent sizing. | `fixed_qty` | `int` shares per trade | The capital cap and `margin_available()` clamp still apply; 0 keeps SRD-EXE-017.024 sizing; used by the Charts chart plan (SRD-GUI-045.008) | Implemented |
 
