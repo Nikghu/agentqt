@@ -1,12 +1,13 @@
 # Unit Test Case Document â€” GUI Module (GUI)
 
 **Document ID:** UTCD-GUI
-**Version:** 1.54.0
+**Version:** 1.55.0
 **Traces To:** MD-GUI v1.7.0
 **Status:** Draft
 **Last Updated:** 2026-11-17
 **Project:** US Swing Trading System
 
+> v1.55.0: UT-GUI-045.001.M01.T01–T08 rows added (FO-GUI-045 chart plan strategy).
 > v1.54.0: UT-GUI-044.001–.007 rows added (14) (FO-GUI-044); 8 UT-GUI-043 rows marked Removed.
 > v1.53.0: UT-GUI-022.020.M01.T01, UT-GUI-022.021.M01.T01–T02 added (SRD-GUI-022.020–.021).
 > v1.52.0: UT-GUI-022.018.M01.T01, UT-GUI-022.019.M01.T01–T02 added (SRD-GUI-022.018–.019).
@@ -1174,3 +1175,11 @@ Test files:
 | UT-GUI-044.010.M02.T01 | MD-GUI-044.001.M02 | Positive | Several presets open | open A, then B; click 2nd stock of A's preview | A preview 3 stocks; Run on B row; A active with that stock selected | Pass |
 | UT-GUI-044.010.M02.T02 | MD-GUI-044.001.M02 | Negative | Chevron closes | open A, B; chevron on active twice; chevron on C | A active; none active, date hidden; C open | Pass |
 | UT-GUI-044.010.M02.T03 | MD-GUI-044.001.M02 | Edge | Open presets kept | open C, A; new panel | C and A open, A active | Pass |
+| UT-GUI-045.001.M01.T01 | MD-GUI-045.001.M02 | Positive | Send saves the chart plan | VRSN 310 / 300 / 330, risk 1% | "Chart plan - VRSN", include VRSN, auto, running, Positional, rex 0, stop 3.23%, target 6.45%, today only; pick added | Pass |
+| UT-GUI-045.001.M01.T02 | MD-GUI-045.001.M01 | Positive | Risk size as capital % | 310 / 300, equity and capital 100,000; stop 309; capital 0 | 31; 100 (capped); 1 | Pass |
+| UT-GUI-045.001.M01.T03 | MD-GUI-045.001.M02 | Negative | Refused pick saves nothing | XYZ not in universe | message shown; no chart plan | Pass |
+| UT-GUI-045.001.M01.T04 | MD-GUI-045.001.M02 | Edge | Resend replaces; open trade blocks | send 310, then 312; open trade; send 320 | entry 312; message "VRSN already has an open chart plan trade"; entry stays 312 | Pass |
+| UT-GUI-045.001.M01.T05 | MD-GUI-045.001.M02 | Positive | Pick removal removes the plan | VRSN and AAPL plans, AAPL trade open; remove both picks | only AAPL plan left; VRSN trade count cleared | Pass |
+| UT-GUI-045.001.M01.T06 | MD-GUI-045.001.M02 | Positive | Trade close removes the plan | VRSN plan; its trade closes | no chart plan; Strategies told to reload | Pass |
+| UT-GUI-045.001.M01.T07 | MD-GUI-045.001.M02 | Edge | Start removes past-day plans only | yesterday AAPL plan, today VRSN plan, other strategy | Breakout and VRSN plan left | Pass |
+| UT-GUI-045.001.M01.T08 | MD-GUI-045.001.M01 | Positive | Entry rule in the engine evaluator | last 3m close 310.5; 309.9 | True; False | Pass |

@@ -283,6 +283,8 @@ class TradePlanSection(QWidget):
         self.send_btn.setObjectName("primary_btn")
         set_icon(self.send_btn, "send", "inverse")
         self.send_btn.setEnabled(False)
+        self.send_btn.setToolTip("Add the stock to Execution. With a plan, it also buys once "
+                                 "on its own today when a 3-minute candle closes above Entry")
         self.send_btn.clicked.connect(self._on_send)
         buttons.addWidget(self.send_btn, 1)
         box.addLayout(buttons)

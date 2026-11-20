@@ -456,7 +456,11 @@ class ChartWorkspace(QWidget):
             self._draw_plan(plan)
 
     def _on_send(self, symbol: str) -> None:
-        message = self._svc.add_manual_pick(symbol)
+        plan = self._plan_for(symbol)
+        if plan is not None and plan_rr(*plan.levels) is not None:
+            message = self._svc.send_chart_plan(symbol, *plan.levels, self._risk()[0])
+        else:
+            message = self._svc.add_manual_pick(symbol)
         if message:
             self.inspector.show_message(message)
             return
