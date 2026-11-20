@@ -1,10 +1,11 @@
 # Software Requirements Document — GUI Module (GUI)
 
 **Document ID:** SRD-GUI
-**Version:** 2.137.1
+**Version:** 2.138.0
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
-**Last Updated:** 2026-11-19
+**Last Updated:** 2026-11-20
+> v2.138.0: SRD-GUI-045.006 added and Implemented — Send without a valid plan warns and sends nothing (user request and choice 2026-11-20).
 > v2.137.1: SRD-GUI-045.001–.005 approved by user 2026-11-20; Implemented.
 > v2.137.0: SRD-GUI-045.001–.005 added as Draft — chart plan strategy (user answers 2026-11-20).
 > v2.136.2: SRD-GUI-044.008–.010 Implemented.
@@ -853,3 +854,4 @@ One phase. No engine change: uses the existing include scope, rex count and perc
 | SRD-GUI-045.003 | FO-GUI-045 | Must | Stop and target are saved as percent of the buy price, measured from the plan Entry. | plan | stop %, target % | Size = Inspector risk size as a whole capital percent, 1–100 | Implemented |
 | SRD-GUI-045.004 | FO-GUI-045 | Must | Sending again replaces the stock's chart plan, unless its trade is open. | resend | strategy row or message | Message "SYM already has an open chart plan trade" | Implemented |
 | SRD-GUI-045.005 | FO-GUI-045 | Must | A chart plan is removed when its trade closes, when its pick is removed, or at the next start after its day. | close, remove, start | — | Never removed while its trade is open; trade count cleared; Strategies tab reloads | Implemented |
+| SRD-GUI-045.006 | FO-GUI-045 | Must | Send without Entry, Stop and Target, or with Stop not below Entry and Target, shows a warning and sends nothing. | click | warning | "Set Entry, Stop and Target with Edit first" / "Stop must be below Entry and Target above Entry"; changes "no valid plan adds the pick only" in SRD-GUI-045.001 and SRD-GUI-026.010 | Implemented |

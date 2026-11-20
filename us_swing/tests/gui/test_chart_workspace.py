@@ -205,27 +205,47 @@ def test_inspector_gets_context(workspace):
     assert section.rows.values["rsi"].text() != "—"
 
 
-def test_send_to_execution_adds_pick(qtbot, svc, workspace):
-    """UT-GUI-026.010.M01.T01: Send to Execution adds pick."""
-    picks: list[str] = []
-    svc.add_manual_pick = lambda s: picks.append(s)  # type: ignore[attr-defined]
+def test_send_to_execution_sends_plan(qtbot, svc, workspace):
+    """UT-GUI-026.010.M01.T01: Send to Execution sends the stock with its plan."""
+    sent: list[tuple[object, ...]] = []
+    svc.send_chart_plan = lambda *a: sent.append(a)  # type: ignore[attr-defined]
+    workspace._edited_plans["NVDA"] = TradePlan(100.0, 95.0, 110.0)
     workspace.open_symbol("NVDA")
     plan = next(s for s in workspace.inspector.sections if s.key == "plan")
     with qtbot.waitSignal(workspace.execution_requested) as blocker:
         plan.send_btn.click()
-    assert picks == ["NVDA"] and blocker.args == ["NVDA"]
+    assert sent[0][:4] == ("NVDA", 100.0, 95.0, 110.0) and blocker.args == ["NVDA"]
     assert plan.message_lbl.isHidden()
 
 
-def test_existing_pick_shows_message(qtbot, svc, workspace):
-    """UT-GUI-026.010.M01.T02: Existing pick shows message."""
-    svc.add_manual_pick = lambda s: f"{s} is already in your picks"  # type: ignore[attr-defined]
+def test_refused_send_shows_message(qtbot, svc, workspace):
+    """UT-GUI-026.010.M01.T02: A refused send shows the reason."""
+    svc.send_chart_plan = lambda s, *_: f"{s} already has an open chart plan trade"  # type: ignore[attr-defined]
+    workspace._edited_plans["NVDA"] = TradePlan(100.0, 95.0, 110.0)
     workspace.open_symbol("NVDA")
     plan = next(s for s in workspace.inspector.sections if s.key == "plan")
     with qtbot.assertNotEmitted(workspace.execution_requested):
         plan.send_btn.click()
     assert not plan.message_lbl.isHidden()
-    assert plan.message_lbl.text() == "NVDA is already in your picks"
+    assert plan.message_lbl.text() == "NVDA already has an open chart plan trade"
+
+
+@pytest.mark.parametrize(("levels", "text"), [
+    (None, "Set Entry, Stop and Target with Edit first"),
+    ((100.0, 105.0, 110.0), "Stop must be below Entry and Target above Entry"),
+])
+def test_send_without_valid_plan_warns(qtbot, svc, workspace, levels, text):
+    """UT-GUI-045.006.M02.T01: Send without a valid plan warns and sends nothing."""
+    sent: list[object] = []
+    svc.send_chart_plan = lambda *a: sent.append(a)  # type: ignore[attr-defined]
+    if levels is not None:
+        workspace._edited_plans["NVDA"] = TradePlan(*levels)
+    workspace.open_symbol("NVDA")
+    plan = next(s for s in workspace.inspector.sections if s.key == "plan")
+    with qtbot.assertNotEmitted(workspace.execution_requested):
+        plan.send_btn.click()
+    assert sent == []
+    assert plan.message_lbl.text() == text and not plan.message_lbl.isHidden()
 
 
 def test_markers_and_levels_reach_chart(workspace):
