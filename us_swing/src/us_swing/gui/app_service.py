@@ -1937,13 +1937,13 @@ class AppService(QObject):
     # ── Chart plan strategy (SRD-GUI-045.001 – .005) ──────────────────────────
 
     def send_chart_plan(self, symbol: str, entry: float, stop: float, target: float,
-                        risk_pct: float) -> str | None:
-        """Add *symbol* to the picks and save a one-trade auto strategy from its plan.
+                        shares: int) -> str | None:
+        """Add *symbol* to the picks and save a one-trade auto strategy buying *shares*.
 
         Returns:
             A message for the user when nothing was saved, else None.
         """
-        from us_swing.gui.chart_plan import build_chart_plan, capital_pct, chart_plan_name
+        from us_swing.gui.chart_plan import build_chart_plan, chart_plan_name
         from us_swing.gui.strategy_store import load_strategies, save_strategies
 
         sym = symbol.strip().upper().replace(" ", ".")
@@ -1954,17 +1954,13 @@ class AppService(QObject):
         name = chart_plan_name(sym)
         if self.get_open_symbols_for_strategy(name):
             return f"{sym} already has an open chart plan trade"
-        try:
-            equity = float(self.get_account_state().equity)
-        except Exception:  # noqa: BLE001
-            equity = 0.0
-        pct = capital_pct(entry, stop, risk_pct, equity, self.effective_capital())
-        cfg = build_chart_plan(sym, entry, stop, target, pct, self._market_today())
+        cfg = build_chart_plan(sym, entry, stop, target, shares, self._market_today())
         configs = [c for c in load_strategies() if c.name != name] + [cfg]
         save_strategies(configs)
         self._reset_rex(name)
         self._after_strategies_saved()
-        _log.info("[Execution] Chart plan for %s saved — buys once above %.2f today", sym, entry)
+        _log.info("[Execution] Chart plan for %s saved — buys %d share(s) once above %.2f today",
+                  sym, shares, entry)
         return None
 
     def purge_old_chart_plans(self) -> None:

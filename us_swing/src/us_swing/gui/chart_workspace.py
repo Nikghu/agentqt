@@ -28,7 +28,13 @@ from PyQt6.QtWidgets import (
 from us_swing.gui.app_service import AppService
 from us_swing.gui.cards import GAP, card, gutter
 from us_swing.gui.chart_drawings import Drawing
-from us_swing.gui.chart_inspector import ChartContext, Inspector, TradePlan, plan_rr
+from us_swing.gui.chart_inspector import (
+    ChartContext,
+    Inspector,
+    TradePlan,
+    plan_rr,
+    plan_shares,
+)
 from us_swing.gui.chart_panel import CandleChartPanel
 from us_swing.gui.chart_source_list import SourceList
 from us_swing.gui.icons import icon, set_icon
@@ -443,10 +449,9 @@ class ChartWorkspace(QWidget):
         plan = self._plan_for(symbol)
         self._draw_plan(plan)
         self._load_drawings(symbol, timeframe)
-        risk_pct, equity = self._risk()
         self.inspector.update_context(ChartContext(
             symbol=symbol, timeframe=timeframe, candles=candles,
-            plan=plan, risk_pct=risk_pct, equity=equity,
+            plan=plan, available=self._available(),
         ))
 
     def _on_plan_edited(self, plan: TradePlan) -> None:
@@ -461,8 +466,10 @@ class ChartWorkspace(QWidget):
             message: str | None = "Set Entry, Stop and Target with Edit first"
         elif plan_rr(*plan.levels) is None:
             message = "Stop must be below Entry and Target above Entry"
+        elif (shares := plan_shares(plan, self._available())) < 1:
+            message = "No capital available for this trade"
         else:
-            message = self._svc.send_chart_plan(symbol, *plan.levels, self._risk()[0])
+            message = self._svc.send_chart_plan(symbol, *plan.levels, shares)
         if message:
             self.inspector.show_message(message)
             return
@@ -487,14 +494,13 @@ class ChartWorkspace(QWidget):
                 return TradePlan(pos.average_price, pos.stop_loss, pos.target_price)
         return None
 
-    def _risk(self) -> tuple[float, float]:
+    def _available(self) -> float:
+        """Capital free for a new trade: Max Capital minus open trades."""
         try:
-            risk_pct = self._svc.get_active_user().risk_config.risk_per_trade_pct
-            equity = self._svc.get_account_state().equity
+            return float(self._svc.margin_available())
         except Exception:  # noqa: BLE001
-            _log.warning("[Charts] Could not read risk settings — size not shown")
-            return 1.0, 0.0
-        return float(risk_pct), float(equity)
+            _log.warning("[Charts] Could not read the capital available — shares not shown")
+            return 0.0
 
     def _company(self, symbol: str) -> str:
         if not self._names:

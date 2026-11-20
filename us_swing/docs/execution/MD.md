@@ -1,12 +1,13 @@
 # Module Decomposition — Execution & Risk Management (EXE)
 
 **Document ID:** MD-EXE
-**Version:** 1.24.0
+**Version:** 1.25.0
 **Traces To:** SRD-EXE v1.24.0 / DD-EXE v1.17.0
 **Status:** Draft
-**Last Updated:** 2026-10-27
+**Last Updated:** 2026-11-20
 **Project:** US Swing Trading System
 
+> v1.25.0: MD-EXE-017.028.M03 added — fixed share count in `_size_entry` (SRD-EXE-017.028).
 > v1.24.0: AI Desk and Market Floor removed (user, 2026-11-17; docs/audit/DESK_REMOVAL_2026-11-17.md): MD-EXE-021 modules removed.
 > v1.23.0: MD-EXE-021.*.M01–M04 added — AI Desk signal intake (MKT P7).
 > v1.22.0: MD-EXE-011.027.M01 added — `core/market_structure.py` (BOSS_ST); MD-EXE-011.001.M03 gains `boss_st_args()` and `BOSS_ST` (SRD-EXE-011.027).
@@ -316,6 +317,7 @@ wiring (M03–M04) → app wiring (M09) → GUI surfaces (M05, M08).
 | MD-EXE-017.016.M14 | `src/us_swing/gui/app_service.py` | `get_account_state` sums paper `open_position_value` from `_cycle_position_source`; add `margin_available()`; live `_reconcile_margin_drift()` (one-per-crossing latch) in `_on_account_data_ready`; paper `_paper_account_state()` + `_realised_today()`. | SRD-EXE-017.019, .020, .021, .027 |
 | MD-EXE-017.017.M15 | `src/us_swing/gui/main_window.py` | `_AdminContextBar` adds a `capital` cell rendering `Cap $X · Avail $Y` from `effective_capital()`/`margin_available()`; green when `Y>0`; refresh on `account_updated`. | SRD-EXE-017.021 |
 | MD-EXE-017.023.M03 | `src/us_swing/execution/strategy_engine/_router.py` | In `_size_entry`, multiply the strategy allocation by `per_trade_pct/100`: `budget = eff_cap × capital_max × per_trade_pct / 10000`. `can_allocate` (full-allocation cap) unchanged, so a strategy may hold up to `floor(100/per_trade_pct)` concurrent positions. | SRD-EXE-017.024 |
+| MD-EXE-017.028.M03 | `src/us_swing/execution/strategy_engine/_router.py` | In `_size_entry`, return `cfg.fixed_qty` when it is above 0, before the percent rule; the capital cap and margin clamp after it are unchanged. Field and DB column live in `gui/strategy_store.py`. | SRD-EXE-017.028 |
 
 **Cross-tool surfaces (GUI tool — see `gui/MD.md`):** `gui/strategy_store.py` adds `StrategyConfig.per_trade_pct: int = 100`, the `strategies.per_trade_pct` column, and the additive `_migrate_columns` `ALTER TABLE` for existing databases; `gui/strategy_builder_dialog.py` adds the Strategy Allocation + Per-Trade Size spinboxes and live hint; `gui/execution_panel.py` passes the user's Max Capital into the dialog (SRD-EXE-017.023/.025).
 

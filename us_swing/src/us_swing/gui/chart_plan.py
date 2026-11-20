@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import datetime
 
-from us_swing.gui.chart_inspector import plan_size
 from us_swing.gui.strategy_store import StrategyConfig
 
 CHART_PLAN_TYPE = "chart_plan"
@@ -31,37 +30,18 @@ def is_expired(cfg: StrategyConfig, today: datetime.date) -> bool:
     return is_chart_plan(cfg) and cfg.end_date < today.isoformat()
 
 
-def capital_pct(entry: float, stop: float, risk_pct: float,
-                equity: float, capital: float) -> int:
-    """Capital % that buys the same shares as the Inspector's risk size.
-
-    Args:
-        entry: Plan entry price.
-        stop: Plan stop price (below entry).
-        risk_pct: Account risk per trade, in percent.
-        equity: Account equity the risk size is based on.
-        capital: Dollar budget the strategy engine sizes from.
-
-    Returns:
-        Whole percent from 1 to 100.
-    """
-    if capital <= 0:
-        return 1
-    pct = round(plan_size(entry, stop, equity, risk_pct) * entry / capital * 100)
-    return max(1, min(100, pct))
-
-
 def build_chart_plan(symbol: str, entry: float, stop: float, target: float,
-                     capital_max: int, today: datetime.date) -> StrategyConfig:
-    """Return the auto strategy that buys *symbol* once above *entry* today.
+                     shares: int, today: datetime.date) -> StrategyConfig:
+    """Return the auto strategy that buys *shares* of *symbol* once above *entry* today.
 
     Stop and target are stored as percent of the buy price, measured from *entry*.
+    The engine still never buys more than the capital available.
     """
     day = today.isoformat()
     return StrategyConfig(
         name=chart_plan_name(symbol),
         mode="auto",
-        capital_max=capital_max,
+        capital_max=100,
         start_time="09:30",
         end_time="16:00",
         start_date=day,
@@ -85,4 +65,5 @@ def build_chart_plan(symbol: str, entry: float, stop: float, target: float,
         per_trade_pct=100,
         run_state="RUNNING",
         direction="LONG",
+        fixed_qty=shares,
     )

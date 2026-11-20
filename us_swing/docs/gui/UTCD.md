@@ -1,12 +1,13 @@
 # Unit Test Case Document â€” GUI Module (GUI)
 
 **Document ID:** UTCD-GUI
-**Version:** 1.55.1
+**Version:** 1.56.0
 **Traces To:** MD-GUI v1.7.0
 **Status:** Draft
 **Last Updated:** 2026-11-17
 **Project:** US Swing Trading System
 
+> v1.56.0: UT-GUI-045.007–.008 rows added; UT-GUI-026.006.M03.T01–T04 now use available capital; UT-GUI-045.001.M01.T02 Removed (SRD-GUI-045.007–.008).
 > v1.55.1: UT-GUI-045.006.M02.T01 added; UT-GUI-026.010.M01.T01–T02 now send the plan (SRD-GUI-045.006).
 > v1.55.0: UT-GUI-045.001.M01.T01–T08 rows added (FO-GUI-045 chart plan strategy).
 > v1.54.0: UT-GUI-044.001–.007 rows added (14) (FO-GUI-044); 8 UT-GUI-043 rows marked Removed.
@@ -833,12 +834,12 @@ Test files:
 | UT-GUI-026.005.M03.T01 | MD-GUI-026.005.M03 | Positive | One header per registry entry; open state remembered | `SECTIONS`; collapse Indicators; new Inspector | header per entry in order; Indicators closed | Pass |
 | UT-GUI-026.005.M03.T02 | MD-GUI-026.005.M03 | Edge | Extra section plugs in | registry plus a fake section | fake section shown and its `update` called on load | Pass |
 | UT-GUI-026.005.M01.T04 | MD-GUI-026.001.M01 | Negative | Hidden Inspector stays hidden | hide; new workspace | Inspector card hidden | Pass |
-| UT-GUI-026.006.M03.T01 | MD-GUI-026.005.M03 | Positive | R:R and size | entry 129.8, stop 124.5, target 141; equity 40,000, risk 1 % | R:R 2.1; size 75 | Pass |
-| UT-GUI-026.006.M03.T02 | MD-GUI-026.005.M03 | Negative | Invalid plan shows dashes | stop 131 ≥ entry 129.8 | R:R None; size 0; cells "—" | Pass |
-| UT-GUI-026.006.M03.T03 | MD-GUI-026.005.M03 | Positive | Plan values shown | plan 129.8 / 124.5 / 141; equity 40,000, risk 1 % | "129.80", "124.50", "141.00", "2.1", "75 sh"; "Size (1% risk)" | Pass |
+| UT-GUI-026.006.M03.T01 | MD-GUI-026.005.M03 | Positive | R:R and size | entry 129.8, stop 124.5, target 141; available 30,000 at 108 | R:R 2.1; max shares 277 | Pass |
+| UT-GUI-026.006.M03.T02 | MD-GUI-026.005.M03 | Negative | Invalid plan shows dashes | stop 131 ≥ entry 129.8; entry 0 or no capital | R:R None; max shares 0; cells "—" | Pass |
+| UT-GUI-026.006.M03.T03 | MD-GUI-026.005.M03 | Positive | Plan values shown | plan 129.8 / 124.5 / 141; available 40,000 | "129.80", "124.50", "141.00", "2.1", "308 sh · 39,978.40"; "Shares" | Pass |
 | UT-GUI-026.006.M01.T05 | MD-GUI-026.001.M01 | Positive | Plan source order | screener plan and position; position only; stop 0 | screener values; position avg, stop, target; None | Pass |
 | UT-GUI-026.006.M01.T06 | MD-GUI-026.001.M01 | Negative | Edited plan kept; invalid plan clears lines | edit NVDA; reload; edit stop above entry | same lines after reload; `set_plan(None)` | Pass |
-| UT-GUI-026.006.M03.T04 | MD-GUI-026.005.M03 | Positive | Edit updates values and lines | Edit; stop 125; Save | stop "125.00"; `plan_changed` with new stop | Pass |
+| UT-GUI-026.006.M03.T04 | MD-GUI-026.005.M03 | Positive | Edit updates values and lines | Edit; stop 125; shares 25; Save | stop "125.00"; "25 sh · 3,245.00"; `plan_changed` with new stop and shares | Pass |
 | UT-GUI-026.007.M03.T01 | MD-GUI-026.005.M03 | Positive | Indicator values | 60 known bars | RSI, ATR, ADX match reference values; rel. volume 2.0× | Pass |
 | UT-GUI-026.007.M03.T02 | MD-GUI-026.005.M03 | Edge | Too few bars | 5 bars | all "—" | Pass |
 | UT-GUI-026.007.M01.T03 | MD-GUI-026.001.M01 | Positive | Indicators get the loaded bars | open NVDA | RSI value shown | Pass |
@@ -1177,11 +1178,15 @@ Test files:
 | UT-GUI-044.010.M02.T02 | MD-GUI-044.001.M02 | Negative | Chevron closes | open A, B; chevron on active twice; chevron on C | A active; none active, date hidden; C open | Pass |
 | UT-GUI-044.010.M02.T03 | MD-GUI-044.001.M02 | Edge | Open presets kept | open C, A; new panel | C and A open, A active | Pass |
 | UT-GUI-045.001.M01.T01 | MD-GUI-045.001.M02 | Positive | Send saves the chart plan | VRSN 310 / 300 / 330, risk 1% | "Chart plan - VRSN", include VRSN, auto, running, Positional, rex 0, stop 3.23%, target 6.45%, today only; pick added | Pass |
-| UT-GUI-045.001.M01.T02 | MD-GUI-045.001.M01 | Positive | Risk size as capital % | 310 / 300, equity and capital 100,000; stop 309; capital 0 | 31; 100 (capped); 1 | Pass |
+| UT-GUI-045.001.M01.T02 | MD-GUI-045.001.M01 | Positive | Risk size as capital % | 310 / 300, equity and capital 100,000; stop 309; capital 0 | 31; 100 (capped); 1 | Removed (SRD-GUI-045.008) |
 | UT-GUI-045.001.M01.T03 | MD-GUI-045.001.M02 | Negative | Refused pick saves nothing | XYZ not in universe | message shown; no chart plan | Pass |
 | UT-GUI-045.001.M01.T04 | MD-GUI-045.001.M02 | Edge | Resend replaces; open trade blocks | send 310, then 312; open trade; send 320 | entry 312; message "VRSN already has an open chart plan trade"; entry stays 312 | Pass |
 | UT-GUI-045.001.M01.T05 | MD-GUI-045.001.M02 | Positive | Pick removal removes the plan | VRSN and AAPL plans, AAPL trade open; remove both picks | only AAPL plan left; VRSN trade count cleared | Pass |
 | UT-GUI-045.001.M01.T06 | MD-GUI-045.001.M02 | Positive | Trade close removes the plan | VRSN plan; its trade closes | no chart plan; Strategies told to reload | Pass |
 | UT-GUI-045.001.M01.T07 | MD-GUI-045.001.M02 | Edge | Start removes past-day plans only | yesterday AAPL plan, today VRSN plan, other strategy | Breakout and VRSN plan left | Pass |
 | UT-GUI-045.001.M01.T08 | MD-GUI-045.001.M01 | Positive | Entry rule in the engine evaluator | last 3m close 310.5; 309.9 | True; False | Pass |
-| UT-GUI-045.006.M02.T01 | MD-GUI-045.001.M02 | Negative | Send without a valid plan warns | no plan; plan 100 / 105 / 110 | "Set Entry, Stop and Target with Edit first"; "Stop must be below Entry and Target above Entry"; nothing sent | Pass |
+| UT-GUI-045.006.M02.T01 | MD-GUI-045.001.M02 | Negative | Send without a valid plan warns | no plan; plan 100 / 105 / 110 | "Set Entry, Stop and Target with Edit first"; "Stop must be below Entry and Target above Entry"; available 50 at Entry 100 → "No capital available for this trade"; nothing sent | Pass |
+| UT-GUI-045.007.M03.T01 | MD-GUI-045.007.M03 | Positive | Shares box stops at available | available 30,000, Entry 108; Edit; type 300; Entry 120 | 277 shown and max; stays 277; max 250 | Pass |
+| UT-GUI-045.008.M02.T01 | MD-GUI-045.001.M02 | Positive | Send passes edited shares | plan 100 / 95 / 110, shares 25 | `send_chart_plan("NVDA", 100, 95, 110, 25)` | Pass |
+| UT-GUI-045.008.M01.T01 | MD-GUI-045.001.M01 | Positive | Chart plan saves exact shares | VRSN plan with 25 shares and another strategy | plan fixed 25, capital 100, per trade 100; other strategy 0 | Pass |
+| UT-GUI-045.008.M01.T02 | MD-GUI-045.001.M01 | Positive | Engine buys the fixed shares | fixed 25 at 108; fixed 0, 10% of 50,000 | 25; 46 | Pass |

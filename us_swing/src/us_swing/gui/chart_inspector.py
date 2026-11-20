@@ -27,6 +27,7 @@ from PyQt6.QtWidgets import (
     QLabel,
     QPushButton,
     QScrollArea,
+    QSpinBox,
     QToolButton,
     QVBoxLayout,
     QWidget,
@@ -60,6 +61,7 @@ class TradePlan:
     entry: float
     stop: float
     target: float
+    shares: int = 0  # 0 = as many as the available capital buys
 
     @property
     def levels(self) -> tuple[float, float, float]:
@@ -74,8 +76,7 @@ class ChartContext:
     timeframe: str
     candles: Sequence[Candle]
     plan: TradePlan | None = None
-    risk_pct: float = 1.0
-    equity: float = 0.0
+    available: float = 0.0  # Max Capital minus open trades
 
 
 def plan_rr(entry: float, stop: float, target: float) -> float | None:
@@ -85,12 +86,16 @@ def plan_rr(entry: float, stop: float, target: float) -> float | None:
     return (target - entry) / (entry - stop)
 
 
-def plan_size(entry: float, stop: float, equity: float, risk_pct: float) -> int:
-    """Shares so that a stop-out loses ``risk_pct`` % of ``equity``; 0 when stop ≥ entry."""
-    risk_per_share = entry - stop
-    if risk_per_share <= 0 or equity <= 0 or risk_pct <= 0:
+def max_shares(entry: float, available: float) -> int:
+    """Most shares the available capital buys at ``entry``; 0 when either is not positive."""
+    if entry <= 0 or available <= 0:
         return 0
-    return math.floor(equity * risk_pct / 100.0 / risk_per_share)
+    return math.floor(available / entry)
+
+
+def plan_shares(plan: TradePlan, available: float) -> int:
+    """The plan's own share count, else as many as the available capital buys."""
+    return plan.shares or max_shares(plan.entry, available)
 
 
 def _column(candles: Sequence[Candle], key: str) -> npt.NDArray[np.float64]:
@@ -257,7 +262,7 @@ class TradePlanSection(QWidget):
         box.setContentsMargins(0, 0, 0, 0)
         box.setSpacing(8)
         self.rows = _Rows([("entry", "Entry"), ("stop", "Stop"), ("target", "Target"),
-                           ("rr", "Reward : risk"), ("size", "Size")])
+                           ("rr", "Reward : risk"), ("size", "Shares")])
         box.addWidget(self.rows)
         self.spins: dict[str, QDoubleSpinBox] = {}
         for row, key in enumerate(("entry", "stop", "target")):
@@ -269,6 +274,13 @@ class TradePlanSection(QWidget):
             spin.hide()
             self.spins[key] = spin
             self.rows.grid.addWidget(spin, row, 1, Qt.AlignmentFlag.AlignRight)
+        self.shares_spin = QSpinBox()
+        self.shares_spin.setAccessibleName("Shares")
+        self.shares_spin.setToolTip("Shares to buy; at most what the available capital buys")
+        self.shares_spin.setFixedWidth(_SPIN_W)
+        self.shares_spin.hide()
+        self.rows.grid.addWidget(self.shares_spin, 4, 1, Qt.AlignmentFlag.AlignRight)
+        self.spins["entry"].valueChanged.connect(self._limit_shares)
         buttons = QHBoxLayout()
         buttons.setSpacing(8)
         self.edit_btn = QPushButton("Edit")
@@ -322,8 +334,6 @@ class TradePlanSection(QWidget):
     def _show(self) -> None:
         values = self.rows.values
         plan = self._plan
-        risk_pct = self._ctx.risk_pct if self._ctx else 1.0
-        self.rows.names[4].setText(f"Size ({risk_pct:g}% risk)")
         if plan is None:
             for label in values.values():
                 label.setText(_DASH)
@@ -333,18 +343,27 @@ class TradePlanSection(QWidget):
         values["target"].setText(_money(plan.target))
         rr = plan_rr(*plan.levels)
         values["rr"].setText(_DASH if rr is None else f"{rr:.1f}")
-        equity = self._ctx.equity if self._ctx else 0.0
-        size = plan_size(plan.entry, plan.stop, equity, risk_pct)
-        values["size"].setText(f"{size} sh" if rr is not None and size > 0 else _DASH)
+        size = plan_shares(plan, self._available())
+        values["size"].setText(f"{size} sh · {_money(size * plan.entry)}"
+                               if rr is not None and size > 0 else _DASH)
+
+    def _available(self) -> float:
+        return self._ctx.available if self._ctx else 0.0
+
+    def _limit_shares(self, entry: float) -> None:
+        self.shares_spin.setMaximum(max_shares(entry, self._available()))
 
     def _on_edit(self) -> None:
         if not self.editing:
             seed = self._plan or self._seed_plan()
             for key, value in zip(("entry", "stop", "target"), seed.levels):
                 self.spins[key].setValue(value)
+            self._limit_shares(seed.entry)
+            self.shares_spin.setValue(plan_shares(seed, self._available()))
             self._set_editing(True)
             return
-        self._plan = TradePlan(*(self.spins[k].value() for k in ("entry", "stop", "target")))
+        self._plan = TradePlan(self.spins["entry"].value(), self.spins["stop"].value(),
+                               self.spins["target"].value(), self.shares_spin.value())
         self._set_editing(False)
         self._show()
         self.plan_changed.emit(self._plan)
@@ -357,6 +376,8 @@ class TradePlanSection(QWidget):
         for key, spin in self.spins.items():
             spin.setVisible(editing)
             self.rows.values[key].setVisible(not editing)
+        self.shares_spin.setVisible(editing)
+        self.rows.values["size"].setVisible(not editing)
         self.cancel_btn.setVisible(editing)
         # Save, Cancel and Send do not fit the Inspector width side by side.
         self.send_btn.setVisible(not editing)

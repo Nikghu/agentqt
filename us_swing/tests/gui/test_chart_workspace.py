@@ -30,6 +30,7 @@ class _Svc(QObject):
         super().__init__()
         self.screener: list[SimpleNamespace] = []
         self.positions: list[SimpleNamespace] = []
+        self.available = 40_000.0
         self.drawings = DrawingStore(sa.create_engine("sqlite://"))
 
     def get_candle_symbols(self, *_a, **_k) -> list[str]:
@@ -59,6 +60,9 @@ class _Svc(QObject):
 
     def get_account_state(self) -> SimpleNamespace:
         return SimpleNamespace(equity=40_000.0)
+
+    def margin_available(self) -> float:
+        return self.available
 
     def get_drawing_store(self) -> DrawingStore:
         return self.drawings
@@ -214,8 +218,19 @@ def test_send_to_execution_sends_plan(qtbot, svc, workspace):
     plan = next(s for s in workspace.inspector.sections if s.key == "plan")
     with qtbot.waitSignal(workspace.execution_requested) as blocker:
         plan.send_btn.click()
-    assert sent[0][:4] == ("NVDA", 100.0, 95.0, 110.0) and blocker.args == ["NVDA"]
+    assert sent[0] == ("NVDA", 100.0, 95.0, 110.0, 400) and blocker.args == ["NVDA"]
     assert plan.message_lbl.isHidden()
+
+
+def test_send_uses_edited_shares(qtbot, svc, workspace):
+    """UT-GUI-045.008.M02.T01: Send passes the shares set with Edit."""
+    sent: list[tuple[object, ...]] = []
+    svc.send_chart_plan = lambda *a: sent.append(a)  # type: ignore[attr-defined]
+    workspace._edited_plans["NVDA"] = TradePlan(100.0, 95.0, 110.0, shares=25)
+    workspace.open_symbol("NVDA")
+    plan = next(s for s in workspace.inspector.sections if s.key == "plan")
+    plan.send_btn.click()
+    assert sent == [("NVDA", 100.0, 95.0, 110.0, 25)]
 
 
 def test_refused_send_shows_message(qtbot, svc, workspace):
@@ -230,13 +245,15 @@ def test_refused_send_shows_message(qtbot, svc, workspace):
     assert plan.message_lbl.text() == "NVDA already has an open chart plan trade"
 
 
-@pytest.mark.parametrize(("levels", "text"), [
-    (None, "Set Entry, Stop and Target with Edit first"),
-    ((100.0, 105.0, 110.0), "Stop must be below Entry and Target above Entry"),
+@pytest.mark.parametrize(("levels", "available", "text"), [
+    (None, 40_000.0, "Set Entry, Stop and Target with Edit first"),
+    ((100.0, 105.0, 110.0), 40_000.0, "Stop must be below Entry and Target above Entry"),
+    ((100.0, 95.0, 110.0), 50.0, "No capital available for this trade"),
 ])
-def test_send_without_valid_plan_warns(qtbot, svc, workspace, levels, text):
-    """UT-GUI-045.006.M02.T01: Send without a valid plan warns and sends nothing."""
+def test_send_without_valid_plan_warns(qtbot, svc, workspace, levels, available, text):
+    """UT-GUI-045.006.M02.T01: Send without a valid plan or capital warns and sends nothing."""
     sent: list[object] = []
+    svc.available = available
     svc.send_chart_plan = lambda *a: sent.append(a)  # type: ignore[attr-defined]
     if levels is not None:
         workspace._edited_plans["NVDA"] = TradePlan(*levels)

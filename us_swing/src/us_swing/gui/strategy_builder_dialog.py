@@ -1595,6 +1595,7 @@ class StrategyBuilderDialog(QDialog):
         cfg = StrategyConfig(
             name=name,
             strategy_type=self._existing.strategy_type if self._existing else "",
+            fixed_qty=self._existing.fixed_qty if self._existing else 0,
             symbol_mode={"All S&P 500": "all", "Include Only": "include", "Exclude These": "exclude"}[i._symbol_mode.currentText()],
             symbols_include=[i._stock_list.item(r).text() for r in range(i._stock_list.count())] if i._symbol_mode.currentIndex() == 1 else [],
             symbols_exclude=[i._stock_list.item(r).text() for r in range(i._stock_list.count())] if i._symbol_mode.currentIndex() == 2 else [],

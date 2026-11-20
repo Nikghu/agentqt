@@ -19,8 +19,8 @@ from us_swing.gui.chart_inspector import (
     indicator_values,
     key_levels,
     pattern_hits,
+    max_shares,
     plan_rr,
-    plan_size,
 )
 
 
@@ -106,17 +106,17 @@ def test_extra_section_plugs_in(qtbot, settings):
 def test_rr_and_size():
     """UT-GUI-026.006.M03.T01: R:R and size."""
     assert round(plan_rr(129.8, 124.5, 141.0) or 0, 1) == 2.1
-    assert plan_size(129.8, 124.5, 40_000, 1.0) == 75
+    assert max_shares(108.0, 30_000) == 277
 
 
 def test_invalid_plan_shows_dashes(qtbot):
     """UT-GUI-026.006.M03.T02: Invalid plan shows dashes."""
     assert plan_rr(129.8, 131.0, 141.0) is None
-    assert plan_size(129.8, 131.0, 40_000, 1.0) == 0
+    assert max_shares(0.0, 30_000) == 0 and max_shares(108.0, 0.0) == 0
     section = TradePlanSection()
     qtbot.addWidget(section)
     section.set_context(ChartContext("NVDA", "1d", _candles(5),
-                                     TradePlan(129.8, 131.0, 141.0), 1.0, 40_000))
+                                     TradePlan(129.8, 131.0, 141.0), available=40_000))
     assert section.rows.values["rr"].text() == "—"
     assert section.rows.values["size"].text() == "—"
     section.set_context(ChartContext("NVDA", "1d", _candles(5)))
@@ -128,11 +128,11 @@ def test_plan_values_shown(qtbot):
     section = TradePlanSection()
     qtbot.addWidget(section)
     section.set_context(ChartContext("NVDA", "1d", _candles(5),
-                                     TradePlan(129.8, 124.5, 141.0), 1.0, 40_000))
+                                     TradePlan(129.8, 124.5, 141.0), available=40_000))
     values = section.rows.values
     assert [values[k].text() for k in ("entry", "stop", "target", "rr", "size")] == [
-        "129.80", "124.50", "141.00", "2.1", "75 sh"]
-    assert section.rows.names[4].text() == "Size (1% risk)"
+        "129.80", "124.50", "141.00", "2.1", "308 sh · 39,978.40"]
+    assert section.rows.names[4].text() == "Shares"
 
 
 def test_edit_updates_values_and_emits(qtbot):
@@ -140,18 +140,34 @@ def test_edit_updates_values_and_emits(qtbot):
     section = TradePlanSection()
     qtbot.addWidget(section)
     section.set_context(ChartContext("NVDA", "1d", _candles(5),
-                                     TradePlan(129.8, 124.5, 141.0), 1.0, 40_000))
+                                     TradePlan(129.8, 124.5, 141.0), available=40_000))
     section.edit_btn.click()
     assert section.editing
     assert section.send_btn.isHidden()
     assert section.minimumSizeHint().width() <= 276   # fits the 310 px Inspector card
     section.spins["stop"].setValue(125.0)
+    section.shares_spin.setValue(25)
     with qtbot.waitSignal(section.plan_changed) as blocker:
         section.edit_btn.click()
-    assert blocker.args[0] == TradePlan(129.8, 125.0, 141.0)
+    assert blocker.args[0] == TradePlan(129.8, 125.0, 141.0, shares=25)
     assert section.rows.values["stop"].text() == "125.00"
+    assert section.rows.values["size"].text() == "25 sh · 3,245.00"
     assert not section.editing
     assert not section.send_btn.isHidden()
+
+
+def test_shares_box_stops_at_available(qtbot):
+    """UT-GUI-045.007.M03.T01: Edit shares start at the available size and cannot go above it."""
+    section = TradePlanSection()
+    qtbot.addWidget(section)
+    section.set_context(ChartContext("VRSN", "1d", _candles(5),
+                                     TradePlan(108.0, 103.5, 122.0), available=30_000))
+    section.edit_btn.click()
+    assert section.shares_spin.value() == 277 and section.shares_spin.maximum() == 277
+    section.shares_spin.setValue(300)
+    assert section.shares_spin.value() == 277
+    section.spins["entry"].setValue(120.0)
+    assert section.shares_spin.maximum() == 250
 
 
 def test_indicator_values_match_talib(qtbot):

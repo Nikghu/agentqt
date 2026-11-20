@@ -14,7 +14,7 @@ from PyQt6.QtCore import QObject, pyqtSignal
 import us_swing.data  # noqa: F401  — load data before db (db ↔ data import cycle)
 from us_swing.gui import manual_picks_store, strategy_store
 from us_swing.gui.app_service import AppService
-from us_swing.gui.chart_plan import build_chart_plan, capital_pct
+from us_swing.gui.chart_plan import build_chart_plan
 from us_swing.gui.strategy_store import StrategyConfig, load_strategies, save_strategies
 
 _TODAY = datetime.date(2026, 11, 20)
@@ -72,12 +72,6 @@ class _Svc(QObject):
     def get_open_symbols_for_strategy(self, name: str) -> list[str]:
         return self.open.get(name, [])
 
-    def get_account_state(self) -> Any:
-        return SimpleNamespace(equity=100_000.0)
-
-    def effective_capital(self) -> float:
-        return 100_000.0
-
     def get_latest_screener_results(self) -> list[Any]:
         return []
 
@@ -99,7 +93,7 @@ def _plans() -> list[StrategyConfig]:
 
 def test_send_saves_one_trade_auto_strategy(svc: _Svc) -> None:
     """UT-GUI-045.001.M01.T01: Send with a plan saves the auto strategy for that stock."""
-    assert svc.send_chart_plan("VRSN", 310.0, 300.0, 330.0, 1.0) is None
+    assert svc.send_chart_plan("VRSN", 310.0, 300.0, 330.0, 25) is None
 
     [cfg] = _plans()
     assert cfg.name == "Chart plan - VRSN"
@@ -112,30 +106,50 @@ def test_send_saves_one_trade_auto_strategy(svc: _Svc) -> None:
     assert manual_picks_store.load_manual_picks("1") == ["VRSN"]
 
 
-def test_capital_pct_matches_risk_size() -> None:
-    """UT-GUI-045.001.M01.T02: buy size is the 1% risk size as a whole capital percent."""
-    assert capital_pct(310.0, 300.0, 1.0, 100_000.0, 100_000.0) == 31
-    assert capital_pct(310.0, 309.0, 1.0, 100_000.0, 100_000.0) == 100
-    assert capital_pct(310.0, 300.0, 1.0, 100_000.0, 0.0) == 1
+def test_plan_saves_exact_shares() -> None:
+    """UT-GUI-045.008.M01.T01: the chart plan stores the share count; other strategies keep 0."""
+    other = StrategyConfig(name="Breakout", mode="auto", capital_max=10, start_time="09:30",
+                           end_time="16:00", start_date="2026-01-01", end_date="2026-01-02",
+                           days=["Monday"], entry_condition="", exit_condition="")
+    save_strategies([build_chart_plan("VRSN", 108.0, 103.5, 122.0, 25, _TODAY), other])
+
+    saved = {c.name: c for c in load_strategies()}
+
+    plan = saved["Chart plan - VRSN"]
+    assert (plan.fixed_qty, plan.capital_max, plan.per_trade_pct) == (25, 100, 100)
+    assert saved["Breakout"].fixed_qty == 0
+
+
+def test_engine_buys_fixed_shares() -> None:
+    """UT-GUI-045.008.M01.T02: engine sizing uses the fixed share count, else the percent rule."""
+    from us_swing.execution.strategy_engine._router import _Router
+
+    router = SimpleNamespace(_effective_capital_provider=lambda: 50_000.0)
+    plan = build_chart_plan("VRSN", 108.0, 103.5, 122.0, 25, _TODAY)
+    ctx = SimpleNamespace(cfg=plan)
+
+    assert _Router._size_entry(router, ctx, 108.0) == 25  # type: ignore[arg-type]
+    ctx.cfg = SimpleNamespace(fixed_qty=0, capital_max=10, per_trade_pct=100)
+    assert _Router._size_entry(router, ctx, 108.0) == 46  # type: ignore[arg-type]
 
 
 def test_refused_pick_saves_no_strategy(svc: _Svc) -> None:
     """UT-GUI-045.001.M01.T03: a refused stock gets no strategy."""
     svc.refused = "XYZ is not in the stock universe"
 
-    assert svc.send_chart_plan("XYZ", 10.0, 9.0, 12.0, 1.0) == "XYZ is not in the stock universe"
+    assert svc.send_chart_plan("XYZ", 10.0, 9.0, 12.0, 25) == "XYZ is not in the stock universe"
     assert _plans() == []
 
 
 def test_resend_replaces_but_open_trade_blocks(svc: _Svc) -> None:
     """UT-GUI-045.001.M01.T04: resend replaces the plan; an open trade keeps the old one."""
-    svc.send_chart_plan("VRSN", 310.0, 300.0, 330.0, 1.0)
-    svc.send_chart_plan("VRSN", 312.0, 300.0, 340.0, 1.0)
+    svc.send_chart_plan("VRSN", 310.0, 300.0, 330.0, 25)
+    svc.send_chart_plan("VRSN", 312.0, 300.0, 340.0, 25)
     [cfg] = _plans()
     assert cfg.entry_condition.endswith("> 312.00")
 
     svc.open["Chart plan - VRSN"] = ["VRSN"]
-    message = svc.send_chart_plan("VRSN", 320.0, 300.0, 350.0, 1.0)
+    message = svc.send_chart_plan("VRSN", 320.0, 300.0, 350.0, 25)
 
     assert message == "VRSN already has an open chart plan trade"
     assert _plans()[0].entry_condition.endswith("> 312.00")
@@ -143,8 +157,8 @@ def test_resend_replaces_but_open_trade_blocks(svc: _Svc) -> None:
 
 def test_remove_pick_removes_plan_unless_trade_open(svc: _Svc) -> None:
     """UT-GUI-045.001.M01.T05: removing the pick removes its plan, not one with an open trade."""
-    svc.send_chart_plan("VRSN", 310.0, 300.0, 330.0, 1.0)
-    svc.send_chart_plan("AAPL", 200.0, 190.0, 220.0, 1.0)
+    svc.send_chart_plan("VRSN", 310.0, 300.0, 330.0, 25)
+    svc.send_chart_plan("AAPL", 200.0, 190.0, 220.0, 25)
     svc.open["Chart plan - AAPL"] = ["AAPL"]
 
     svc.remove_manual_pick("VRSN")
@@ -156,7 +170,7 @@ def test_remove_pick_removes_plan_unless_trade_open(svc: _Svc) -> None:
 
 def test_closed_trade_removes_plan(svc: _Svc) -> None:
     """UT-GUI-045.001.M01.T06: when the chart plan trade closes, its strategy is removed."""
-    svc.send_chart_plan("VRSN", 310.0, 300.0, 330.0, 1.0)
+    svc.send_chart_plan("VRSN", 310.0, 300.0, 330.0, 25)
     changed: list[bool] = []
     svc.strategies_changed.connect(lambda: changed.append(True))
 
