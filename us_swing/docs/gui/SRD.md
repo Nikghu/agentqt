@@ -1,10 +1,11 @@
 # Software Requirements Document — GUI Module (GUI)
 
 **Document ID:** SRD-GUI
-**Version:** 2.140.2
+**Version:** 2.140.3
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
-**Last Updated:** 2026-11-20
+**Last Updated:** 2026-11-21
+> v2.140.3: SRD-GUI-002.005 (Reopen) — Trade History adds a Value column and drag-resizable columns (ISS-GUI-0023, user request 2026-11-21).
 > v2.140.2: SRD-GUI-019.012–.017 Implemented.
 > v2.140.1: SRD-GUI-019.012–.017 approved by user 2026-11-20.
 > v2.140.0: SRD-GUI-019.012–.017 added as Draft — Dashboard Exit and Stop / Trail go through the stock's own strategy trade (user answers 2026-11-20).
@@ -255,7 +256,7 @@
 | SRD-GUI-002.002 | FO-GUI-002 | Must | A scope pill strip (32px) sits in the dashboard. Pills: `🌐 All` + one per user (🔴/🔵 by mode). Click calls `AppService.set_viewing_uid()`. Pills auto-sync on `viewing_changed`. | User click / `viewing_changed` | Scope changed; pill highlight updated | Pills use `setAutoExclusive(True)` | Implemented |
 | SRD-GUI-002.003 | FO-GUI-002 | Must | Unrealised P&L column uses `BackgroundRole` (green/red tinted bg) and `ForegroundRole` (green/red text). | P&L value | Coloured cell | Implemented in `PositionTableModel._background/_foreground` | Implemented |
 | SRD-GUI-002.004 | FO-GUI-002 | Must | KPI cards (P&L, equity, positions, capital) reflect current scope's data. Updates on `account_updated` and `viewing_changed`. | Signal events | Refreshed cards | Same refresh path for all scopes | Implemented |
-| SRD-GUI-002.005 | FO-GUI-002 | Must | Trade history `QTableView` backed by `TradeHistoryModel`. Columns: Date & Time, Symbol, Side, Qty, Filled, Avg Price, Order State, Strategy, Mode. Optional "User" prefix column in All-Users scope. Sorted descending by entry time. No P&L column — P&L lives on KPI cards / `trade_cycles`. | `viewing_changed` | Filtered history table | Order State cell renders coloured badge per `BuyOrderState` / `SellOrderState` value | Reopen |
+| SRD-GUI-002.005 | FO-GUI-002 | Must | Trade history `QTableView` backed by `TradeHistoryModel`. Columns: Date & Time, Symbol, Side, Qty, Filled, Avg Price, Value (Filled × Avg Price), Order State, Strategy, Mode; every column edge can be dragged. Optional "User" prefix column in All-Users scope. Sorted descending by entry time. No P&L column — P&L lives on KPI cards / `trade_cycles`. | `viewing_changed` | Filtered history table | Order State cell renders coloured badge per `BuyOrderState` / `SellOrderState` value | Reopen |
 | SRD-GUI-002.006 | FO-GUI-002 | Must | "Manage Selected" action opens `_ExitPositionDialog` (frameless dialog, 580×540 min). Dialog has 4 tabs: Market Exit, Limit Exit, Scale Out, Stop/Trail. Admin attribution banner shown when acting on another user's position. | User interaction | Exit/update action on position | `user_id` taken from position row, not viewing scope | Implemented |
 
 ---

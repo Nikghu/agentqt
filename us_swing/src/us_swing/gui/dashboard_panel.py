@@ -1519,7 +1519,7 @@ class DashboardPanel(QWidget):
         self._hist_view.setEditTriggers(QTableView.EditTrigger.NoEditTriggers)
         self._hist_view.horizontalHeader().setStretchLastSection(True)
         self._hist_view.verticalHeader().setVisible(False)
-        _resize_columns(self._hist_view, {0: 85, 1: 70, 2: 50, 3: 50})
+        _size_hist_columns(self._hist_view, show_user=False)
         self._hist_tile = Tile("Trade History", self._hist_view)
 
         # ── Range, state and export (SRD-GUI-025.010/.011) ────────────────────
@@ -1757,8 +1757,7 @@ class DashboardPanel(QWidget):
                                           shift + 1: 60,
                                           shift + 2: 55,
                                           shift + 9: 120})
-        _resize_columns(self._hist_view, {0: 70 if all_view else 85,
-                                           shift + 1: 70, shift + 2: 55, shift + 3: 45})
+        _size_hist_columns(self._hist_view, show_user=all_view)
 
     # ── Slots ─────────────────────────────────────────────────────────────────
 
@@ -2162,6 +2161,21 @@ def _resize_columns(view: QTableView, fixed: dict[int, int]) -> None:
             h.setSectionResizeMode(col, QHeaderView.ResizeMode.Interactive)
         else:
             h.setSectionResizeMode(col, QHeaderView.ResizeMode.Stretch)
+
+
+# Date & Time, Symbol, Side, Qty, Filled, Avg Price, Value, Order State, Strategy;
+# Mode is last and takes the rest of the width.
+_HIST_WIDTHS = [115, 75, 60, 55, 65, 95, 105, 125, 170]
+
+
+def _size_hist_columns(view: QTableView, show_user: bool) -> None:
+    """Give Trade History start widths; the user can drag every column edge."""
+    h = view.horizontalHeader()
+    widths = ([80] if show_user else []) + _HIST_WIDTHS
+    for col, width in enumerate(widths):
+        h.setSectionResizeMode(col, QHeaderView.ResizeMode.Interactive)
+        h.resizeSection(col, width)
+    h.setStretchLastSection(True)
 
 
 def _padded(layout: QVBoxLayout) -> QVBoxLayout:

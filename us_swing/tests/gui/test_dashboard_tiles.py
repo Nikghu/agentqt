@@ -315,6 +315,31 @@ def test_history_choice_remembered(qtbot, settings):
     assert third._hist_range_btn.text() == "Today"
 
 
+def test_history_value_column(qtbot, settings):
+    """UT-GUI-002.005.M01.T06: Value shows filled shares × average price; nothing filled shows a dash."""
+    panel = _history_panel(qtbot, settings)
+    model = panel._hist_model
+    col = model.COLUMNS.index("Value")
+    assert model.COLUMNS[col + 1] == "Order State"
+    model.refresh([_trade("EW", 0, "FILLED"),
+                   SimpleNamespace(**{**vars(_trade("EW", 0, "CANCELLED")), "filled_quantity": 0})])
+    shown = {model.index(r, col).data() for r in range(2)}
+    assert shown == {"$500.00", "—"}
+
+
+def test_history_columns_can_be_dragged(qtbot, settings):
+    """UT-GUI-002.005.M01.T07: Every Trade History column can be resized and keeps its width on refresh."""
+    from PyQt6.QtWidgets import QHeaderView
+
+    panel = _history_panel(qtbot, settings)
+    header = panel._hist_view.horizontalHeader()
+    for col in range(panel._hist_model.columnCount() - 1):
+        assert header.sectionResizeMode(col) == QHeaderView.ResizeMode.Interactive
+    header.resizeSection(4, 140)
+    panel._hist_model.refresh([_trade("EW", 0, "FILLED")])
+    assert header.sectionSize(4) == 140
+
+
 def test_export_writes_shown_rows(qtbot, settings, tmp_path):
     """UT-GUI-025.011.M02.T01: Export writes the header and the shown rows to CSV."""
     import csv
