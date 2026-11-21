@@ -315,6 +315,19 @@ def _signal(action: Action, direction: str) -> TradeSignal:
                        entry_price=100.0, qty_recommended=10, user_id=1, direction=direction)
 
 
+def test_blocked_order_never_reaches_broker(tmp_path, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    """UT-EXE-015.008.M01.T03: Without the one-copy lock the adapter sends nothing."""
+    from us_swing.execution import app_lock
+
+    monkeypatch.setattr(app_lock, "_claimed", None)
+    assert app_lock.claim_app_lock(tmp_path / "app.lock")
+    app_lock._claimed.release()  # type: ignore[union-attr]
+    adapter, broker, ingestion = _capture_adapter()
+    with pytest.raises(app_lock.OrderBlockedError):
+        adapter.submit(_signal(Action.ENTRY, "LONG"), 10)
+    assert broker.requests == [] and ingestion.contexts == []
+
+
 def test_short_entry_places_sell_with_flipped_levels() -> None:
     """UT-EXE-018.005.M06.T01: a SHORT entry places a SELL with stop above and target below."""
     from us_swing.broker.broker import OrderSide

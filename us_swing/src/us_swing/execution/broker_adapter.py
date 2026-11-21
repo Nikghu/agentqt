@@ -1,5 +1,5 @@
 """Module: MD-EXE-015.002.M01 — execution/broker_adapter.py
-Parent SRD: SRD-EXE-015.001, SRD-EXE-015.004
+Parent SRD: SRD-EXE-015.001, SRD-EXE-015.004, SRD-EXE-015.008
 
 Broker adapter (Broker_fix.md Phase 5).
 
@@ -31,6 +31,7 @@ from us_swing.broker.broker import (
     OrderStatus,
     OrderType,
 )
+from us_swing.execution.app_lock import check_order_allowed
 from us_swing.execution.direction import order_side, risk_levels
 from us_swing.execution.order_ingestion import OrderContext, OrderIngestion
 from us_swing.execution.strategy_engine._signals import Action, TradeSignal
@@ -66,6 +67,7 @@ class BrokerAdapter:
     # ── ExecutionSubmitter surface (called by the router) ────────────────────
 
     def submit(self, signal: TradeSignal, qty: int) -> int | None:
+        check_order_allowed()
         is_entry = signal.action is Action.ENTRY
         side = order_side(signal.direction, is_entry)
         request = OrderRequest(
