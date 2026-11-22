@@ -321,6 +321,7 @@ def test_history_value_column(qtbot, settings):
     model = panel._hist_model
     col = model.COLUMNS.index("Value")
     assert model.COLUMNS[col + 1] == "Order State"
+    assert model._BASE_COLS[:5] == ["Date & Time", "Symbol", "Side", "Mode", "Qty"]
     model.refresh([_trade("EW", 0, "FILLED"),
                    SimpleNamespace(**{**vars(_trade("EW", 0, "CANCELLED")), "filled_quantity": 0})])
     shown = {model.index(r, col).data() for r in range(2)}

@@ -2163,9 +2163,9 @@ def _resize_columns(view: QTableView, fixed: dict[int, int]) -> None:
             h.setSectionResizeMode(col, QHeaderView.ResizeMode.Stretch)
 
 
-# Date & Time, Symbol, Side, Qty, Filled, Avg Price, Value, Order State, Strategy;
-# Mode is last and takes the rest of the width.
-_HIST_WIDTHS = [115, 75, 60, 55, 65, 95, 105, 125, 170]
+# Date & Time, Symbol, Side, Mode, Qty, Filled, Avg Price, Value, Order State;
+# Strategy is last and takes the rest of the width.
+_HIST_WIDTHS = [115, 75, 60, 70, 55, 65, 95, 105, 125]
 
 
 def _size_hist_columns(view: QTableView, show_user: bool) -> None:

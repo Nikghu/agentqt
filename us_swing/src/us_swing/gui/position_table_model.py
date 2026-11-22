@@ -188,8 +188,8 @@ class TradeHistoryModel(QAbstractTableModel):
     """
     Trade-row model (SRD-GUI-002.005 / SRD-EXE-014.002).
 
-    Columns: [User] | Date & Time | Symbol | Side | Qty | Filled | Avg Price
-             | Value | Order State | Strategy | Mode
+    Columns: [User] | Date & Time | Symbol | Side | Mode | Qty | Filled
+             | Avg Price | Value | Order State | Strategy
 
     Value is filled shares × average price (ISS-GUI-0023).
 
@@ -199,8 +199,8 @@ class TradeHistoryModel(QAbstractTableModel):
     """
 
     _BASE_COLS = [
-        "Date & Time", "Symbol", "Side", "Qty", "Filled",
-        "Avg Price", "Value", "Order State", "Strategy", "Mode",
+        "Date & Time", "Symbol", "Side", "Mode", "Qty", "Filled",
+        "Avg Price", "Value", "Order State", "Strategy",
     ]
     _USER_COL  = ["User"]
 
@@ -272,19 +272,19 @@ class TradeHistoryModel(QAbstractTableModel):
                 case 0: return t.entry_time.astimezone(self._market_tz()).strftime("%b %d, %H:%M")
                 case 1: return t.symbol
                 case 2: return t.side
-                case 3: return str(t.quantity)
-                case 4: return str(t.filled_quantity)
-                case 5: return f"${t.entry_price:.2f}"
-                case 6:
+                case 3: return t.mode.upper()
+                case 4: return str(t.quantity)
+                case 5: return str(t.filled_quantity)
+                case 6: return f"${t.entry_price:.2f}"
+                case 7:
                     value = t.filled_quantity * t.entry_price
                     return f"${value:,.2f}" if t.filled_quantity else "—"
-                case 7: return str(t.order_state)
-                case 8: return t.strategy_id
-                case 9: return t.mode.upper()
+                case 8: return str(t.order_state)
+                case 9: return t.strategy_id
             return ""
 
         if role == Qt.ItemDataRole.BackgroundRole:
-            if base_col == 7:
+            if base_col == 8:
                 return QColor(self._ORDER_STATE_BG.get(str(t.order_state), C.SURFACE))
             return None
 
@@ -295,7 +295,7 @@ class TradeHistoryModel(QAbstractTableModel):
 
         if role == Qt.ItemDataRole.TextAlignmentRole:
             shift = 1 if self._show_user else 0
-            if col in [shift + c for c in (3, 4, 5, 6)]:
+            if col in [shift + c for c in (4, 5, 6, 7)]:
                 return Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
             return Qt.AlignmentFlag.AlignCenter
 
