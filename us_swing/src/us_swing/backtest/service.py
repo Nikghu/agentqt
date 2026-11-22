@@ -22,6 +22,7 @@ import pandas as pd
 from us_swing.backtest import html_report
 from us_swing.backtest.cache import StepCache
 from us_swing.backtest.results import ResultsStore, RunRow
+from us_swing.backtest.settings import BacktestDataSettings
 from us_swing.backtest.spec import Period, RunPlan, Variant
 from us_swing.backtest.steps import portfolio, recorded, report, signals, stocks
 from us_swing.backtest.store import BacktestStore, StoredTf
@@ -77,12 +78,18 @@ def _misses(span: Span | None, period: Period, today: date) -> bool:
     return (span[0] - period.start).days > _EDGE_DAYS or (end - span[1]).days > _EDGE_DAYS
 
 
-def _common_span(spans: Sequence[Span | None]) -> Span | None:
-    """Days inside every known span (SRD-BKT-002.088); stocks with no data are skipped."""
+def _range_span(spans: Sequence[Span | None], settings: BacktestDataSettings) -> Span | None:
+    """Backtest Data range start to the last saved day (SRD-BKT-002.088).
+
+    A stock listed later does not narrow the range; it has no trades before its data starts.
+    """
     known = [span for span in spans if span is not None]
     if not known:
         return None
-    first, last = max(sp[0] for sp in known), min(sp[1] for sp in known)
+    last = max(sp[1] for sp in known)
+    if settings.end_date is not None:
+        last = min(last, settings.end_date)
+    first = settings.start_date
     return (first, last) if first <= last else None
 
 
@@ -199,8 +206,9 @@ class BacktestService:
         return _DataCheck(
             missing_1d=[s for s, sp in spans["1d"].items() if _misses(sp, period, today)],
             missing_3m=[s for s, sp in spans["3m"].items() if _misses(sp, period, today)],
-            data_span=_common_span([*(spans["1d"][s] for s in symbols),
-                                    *(spans["3m"][s] for s in symbols)]),
+            data_span=_range_span([*(spans["1d"][s] for s in symbols),
+                                   *(spans["3m"][s] for s in symbols)],
+                                  BacktestDataSettings.load(self._store.root)),
         )
 
     def saved_days(self, preset_id: str) -> list[date]:

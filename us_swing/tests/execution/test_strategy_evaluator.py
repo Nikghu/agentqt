@@ -267,7 +267,7 @@ def test_boss_st_live_value_is_last_series_value() -> None:
 
 @pytest.mark.parametrize("args", [
     ["Spot", 0, 0.0, "30m", "15m", "Fresh"],
-    ["Spot", 21, 0.0, "30m", "15m", "Fresh"],
+    ["Spot", 501, 0.0, "30m", "15m", "Fresh"],
     ["Spot", 2, 6.0, "30m", "15m", "Fresh"],
     ["Spot", 2, 0.0, "15m", "15m", "Fresh"],
     ["Spot", 2, 0.0, "1d", "15m", "Fresh"],

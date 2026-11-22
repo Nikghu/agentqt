@@ -1,9 +1,9 @@
 # Traceability Matrix — Execution & Risk Management (EXE)
 
 **Document ID:** TRACE-EXE
-**Version:** 1.24.1
+**Version:** 1.24.2
 **Project:** US Swing Trading System
-**Last Updated:** 2026-11-22 (RN-EXE-1.41.1-20261122: SRD-EXE-011.001 status save keeps Disabled strategies, ISS-EXE-0015. Earlier: RN-GUI-2.7.0-20261122 filled for SRD-EXE-015.007–.008 and SRD-EXE-017.028. Earlier: SRD-EXE-015.007–.008 one app copy. Earlier: SRD-EXE-017.028 fixed share count. Earlier: SRD-EXE-011.027 BOSS_ST; SRD-EXE-006.015, .007.011 30m timeframe)
+**Last Updated:** 2026-11-23 (RN-EXE-1.41.2-20261123: SRD-EXE-011.027 Swing Lookback 1–500. Earlier: RN-EXE-1.41.1-20261122: SRD-EXE-011.001 status save keeps Disabled strategies, ISS-EXE-0015. Earlier: RN-GUI-2.7.0-20261122 filled for SRD-EXE-015.007–.008 and SRD-EXE-017.028. Earlier: SRD-EXE-015.007–.008 one app copy. Earlier: SRD-EXE-017.028 fixed share count. Earlier: SRD-EXE-011.027 BOSS_ST; SRD-EXE-006.015, .007.011 30m timeframe)
 
 ---
 
@@ -38,7 +38,7 @@
 | FO-EXE-011 | SRD-EXE-011.024 | DD-EXE-011.024.D01 | MD-EXE-011.024.M01 | UT-EXE-011.024.M01.T01–T04 | `execution/pending_signal_store.py`, `gui/app_service.py` | Implemented | RN-EXE-1.30.0-20260617 |
 | FO-EXE-011 | SRD-EXE-011.025 | — | MD-EXE-011.024.M01 | UT-EXE-011.025.M01.T01–T02 | `gui/app_service.py` | Implemented | RN-EXE-1.30.0-20260617 |
 | FO-EXE-011 | SRD-EXE-011.026 | DD-EXE-011.026.D01 | MD-EXE-011.001.M03 | UT-EXE-011.026.M03.T01–T05 (5 tests, Pass) | `execution/strategy_engine/_evaluator.py` | Implemented | RN-EXE-1.39.0-20261031 |
-| FO-EXE-011 | SRD-EXE-011.027 | DD-EXE-011.027.D01 | MD-EXE-011.027.M01, MD-EXE-011.001.M03 | UT-EXE-011.027.M01.T01–T07, UT-EXE-011.027.M03.T01–T03 (10 tests, Pass) | `core/market_structure.py`, `execution/strategy_engine/_evaluator.py` | Implemented | RN-EXE-1.41.0-20261102 |
+| FO-EXE-011 | SRD-EXE-011.027 | DD-EXE-011.027.D01 | MD-EXE-011.027.M01, MD-EXE-011.001.M03 | UT-EXE-011.027.M01.T01–T07, UT-EXE-011.027.M03.T01–T03 (10 tests, Pass) | `core/market_structure.py`, `execution/strategy_engine/_evaluator.py` | Implemented | RN-EXE-1.41.0-20261102, RN-EXE-1.41.2-20261123 |
 | FO-EXE-012 | SRD-EXE-012.014 | — | MD-EXE-012.002.M02 | UT-EXE-012.002.M02.T19 | `execution/trade_cycle/_service.py`, `execution/trade_cycle/_protocols.py` | Implemented | RN-EXE-1.30.0-20260617 |
 | FO-GUI-013 | SRD-GUI-013.015 | — | MD-GUI-004.001.M01 | — | `gui/execution_panel.py`, `gui/strategy_builder_dialog.py` | Implemented | RN-EXE-1.9.0-20260527 |
 | FO-GUI-014 | SRD-GUI-014.013 | — | MD-GUI-014.001.M02 | — | `gui/active_cycles_model.py`, `gui/active_cycles_panel.py` | Implemented | RN-EXE-1.9.0-20260527 |

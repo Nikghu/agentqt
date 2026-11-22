@@ -2,6 +2,17 @@
 
 ---
 
+## [20261123] GUI, BKT, EXE — Bugfix batch part 3: date pickers, time left, Direction column, Swing Lookback 1–500, benchmark key
+
+- Type: Bugfix (branch `fix/bugfix-batch-20261122-2`; 6 commits: 7fdee873, b8ae904c, eb9fef3e, 14961e7a, 48188ccd, c2409af2; unpushed)
+- FO(s): FO-GUI-031 (SRD-GUI-031.073, .080, .087 reopened), FO-GUI-030 (SRD-GUI-030.009), FO-GUI-013 (SRD-GUI-013.024), FO-BKT-002 (SRD-BKT-002.088 reopened), FO-EXE-011 (SRD-EXE-011.027)
+- RN: RN-GUI-2.8.1-20261123, RN-BKT-1.14.1-20261123, RN-EXE-1.41.2-20261123
+- Artifacts: Code, Tests (backtest GUI 116, backtest 287, execution 384 passed), TRACE (gui, backtest, execution), TODO (T226), RN, CONTEXT, DEVLOG; no SRD or UTCD edits
+- Decisions: setup date range = Backtest Data settings range, not the common span of all stocks; time left uses measured speed after 5 requests; Swing Lookback 1–500 in evaluator and form; report benchmark hidden by default
+- Open: user checks T225 (date pickers), T226 (time left, Direction, Swing Lookback 22, benchmark key); user to decide Reopen of SRD-GUI-030.009/.011/.012 (wording stale) and SRD-GUI-031.073 (does not name Direction); UTCD row UT-GUI-030.012.M06.T01 shows old top-line text (test updated)
+
+---
+
 ## [20261122] GUI, BKT, EXE — Bugfix batch part 2: Universe Partial fill, Settings scroll, 3m gap days, strategy save fix
 
 - Type: Bugfix (branch `fix/bugfix-batch-20261122`; 7 commits: 04c504ac, 709ddc4f, 74f594ca, 118421de, 5c2ad7d6, 7d2c1057, 6db3d280)

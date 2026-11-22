@@ -368,7 +368,7 @@
 | UT-GUI-013.001.M01.T22 | MD-GUI-013.001.M01 | Positive | `save_strategies()` writes via temp-file + atomic replace | Stub `Path.replace`; call `save_strategies([cfg])` | `Path.replace` called once with `.tmp` → final path; final file exists | Not Run |
 | UT-GUI-013.023.M01.T01 | MD-GUI-013.001.M01 | Positive | 30m in every Timeframe dropdown | indicator catalogue | each Timeframe list is 3m, 15m, 30m, 1d, 1w | Pass |
 | UT-GUI-013.024.M01.T01 | MD-GUI-013.001.M01 | Positive | BOSS_ST form | choose BOSS_ST, Lookback 2, ATR 0.5 | 6 fields; first choices 30m, 15m, Fresh; built text `BOSS_ST('Spot', 2, 0.5, '30m', '15m', 'Fresh')` | Pass |
-| UT-GUI-013.024.M01.T02 | MD-GUI-013.001.M01 | Negative | HTF not above LTF is refused | HTF 15m, LTF 15m; Lookback 0 | error shown, no condition built; validator rejects 0 | Pass |
+| UT-GUI-013.024.M01.T02 | MD-GUI-013.001.M01 | Negative | HTF not above LTF is refused | HTF 15m, LTF 15m; Lookback 0, 22, 501 | error shown, no condition built; validator rejects 0 and 501, accepts 22 | Pass |
 
 ---
 
@@ -988,6 +988,7 @@ Test files:
 | UT-GUI-030.006.M01.T01 | MD-GUI-030.001.M01 | Positive | Dot state | empty / running / up to date | off / warn / ok | Pass |
 | UT-GUI-030.006.M01.T02 | MD-GUI-030.001.M01 | Negative | Missing 3m shows behind | 498 3m requests missing for 503 stocks | "3-minute candles missing for 503 stocks"; "498 requests · about 3 h 27 min"; Download missing | Pass |
 | UT-GUI-030.006.M01.T03 | MD-GUI-030.001.M01 | Negative | Partial stocks are not Up to date | nothing planned, 224 partial stocks | "224 stocks partial"; hint to Fill selected; button Partial, off (ISS-BKT-0003) | Pass |
+| UT-GUI-030.006.M01.T04 | MD-GUI-030.001.M01 | Positive | Time left uses this run's measured speed | 3m 100 of 200, then 120 of 200 after 40 s | first 42 min (fixed guess), then 3 min (2 s per request) | Pass |
 | UT-GUI-030.009.M01.T01 | MD-GUI-030.001.M01 | Negative | Unsaved range is saved on download | saved start 2026-01-01, field set to 2025-11-01 | "Range changed · not saved yet"; button Save range and download; click saves and starts | Pass |
 | UT-GUI-030.009.M02.T01 | MD-GUI-030.004.M02 | Positive | Stats worker counts missing | plan with 1 1d and 2 3m jobs for 2 stocks | missing_1d 1, missing_3m 2, short_stocks 2 | Pass |
 | UT-GUI-030.009.M02.T02 | MD-GUI-030.004.M02 | Positive | Stats worker counts partial | partial count 224 | partial_stocks 224 (ISS-BKT-0003) | Pass |
@@ -1106,12 +1107,14 @@ Test files:
 | UT-GUI-031.079.M04.T01 | MD-GUI-031.040.M04 | Positive | Tear sheet parts | report with context | title and context; KPI notes; Entries and Strategy limit pills; 4 group cards | Pass |
 | UT-GUI-031.079.M04.T02 | MD-GUI-031.040.M04 | Negative | Value colours | Net P&L, Max drawdown, MAE, Sharpe | green, red, neutral, neutral | Pass |
 | UT-GUI-031.080.M13.T01 | MD-GUI-031.080.M13 | Edge | Empty chart | 1 day | message painted; no hover day | Pass |
+| UT-GUI-031.080.M13.T02 | MD-GUI-031.080.M13 | Positive | Benchmark hidden by default; key shows it | benchmark 5× strategy; click key twice | starts hidden; shown: $ axis top over 3×; hidden again: same axis | Pass |
 | UT-GUI-031.081.M13.T01 | MD-GUI-031.080.M13 | Positive | Pixel to day | left, right, middle, outside | 0, 59, middle day, None | Pass |
 | UT-GUI-031.081.M13.T02 | MD-GUI-031.080.M13 | Positive | Hover readout | day 3, day 0 | date, strategy, benchmark, drawdown; dash without benchmark | Pass |
 | UT-GUI-031.081.M13.T03 | MD-GUI-031.080.M13 | Positive | Mouse move and leave | move, leave | hover day set and painted; cleared on leave | Pass |
 | UT-GUI-031.075.M11.T01 | MD-GUI-031.075.M11 | Positive | Fields and Hide details | open screen; click Hide details; reopen | strategy None picked in yellow; grid and data line hidden; still hidden after reopen | Pass |
 | UT-GUI-031.072.M02.T01 | MD-GUI-031.002.M02 | Positive | Pages and rows | builder; Sectors mode | 5 pages; Sectors row hidden then shown | Pass |
 | UT-GUI-031.073.M02.T01 | MD-GUI-031.002.M02 | Positive | Strategy table | tick first row | Strategy, 50, 100; plan has ST_A | Pass |
+| UT-GUI-031.073.M02.T02 | MD-GUI-031.002.M02 | Positive | Direction column after Strategy | one SHORT, one with no direction | Short, Long; money columns move one place right | Pass |
 | UT-GUI-031.074.M02.T01 | MD-GUI-031.002.M02 | Positive | Plan round trip | plan with sector, saved lists, strategy, capital | same plan after load | Pass |
 | UT-GUI-031.074.M10.T01 | MD-GUI-031.071.M10 | Negative | Cancel and Save | change name, Cancel; change, Save | old name back; new name kept | Pass |
 | UT-GUI-031.074.M03.T01 | MD-GUI-031.003.M03 | Positive | Run from window | Run in footer | window closed; run done | Pass |

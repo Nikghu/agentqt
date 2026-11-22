@@ -277,6 +277,20 @@ def test_partial_stocks_not_up_to_date(make: Any) -> None:
     assert not panel._start_btn.isEnabled()
 
 
+def test_time_left_uses_measured_speed(make: Any, monkeypatch: pytest.MonkeyPatch) -> None:
+    """UT-GUI-030.006.M01.T04: Time left uses this run's measured speed once 5 requests are done."""
+    clock = [1000.0]
+    monkeypatch.setattr(mod.time, "monotonic", lambda: clock[0])
+    panel, svc = make()
+    svc.backtest_progress.emit("3m", 100, 200, "AAPL")
+    assert "about 42 min left" in panel._info.text()
+
+    clock[0] += 40.0
+    svc.backtest_progress.emit("3m", 120, 200, "MSFT")
+
+    assert panel._info.text() == "120 of 200 · MSFT · about 3 min left"
+
+
 def test_changed_range_saved_on_download(make: Any, tmp_path: Path) -> None:
     """UT-GUI-030.009.M01.T01: An unsaved range turns the button into Save range and download."""
     BacktestDataSettings(start_date=date(2026, 1, 1)).save(tmp_path)

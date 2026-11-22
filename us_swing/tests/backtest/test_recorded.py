@@ -139,21 +139,28 @@ def test_no_screener_data_check_and_facts(store: BacktestStore, tmp_path: Path) 
 
 
 def test_data_check_common_span(store: BacktestStore, tmp_path: Path) -> None:
-    """UT-BKT-002.088.M05.T01: The data check gives the days every stock has in 1d and 3m."""
+    """UT-BKT-002.088.M05.T01: The range runs from the Backtest Data start to the last saved day;
+    a stock with later data does not narrow it."""
+    from us_swing.backtest.settings import BacktestDataSettings
     from tests.backtest.conftest import LATE, intraday_bars
 
     store.save("AAPL", "3m", intraday_bars(["2025-03-03", "2025-03-07"], 1), LATE)
     store.save("MSFT", "3m", intraday_bars(["2025-03-04", "2025-03-10"], 2), LATE)
+    BacktestDataSettings(start_date=date(2024, 6, 3)).save(store.root)
     svc = BacktestService(store, StepCache(tmp_path / "cache"), ResultsStore(tmp_path / "r.db"),
                           lambda: [Record(s, "IT", 1e9) for s in _NAMES], _no_preset,
                           screener_results=tmp_path / "sr")
     plan = plan_for(date(2025, 3, 3), date(2025, 3, 7), _NAMES)
     plan = replace(plan, screener=replace(plan.screener, preset_id="", skip=True))
+    last_1d = max(c[1] for s in _NAMES if (c := store.coverage(s, "1d")) is not None)
 
     est = svc.estimate(plan, "1")
 
-    assert est.data_span == (date(2025, 3, 4), date(2025, 3, 7))
+    assert est.data_span == (date(2024, 6, 3), last_1d)
     assert est.missing_3m == ["NVDA"]
+
+    BacktestDataSettings(start_date=date(2024, 6, 3), end_date=date(2025, 3, 7)).save(store.root)
+    assert svc.estimate(plan, "1").data_span == (date(2024, 6, 3), date(2025, 3, 7))
 
 
 def test_data_check_no_data_has_no_span(store: BacktestStore, tmp_path: Path) -> None:

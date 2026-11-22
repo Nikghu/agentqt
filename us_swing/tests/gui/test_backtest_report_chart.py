@@ -62,6 +62,30 @@ def test_mouse_moves_and_leaves(chart: ReportChart, qtbot: Any) -> None:
     assert chart.hover is None
 
 
+def test_benchmark_key_click_hides_line_and_refits(qtbot: Any) -> None:
+    """UT-GUI-031.080.M13.T02: The benchmark starts hidden and the $ axis fits the strategy;
+    clicking its key shows it and widens the axis; a second click hides it again."""
+    daily = _daily()
+    daily["benchmark"] = daily["benchmark"] * 5
+    widget = ReportChart()
+    qtbot.addWidget(widget)
+    widget.resize(900, 360)
+    widget.set_daily(daily, 2000.0)
+    assert not widget.grab().isNull()
+    assert not widget.show_benchmark
+    narrow = widget.money_ticks()
+    key = widget._bench_key.center()
+
+    qtbot.mouseClick(widget, Qt.MouseButton.LeftButton, pos=key.toPoint())
+
+    assert widget.show_benchmark
+    assert widget.money_ticks()[-1] > narrow[-1] * 3
+    assert not widget.grab().isNull()
+    qtbot.mouseClick(widget, Qt.MouseButton.LeftButton, pos=key.toPoint())
+    assert not widget.show_benchmark
+    assert widget.money_ticks() == narrow
+
+
 def test_empty_chart_paints_message(qtbot: Any) -> None:
     """UT-GUI-031.080.M13.T01: Fewer than 2 days paints the empty message and no hover."""
     widget = ReportChart()

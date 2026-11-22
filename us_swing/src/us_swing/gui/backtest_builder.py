@@ -198,10 +198,10 @@ class BacktestBuilder(QWidget):
         self._ai = QCheckBox("Use AI ranking")
         self._ai.setEnabled(False)
         self._ai.setToolTip("Comes in a later phase")
-        self._strategies = QTableWidget(0, 4)
+        self._strategies = QTableWidget(0, 5)
         self._strategies.setObjectName("bt_strategies")
-        self._strategies.setHorizontalHeaderLabels(["Use", "Strategy", "Allocation %",
-                                                    "Per trade %"])
+        self._strategies.setHorizontalHeaderLabels(["Use", "Strategy", "Direction",
+                                                    "Allocation %", "Per trade %"])
         self._strategies.verticalHeader().setVisible(False)  # type: ignore[union-attr]
         self._strategies.horizontalHeader().setStretchLastSection(True)  # type: ignore[union-attr]
         self._strategies.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
@@ -375,7 +375,8 @@ class BacktestBuilder(QWidget):
             use.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsUserCheckable)
             use.setCheckState(Qt.CheckState.Checked if name in ticked else Qt.CheckState.Unchecked)
             table.setItem(row, 0, use)
-            for col, text in ((1, name), (2, f"{alloc:g}"), (3, f"{per:g}")):
+            direction = str(cfg.get("direction") or "LONG").capitalize()
+            for col, text in ((1, name), (2, direction), (3, f"{alloc:g}"), (4, f"{per:g}")):
                 table.setItem(row, col, QTableWidgetItem(text))
         table.resizeColumnsToContents()
         self._fit_strategy_rows()

@@ -49,6 +49,7 @@ _STATS_REFRESH_S = 15.0   # stats re-read while a download runs
 _SECONDS_1D = 1.0   # measured on TWS: one 1d request per stock
 _SECONDS_3M = 25.0  # measured on TWS: one 3-month 3m request (parallel requests time out)
 _SECONDS = {"1d": _SECONDS_1D, "3m": _SECONDS_3M}
+_PACE_MIN_REQUESTS = 5  # requests done in this run before the measured speed is used
 _EMPTY = BacktestStats(0, 0, 0, None, None, 0, None)
 _BUILT_NOTE = "15-minute, 30-minute and weekly candles are built from these"
 
@@ -151,6 +152,7 @@ class BacktestDataPanel(QWidget):
         self._running = svc.is_backtest_running()
         self._stats_asked = 0.0
         self._progress: dict[str, tuple[int, int]] = {}
+        self._pace_from: dict[str, tuple[float, int]] = {}
         self._tf_now = ""
         self._symbol = ""
         self.state = "empty"
@@ -372,6 +374,7 @@ class BacktestDataPanel(QWidget):
             return
         self._running = True
         self._progress[tf] = (done, total)
+        self._pace_from.setdefault(tf, (time.monotonic(), done))
         self._tf_now = tf
         self._symbol = symbol
         if time.monotonic() - self._stats_asked >= _STATS_REFRESH_S:
@@ -382,6 +385,7 @@ class BacktestDataPanel(QWidget):
     def _on_finished(self, _ok: bool, message: str) -> None:
         self._running = False
         self._progress = {}
+        self._pace_from = {}
         self._tf_now = ""
         self._hint.setText(message)
         self._render()
@@ -401,6 +405,7 @@ class BacktestDataPanel(QWidget):
         self._running = True
         stats = self._stats
         self._progress = {"1d": (0, stats.missing_1d), "3m": (0, stats.missing_3m)} if stats else {}
+        self._pace_from = {}
         self._tf_now = ""
         self._hint.setText("")
         self._render()
@@ -460,13 +465,20 @@ class BacktestDataPanel(QWidget):
             return "All candles saved"
         return f"{' and '.join(names)} candles missing for {_stocks(stats.short_stocks)}"
 
+    def _seconds_each(self, tf: str, done: int) -> float:
+        """Measured seconds per request in this run; the fixed guess until a few are done."""
+        start = self._pace_from.get(tf)
+        if start is None or done - start[1] < _PACE_MIN_REQUESTS:
+            return _SECONDS[tf]
+        return (time.monotonic() - start[0]) / (done - start[1])
+
     def _render_progress(self, missing: int) -> None:
         self._bar.setVisible(self._running)
         self._eta.setText("")
         if self._running:
             done = sum(d for d, _t in self._progress.values())
             total = sum(t for _d, t in self._progress.values())
-            left = sum((t - d) * _SECONDS[tf] for tf, (d, t) in self._progress.items())
+            left = sum((t - d) * self._seconds_each(tf, d) for tf, (d, t) in self._progress.items())
             self._bar.setValue(round(done * 100 / total) if total else 0)
             parts = [f"{done:,} of {total:,}"] if total else []
             parts += [self._symbol] if self._symbol else []
