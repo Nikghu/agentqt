@@ -780,7 +780,7 @@
 | SRD-GUI-031.084 | FO-GUI-031 | Should | The Backtest Inspector chart offers a 30m choice next to 3m, 15m and 1D. | picked trade | 30m candles around the trade | Shows 5 days before the entry | Implemented |
 | SRD-GUI-031.085 | FO-GUI-031 | Should | The Screener page Source offers No screener; it disables Preset, Stocks per day and AI ranking, and the data check warns above 50 stocks. | Source choice | plan, data check line | Warning text: Step 2 will be slow | Implemented |
 | SRD-GUI-031.086 | FO-GUI-031 | Should | A new backtest plan starts with Daily loss stop 10 % and Commission $0 per order; only Capital comes from the active user. | new plan | start values | Replaces the user loss default of .030; saved plans keep their values, and old plan files without a commission still read $1 | Implemented |
-| SRD-GUI-031.087 | FO-GUI-031 | Should | From and To only allow days inside the common saved range (SRD-BKT-002.088); until the user picks a date, To is the last saved day and From one year before it. | data check | date limits and values | Picked or loaded dates are kept, or moved to the nearest edge; no saved data allows 2000 to today | Implemented |
+| SRD-GUI-031.087 | FO-GUI-031 | Should | From and To only allow days inside the run range (SRD-BKT-002.088, reopened 2026-11-22); until the user picks a date, To is the last saved day and From one year before it. | data check | date limits and values | Picked or loaded dates are kept, or moved to the nearest edge; no saved data allows 2000 to today | Implemented |
 
 ## FO-GUI-032 — Strategies Views
 

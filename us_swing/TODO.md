@@ -234,3 +234,4 @@ Short, living task list. Keep each description ≤ 50 words; cite module + prior
 | T222 | EXE — App check (SRD-EXE-015.007–.008 approved 2026-11-21): start USSwing twice; the second shows "Already Running" and closes; the first keeps working and sends orders. | `__main__.py`, `execution/app_lock.py` | High | Open |
 | T223 | GUI — App check (ISS-BKT-0003): Universe shows Partial for about 224 stocks; Select partial → Fill selected with TWS logged in on this PC only; BT From reaches 2022-01-03. Also Settings sections scroll on their own | High | Open |
 | T224 | EXE — App check (ISS-EXE-0015): make a Disabled strategy, start and stop another, restart; the Disabled one stays. Then re-create BOSS_Short_New and BOSS_Long_New | High | Open |
+| T225 | GUI — App check (SRD-BKT-002.088 reopened): Backtest setup From/To calendar can go back to the Backtest Data start (e.g. 2022) and change month and year | High | Open |
