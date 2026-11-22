@@ -61,6 +61,8 @@ class ReportChart(QWidget):
         self.daily = pd.DataFrame(columns=["date", "equity", "drawdown", "benchmark"])
         self.capital = math.nan
         self.hover: int | None = None
+        self.show_benchmark = True
+        self._bench_key = QRectF()
         self.setMinimumHeight(300)
         self.setMouseTracking(True)
 
@@ -91,8 +93,22 @@ class ReportChart(QWidget):
                 f"Benchmark  {'—' if math.isnan(bench) else _money(bench)}",
                 f"Drawdown   {float(row['drawdown']):.1%}"]
 
+    def toggle_benchmark(self) -> None:
+        """Hide or show the benchmark line; the $ scale then fits the lines shown."""
+        self.show_benchmark = not self.show_benchmark
+        self.update()
+
+    def mousePressEvent(self, event: QMouseEvent | None) -> None:  # noqa: N802
+        if event is not None and self._bench_key.contains(event.position()):
+            self.toggle_benchmark()
+            return
+        super().mousePressEvent(event)
+
     def mouseMoveEvent(self, event: QMouseEvent | None) -> None:  # noqa: N802
         if event is not None:
+            on_key = self._bench_key.contains(event.position())
+            self.setCursor(Qt.CursorShape.PointingHandCursor if on_key
+                           else Qt.CursorShape.ArrowCursor)
             index = self.index_at(event.position().x())
             if index != self.hover:
                 self.hover = index
@@ -155,11 +171,8 @@ class ReportChart(QWidget):
 
     def _line_panel(self, painter: QPainter, plot: QRectF) -> list[float]:
         equity = self.daily["equity"].astype(float)
-        bench = self.daily["benchmark"].astype(float)
-        values = [*equity, *bench.dropna()]
-        if not math.isnan(self.capital):
-            values.append(self.capital)
-        ticks = nice_ticks(min(values), max(values), steps=4)
+        bench = self._shown_benchmark()
+        ticks = self.money_ticks()
         lo, hi = ticks[0], ticks[-1]
 
         def y(v: float) -> float:
@@ -193,6 +206,17 @@ class ReportChart(QWidget):
                 painter.drawPath(path)
         self._end_labels(painter, plot, equity, bench, y)
         return [lo, hi]
+
+    def money_ticks(self) -> list[float]:
+        """$ axis ticks fitted to the strategy, the start line and the benchmark when shown."""
+        values = [*self.daily["equity"].astype(float), *self._shown_benchmark().dropna()]
+        if not math.isnan(self.capital):
+            values.append(self.capital)
+        return nice_ticks(min(values), max(values), steps=4)
+
+    def _shown_benchmark(self) -> pd.Series:
+        bench = self.daily["benchmark"].astype(float)
+        return bench if self.show_benchmark else bench * math.nan
 
     def _path(self, plot: QRectF, series: pd.Series,
               y: Callable[[float], float]) -> QPainterPath | None:
@@ -272,12 +296,19 @@ class ReportChart(QWidget):
                           f"Same stocks, equal weight {float(bench.iloc[-1]) / start - 1:+.1%}"))
         x = plot.left()
         metrics = QFontMetrics(painter.font())
-        for colour, style, text in items:
+        self._bench_key = QRectF()
+        for n, (colour, style, text) in enumerate(items):
+            width = 24 + metrics.horizontalAdvance(text)
+            hidden = n == 1 and not self.show_benchmark
+            painter.setOpacity(0.4 if hidden else 1.0)
             painter.setPen(QPen(QColor(colour), 2, style))
             painter.drawLine(QPointF(x, 10), QPointF(x + 18, 10))
             painter.setPen(QColor(C.SUBTEXT))
             painter.drawText(QPointF(x + 24, 14), text)
-            x += 24 + metrics.horizontalAdvance(text) + 20
+            painter.setOpacity(1.0)
+            if n == 1:
+                self._bench_key = QRectF(x, 0, width, _LEGEND - 6)
+            x += width + 20
         painter.setPen(QColor(C.MUTED))
         painter.drawText(QRectF(plot.right() - 200, 2, 200, 16), Qt.AlignmentFlag.AlignRight,
                          f"Start ${start:,.0f}")
@@ -291,7 +322,7 @@ class ReportChart(QWidget):
         row = self.daily.iloc[i]
         for column, colour in (("equity", C.BLUE), ("benchmark", C.MUTED)):
             value = float(row[column])
-            if math.isnan(value):
+            if math.isnan(value) or (column == "benchmark" and not self.show_benchmark):
                 continue
             yy = lay.line.bottom() - (value - lo) / ((hi - lo) or 1.0) * lay.line.height()
             painter.setPen(QPen(QColor(C.BG), 2))

@@ -1107,6 +1107,7 @@ Test files:
 | UT-GUI-031.079.M04.T01 | MD-GUI-031.040.M04 | Positive | Tear sheet parts | report with context | title and context; KPI notes; Entries and Strategy limit pills; 4 group cards | Pass |
 | UT-GUI-031.079.M04.T02 | MD-GUI-031.040.M04 | Negative | Value colours | Net P&L, Max drawdown, MAE, Sharpe | green, red, neutral, neutral | Pass |
 | UT-GUI-031.080.M13.T01 | MD-GUI-031.080.M13 | Edge | Empty chart | 1 day | message painted; no hover day | Pass |
+| UT-GUI-031.080.M13.T02 | MD-GUI-031.080.M13 | Positive | Benchmark key hides the line | benchmark 5× strategy; click key twice | hidden: $ axis top under a third; shown again: same axis | Pass |
 | UT-GUI-031.081.M13.T01 | MD-GUI-031.080.M13 | Positive | Pixel to day | left, right, middle, outside | 0, 59, middle day, None | Pass |
 | UT-GUI-031.081.M13.T02 | MD-GUI-031.080.M13 | Positive | Hover readout | day 3, day 0 | date, strategy, benchmark, drawdown; dash without benchmark | Pass |
 | UT-GUI-031.081.M13.T03 | MD-GUI-031.080.M13 | Positive | Mouse move and leave | move, leave | hover day set and painted; cleared on leave | Pass |
