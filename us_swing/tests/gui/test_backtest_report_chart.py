@@ -63,8 +63,8 @@ def test_mouse_moves_and_leaves(chart: ReportChart, qtbot: Any) -> None:
 
 
 def test_benchmark_key_click_hides_line_and_refits(qtbot: Any) -> None:
-    """UT-GUI-031.080.M13.T02: Clicking the benchmark key hides it and the $ axis fits the
-    strategy; a second click shows it again."""
+    """UT-GUI-031.080.M13.T02: The benchmark starts hidden and the $ axis fits the strategy;
+    clicking its key shows it and widens the axis; a second click hides it again."""
     daily = _daily()
     daily["benchmark"] = daily["benchmark"] * 5
     widget = ReportChart()
@@ -72,17 +72,18 @@ def test_benchmark_key_click_hides_line_and_refits(qtbot: Any) -> None:
     widget.resize(900, 360)
     widget.set_daily(daily, 2000.0)
     assert not widget.grab().isNull()
-    wide = widget.money_ticks()
+    assert not widget.show_benchmark
+    narrow = widget.money_ticks()
     key = widget._bench_key.center()
 
     qtbot.mouseClick(widget, Qt.MouseButton.LeftButton, pos=key.toPoint())
 
-    assert not widget.show_benchmark
-    assert widget.money_ticks()[-1] < wide[-1] / 3
+    assert widget.show_benchmark
+    assert widget.money_ticks()[-1] > narrow[-1] * 3
     assert not widget.grab().isNull()
     qtbot.mouseClick(widget, Qt.MouseButton.LeftButton, pos=key.toPoint())
-    assert widget.show_benchmark
-    assert widget.money_ticks() == wide
+    assert not widget.show_benchmark
+    assert widget.money_ticks() == narrow
 
 
 def test_empty_chart_paints_message(qtbot: Any) -> None:

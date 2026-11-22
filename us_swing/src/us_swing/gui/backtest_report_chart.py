@@ -61,7 +61,7 @@ class ReportChart(QWidget):
         self.daily = pd.DataFrame(columns=["date", "equity", "drawdown", "benchmark"])
         self.capital = math.nan
         self.hover: int | None = None
-        self.show_benchmark = True
+        self.show_benchmark = False
         self._bench_key = QRectF()
         self.setMinimumHeight(300)
         self.setMouseTracking(True)
