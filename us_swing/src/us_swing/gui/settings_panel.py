@@ -10,6 +10,7 @@ import datetime
 import json
 import logging
 import time
+from collections import Counter
 from collections.abc import Callable
 
 from PyQt6.QtCore import Qt, QDate, QObject, pyqtBoundSignal, pyqtSignal
@@ -957,7 +958,7 @@ class _UniverseTab(QWidget):
         self._meta_label = QLabel("Loading…")
         self._meta_label.setStyleSheet(f"color: {active_palette().SUBTEXT}; font-size: 9pt;")
 
-        refresh_btn = QPushButton("Refresh")
+        self._refresh_btn = refresh_btn = QPushButton("Refresh")
         set_icon(refresh_btn, "refresh-cw", "info")
         refresh_btn.setObjectName("run_btn")
         refresh_btn.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
@@ -1017,15 +1018,18 @@ class _UniverseTab(QWidget):
                                                self._svc.get_backtest_range(),
                                                self._gaps_shown))
         meta  = self._svc.get_sp500_meta()
-        stale = " (stale)" if meta.is_stale() else ""
-        self._meta_text = f"{len(records)} constituents · last fetched: {meta.age_str()}{stale}"
+        self._refresh_btn.setToolTip(f"Stock list updated {meta.age_str()}")
+        stale = " · list is old" if meta.is_stale() else ""
+        self._meta_text = f"{len(records)} stocks{stale}"
         self._show_meta()
 
     def _show_meta(self) -> None:
-        done = sum(1 for _f, _l, status in self._backtest.values() if status == "ok")
-        self._meta_label.setText(
-            f"{self._meta_text} · backtest complete for {done} of {len(self._backtest)} stocks"
-        )
+        """One short line: how many stocks are complete, partial or not downloaded."""
+        counts = Counter(status for _f, _l, status in self._backtest.values())
+        parts = [self._meta_text, f"{counts['ok']} complete", f"{counts['partial']} partial"]
+        if counts["none"]:
+            parts.append(f"{counts['none']} not downloaded")
+        self._meta_label.setText(" · ".join(parts))
 
     def _on_backtest_progress(self, _tf: str, _done: int, _total: int, symbol: str) -> None:
         """A new stock in the progress means the previous one is done (SRD-GUI-030.012)."""

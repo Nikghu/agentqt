@@ -406,8 +406,10 @@ def test_universe_row_updates_when_stock_done() -> None:
     svc.get_backtest_gaps.return_value = {}
     page = MagicMock()
     tab = SimpleNamespace(
-        _svc=svc, _bkt_symbol=None, _meta_text="503 constituents",
-        _backtest={"BRK.B": (None, None, "none"), "MSFT": ("2024-01-02", "2026-11-03", "ok")},
+        _svc=svc, _bkt_symbol=None, _meta_text="503 stocks",
+        _backtest={"BRK.B": (None, None, "none"), "MSFT": ("2024-01-02", "2026-11-03", "ok"),
+                   "UNP": ("2024-01-02", "2026-11-03", "partial"),
+                   "ZTS": (None, None, "none")},
         _web=SimpleNamespace(page=lambda: page), _meta_label=MagicMock(),
     )
     tab._show_meta = lambda: tab_cls._show_meta(tab)
@@ -420,7 +422,10 @@ def test_universe_row_updates_when_stock_done() -> None:
     page.runJavaScript.assert_called_once_with(
         'updateBt("BRK.B",["2024-01-02", "2026-11-03", "ok"],[]);')
     tab._meta_label.setText.assert_called_with(
-        "503 constituents · backtest complete for 2 of 2 stocks")
+        "503 stocks · 2 complete · 1 partial · 1 not downloaded")
+    tab._backtest["ZTS"] = ("2024-01-02", "2026-11-03", "ok")
+    tab._show_meta()
+    tab._meta_label.setText.assert_called_with("503 stocks · 3 complete · 1 partial")
 
 
 class _TallTab(_PlainTab):

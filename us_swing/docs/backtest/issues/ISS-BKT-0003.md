@@ -27,6 +27,7 @@ A check of META and TSLA after the fill found both complete except 2024-01-05. A
 - `BacktestStore.gap_days()` finds them; `refresh_gaps()` caches them in `gaps.json` (re-worked only when a stock's files change; about 2 minutes the first time, in the background); `cached_gaps()` is a fast read for the GUI.
 - The planner asks each run of gap days again with a short 3m request ("1 D", "2 D" …); 15m and 30m are rebuilt on save. Delta runs skip them.
 - A stock with gap days is Partial; the Universe tooltip lists the days.
+- Universe top line shortened at the user's request: "503 stocks · 12 complete · 491 partial" (+ "N not downloaded" when above 0, "list is old" when stale; list age moved to the Refresh tooltip). This replaces the "backtest complete for N of M stocks" text of SRD-GUI-030.012 (Implemented row left unchanged). Test UT-GUI-030.012.M06.T01 updated.
 
 ## Files
 
