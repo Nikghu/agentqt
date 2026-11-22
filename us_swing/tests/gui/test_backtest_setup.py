@@ -55,6 +55,22 @@ def test_load_plan_round_trip(qtbot: Any) -> None:
     assert other.plan() == plan
 
 
+def test_strategy_direction_column(qtbot: Any) -> None:
+    """UT-GUI-031.073.M02.T02: The strategy table shows each strategy's direction after its name."""
+    builder = BacktestBuilder()
+    qtbot.addWidget(builder)
+    builder.set_strategies([
+        {"name": "BOSS_SHORT", "capital_max": 100, "per_trade_pct": 100, "direction": "SHORT"},
+        {"name": "ST_A", "capital_max": 50, "per_trade_pct": 25},
+    ])
+    table = builder._strategies
+
+    assert table.horizontalHeaderItem(2).text() == "Direction"  # type: ignore[union-attr]
+    assert [table.item(r, 2).text() for r in range(2)] == ["Short", "Long"]  # type: ignore[union-attr]
+    assert table.item(0, 3).text() == "100"  # type: ignore[union-attr]
+    assert table.item(1, 4).text() == "25"  # type: ignore[union-attr]
+
+
 def test_section_marks() -> None:
     """UT-GUI-031.071.M10.T01: Missing candles mark Stocks; an error marks its section."""
     assert set(section_marks(None).values()) == {"✓"}

@@ -1113,6 +1113,7 @@ Test files:
 | UT-GUI-031.075.M11.T01 | MD-GUI-031.075.M11 | Positive | Fields and Hide details | open screen; click Hide details; reopen | strategy None picked in yellow; grid and data line hidden; still hidden after reopen | Pass |
 | UT-GUI-031.072.M02.T01 | MD-GUI-031.002.M02 | Positive | Pages and rows | builder; Sectors mode | 5 pages; Sectors row hidden then shown | Pass |
 | UT-GUI-031.073.M02.T01 | MD-GUI-031.002.M02 | Positive | Strategy table | tick first row | Strategy, 50, 100; plan has ST_A | Pass |
+| UT-GUI-031.073.M02.T02 | MD-GUI-031.002.M02 | Positive | Direction column after Strategy | one SHORT, one with no direction | Short, Long; money columns move one place right | Pass |
 | UT-GUI-031.074.M02.T01 | MD-GUI-031.002.M02 | Positive | Plan round trip | plan with sector, saved lists, strategy, capital | same plan after load | Pass |
 | UT-GUI-031.074.M10.T01 | MD-GUI-031.071.M10 | Negative | Cancel and Save | change name, Cancel; change, Save | old name back; new name kept | Pass |
 | UT-GUI-031.074.M03.T01 | MD-GUI-031.003.M03 | Positive | Run from window | Run in footer | window closed; run done | Pass |

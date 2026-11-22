@@ -352,7 +352,7 @@ def test_strategies_list(workspace: BacktestWorkspace) -> None:
     _tick_strategy(workspace, 0)
     table = workspace.builder._strategies
 
-    assert [table.item(0, c).text() for c in (1, 2, 3)] == ["ST_A", "50", "100"]  # type: ignore[union-attr]
+    assert [table.item(0, c).text() for c in (1, 3, 4)] == ["ST_A", "50", "100"]  # type: ignore[union-attr]
     specs = workspace.builder.plan().strategies
     assert [(s.id, s.allocation_pct, s.per_trade_pct) for s in specs] == [
         ("ST_A", (50.0,), (100.0,))]
