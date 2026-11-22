@@ -163,7 +163,7 @@ _INDICATOR_DATA: list[dict] = [
         "name": "BOSS_ST",
         "parameters": [
             {"name": "Symbol Type", "Type": "DropDown", "Datatype": ["Spot", "RSP"]},
-            {"name": "Swing Lookback", "Type": "EditBox", "Datatype": "int", "Range": [1, 20]},
+            {"name": "Swing Lookback", "Type": "EditBox", "Datatype": "int", "Range": [1, 500]},
             {"name": "Min Break ATR", "Type": "EditBox", "Datatype": "float", "Range": [0, 5]},
             {"name": "HTF", "Type": "DropDown", "Datatype": ["30m", "15m"]},
             {"name": "LTF", "Type": "DropDown", "Datatype": ["15m", "3m"]},

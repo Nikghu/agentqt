@@ -422,7 +422,7 @@
 | SRD-GUI-013.021 | FO-GUI-013 | Must | A signal awaiting the user also locks the Direction field, not only an open trade; the tooltip reads `Close open trades and clear pending signals before changing direction`. | open cycles + pending signals of the strategy | disabled combo | Refines SRD-GUI-013.017; a waiting signal already carries the side that fired it | Implemented |
 | SRD-GUI-013.022 | FO-GUI-013 | Must | The SWING form offers Symbol Type, Candles (1–500), Price Swing, Window (Previous / Current) and Timeframe; LookbackDays is removed. | indicator selection | 5-field form | Window defaults to Previous; matches SRD-EXE-011.026 (ISS-EXE-0014) | Implemented |
 | SRD-GUI-013.023 | FO-GUI-013 | Must | Every Timeframe dropdown in the strategy builder offers 3m, 15m, 30m, 1d and 1w in that order. | indicator form | timeframe choice | One shared list for all forms | Implemented |
-| SRD-GUI-013.024 | FO-GUI-013 | Must | The condition dialog offers BOSS_ST with Symbol Type, Swing Lookback (1–20), Min Break ATR (0–5), HTF (30m / 15m), LTF (15m / 3m) and Signal (Fresh / State). | indicator selection | 6-field form | HTF must be above LTF, else an error and no condition; matches SRD-EXE-011.027 | Implemented |
+| SRD-GUI-013.024 | FO-GUI-013 | Must | The condition dialog offers BOSS_ST with Symbol Type, Swing Lookback (1–500, was 1–20, reopened 2026-11-22), Min Break ATR (0–5), HTF (30m / 15m), LTF (15m / 3m) and Signal (Fresh / State). | indicator selection | 6-field form | HTF must be above LTF, else an error and no condition; matches SRD-EXE-011.027 | Implemented |
 
 ---
 

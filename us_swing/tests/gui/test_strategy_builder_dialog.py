@@ -99,3 +99,7 @@ def test_boss_st_htf_not_above_ltf_refused(qtbot) -> None:  # type: ignore[no-un
 
     lookback.setText("0")
     assert not lookback.hasAcceptableInput()
+    lookback.setText("22")
+    assert lookback.hasAcceptableInput()
+    lookback.setText("501")
+    assert not lookback.hasAcceptableInput()

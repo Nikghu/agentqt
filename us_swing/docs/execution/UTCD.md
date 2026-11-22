@@ -520,7 +520,7 @@
 | UT-EXE-011.027.M01.T06 | MD-EXE-011.027.M01 | Edge | ATR gate | MinBreakATR 0 and 5 | 0 lets every break count; 5 blocks all, state stays 0 | Pass |
 | UT-EXE-011.027.M01.T07 | MD-EXE-011.027.M01 | Negative | Too little history | 150 LTF bars; HTF with 3 bars | NaN on every bar that lacks history | Pass |
 | UT-EXE-011.027.M03.T01 | MD-EXE-011.001.M03 | Positive | Live value is the last series value | random-walk frames; `BOSS_ST(...,'State') == Number(x)` | True for the last state, False otherwise; same for Fresh | Pass |
-| UT-EXE-011.027.M03.T02 | MD-EXE-011.001.M03 | Negative | Bad arguments raise | lookback 0 / 21, ATR 6, HTF = LTF, Signal `Maybe`, 5 args | `EvaluatorError` | Pass |
+| UT-EXE-011.027.M03.T02 | MD-EXE-011.001.M03 | Negative | Bad arguments raise | lookback 0 / 501, ATR 6, HTF = LTF, Signal `Maybe`, 5 args | `EvaluatorError` | Pass |
 | UT-EXE-011.027.M03.T03 | MD-EXE-011.001.M03 | Negative | Too little history raises | 50 LTF bars | `EvaluatorError`, never 0 | Pass |
 
 ---

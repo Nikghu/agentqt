@@ -368,7 +368,7 @@
 | UT-GUI-013.001.M01.T22 | MD-GUI-013.001.M01 | Positive | `save_strategies()` writes via temp-file + atomic replace | Stub `Path.replace`; call `save_strategies([cfg])` | `Path.replace` called once with `.tmp` → final path; final file exists | Not Run |
 | UT-GUI-013.023.M01.T01 | MD-GUI-013.001.M01 | Positive | 30m in every Timeframe dropdown | indicator catalogue | each Timeframe list is 3m, 15m, 30m, 1d, 1w | Pass |
 | UT-GUI-013.024.M01.T01 | MD-GUI-013.001.M01 | Positive | BOSS_ST form | choose BOSS_ST, Lookback 2, ATR 0.5 | 6 fields; first choices 30m, 15m, Fresh; built text `BOSS_ST('Spot', 2, 0.5, '30m', '15m', 'Fresh')` | Pass |
-| UT-GUI-013.024.M01.T02 | MD-GUI-013.001.M01 | Negative | HTF not above LTF is refused | HTF 15m, LTF 15m; Lookback 0 | error shown, no condition built; validator rejects 0 | Pass |
+| UT-GUI-013.024.M01.T02 | MD-GUI-013.001.M01 | Negative | HTF not above LTF is refused | HTF 15m, LTF 15m; Lookback 0, 22, 501 | error shown, no condition built; validator rejects 0 and 501, accepts 22 | Pass |
 
 ---
 

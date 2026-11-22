@@ -349,8 +349,8 @@ def boss_st_args(args: list[Any]) -> tuple[BossStParams, str, str, bool]:
     _symbol_type, lookback, min_break_atr, htf, ltf, signal = args
     params = BossStParams(int(lookback), float(min_break_atr))
     htf, ltf, signal = str(htf), str(ltf), str(signal).lower()
-    if not 1 <= params.swing_lookback <= 20:
-        raise EvaluatorError(f"BOSS_ST: Swing Lookback must be 1 to 20, got {lookback!r}")
+    if not 1 <= params.swing_lookback <= 500:
+        raise EvaluatorError(f"BOSS_ST: Swing Lookback must be 1 to 500, got {lookback!r}")
     if not 0 <= params.min_break_atr <= 5:
         raise EvaluatorError(f"BOSS_ST: Min Break ATR must be 0 to 5, got {min_break_atr!r}")
     for tf in (htf, ltf):
