@@ -10,6 +10,7 @@ import datetime
 import json
 import logging
 import time
+from collections import Counter
 from collections.abc import Callable
 
 from PyQt6.QtCore import Qt, QDate, QObject, pyqtBoundSignal, pyqtSignal
@@ -33,6 +34,7 @@ from PyQt6.QtWidgets import (
     QLineEdit,
     QProgressBar,
     QPushButton,
+    QScrollArea,
     QSpinBox,
     QStackedWidget,
     QTableWidget,
@@ -723,15 +725,32 @@ let COLS=[
   ['Backtest',     10, 80],
   ['BT From',       8,100],
   ['BT To',         9,100],
+  ['',             -2, 36],
 ];
-let colOrder=[0,1,2,3,4,5,6,7,8,9,10];   /* indices into COLS */
+let colOrder=[11,0,1,2,3,4,5,6,7,8,9,10];   /* indices into COLS */
 let sc=4, sa=false, ft='';
+const SEL=new Set();
 
 function fc(b){{if(b===null)return'\u2014';if(b>=1000)return'$'+(b/1000).toFixed(2)+'T';if(b>=1)return'$'+b.toFixed(1)+'B';return'$'+(b*1000).toFixed(0)+'M';}}
 function applyFilters(text,_mn,_mx){{ft=text.toLowerCase();render();}}
-function updateBt(sym,c){{const r=D.find(x=>x[1]===sym);if(!r)return;r[8]=c[0];r[9]=c[1];r[10]=c[2];render();}}
+const G={gaps};
+function gapTip(sym){{const g=G[sym]||[];if(!g.length)return'';return' · missing '+g.length+' day(s) of 3-minute candles: '+g.slice(0,6).join(', ')+(g.length>6?' …':'');}}
+function updateBt(sym,c,g){{const r=D.find(x=>x[1]===sym);if(!r)return;r[8]=c[0];r[9]=c[1];r[10]=c[2];G[sym]=g||[];if(c[2]==='ok')SEL.delete(sym);render();syncSel();}}
+/* the page title carries the tick count to the Python buttons */
+function syncSel(){{
+  const n=D.filter(r=>r[10]!=='ok').length;
+  const all=document.getElementById('selall');
+  if(all){{all.checked=n>0&&SEL.size===n;all.indeterminate=SEL.size>0&&SEL.size<n;}}
+  document.title='sel:'+SEL.size;
+}}
+function tog(sym,on){{if(on)SEL.add(sym);else SEL.delete(sym);syncSel();}}
+function selectPartial(){{D.forEach(r=>{{if(r[10]!=='ok')SEL.add(r[1]);}});render(false);syncSel();}}
+function toggleSel(){{if(SEL.size)clearSel();else selectPartial();}}
+function selected(){{return Array.from(SEL);}}
+function clearSel(){{SEL.clear();render(false);syncSel();}}
 function S(ci){{
   const di=COLS[colOrder[ci]][1];
+  if(di===-2)return;
   if(sc===di){{sa=!sa}}else{{sc=di;sa=(di!==-1&&di!==4)}};
   render();
 }}
@@ -744,6 +763,12 @@ function buildHeader(){{
     const [label,,w]=COLS[ci];
     const th=document.createElement('th');
     th.textContent=label;
+    if(COLS[ci][1]===-2){{
+      const box=document.createElement('input');
+      box.type='checkbox';box.id='selall';box.title='Tick or clear every partial stock';
+      box.addEventListener('click',e=>{{e.stopPropagation();toggleSel();}});
+      th.appendChild(box);
+    }}
     th.dataset.pos=pos;
     th.dataset.ci=ci;
     th.style.width=w+'px';
@@ -828,13 +853,14 @@ function render(resort=true){{
       const [,di,w]=COLS[ci];
       const style=`style="width:${{w}}px;max-width:${{w}}px"`;
       if(di===-1) return `<td ${{style}}>${{i+1}}</td>`;
+      if(di===-2) return r[10]==='ok'?`<td ${{style}}></td>`:`<td ${{style}}><input type="checkbox" title="Tick to fill this stock" ${{SEL.has(r[1])?'checked':''}} onclick="tog('${{r[1]}}',this.checked)"></td>`;
       if(ci===1)  return `<td class="sym" ${{style}}>${{r[1]}}</td>`;
       if(ci===4)  return `<td class="cap" ${{style}}>${{fc(r[4])}}</td>`;
       if(ci===5)  return `<td class="name" ${{style}}>${{r[5]}}</td>`;
       if(ci===6){{const st=r[7];const cl=st==='current'?'{st_ok}':st==='stale'?'{st_warn}':'{st_err}';const ic=st==='current'?'✔':st==='stale'?'⚠':'✘';return `<td style="width:${{w}}px;max-width:${{w}}px;color:${{cl}};font-size:13px;text-align:center">${{ic}}</td>`;}}
       if(ci===7){{const dt=r[6];const st=r[7];const cl=st==='current'?'{st_ok}':st==='stale'?'{st_warn}':'{st_err}';return `<td style="width:${{w}}px;max-width:${{w}}px;color:${{cl}};text-align:center">${{dt||'—'}}</td>`;}}
-      if(ci===8){{const st=r[10];const cl=st==='ok'?'{st_ok}':st==='none'?'{st_err}':'{st_warn}';const ic=st==='ok'?'✔':st==='none'?'✘':'⚠';const tip=st==='ok'?'Up to date':st==='behind'?'Behind':st==='late'?'3m starts after the start date':st==='1d'?'1d only, no 3m yet':'Not downloaded';return `<td title="${{tip}}" style="width:${{w}}px;max-width:${{w}}px;color:${{cl}};font-size:13px;text-align:center">${{ic}}</td>`;}}
-      if(ci===9&&r[10]==='late'){{return `<td title="3m starts after the start date" style="width:${{w}}px;max-width:${{w}}px;color:{st_warn};font-weight:600">${{r[di]}}</td>`;}}
+      if(ci===8){{const st=r[10];const cl=st==='ok'?'{st_ok}':st==='none'?'{st_err}':'{st_warn}';const ic=st==='ok'?'✔':st==='none'?'✘':'⚠';const tip=st==='ok'?'Up to date':st==='partial'?'Partial — saved candles do not cover the Backtest Data range'+gapTip(r[1]):'Not downloaded';return `<td title="${{tip}}" style="width:${{w}}px;max-width:${{w}}px;color:${{cl}};font-size:13px;text-align:center">${{ic}}</td>`;}}
+      if((ci===9||ci===10)&&r[10]==='partial'){{return `<td title="Range is {bt_start} to {bt_end}" style="width:${{w}}px;max-width:${{w}}px;color:{st_warn};font-weight:600">${{r[di]}}</td>`;}}
       if(ci===9||ci===10){{return `<td ${{style}}>${{r[di]||'—'}}</td>`;}}
       return `<td ${{style}}>${{r[di]}}</td>`;
     }}).join('');
@@ -845,6 +871,7 @@ function render(resort=true){{
 
 buildHeader();
 render();
+syncSel();
 </script></body></html>
 """
 
@@ -854,6 +881,8 @@ def _build_universe_html(
     coverage: "dict[str, str | None] | None" = None,
     last_trading_day: str | None = None,
     backtest: "dict[str, tuple[str | None, str | None, str]] | None" = None,
+    bt_range: tuple[str, str] = ("", ""),
+    gaps: "dict[str, list[str]] | None" = None,
 ) -> str:
     """Serialize records to an HTML page with all data embedded as JSON.
 
@@ -863,6 +892,8 @@ def _build_universe_html(
             ``None`` means the DB has not been queried yet.
         last_trading_day: "YYYY-MM-DD"; rows with older dates are marked stale.
         backtest: {symbol: (first, last, status)} from the backtest store (SRD-GUI-030.008).
+        bt_range: Backtest Data range ``(start, end)`` shown on partial dates.
+        gaps: {symbol: ISO days with daily but no 3-minute candles}, shown in the tooltip.
     """
     cov = coverage or {}
     bkt = backtest or {}
@@ -886,6 +917,7 @@ def _build_universe_html(
     ct = active_palette()
     return _UNIVERSE_HTML.format(
         data=json.dumps(data),
+        gaps=json.dumps(gaps or {}),
         bg=ct.BG,
         fg=ct.TEXT,
         hdr_bg=ct.SURFACE,
@@ -900,6 +932,8 @@ def _build_universe_html(
         st_ok=ct.GREEN,
         st_warn=ct.YELLOW,
         st_err=ct.RED,
+        bt_start=bt_range[0],
+        bt_end=bt_range[1],
     )
 
 
@@ -915,21 +949,34 @@ class _UniverseTab(QWidget):
         self._svc = svc
         self._backtest: dict[str, tuple[str | None, str | None, str]] = {}
         self._bkt_symbol: str | None = None
+        self._fill_symbols: set[str] = set()
+        self._fill_seen: set[str] = set()
+        self._gaps_shown: dict[str, list[str]] = {}
         self._meta_text = ""
 
         # ── Meta bar ──────────────────────────────────────────────────────────
         self._meta_label = QLabel("Loading…")
         self._meta_label.setStyleSheet(f"color: {active_palette().SUBTEXT}; font-size: 9pt;")
 
-        refresh_btn = QPushButton("Refresh")
+        self._refresh_btn = refresh_btn = QPushButton("Refresh")
         set_icon(refresh_btn, "refresh-cw", "info")
         refresh_btn.setObjectName("run_btn")
         refresh_btn.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         refresh_btn.clicked.connect(self._on_refresh)
 
+        self._select_btn = QPushButton("Select partial")
+        self._select_btn.setToolTip("Tick every partial stock, or clear the ticks")
+        self._select_btn.clicked.connect(lambda: self._run_js("toggleSel();"))
+        self._fill_btn = QPushButton("Fill selected")
+        set_icon(self._fill_btn, "download", "go")
+        self._fill_btn.setToolTip("Download the ticked stocks again from the range start")
+        self._fill_btn.clicked.connect(self._on_fill_clicked)
+
         top = QHBoxLayout()
         top.addWidget(self._meta_label)
         top.addStretch()
+        top.addWidget(self._select_btn)
+        top.addWidget(self._fill_btn)
         top.addWidget(refresh_btn)
 
         # ── Search bar ────────────────────────────────────────────────────────
@@ -940,6 +987,7 @@ class _UniverseTab(QWidget):
         # ── Web view ──────────────────────────────────────────────────────────
         self._web = QWebEngineView()
         self._web.setHtml(f"<body style='background:{active_palette().BG}'></body>")
+        self._web.titleChanged.connect(self._on_ticks_changed)
 
         # ── Layout ────────────────────────────────────────────────────────────
         layout = QVBoxLayout(self)
@@ -953,7 +1001,10 @@ class _UniverseTab(QWidget):
         svc.sp500_updated.connect(self._load_from_cache)
         svc.candle_db_status_changed.connect(lambda _: self._load_from_cache())
         svc.backtest_finished.connect(lambda *_: self._load_from_cache())
+        svc.backtest_finished.connect(lambda *_: self._end_fill())
         svc.backtest_progress.connect(self._on_backtest_progress)
+        svc.backtest_progress.connect(self._show_fill_progress)
+        svc.backtest_stats_changed.connect(lambda _stats: self._reload_if_gaps_changed())
 
     # ── Slots ─────────────────────────────────────────────────────────────────
 
@@ -962,17 +1013,23 @@ class _UniverseTab(QWidget):
         coverage = self._svc.get_candle_symbol_coverage()
         ltd      = self._svc.get_last_trading_day()
         self._backtest = self._svc.get_backtest_symbol_coverage()
-        self._web.setHtml(_build_universe_html(records, coverage, ltd, self._backtest))
+        self._gaps_shown = self._svc.get_backtest_gaps()
+        self._web.setHtml(_build_universe_html(records, coverage, ltd, self._backtest,
+                                               self._svc.get_backtest_range(),
+                                               self._gaps_shown))
         meta  = self._svc.get_sp500_meta()
-        stale = " (stale)" if meta.is_stale() else ""
-        self._meta_text = f"{len(records)} constituents · last fetched: {meta.age_str()}{stale}"
+        self._refresh_btn.setToolTip(f"Stock list updated {meta.age_str()}")
+        stale = " · list is old" if meta.is_stale() else ""
+        self._meta_text = f"{len(records)} stocks{stale}"
         self._show_meta()
 
     def _show_meta(self) -> None:
-        done = sum(1 for _f, _l, status in self._backtest.values() if status == "ok")
-        self._meta_label.setText(
-            f"{self._meta_text} · backtest complete for {done} of {len(self._backtest)} stocks"
-        )
+        """One short line: how many stocks are complete, partial or not downloaded."""
+        counts = Counter(status for _f, _l, status in self._backtest.values())
+        parts = [self._meta_text, f"{counts['ok']} complete", f"{counts['partial']} partial"]
+        if counts["none"]:
+            parts.append(f"{counts['none']} not downloaded")
+        self._meta_label.setText(" · ".join(parts))
 
     def _on_backtest_progress(self, _tf: str, _done: int, _total: int, symbol: str) -> None:
         """A new stock in the progress means the previous one is done (SRD-GUI-030.012)."""
@@ -986,14 +1043,76 @@ class _UniverseTab(QWidget):
             return
         symbol, cov = found
         self._backtest[symbol] = cov
+        gaps = self._svc.get_backtest_gaps().get(symbol, [])
         page = self._web.page()
         if page is not None:
-            page.runJavaScript(f"updateBt({json.dumps(symbol)},{json.dumps(list(cov))});")
+            page.runJavaScript(
+                f"updateBt({json.dumps(symbol)},{json.dumps(list(cov))},{json.dumps(gaps)});")
         self._show_meta()
 
     def _push_filters(self) -> None:
         text = json.dumps(self._search.text())
         self._web.page().runJavaScript(f"applyFilters({text}, 0, 0);")
+
+    def _run_js(self, script: str) -> None:
+        page = self._web.page()
+        if page is not None:
+            page.runJavaScript(script)
+
+    def _on_fill_clicked(self) -> None:
+        page = self._web.page()
+        if page is not None:
+            page.runJavaScript("selected();", self._fill_selected)
+
+    def _fill_selected(self, symbols: object) -> None:
+        """Start a fill for the ticked Universe rows (symbols come back from the page)."""
+        picked = set(symbols) if isinstance(symbols, list) else set()
+        ibkr = [r.ibkr_symbol for r in self._svc.get_sp500_universe() if r.symbol in picked]
+        if not ibkr:
+            self._meta_label.setText("Tick the stocks to fill first")
+            return
+        if self._svc.fill_backtest_symbols(ibkr):
+            self._run_js("clearSel();")
+            self._fill_symbols, self._fill_seen = set(ibkr), set()
+            self._fill_btn.setEnabled(False)
+            self._fill_btn.setText(f"Filling 0 of {len(ibkr)}")
+            self._meta_label.setText(f"Filling {len(ibkr)} stock(s) from the range start…")
+        else:
+            self._meta_label.setText("Could not start — a download is already running")
+
+    def _reload_if_gaps_changed(self) -> None:
+        """Redraw once the background check finds new missing days; never during a download."""
+        if self._svc.is_backtest_running():
+            return
+        if self._svc.get_backtest_gaps() != self._gaps_shown:
+            self._load_from_cache()
+
+    def _on_ticks_changed(self, title: str) -> None:
+        """The page reports its tick count as ``sel:N``; update both button labels."""
+        if not title.startswith("sel:"):
+            return
+        count = int(title[4:] or 0)
+        self._select_btn.setText(f"Clear selection ({count})" if count else "Select partial")
+        if not self._fill_symbols and self._fill_btn.isEnabled():
+            self._fill_btn.setText(f"Fill selected ({count})" if count else "Fill selected")
+
+    def _show_fill_progress(self, _tf: str, _done: int, _total: int, symbol: str) -> None:
+        """Show which ticked stock is being filled; any other download greys the button out."""
+        self._fill_btn.setEnabled(False)
+        if not self._fill_symbols:
+            self._fill_btn.setText("Download running…")
+            return
+        if symbol not in self._fill_symbols:
+            return
+        self._fill_seen.add(symbol)
+        self._fill_btn.setText(
+            f"Filling {len(self._fill_seen)} of {len(self._fill_symbols)} · {symbol}"
+        )
+
+    def _end_fill(self) -> None:
+        self._fill_symbols, self._fill_seen = set(), set()
+        self._fill_btn.setText("Fill selected")
+        self._fill_btn.setEnabled(True)
 
     def _on_refresh(self) -> None:
         self._meta_label.setText("Refreshing from Wikipedia…")
@@ -1793,7 +1912,7 @@ class SettingsPanel(QWidget):
         self.set_section_state("Telegram", self._sys.telegram_state())
         data = {"complete": "ok", "partial": "warn", "downloading": "warn"}
         self.set_section_state("Candle data", data.get(self._data.state[0], "off"))
-        backtest = {"ok": "ok", "running": "warn", "behind": "warn"}
+        backtest = {"ok": "ok", "running": "warn", "behind": "warn", "partial": "warn"}
         self.set_section_state("Backtest data", backtest.get(self._backtest.state, "off"))
 
     @staticmethod
@@ -1805,8 +1924,16 @@ class SettingsPanel(QWidget):
         card_layout = QVBoxLayout(card)
         card_layout.setContentsMargins(0, 0, 0, 0)
         card_layout.setSpacing(0)
+        # Each section scrolls on its own, so one tall section cannot add a bar to the others.
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        scroll.setStyleSheet("QScrollArea { background: transparent; border: none; }")
+        scroll.viewport().setAutoFillBackground(False)
+        scroll.setWidget(body)
         card_layout.addWidget(head)
-        card_layout.addWidget(body, 1)
+        card_layout.addWidget(scroll, 1)
         return card
 
     @property

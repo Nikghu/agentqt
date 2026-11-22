@@ -92,7 +92,7 @@ def test_universe_backtest_coverage(svc: Any) -> None:
     cov = svc.get_backtest_symbol_coverage()
 
     assert cov["AAPL"] == (last.isoformat(), last.isoformat(), "ok")
-    assert cov["MSFT"] == ("2026-01-02", "2026-01-02", "1d")
+    assert cov["MSFT"] == ("2026-01-02", "2026-01-02", "partial")
     assert cov["NVDA"] == (None, None, "none")
 
 
@@ -101,8 +101,9 @@ def _bars(day: str) -> pd.DataFrame:
                          "low": [1.0], "close": [1.0], "volume": [1.0]})
 
 
-def test_universe_coverage_late_3m_start(svc: Any) -> None:
-    """UT-GUI-030.011.M02.T01: 3m starting after the start date is late; a listed-late floor is not."""
+def test_universe_coverage_partial_ignores_floor(svc: Any) -> None:
+    """UT-GUI-030.011.M02.T01: Dates that do not cover the range are partial, even with a
+    saved listing date (ISS-BKT-0003)."""
     svc._sp500 = [Sp500Record(s, s, s, "Tech") for s in ("AAPL", "NEWCO")]
     store = svc._bkt_store
     BacktestDataSettings(start_date=date(2024, 1, 1)).save(store.root)
@@ -113,8 +114,56 @@ def test_universe_coverage_late_3m_start(svc: Any) -> None:
 
     cov = svc.get_backtest_symbol_coverage()
 
-    assert cov["AAPL"][2] == "late"
-    assert cov["NEWCO"][2] != "late"
+    assert cov["AAPL"][2] == "partial"
+    assert cov["NEWCO"][2] == "partial"
+
+
+def test_missing_3m_day_is_partial(svc: Any) -> None:
+    """UT-GUI-030.011.M02.T02: A stock covering the range but missing a 3m day inside it is
+    partial, and the day is listed (ISS-BKT-0003)."""
+    from us_swing.gui.app_service import _compute_last_trading_day
+
+    last = _compute_last_trading_day()
+    svc._sp500 = [Sp500Record("META", "META", "Meta", "Comm")]
+    store = svc._bkt_store
+    first = date(2024, 1, 3)
+    BacktestDataSettings(start_date=first).save(store.root)
+    now = datetime(2030, 1, 1, tzinfo=timezone.utc)
+    days = [first, date(2024, 1, 4), last]
+    store.save("META", "1d", pd.concat([_bars(d.isoformat()) for d in days]), now)
+    store.save("META", "3m", pd.concat([_bars(f"{d} 15:00") for d in (first, last)]), now)
+    assert svc.get_backtest_symbol_coverage()["META"][2] == "ok"  # gap cache not built yet
+
+    store.refresh_gaps(["META"])
+
+    assert svc.get_backtest_symbol_coverage()["META"][2] == "partial"
+    assert svc.get_backtest_gaps() == {"META": ["2024-01-04"]}
+
+
+def test_fill_selected_clears_floor_and_downloads_only_those(svc: Any) -> None:
+    """UT-GUI-030.008.M02.T02: Fill selected drops the ticked stocks' listing dates and
+    downloads only them; other floors stay (ISS-BKT-0003)."""
+    svc._sp500 = [Sp500Record(s, s, s, "Tech") for s in ("UNP", "UPS", "V")]
+    root = svc._bkt_store.root
+    DownloadState(floors={"UNP": date(2024, 1, 2), "V": date(2024, 1, 2)}).save(root)
+    fake_cls = MagicMock()
+    with patch("us_swing.gui.app_service.BacktestDownloader", fake_cls):
+        assert svc.fill_backtest_symbols(["UNP", "UPS"]) is True
+
+    assert DownloadState.load(root).floors == {"V": date(2024, 1, 2)}
+    jobs = fake_cls.call_args.args[0]()
+    assert {j.symbol for j in jobs} - {"SPY"} == {"UNP", "UPS"}
+
+
+def test_fill_selected_refused_while_running(svc: Any) -> None:
+    """UT-GUI-030.008.M02.T03: Fill selected does nothing while a download runs or with no ticks."""
+    root = svc._bkt_store.root
+    DownloadState(floors={"AAPL": date(2024, 1, 2)}).save(root)
+    assert svc.fill_backtest_symbols([]) is False
+    svc._bkt_downloader = MagicMock()
+
+    assert svc.fill_backtest_symbols(["AAPL"]) is False
+    assert DownloadState.load(root).floors == {"AAPL": date(2024, 1, 2)}
 
 
 def test_coverage_for_one_stock(svc: Any) -> None:
@@ -124,7 +173,8 @@ def test_coverage_for_one_stock(svc: Any) -> None:
     BacktestDataSettings(start_date=date(2024, 1, 1)).save(store.root)
     store.save("BRK B", "1d", _bars("2024-01-02"), datetime(2030, 1, 1, tzinfo=timezone.utc))
 
-    assert svc.get_backtest_coverage_for("BRK B") == ("BRK.B", ("2024-01-02", "2024-01-02", "1d"))
+    assert svc.get_backtest_coverage_for("BRK B") == ("BRK.B",
+                                                      ("2024-01-02", "2024-01-02", "partial"))
     assert svc.get_backtest_coverage_for("ZZZZ") is None
 
 
@@ -144,3 +194,15 @@ def test_stats_worker_counts_missing(tmp_path: Path) -> None:
     worker.run()
 
     assert (seen[0].missing_1d, seen[0].missing_3m, seen[0].short_stocks) == (1, 2, 2)
+
+
+def test_stats_worker_counts_partial(tmp_path: Path) -> None:
+    """UT-GUI-030.009.M02.T02: The stats worker adds the partial stock count."""
+    from us_swing.gui.app_service import _BacktestStatsWorker
+
+    worker = _BacktestStatsWorker(BacktestStore(tmp_path), lambda: [], lambda: 224)
+    seen: list[Any] = []
+    worker.done.connect(seen.append)
+    worker.run()
+
+    assert seen[0].partial_stocks == 224

@@ -142,3 +142,23 @@ def test_saved_spy_has_no_jobs() -> None:
                 daily_only=("SPY",))
 
     assert jobs == []
+
+
+def test_gap_days_asked_again() -> None:
+    """UT-BKT-001.005.M03.T06: Missing 3m days get short requests, next days joined; days
+    before the start and delta runs get none (ISS-BKT-0003)."""
+    full: Coverage = {("AAPL", "1d"): (date(2025, 1, 2), date(2025, 12, 31)),
+                      ("AAPL", "3m"): (date(2025, 1, 2), date(2025, 12, 31))}
+    gaps = {"AAPL": [date(2024, 12, 5), date(2025, 3, 6), date(2025, 3, 7),
+                     date(2025, 3, 10), date(2025, 7, 2)]}
+
+    jobs = plan(["AAPL"], _RANGE_2025, lambda s, tf: full.get((s, tf)), {},
+                date(2025, 12, 31), gaps=gaps)
+    delta = plan(["AAPL"], _LATEST, lambda s, tf: full.get((s, tf)), {},
+                 date(2025, 12, 31), True, gaps=gaps)
+
+    assert [(j.tf, j.start, j.end, j.duration) for j in jobs] == [
+        ("3m", date(2025, 7, 2), date(2025, 7, 2), "1 D"),
+        ("3m", date(2025, 3, 6), date(2025, 3, 10), "3 D"),
+    ]
+    assert delta == []

@@ -265,6 +265,18 @@ def test_short_3m_shows_behind(make: Any, tmp_path: Path) -> None:
     assert panel._start_btn.isEnabled()
 
 
+def test_partial_stocks_not_up_to_date(make: Any) -> None:
+    """UT-GUI-030.006.M01.T03: Partial stocks show a count and point to Universe, not Up to date."""
+    panel, svc = make()
+    svc.backtest_stats_changed.emit(replace(_stats(), partial_stocks=224))
+
+    assert panel.state == "partial"
+    assert panel._headline.text() == "224 stocks partial"
+    assert "Fill selected" in panel._info.text()
+    assert panel._start_btn.text() == "Partial"
+    assert not panel._start_btn.isEnabled()
+
+
 def test_changed_range_saved_on_download(make: Any, tmp_path: Path) -> None:
     """UT-GUI-030.009.M01.T01: An unsaved range turns the button into Save range and download."""
     BacktestDataSettings(start_date=date(2026, 1, 1)).save(tmp_path)

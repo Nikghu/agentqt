@@ -64,7 +64,7 @@ import time
 from dataclasses import dataclass
 from functools import partial
 from pathlib import Path
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from typing import TYPE_CHECKING, Any
 
 import pandas as pd
@@ -1191,11 +1191,13 @@ class _BacktestStatsWorker(QThread):
         self,
         store: BacktestStore,
         build_plan: Callable[[], list[Job]] | None = None,
+        count_partial: Callable[[], int] | None = None,
         parent: QObject | None = None,
     ) -> None:
         super().__init__(parent)
         self._store = store
         self._build_plan = build_plan
+        self._count_partial = count_partial
 
     def run(self) -> None:
         try:
@@ -1212,6 +1214,8 @@ class _BacktestStatsWorker(QThread):
                     missing_3m=sum(1 for j in jobs if j.tf == "3m"),
                     short_stocks=len({j.symbol for j in jobs}),
                 )
+            if self._count_partial is not None:
+                stats = dataclasses.replace(stats, partial_stocks=self._count_partial())
             self.done.emit(stats)
         except Exception:  # noqa: BLE001
             _log.exception("[Backtest] Could not read backtest data stats")
@@ -1483,7 +1487,8 @@ class AppService(QObject):
         from us_swing.execution.pending_signal_store import PendingSignalStore
         from us_swing.execution.event_bus import QtEventBus
         from us_swing.execution.strategy_engine._engine import StrategyEngine
-        from us_swing.gui.strategy_builder_dialog import load_strategies, save_strategies
+        from us_swing.gui.strategy_builder_dialog import load_strategies
+        from us_swing.gui.strategy_store import set_run_state
 
         # Restore positions + trade history from the trade-cycle ledger.
         self._rehydrate_positions_from_cycles()
@@ -1593,7 +1598,7 @@ class AppService(QObject):
 
         self._strategy_engine = StrategyEngine(
             registry_loader=load_strategies,
-            registry_saver=save_strategies,
+            registry_saver=set_run_state,
             candles_provider=self._get_candles_df,
             bar_provider=self._get_latest_bar,
             risk=self._risk_manager,
@@ -4828,38 +4833,59 @@ class AppService(QObject):
     def get_backtest_symbol_coverage(self) -> dict[str, tuple[str | None, str | None, str]]:
         """Per S&P 500 symbol: backtest first date, last date and status (SRD-GUI-030.008).
 
-        Dates come from 3m data when saved, else 1d. Status is ``ok``, ``late`` (3m starts
-        after the start date, SRD-GUI-030.011), ``behind``, ``1d`` (no 3m yet) or ``none``.
+        Dates come from 3m data when saved, else 1d. Status is ``ok`` when the dates cover the
+        Backtest Data range with no missing 3m day, ``partial`` when not, else ``none``.
+        Missing days come from the gap cache, which the stats refresh keeps up to date.
         """
-        cov = self._backtest_coverage_fn()
+        cov = self._backtest_coverage_fn(self._bkt_store.cached_gaps())
         return {rec.symbol: cov(rec.ibkr_symbol) for rec in self._sp500}
+
+    def get_backtest_gaps(self) -> dict[str, list[str]]:
+        """Per S&P 500 symbol, the cached days that have daily but no 3m candles (in range)."""
+        gaps = self._bkt_store.cached_gaps()
+        start = BacktestDataSettings.load(self._bkt_store.root).start_date
+        return {rec.symbol: [d.isoformat() for d in gaps.get(rec.ibkr_symbol, ()) if d >= start]
+                for rec in self._sp500 if gaps.get(rec.ibkr_symbol)}
+
+    def get_backtest_range(self) -> tuple[str, str]:
+        """The Backtest Data range as ``(start, end)`` ISO dates; end is the last trading day
+        when the range runs to the latest day."""
+        settings = BacktestDataSettings.load(self._bkt_store.root)
+        last = _compute_last_trading_day()
+        end = min(settings.end_date or last, last)
+        return settings.start_date.isoformat(), end.isoformat()
 
     def get_backtest_coverage_for(
         self, ibkr_symbol: str,
     ) -> tuple[str, tuple[str | None, str | None, str]] | None:
         """One stock's Universe symbol and backtest coverage, or None when not listed.
 
-        Used to update a single Universe row while a download runs (SRD-GUI-030.012).
+        Used to update a single Universe row while a download runs (SRD-GUI-030.012); its
+        missing days are worked out again here, for this one stock only.
         """
         rec = next((r for r in self._sp500 if r.ibkr_symbol == ibkr_symbol), None)
-        return None if rec is None else (rec.symbol, self._backtest_coverage_fn()(ibkr_symbol))
+        if rec is None:
+            return None
+        gaps = self._bkt_store.refresh_gaps([ibkr_symbol])
+        return rec.symbol, self._backtest_coverage_fn(gaps)(ibkr_symbol)
 
-    def _backtest_coverage_fn(self) -> Callable[[str], tuple[str | None, str | None, str]]:
+    def _backtest_coverage_fn(
+        self, gaps: Mapping[str, list[datetime.date]],
+    ) -> Callable[[str], tuple[str | None, str | None, str]]:
         store = self._bkt_store
         settings = BacktestDataSettings.load(store.root)
-        floors = DownloadState.load(store.root).floors
-        end = settings.end_date or _compute_last_trading_day()
+        start = settings.start_date
+        end = min(settings.end_date or _compute_last_trading_day(), _compute_last_trading_day())
 
         def coverage(symbol: str) -> tuple[str | None, str | None, str]:
             cov_3m = store.coverage(symbol, "3m")
             cov = cov_3m or store.coverage(symbol, "1d")
             if cov is None:
                 return None, None, "none"
-            start = max(settings.start_date, floors.get(symbol, settings.start_date))
-            status = ("1d" if cov_3m is None
-                      else "late" if cov[0] > start + _BKT_START_SLACK
-                      else "behind" if cov[1] < end else "ok")
-            return cov[0].isoformat(), cov[1].isoformat(), status
+            holes = any(d >= start for d in gaps.get(symbol, ()))
+            full = (cov_3m is not None and cov[0] <= start + _BKT_START_SLACK
+                    and cov[1] >= end and not holes)
+            return cov[0].isoformat(), cov[1].isoformat(), "ok" if full else "partial"
 
         return coverage
 
@@ -4867,13 +4893,39 @@ class AppService(QObject):
         """Read store stats in the background; emits ``backtest_stats_changed``."""
         symbols = [r.ibkr_symbol for r in self._sp500]
         build = self._backtest_plan(symbols, delta=False) if symbols else None
-        worker = _BacktestStatsWorker(self._bkt_store, build, parent=self)
+
+        def count_partial() -> int:
+            cov = self._backtest_coverage_fn(self._bkt_store.refresh_gaps(symbols))
+            return sum(1 for s in symbols if cov(s)[2] == "partial")
+
+        worker = _BacktestStatsWorker(self._bkt_store, build, count_partial, parent=self)
         worker.done.connect(self.backtest_stats_changed)
         worker.finished.connect(worker.deleteLater)
         worker.start()
 
-    def _start_backtest(self, *, delta: bool) -> bool:
-        symbols = [r.ibkr_symbol for r in self._sp500]
+    def fill_backtest_symbols(self, symbols: list[str]) -> bool:
+        """Download the chosen stocks again from the range start, ignoring saved listing dates.
+
+        Args:
+            symbols: IBKR symbols ticked in the Universe table.
+
+        Returns:
+            True when the download started.
+        """
+        if not symbols:
+            return False
+        if self.is_backtest_running():
+            self.log_message.emit("WARNING", "[Backtest] A download is already running — try again")
+            return False
+        root = self._bkt_store.root
+        state = DownloadState.load(root)
+        for symbol in symbols:
+            state.floors.pop(symbol, None)
+        state.save(root)
+        return self._start_backtest(delta=False, symbols=symbols)
+
+    def _start_backtest(self, *, delta: bool, symbols: list[str] | None = None) -> bool:
+        symbols = symbols or [r.ibkr_symbol for r in self._sp500]
         if self.is_backtest_running():
             return False
         if not symbols:
@@ -4900,9 +4952,10 @@ class AppService(QObject):
 
         def build_plan() -> list[Job]:
             floors = DownloadState.load(store.root).floors
+            gaps = None if delta else store.refresh_gaps(symbols)  # ISS-BKT-0003
             return plan(symbols, settings, store.coverage, floors,
                         _compute_last_trading_day(), delta,
-                        daily_only=(BENCHMARK,))  # SRD-BKT-001.015
+                        daily_only=(BENCHMARK,), gaps=gaps)  # SRD-BKT-001.015
 
         return build_plan
 

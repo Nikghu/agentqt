@@ -54,6 +54,7 @@ def plan(
     last_session: date,
     delta_only: bool = False,
     daily_only: Sequence[str] = (),
+    gaps: Mapping[str, Sequence[date]] | None = None,
 ) -> list[Job]:
     """Return the jobs still needed, one stock at a time: its 1d, then its 3m newest end first.
 
@@ -65,6 +66,7 @@ def plan(
         last_session: Latest finished trading day.
         delta_only: Only ask for days since each stock's last saved bar.
         daily_only: Extra symbols that get 1d jobs only (SPY for the RS rule).
+        gaps: Per stock, days with a daily bar but no 3m bar; each run of days is asked again.
 
     Returns:
         Ordered job list; empty when nothing is missing.
@@ -81,8 +83,28 @@ def plan(
                 tf_jobs = _forward(symbol, tf, saved[1], end) if saved is not None else []
             else:
                 tf_jobs = _missing(symbol, tf, start, end, saved, floors.get(symbol))
+                if tf == "3m" and gaps:
+                    tf_jobs += _gap_jobs(symbol, [d for d in gaps.get(symbol, ()) if d >= start])
             out.extend(sorted(tf_jobs, key=lambda j: j.end, reverse=True))
     return out
+
+
+def _gap_jobs(symbol: str, days: Sequence[date]) -> list[Job]:
+    """One 3m request per run of gap days that are next to each other (weekends skipped)."""
+    jobs: list[Job] = []
+    run: list[date] = []
+    for day in sorted(days):
+        if run and _weekdays_after(run[-1], day) > 1:
+            jobs.append(_gap_job(symbol, run))
+            run = []
+        run.append(day)
+    if run:
+        jobs.append(_gap_job(symbol, run))
+    return jobs
+
+
+def _gap_job(symbol: str, run: list[date]) -> Job:
+    return Job(symbol, "3m", run[0], run[-1], f"{_weekdays_after(run[0], run[-1]) + 1} D")
 
 
 def _missing(

@@ -14,7 +14,6 @@ from PyQt6.QtWidgets import (
     QFrame,
     QHBoxLayout,
     QPushButton,
-    QScrollArea,
     QVBoxLayout,
     QWidget,
 )
@@ -39,12 +38,6 @@ class SettingsDialog(QDialog):
         self.setWindowModality(Qt.WindowModality.ApplicationModal)
         self.setMinimumSize(900, 600)
         self._panel = panel
-
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        scroll.setFrameShape(QFrame.Shape.NoFrame)
-        scroll.setWidget(panel)
 
         self._defaults_btn = QPushButton("Restore defaults")
         self._cancel_btn = QPushButton("Cancel")
@@ -87,7 +80,7 @@ class SettingsDialog(QDialog):
         # A minimised application-modal dialog would leave the main window locked.
         title_bar._btn_min.hide()
         root.addWidget(title_bar)
-        root.addWidget(scroll, 1)
+        root.addWidget(panel, 1)
         root.addWidget(footer)
 
     @property

@@ -577,6 +577,7 @@ class StrategiesPane(QWidget):
                    confirm_text="Delete", danger=True):
             self._configs.pop(src_row)
             save_strategies(self._configs)
+            self._demo.reload_strategy_registry()
             repo = getattr(self._demo, "rex_counters", None)
             if repo is not None:
                 try:
@@ -629,6 +630,7 @@ class StrategiesPane(QWidget):
     def _append_config(self, cfg: StrategyConfig) -> None:
         self._configs.append(cfg)
         save_strategies(self._configs)
+        self._demo.reload_strategy_registry()
         self._refresh_table(select=cfg.name)
 
     def _on_run(self, src_row: int) -> None:

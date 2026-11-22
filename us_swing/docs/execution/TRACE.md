@@ -3,7 +3,7 @@
 **Document ID:** TRACE-EXE
 **Version:** 1.24.1
 **Project:** US Swing Trading System
-**Last Updated:** 2026-11-22 (RN-GUI-2.7.0-20261122 filled for SRD-EXE-015.007–.008 and SRD-EXE-017.028. Earlier: SRD-EXE-015.007–.008 one app copy. Earlier: SRD-EXE-017.028 fixed share count. Earlier: SRD-EXE-011.027 BOSS_ST; SRD-EXE-006.015, .007.011 30m timeframe)
+**Last Updated:** 2026-11-22 (RN-EXE-1.41.1-20261122: SRD-EXE-011.001 status save keeps Disabled strategies, ISS-EXE-0015. Earlier: RN-GUI-2.7.0-20261122 filled for SRD-EXE-015.007–.008 and SRD-EXE-017.028. Earlier: SRD-EXE-015.007–.008 one app copy. Earlier: SRD-EXE-017.028 fixed share count. Earlier: SRD-EXE-011.027 BOSS_ST; SRD-EXE-006.015, .007.011 30m timeframe)
 
 ---
 
@@ -30,7 +30,7 @@
 | FO-EXE-008 | SRD-EXE-008.001–006 | DD-EXE-008.001.D01 | MD-EXE-008.001.M01 | UT-EXE-008.001.M01.T01–T16 | `execution/live_tick_worker.py` | Implemented | RN-EXE-1.3.1-20260519 |
 | FO-EXE-009 | SRD-EXE-009.001–012 | DD-EXE-009.001.D01–D02, 009.002.D01–D02, 009.003.D01 | MD-EXE-009.001.M01–M03, 009.002.M01–M03 | UT-EXE-009.001.M01.T01–T04, 009.001.M02.T01–T03, 009.001.M03.T01–T06, 009.002.M01.T01–T14, 009.002.M02.T01–T22, 009.002.M02.T17–T17d, 009.002.M03.T01–T04; IT-EXE-009.001–005 | `core/monitoring_session/{_dto,_enums,_protocols,_events,_repository,_service}.py`, `core/monitoring_session/__init__.py` | Implemented | RN-EXE-1.3.0-20260518, RN-EXE-1.15.0-20260529, RN-EXE-1.19.0-20260608, RN-EXE-1.20.1-20260609 (ISS-EXE-0003 log level) |
 | FO-EXE-010 | SRD-EXE-010.001–006 | DD-EXE-010.001.D01, 010.002.D01, 010.003.D01 | MD-EXE-010.001.M01 | UT-EXE-010.001.M01.T01–T05; IT-EXE-010.001–002 | `core/monitoring_session/_scheduler.py` | Implemented | RN-EXE-1.3.0-20260518, RN-EXE-1.19.0-20260608 |
-| FO-EXE-011 | SRD-EXE-011.001–019 | DD-EXE-011.001.D01–D04, DD-EXE-011.016.D01 | MD-EXE-011.001.M01–M08 | UT-EXE-011.001.M01–M08.T01–T52 | `execution/strategy_engine/{_engine,_context,_evaluator,_router,_rex_counter,__init__}.py` | Implemented | RN-EXE-1.9.0-20260527 |
+| FO-EXE-011 | SRD-EXE-011.001–019 | DD-EXE-011.001.D01–D04, DD-EXE-011.016.D01 | MD-EXE-011.001.M01–M08 | UT-EXE-011.001.M01–M08.T01–T52 | `execution/strategy_engine/{_engine,_context,_evaluator,_router,_rex_counter,__init__}.py` | Implemented | RN-EXE-1.9.0-20260527, RN-EXE-1.41.1-20261122 |
 | FO-EXE-011 | SRD-EXE-011.020 | — | MD-EXE-011.001.M01, M04, M06, M09 | UT-EXE-011.001.M04.T18–T20 | `execution/strategy_engine/{_engine,_router,_signals}.py`, `execution/pending_signal_store.py` | Implemented | RN-EXE-1.10.0-20260527 |
 | FO-EXE-011 | SRD-EXE-011.021 | — | MD-EXE-011.001.M04 | UT-EXE-011.001.M04.T21, T22 | `execution/strategy_engine/_router.py` | Implemented | RN-EXE-1.22.0-20260610 |
 | FO-EXE-011 | SRD-EXE-011.022 | — | MD-EXE-011.001.M04 | UT-EXE-011.001.M04.T27, T28, T29 | `execution/strategy_engine/_router.py` | Implemented | RN-EXE-1.24.0-20260612 |

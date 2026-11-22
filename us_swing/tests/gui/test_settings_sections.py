@@ -284,7 +284,115 @@ def test_universe_html_has_backtest_columns() -> None:
 
     assert "['BT From',       8,100]" in html
     assert '"2026-01-02", "2026-10-27", "ok"' in html
-    assert "function updateBt(sym,c)" in html
+    assert "function updateBt(sym,c,g)" in html
+
+
+def test_universe_html_partial_tick_boxes() -> None:
+    """UT-GUI-030.008.M03.T02: Partial rows get a tick box and show the range on their dates."""
+    from us_swing.universe.store import Sp500Record
+
+    html = settings_panel._build_universe_html(
+        [Sp500Record("UNP", "UNP", "Union Pacific", "Industrials")], {}, None,
+        {"UNP": ("2024-01-02", "2026-11-20", "partial")}, ("2022-01-03", "2026-11-20"),
+    )
+
+    assert "function selectPartial()" in html and "function selected()" in html
+    assert 'type="checkbox"' in html
+    assert "Range is 2022-01-03 to 2026-11-20" in html
+
+
+def test_universe_html_lists_missing_days() -> None:
+    """UT-GUI-030.008.M03.T06: Missing 3-minute days go into the page for the tooltip."""
+    from us_swing.universe.store import Sp500Record
+
+    html = settings_panel._build_universe_html(
+        [Sp500Record("META", "META", "Meta", "Comm")], {}, None,
+        {"META": ("2022-01-03", "2026-11-20", "partial")}, ("2022-01-03", "2026-11-20"),
+        {"META": ["2024-01-05"]},
+    )
+
+    assert 'const G={"META": ["2024-01-05"]};' in html
+    assert "day(s) of 3-minute candles" in html
+
+
+def test_fill_selected_maps_to_ibkr_symbols() -> None:
+    """UT-GUI-030.008.M03.T03: Ticked rows are sent as IBKR symbols; nothing ticked asks to tick."""
+    from types import SimpleNamespace
+    from unittest.mock import MagicMock
+
+    from us_swing.universe.store import Sp500Record
+
+    tab_cls = settings_panel._UniverseTab
+    svc = MagicMock()
+    svc.get_sp500_universe.return_value = [Sp500Record("BRK.B", "BRK B", "Berkshire", "Fin"),
+                                           Sp500Record("UNP", "UNP", "Union Pacific", "Ind")]
+    svc.fill_backtest_symbols.return_value = True
+    tab = SimpleNamespace(_svc=svc, _meta_label=MagicMock(), _run_js=MagicMock(),
+                          _fill_btn=MagicMock())
+
+    tab_cls._fill_selected(tab, [])
+    tab._meta_label.setText.assert_called_with("Tick the stocks to fill first")
+    svc.fill_backtest_symbols.assert_not_called()
+
+    tab_cls._fill_selected(tab, ["BRK.B"])
+    svc.fill_backtest_symbols.assert_called_once_with(["BRK B"])
+    tab._run_js.assert_called_once_with("clearSel();")
+    tab._fill_btn.setText.assert_called_with("Filling 0 of 1")
+
+
+def test_fill_button_shows_progress() -> None:
+    """UT-GUI-030.008.M03.T04: The Fill button counts filled stocks, ignores SPY, and resets
+    when the download ends."""
+    from types import SimpleNamespace
+    from unittest.mock import MagicMock
+
+    tab_cls = settings_panel._UniverseTab
+    tab = SimpleNamespace(_fill_symbols={"UNP", "UPS"}, _fill_seen=set(), _fill_btn=MagicMock())
+
+    for symbol in ("UNP", "UNP", "UPS", "SPY"):
+        tab_cls._show_fill_progress(tab, "3m", 1, 9, symbol)
+    tab._fill_btn.setText.assert_called_with("Filling 2 of 2 · UPS")
+    tab._fill_btn.setEnabled.assert_called_with(False)
+
+    tab_cls._end_fill(tab)
+    tab._fill_btn.setText.assert_called_with("Fill selected")
+    tab._fill_btn.setEnabled.assert_called_with(True)
+
+    tab_cls._show_fill_progress(tab, "1d", 1, 9, "AAPL")
+    tab._fill_btn.setText.assert_called_with("Download running…")
+
+
+def test_tick_count_toggles_buttons() -> None:
+    """UT-GUI-030.008.M03.T05: Ticks show as Clear selection (N) and Fill selected (N);
+    the header box and Select partial clear all ticks."""
+    from types import SimpleNamespace
+    from unittest.mock import MagicMock
+
+    from us_swing.universe.store import Sp500Record
+
+    html = settings_panel._build_universe_html(
+        [Sp500Record("UNP", "UNP", "Union Pacific", "Ind")], {}, None,
+        {"UNP": ("2024-01-02", "2026-11-20", "partial")}, ("2022-01-03", "2026-11-20"),
+    )
+    assert "box.id='selall'" in html and "function toggleSel()" in html
+
+    tab_cls = settings_panel._UniverseTab
+    fill_btn = MagicMock()
+    fill_btn.isEnabled.return_value = True
+    tab = SimpleNamespace(_select_btn=MagicMock(), _fill_btn=fill_btn, _fill_symbols=set())
+
+    tab_cls._on_ticks_changed(tab, "sel:40")
+    tab._select_btn.setText.assert_called_with("Clear selection (40)")
+    fill_btn.setText.assert_called_with("Fill selected (40)")
+
+    tab_cls._on_ticks_changed(tab, "sel:0")
+    tab._select_btn.setText.assert_called_with("Select partial")
+    fill_btn.setText.assert_called_with("Fill selected")
+
+    tab._fill_symbols = {"UNP"}
+    fill_btn.setText.reset_mock()
+    tab_cls._on_ticks_changed(tab, "sel:0")
+    fill_btn.setText.assert_not_called()
 
 
 def test_universe_row_updates_when_stock_done() -> None:
@@ -295,10 +403,13 @@ def test_universe_row_updates_when_stock_done() -> None:
     tab_cls = settings_panel._UniverseTab
     svc = MagicMock()
     svc.get_backtest_coverage_for.return_value = ("BRK.B", ("2024-01-02", "2026-11-03", "ok"))
+    svc.get_backtest_gaps.return_value = {}
     page = MagicMock()
     tab = SimpleNamespace(
-        _svc=svc, _bkt_symbol=None, _meta_text="503 constituents",
-        _backtest={"BRK.B": (None, None, "none"), "MSFT": ("2024-01-02", "2026-11-03", "ok")},
+        _svc=svc, _bkt_symbol=None, _meta_text="503 stocks",
+        _backtest={"BRK.B": (None, None, "none"), "MSFT": ("2024-01-02", "2026-11-03", "ok"),
+                   "UNP": ("2024-01-02", "2026-11-03", "partial"),
+                   "ZTS": (None, None, "none")},
         _web=SimpleNamespace(page=lambda: page), _meta_label=MagicMock(),
     )
     tab._show_meta = lambda: tab_cls._show_meta(tab)
@@ -309,6 +420,43 @@ def test_universe_row_updates_when_stock_done() -> None:
 
     svc.get_backtest_coverage_for.assert_called_once_with("BRK B")
     page.runJavaScript.assert_called_once_with(
-        'updateBt("BRK.B",["2024-01-02", "2026-11-03", "ok"]);')
+        'updateBt("BRK.B",["2024-01-02", "2026-11-03", "ok"],[]);')
     tab._meta_label.setText.assert_called_with(
-        "503 constituents · backtest complete for 2 of 2 stocks")
+        "503 stocks · 2 complete · 1 partial · 1 not downloaded")
+    tab._backtest["ZTS"] = ("2024-01-02", "2026-11-03", "ok")
+    tab._show_meta()
+    tab._meta_label.setText.assert_called_with("503 stocks · 3 complete · 1 partial")
+
+
+class _TallTab(_PlainTab):
+    def __init__(self, *_a: Any) -> None:
+        super().__init__()
+        self.setMinimumHeight(1500)
+
+
+def test_tall_section_does_not_scroll_others(
+    qtbot: Any, svc: _StubService, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """UT-GUI-027.001.M01.T03: only a section taller than the dialog scrolls; short ones fit."""
+    from us_swing.gui.settings_dialog import SettingsDialog
+
+    for name in ("_UniverseTab", "_DataPanel"):
+        monkeypatch.setattr(settings_panel, name, _PlainTab)
+    monkeypatch.setattr(settings_panel, "_UsersTab", _TallTab)
+    monkeypatch.setattr(settings_panel, "BacktestDataPanel", _PlainBacktest)
+    dialog = SettingsDialog(settings_panel.SettingsPanel(svc))  # type: ignore[arg-type]
+    qtbot.addWidget(dialog)
+    dialog.resize(900, 600)
+    dialog.show()
+    qtbot.waitExposed(dialog)
+
+    def bar_shown(section: str) -> bool:
+        dialog.panel.show_section(section)
+        qtbot.wait(20)
+        card = dialog.panel._stack.currentWidget()
+        scroll = card.findChild(settings_panel.QScrollArea)
+        return scroll.verticalScrollBar().isVisible()
+
+    assert bar_shown("Users")
+    assert not bar_shown("Candle data")
+    assert dialog.height() <= 600

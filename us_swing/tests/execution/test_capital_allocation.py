@@ -295,7 +295,7 @@ def test_router_releases_reservation_on_entry_fill() -> None:
 def _engine() -> StrategyEngine:
     return StrategyEngine(
         registry_loader=lambda: [],
-        registry_saver=lambda c: None,
+        registry_saver=lambda name, run_state: None,
         candles_provider=lambda s: {"3m": pd.DataFrame()},
         bar_provider=lambda s, tf: None,
         risk=MagicMock(),

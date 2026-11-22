@@ -333,3 +333,31 @@ def test_30m_for_old_data_and_clear(tmp_path: Path) -> None:
 
     store.clear()
     assert not (tmp_path / "30m").exists()
+
+
+def test_gap_days_inside_3m_range(tmp_path: Path) -> None:
+    """UT-BKT-001.001.M01.T03: Days with a daily bar but no 3m bar, inside the 3m range."""
+    store = BacktestStore(tmp_path)
+    store.save("AAPL", "1d", _bars(["2024-01-02", "2024-01-03", "2024-01-04", "2024-01-05",
+                                    "2024-01-08", "2024-01-09"], tz=None), _LATE)
+    store.save("AAPL", "3m", _bars(["2024-01-03 15:00", "2024-01-08 15:00"]), _LATE)
+
+    assert store.gap_days("AAPL") == [date(2024, 1, 4), date(2024, 1, 5)]
+    assert store.gap_days("MSFT") == []
+
+
+def test_gap_cache_recomputed_after_save(tmp_path: Path) -> None:
+    """UT-BKT-001.001.M01.T04: Gaps are cached; after a new save the cache keeps the old days
+    until refresh works them out again (ISS-BKT-0003)."""
+    store = BacktestStore(tmp_path)
+    store.save("AAPL", "1d", _bars(["2024-01-03", "2024-01-04", "2024-01-05"], tz=None), _LATE)
+    store.save("AAPL", "3m", _bars(["2024-01-03 15:00", "2024-01-05 15:00"]), _LATE)
+    assert store.cached_gaps() == {}
+
+    assert store.refresh_gaps(["AAPL"]) == {"AAPL": [date(2024, 1, 4)]}
+    assert store.cached_gaps() == {"AAPL": [date(2024, 1, 4)]}
+
+    store.save("AAPL", "3m", _bars(["2024-01-04 15:00"]), _LATE)
+    assert store.cached_gaps() == {"AAPL": [date(2024, 1, 4)]}
+    assert store.refresh_gaps(["AAPL"]) == {"AAPL": []}
+    assert store.cached_gaps() == {"AAPL": []}

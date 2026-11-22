@@ -470,6 +470,7 @@
 | UT-EXE-011.001.M01.T05 | MD-EXE-011.001.M01 | Positive | `request_stop()` unwinds loop and joins thread within 3 s | Start engine; call `request_stop()` | `isRunning() == False` within 3 s; no leaked tasks | Pass |
 | UT-EXE-011.001.M01.T06 | MD-EXE-011.001.M01 | Edge | No `PyQt6` import in any business-logic module (`_signals`, `_events`, `_context`, `_evaluator`, `_router`, `_protocols`); `_engine.py` is the explicit Qt boundary and is allowed | Import each business-logic module and scan its module-level globals | None of the six business-logic modules has any name bound from `PyQt6.*` | Pass |
 | UT-EXE-011.001.M01.T07 | MD-EXE-011.001.M01 | Negative | `request_stop()` called before `start()` is a safe no-op | Construct engine; call `request_stop()` without prior `start()` | No exception raised; `isRunning() == False`; engine remains in a fresh constructable state | Pass |
+| UT-EXE-011.001.M01.T08 | MD-EXE-011.001.M01 | Negative | Status save keeps Disabled strategies (ISS-EXE-0015) | Real temp store with one Auto and one Disabled strategy; flush a RUNNING status | Both rows remain; only the Auto row's run state changes | Pass |
 
 ---
 

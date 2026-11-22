@@ -84,7 +84,7 @@ class StrategyEngine(QThread):
         self,
         *,
         registry_loader: Callable[[], list[StrategyConfig]],
-        registry_saver: Callable[[list[StrategyConfig]], None],
+        registry_saver: Callable[[str, str], None],
         candles_provider: Callable[[str], dict[str, pd.DataFrame]],
         bar_provider: Callable[[str, str], OHLCVBar | None],
         risk: RiskValidator,
@@ -453,10 +453,9 @@ class StrategyEngine(QThread):
 
     def _flush_persist(self) -> None:
         try:
-            cfgs = [ctx.cfg for ctx in self._registry.values()]
-            for ctx in self._registry.values():
+            for sid, ctx in self._registry.items():
                 ctx.cfg.run_state = ctx.run_state.value
-            self._registry_saver(cfgs)
+                self._registry_saver(sid, ctx.run_state.value)
             now = _time.monotonic()
             for sid in self._registry:
                 self._last_persist_at[sid] = now
