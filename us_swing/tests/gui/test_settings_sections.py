@@ -348,6 +348,39 @@ def test_fill_button_shows_progress() -> None:
     tab._fill_btn.setText.assert_called_with("Download running…")
 
 
+def test_tick_count_toggles_buttons() -> None:
+    """UT-GUI-030.008.M03.T05: Ticks show as Clear selection (N) and Fill selected (N);
+    the header box and Select partial clear all ticks."""
+    from types import SimpleNamespace
+    from unittest.mock import MagicMock
+
+    from us_swing.universe.store import Sp500Record
+
+    html = settings_panel._build_universe_html(
+        [Sp500Record("UNP", "UNP", "Union Pacific", "Ind")], {}, None,
+        {"UNP": ("2024-01-02", "2026-11-20", "partial")}, ("2022-01-03", "2026-11-20"),
+    )
+    assert "box.id='selall'" in html and "function toggleSel()" in html
+
+    tab_cls = settings_panel._UniverseTab
+    fill_btn = MagicMock()
+    fill_btn.isEnabled.return_value = True
+    tab = SimpleNamespace(_select_btn=MagicMock(), _fill_btn=fill_btn, _fill_symbols=set())
+
+    tab_cls._on_ticks_changed(tab, "sel:40")
+    tab._select_btn.setText.assert_called_with("Clear selection (40)")
+    fill_btn.setText.assert_called_with("Fill selected (40)")
+
+    tab_cls._on_ticks_changed(tab, "sel:0")
+    tab._select_btn.setText.assert_called_with("Select partial")
+    fill_btn.setText.assert_called_with("Fill selected")
+
+    tab._fill_symbols = {"UNP"}
+    fill_btn.setText.reset_mock()
+    tab_cls._on_ticks_changed(tab, "sel:0")
+    fill_btn.setText.assert_not_called()
+
+
 def test_universe_row_updates_when_stock_done() -> None:
     """UT-GUI-030.012.M06.T01: The next stock in progress updates the previous stock's row only."""
     from types import SimpleNamespace

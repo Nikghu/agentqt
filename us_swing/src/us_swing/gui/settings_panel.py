@@ -732,11 +732,19 @@ const SEL=new Set();
 
 function fc(b){{if(b===null)return'\u2014';if(b>=1000)return'$'+(b/1000).toFixed(2)+'T';if(b>=1)return'$'+b.toFixed(1)+'B';return'$'+(b*1000).toFixed(0)+'M';}}
 function applyFilters(text,_mn,_mx){{ft=text.toLowerCase();render();}}
-function updateBt(sym,c){{const r=D.find(x=>x[1]===sym);if(!r)return;r[8]=c[0];r[9]=c[1];r[10]=c[2];if(c[2]==='ok')SEL.delete(sym);render();}}
-function tog(sym,on){{if(on)SEL.add(sym);else SEL.delete(sym);}}
-function selectPartial(){{D.forEach(r=>{{if(r[10]!=='ok')SEL.add(r[1]);}});render(false);}}
+function updateBt(sym,c){{const r=D.find(x=>x[1]===sym);if(!r)return;r[8]=c[0];r[9]=c[1];r[10]=c[2];if(c[2]==='ok')SEL.delete(sym);render();syncSel();}}
+/* the page title carries the tick count to the Python buttons */
+function syncSel(){{
+  const n=D.filter(r=>r[10]!=='ok').length;
+  const all=document.getElementById('selall');
+  if(all){{all.checked=n>0&&SEL.size===n;all.indeterminate=SEL.size>0&&SEL.size<n;}}
+  document.title='sel:'+SEL.size;
+}}
+function tog(sym,on){{if(on)SEL.add(sym);else SEL.delete(sym);syncSel();}}
+function selectPartial(){{D.forEach(r=>{{if(r[10]!=='ok')SEL.add(r[1]);}});render(false);syncSel();}}
+function toggleSel(){{if(SEL.size)clearSel();else selectPartial();}}
 function selected(){{return Array.from(SEL);}}
-function clearSel(){{SEL.clear();render(false);}}
+function clearSel(){{SEL.clear();render(false);syncSel();}}
 function S(ci){{
   const di=COLS[colOrder[ci]][1];
   if(di===-2)return;
@@ -752,6 +760,12 @@ function buildHeader(){{
     const [label,,w]=COLS[ci];
     const th=document.createElement('th');
     th.textContent=label;
+    if(COLS[ci][1]===-2){{
+      const box=document.createElement('input');
+      box.type='checkbox';box.id='selall';box.title='Tick or clear every partial stock';
+      box.addEventListener('click',e=>{{e.stopPropagation();toggleSel();}});
+      th.appendChild(box);
+    }}
     th.dataset.pos=pos;
     th.dataset.ci=ci;
     th.style.width=w+'px';
@@ -854,6 +868,7 @@ function render(resort=true){{
 
 buildHeader();
 render();
+syncSel();
 </script></body></html>
 """
 
@@ -942,9 +957,9 @@ class _UniverseTab(QWidget):
         refresh_btn.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         refresh_btn.clicked.connect(self._on_refresh)
 
-        select_btn = QPushButton("Select partial")
-        select_btn.setToolTip("Tick every stock whose backtest data is partial or missing")
-        select_btn.clicked.connect(lambda: self._run_js("selectPartial();"))
+        self._select_btn = QPushButton("Select partial")
+        self._select_btn.setToolTip("Tick every partial stock, or clear the ticks")
+        self._select_btn.clicked.connect(lambda: self._run_js("toggleSel();"))
         self._fill_btn = QPushButton("Fill selected")
         set_icon(self._fill_btn, "download", "go")
         self._fill_btn.setToolTip("Download the ticked stocks again from the range start")
@@ -953,7 +968,7 @@ class _UniverseTab(QWidget):
         top = QHBoxLayout()
         top.addWidget(self._meta_label)
         top.addStretch()
-        top.addWidget(select_btn)
+        top.addWidget(self._select_btn)
         top.addWidget(self._fill_btn)
         top.addWidget(refresh_btn)
 
@@ -965,6 +980,7 @@ class _UniverseTab(QWidget):
         # ── Web view ──────────────────────────────────────────────────────────
         self._web = QWebEngineView()
         self._web.setHtml(f"<body style='background:{active_palette().BG}'></body>")
+        self._web.titleChanged.connect(self._on_ticks_changed)
 
         # ── Layout ────────────────────────────────────────────────────────────
         layout = QVBoxLayout(self)
@@ -1048,6 +1064,15 @@ class _UniverseTab(QWidget):
             self._meta_label.setText(f"Filling {len(ibkr)} stock(s) from the range start…")
         else:
             self._meta_label.setText("Could not start — a download is already running")
+
+    def _on_ticks_changed(self, title: str) -> None:
+        """The page reports its tick count as ``sel:N``; update both button labels."""
+        if not title.startswith("sel:"):
+            return
+        count = int(title[4:] or 0)
+        self._select_btn.setText(f"Clear selection ({count})" if count else "Select partial")
+        if not self._fill_symbols and self._fill_btn.isEnabled():
+            self._fill_btn.setText(f"Fill selected ({count})" if count else "Fill selected")
 
     def _show_fill_progress(self, _tf: str, _done: int, _total: int, symbol: str) -> None:
         """Show which ticked stock is being filled; any other download greys the button out."""
