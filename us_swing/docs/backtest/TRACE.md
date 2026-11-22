@@ -1,9 +1,9 @@
 # Traceability Matrix — Backtest Module (BKT)
 
 **Document ID:** TRACE-BKT
-**Version:** 1.0.0
+**Version:** 1.0.1
 **Project:** US Swing Trading System
-**Last Updated:** 2026-11-22 (RN-BKT-1.14.0-20261122: 3m gap days asked again, ISS-BKT-0003. Earlier: SRD-BKT-002.083–.084 HTML report, ISS-BKT-0001)
+**Last Updated:** 2026-11-23 (RN-BKT-1.14.1-20261123: SRD-BKT-002.088 run range from the settings start to the latest data day (reopened 2026-11-22). Earlier: RN-BKT-1.14.0-20261122: 3m gap days asked again, ISS-BKT-0003. Earlier: SRD-BKT-002.083–.084 HTML report, ISS-BKT-0001)
 
 ---
 
@@ -30,7 +30,7 @@
 | FO-BKT-002 | SRD-BKT-002.040–.047 | None yet (Phase 4a stats only) | MD-BKT-002.040.M13 (+ .007.M04, .008.M05) | UT-BKT-002.040–.047.M13 (14 tests, Pass) | `backtest/steps/report.py`, `backtest/results.py`, `backtest/service.py` | Implemented (Phase 4a) | RN-BKT-1.6.0-20261029 |
 | FO-BKT-002 | SRD-BKT-002.082 | DD-EXE-011.026.D01 | MD-BKT-002.021.M10 | UT-BKT-002.082.M10.T01–T02 (2 tests, Pass) | `core/expr/series.py`, `core/expr/__init__.py` | Implemented | RN-EXE-1.39.0-20261031 |
 | FO-BKT-002 | SRD-BKT-002.087 | DD-EXE-011.027.D01 | MD-BKT-002.021.M10 | UT-BKT-002.087.M10.T01–T02 (2 tests, Pass) | `core/expr/series.py`, `core/expr/__init__.py` | Implemented | RN-EXE-1.41.0-20261102 |
-| FO-BKT-002 | SRD-BKT-002.088 | None (small step) | MD-BKT-002.008.M05 | UT-BKT-002.088.M05.T01–T02 (2 tests, Pass) | `backtest/service.py` | Implemented | RN-BKT-1.12.0-20261103 |
+| FO-BKT-002 | SRD-BKT-002.088 | None (small step) | MD-BKT-002.008.M05 | UT-BKT-002.088.M05.T01–T02 (2 tests, Pass) | `backtest/service.py` | Implemented | RN-BKT-1.12.0-20261103, RN-BKT-1.14.1-20261123 |
 
 ## Reverse Traceability: Code → MD → SRD → FO
 
