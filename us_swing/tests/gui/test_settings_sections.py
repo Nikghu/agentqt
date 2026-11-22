@@ -313,7 +313,8 @@ def test_fill_selected_maps_to_ibkr_symbols() -> None:
     svc.get_sp500_universe.return_value = [Sp500Record("BRK.B", "BRK B", "Berkshire", "Fin"),
                                            Sp500Record("UNP", "UNP", "Union Pacific", "Ind")]
     svc.fill_backtest_symbols.return_value = True
-    tab = SimpleNamespace(_svc=svc, _meta_label=MagicMock(), _run_js=MagicMock())
+    tab = SimpleNamespace(_svc=svc, _meta_label=MagicMock(), _run_js=MagicMock(),
+                          _fill_btn=MagicMock())
 
     tab_cls._fill_selected(tab, [])
     tab._meta_label.setText.assert_called_with("Tick the stocks to fill first")
@@ -322,6 +323,29 @@ def test_fill_selected_maps_to_ibkr_symbols() -> None:
     tab_cls._fill_selected(tab, ["BRK.B"])
     svc.fill_backtest_symbols.assert_called_once_with(["BRK B"])
     tab._run_js.assert_called_once_with("clearSel();")
+    tab._fill_btn.setText.assert_called_with("Filling 0 of 1")
+
+
+def test_fill_button_shows_progress() -> None:
+    """UT-GUI-030.008.M03.T04: The Fill button counts filled stocks, ignores SPY, and resets
+    when the download ends."""
+    from types import SimpleNamespace
+    from unittest.mock import MagicMock
+
+    tab_cls = settings_panel._UniverseTab
+    tab = SimpleNamespace(_fill_symbols={"UNP", "UPS"}, _fill_seen=set(), _fill_btn=MagicMock())
+
+    for symbol in ("UNP", "UNP", "UPS", "SPY"):
+        tab_cls._show_fill_progress(tab, "3m", 1, 9, symbol)
+    tab._fill_btn.setText.assert_called_with("Filling 2 of 2 · UPS")
+    tab._fill_btn.setEnabled.assert_called_with(False)
+
+    tab_cls._end_fill(tab)
+    tab._fill_btn.setText.assert_called_with("Fill selected")
+    tab._fill_btn.setEnabled.assert_called_with(True)
+
+    tab_cls._show_fill_progress(tab, "1d", 1, 9, "AAPL")
+    tab._fill_btn.setText.assert_called_with("Download running…")
 
 
 def test_universe_row_updates_when_stock_done() -> None:

@@ -1001,6 +1001,7 @@ Test files:
 | UT-GUI-030.008.M03.T01 | MD-GUI-030.008.M06 | Positive | Universe HTML has backtest columns | one record with coverage | BT From column and dates in data | Pass |
 | UT-GUI-030.008.M03.T02 | MD-GUI-030.008.M06 | Positive | Partial rows get tick boxes | UNP partial; range 2022-01-03 to 2026-11-20 | tick box; Select partial / selected functions; range on dates | Pass |
 | UT-GUI-030.008.M03.T03 | MD-GUI-030.008.M06 | Negative | Fill sends IBKR symbols | nothing ticked, then BRK.B ticked | "Tick the stocks to fill first"; fill called with "BRK B"; ticks cleared | Pass |
+| UT-GUI-030.008.M03.T04 | MD-GUI-030.008.M06 | Positive | Fill button shows progress | fill UNP, UPS; progress UNP, UNP, UPS, SPY; then finished; then other download | "Filling 2 of 2 · UPS", off; "Fill selected", on; "Download running…" | Pass |
 | UT-GUI-030.011.M02.T01 | MD-GUI-030.011.M02 | Positive | Partial ignores listing date | start 2024-01-01; AAPL 3m from 2024-04-05; NEWCO floor 2025-03-03, 3m from then | both `partial` (changed by ISS-BKT-0003) | Pass |
 | UT-GUI-030.012.M02.T01 | MD-GUI-030.012.M02 | Positive | One stock's coverage | IBKR symbol "BRK B" listed as "BRK.B"; unknown "ZZZZ" | ("BRK.B", dates, status); None | Pass |
 | UT-GUI-030.012.M06.T01 | MD-GUI-030.012.M06 | Positive | Row updates when stock done | progress BRK B, BRK B, MSFT | one `updateBt("BRK.B", …)` call; "complete for 2 of 2 stocks" | Pass |

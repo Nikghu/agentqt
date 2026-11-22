@@ -928,6 +928,8 @@ class _UniverseTab(QWidget):
         self._svc = svc
         self._backtest: dict[str, tuple[str | None, str | None, str]] = {}
         self._bkt_symbol: str | None = None
+        self._fill_symbols: set[str] = set()
+        self._fill_seen: set[str] = set()
         self._meta_text = ""
 
         # ── Meta bar ──────────────────────────────────────────────────────────
@@ -976,7 +978,9 @@ class _UniverseTab(QWidget):
         svc.sp500_updated.connect(self._load_from_cache)
         svc.candle_db_status_changed.connect(lambda _: self._load_from_cache())
         svc.backtest_finished.connect(lambda *_: self._load_from_cache())
+        svc.backtest_finished.connect(lambda *_: self._end_fill())
         svc.backtest_progress.connect(self._on_backtest_progress)
+        svc.backtest_progress.connect(self._show_fill_progress)
 
     # ── Slots ─────────────────────────────────────────────────────────────────
 
@@ -1038,9 +1042,30 @@ class _UniverseTab(QWidget):
             return
         if self._svc.fill_backtest_symbols(ibkr):
             self._run_js("clearSel();")
+            self._fill_symbols, self._fill_seen = set(ibkr), set()
+            self._fill_btn.setEnabled(False)
+            self._fill_btn.setText(f"Filling 0 of {len(ibkr)}")
             self._meta_label.setText(f"Filling {len(ibkr)} stock(s) from the range start…")
         else:
             self._meta_label.setText("Could not start — a download is already running")
+
+    def _show_fill_progress(self, _tf: str, _done: int, _total: int, symbol: str) -> None:
+        """Show which ticked stock is being filled; any other download greys the button out."""
+        self._fill_btn.setEnabled(False)
+        if not self._fill_symbols:
+            self._fill_btn.setText("Download running…")
+            return
+        if symbol not in self._fill_symbols:
+            return
+        self._fill_seen.add(symbol)
+        self._fill_btn.setText(
+            f"Filling {len(self._fill_seen)} of {len(self._fill_symbols)} · {symbol}"
+        )
+
+    def _end_fill(self) -> None:
+        self._fill_symbols, self._fill_seen = set(), set()
+        self._fill_btn.setText("Fill selected")
+        self._fill_btn.setEnabled(True)
 
     def _on_refresh(self) -> None:
         self._meta_label.setText("Refreshing from Wikipedia…")
