@@ -1,12 +1,14 @@
 # Module Decomposition — GUI Module (GUI)
 
 **Document ID:** MD-GUI
-**Version:** 1.64.0
+**Version:** 1.66.0
 **Traces To:** SRD-GUI v2.16.0 / DD-GUI v1.7.0
 **Status:** Draft
 **Last Updated:** 2026-11-20
 **Project:** US Swing Trading System
 
+> v1.66.0: MD-GUI-019.012.M01 position trade actions + MD-GUI-019.013.M02 Dashboard routing (SRD-GUI-019.012–.017).
+> v1.65.0: MD-GUI-045.007.M03 Inspector Shares row and Edit shares box; MD-GUI-045.001.M01/.M02 pass a fixed share count (SRD-GUI-045.007–.008).
 > v1.64.0: MD-GUI-045.001.M01 chart plan strategy builder; AppService chart plan methods (SRD-GUI-045.001–.005).
 > v1.63.0: MD-GUI-022.001.M01 — Stock data / Top picks only tick groups with 5 new ticks; company tags, Fundamentals line, Analyst changes list, Bull vs bear box (SRD-GUI-022.020–.021).
 > v1.62.0: MD-GUI-022.001.M01 — News tone / Web research ticks; news chip, News list, Web research box (SRD-GUI-022.018–.019).
@@ -290,6 +292,8 @@ us_swing/src/us_swing/gui/
 | MD-GUI-019.009.M03 | SRD-GUI-019.009 | `us_swing/src/us_swing/gui/main_window.py` | Sidebar mini on right panel click | `MainWindow._on_panel_toggled`, `_MiniState` | `reveal` | No |
 | MD-GUI-019.010.M03 | SRD-GUI-019.010 | `us_swing/src/us_swing/gui/main_window.py` | Screens held in a scroll area | `MainWindow._fit_to_screen` | — | No |
 | MD-GUI-019.011.M03 | SRD-GUI-019.011 | `us_swing/src/us_swing/gui/main_window.py` | Screens held at window height | `MainWindow._fit_to_screen`, `_WidthOnlyBox` | — | No |
+| MD-GUI-019.012.M01 | SRD-GUI-019.012 | `us_swing/src/us_swing/gui/position_trades.py` | Find a position's strategy trades; exit text; pick-trade and Stop / Trail popups | `open_trades()`, `exit_text()`, `square_off_text()`, `pick_trade()`, `StopTrailDialog` | `trade_cycle`, `active_cycles_panel`, `risk_editor_widget` | No |
+| MD-GUI-019.013.M02 | SRD-GUI-019.013 | `us_swing/src/us_swing/gui/dashboard_panel.py` | Exit, Stop / Trail and Square Off All go through the strategy trade; manual live positions get a message | `DashboardPanel.open_exit()`, `_on_square_off_all()` | `position_trades`, `AppService.force_exit_cycle` | No |
 
 ## FO-GUI-020 — Charts Workspace
 
@@ -459,3 +463,4 @@ us_swing/src/us_swing/gui/
 | MD-GUI-044.004.M03 | SRD-GUI-044.004 | `us_swing/src/us_swing/gui/screener_views.py` | One-line stock row with a score bar | `_ListRow`, `_ScoreBar`, `STOCK_ROW_H` | `theme` | No |
 | MD-GUI-045.001.M01 | SRD-GUI-045.001 | `us_swing/src/us_swing/gui/chart_plan.py` | Builds the one-stock chart plan strategy: entry rule, percent stop and target, risk size | `build_chart_plan()`, `capital_pct()`, `chart_plan_name()`, `is_expired()` | `strategy_store`, `chart_inspector.plan_size` | No |
 | MD-GUI-045.001.M02 | SRD-GUI-045.001 | `us_swing/src/us_swing/gui/app_service.py`, `gui/chart_workspace.py`, `gui/strategies_pane.py` | Send saves or replaces the plan; removed on trade close, pick removal or start after its day; Strategies tab reloads | `AppService.send_chart_plan()`, `purge_old_chart_plans()`, `_drop_chart_plans()`, `strategies_changed`, `ChartWorkspace._on_send()` | `chart_plan`, `manual_picks_store` | No |
+| MD-GUI-045.007.M03 | SRD-GUI-045.007 | `us_swing/src/us_swing/gui/chart_inspector.py`, `gui/chart_workspace.py`, `gui/strategy_store.py` | Shares row from available capital with cost; Edit shares box capped at the available size; `TradePlan.shares`; `StrategyConfig.fixed_qty` | `max_shares()`, `plan_shares()`, `TradePlanSection.shares_spin`, `ChartWorkspace._available()`, `ChartContext.available` | `AppService.margin_available()` | No |

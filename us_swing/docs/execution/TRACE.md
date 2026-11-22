@@ -1,9 +1,9 @@
 # Traceability Matrix — Execution & Risk Management (EXE)
 
 **Document ID:** TRACE-EXE
-**Version:** 1.23.0
+**Version:** 1.24.1
 **Project:** US Swing Trading System
-**Last Updated:** 2026-11-02 (SRD-EXE-011.027 BOSS_ST; SRD-EXE-006.015, .007.011 30m timeframe)
+**Last Updated:** 2026-11-22 (RN-GUI-2.7.0-20261122 filled for SRD-EXE-015.007–.008 and SRD-EXE-017.028. Earlier: SRD-EXE-015.007–.008 one app copy. Earlier: SRD-EXE-017.028 fixed share count. Earlier: SRD-EXE-011.027 BOSS_ST; SRD-EXE-006.015, .007.011 30m timeframe)
 
 ---
 
@@ -54,12 +54,14 @@
 | FO-EXE-015 | SRD-EXE-015.001–006 | — | MD-EXE-015.001.M01, 015.002.M01, 015.003.M01 | `tests/execution/test_broker_adapter.py` (incl. fill-before-accept regression) | `execution/{order_ingestion,broker_adapter,broker_factory}.py`, `db/manager.py` | Implemented | RN-EXE-1.19.1-20260608 (ISS-EXE-0002 race fix) |
 | FO-EXE-015 | SRD-EXE-015.005 | — | MD-EXE-015.001.M01 | UT-EXE-015.005.M01.T01–T15, M04.T11–T13 | `execution/order_ingestion.py`, `execution/strategy_engine/_router.py` | Implemented | RN-EXE-1.32.0-20260827 |
 | FO-EXE-015 | SRD-EXE-015.004 | — | MD-EXE-015.003.M02, MD-EXE-015.004.M01 | UT-EXE-015.004.M01.T20–T36 | `broker/ibkr.py`, `execution/ibkr_order_connection.py`, `gui/app_service.py` | Implemented | RN-EXE-1.32.1-20260828 |
+| FO-EXE-015 | SRD-EXE-015.007–.008 | — | MD-EXE-015.007.M01 | UT-EXE-015.007.M01.T01–T02, UT-EXE-015.008.M01.T01–T03 | `execution/app_lock.py`, `execution/broker_adapter.py`, `__main__.py` | Implemented | RN-GUI-2.7.0-20261122 |
 | FO-EXE-014 | SRD-EXE-014.007 | — | MD-EXE-014.007.M01 | UT-EXE-014.007.M01.T04–T17 | `gui/app_service.py` | Implemented | RN-EXE-1.32.0-20260827 |
 | FO-INF-009 | SRD-INF-009.005 | — | MD-INF-009.005.M01 | UT-INF-009.005.M01.T10–T19 | `broker/ibkr.py` | Implemented | RN-EXE-1.32.0-20260827 |
 | FO-EXE-005 | SRD-EXE-005.001–003 (Reopen) | DD-EXE-005.001.D01 | MD-EXE-002.001.M01 | UT-EXE-005.001.M01.T01–T05 | `execution/position_tracker.py` | Reopen | RN-EXE-1.14.0-20260528 |
 | FO-EXE-018 | SRD-EXE-018.001–016 | DD-EXE-018.001.D01, .003.D01, .006.D01, .007.D01, .012.D01, .013.D01 | MD-EXE-018.001.M01–018.012.M10 | UT-EXE-018.001.M02.T01–03, .002.M03.T01–03, .003–.004.M04.T01–05, .005/.012/.014.M05.T01–10, .005.M06.T01–03, .006/.015.M07.T01–04, .007–.011.M08.T01–17, .016.M08.T01–02, .013.M09.T01–03, .012/.013.M10.T01–04; IT-EXE-018.001–002 | `execution/{_enums,direction,broker_adapter,signal_bridge,order_ingestion}.py`, `execution/strategy_engine/{_signals,_router,_context,_engine}.py`, `execution/trade_cycle/{_schema,_dto,_repository,_service,_protocols}.py`, `db/schema.py`, `data/models.py`, `gui/{strategy_store,app_service}.py` | Implemented | RN-EXE-1.33.0-20260917 (.016 pending RN) |
 | FO-EXE-019 | SRD-EXE-019.001–004 | DD-EXE-019.001.D01 | MD-EXE-019.001.M01, .002.M02, .004.M03 | UT-EXE-019.001.M01.T01–04, .003.M01.T05, .002.M02.T01–07, .004.M03.T01–02 | `execution/trade_cycle/{_repository,_protocols,_service,_schema,_pnl_history,__init__}.py`, `db/schema.py`, `gui/app_service.py` | Implemented | RN-EXE-1.34.0-20261023 |
 | FO-EXE-017 | SRD-EXE-017.027 | DD-EXE-017.027.D01 | MD-EXE-017.016.M14 | UT-EXE-017.027.M14.T01–T03 | `gui/app_service.py` | Implemented | RN-EXE-1.37.0-20261024 |
+| FO-EXE-017 | SRD-EXE-017.028 | — (one-line rule) | MD-EXE-017.028.M03 | UT-GUI-045.008.M01.T02 (test in `tests/gui/test_chart_plan_strategy.py`) | `execution/strategy_engine/_router.py`, `gui/strategy_store.py` | Implemented | RN-GUI-2.7.0-20261122 |
 | FO-EXE-020 | SRD-EXE-020.001–008 | DD-EXE-020.001.D01 | MD-EXE-020.001.M01, .004.M02 | UT-EXE-020.001.M01.T01–T02, .002.M01.T01–T04, .003.M01.T01–T03, .005.M01.T01, .005.M02.T01, .004.M02.T01–T05, .006.M02.T01, .007.M01.T01–T02, .008.M02.T01–T04 | `execution/equity_snapshot.py`, `gui/app_service.py`, `db/schema.py` | Implemented | RN-EXE-1.35.0-20261024, RN-EXE-1.36.0-20261024 |
 
 ---

@@ -1,6 +1,7 @@
 """
 Module: MD-GUI-002.001.M02 — position_table_model.py
-Parent SRD: SRD-GUI-002.001, SRD-GUI-002.002, SRD-GUI-025.016, SRD-GUI-025.017
+Parent SRD: SRD-GUI-002.001, SRD-GUI-002.002, SRD-GUI-025.016, SRD-GUI-025.017,
+SRD-GUI-019.013
 
 QAbstractTableModel implementations for positions and trade history.
 """
@@ -55,6 +56,14 @@ class PositionTableModel(QAbstractTableModel):
         self.endResetModel()
 
     def refresh(self, positions: list[OpenPosition]) -> None:
+        """Show ``positions``; a price-only update keeps the selected row."""
+        keys = [(p.symbol, p.user_id) for p in positions]
+        if self._rows and keys == [(p.symbol, p.user_id) for p in self._rows]:
+            self._rows = positions
+            self.dataChanged.emit(
+                self.index(0, 0), self.index(len(self._rows) - 1, self.columnCount() - 1)
+            )
+            return
         self.beginResetModel()
         self._rows = positions
         self._highlighted_row = -1
@@ -179,8 +188,10 @@ class TradeHistoryModel(QAbstractTableModel):
     """
     Trade-row model (SRD-GUI-002.005 / SRD-EXE-014.002).
 
-    Columns: [User] | Date & Time | Symbol | Side | Qty | Filled | Avg Price
-             | Order State | Strategy | Mode
+    Columns: [User] | Date & Time | Symbol | Side | Mode | Qty | Filled
+             | Avg Price | Value | Order State | Strategy
+
+    Value is filled shares × average price (ISS-GUI-0023).
 
     The User column is optional — shown only in admin All-Users scope.
     P&L is intentionally omitted; realized PnL lives on Dashboard KPI cards
@@ -188,8 +199,8 @@ class TradeHistoryModel(QAbstractTableModel):
     """
 
     _BASE_COLS = [
-        "Date & Time", "Symbol", "Side", "Qty", "Filled",
-        "Avg Price", "Order State", "Strategy", "Mode",
+        "Date & Time", "Symbol", "Side", "Mode", "Qty", "Filled",
+        "Avg Price", "Value", "Order State", "Strategy",
     ]
     _USER_COL  = ["User"]
 
@@ -261,16 +272,19 @@ class TradeHistoryModel(QAbstractTableModel):
                 case 0: return t.entry_time.astimezone(self._market_tz()).strftime("%b %d, %H:%M")
                 case 1: return t.symbol
                 case 2: return t.side
-                case 3: return str(t.quantity)
-                case 4: return str(t.filled_quantity)
-                case 5: return f"${t.entry_price:.2f}"
-                case 6: return str(t.order_state)
-                case 7: return t.strategy_id
-                case 8: return t.mode.upper()
+                case 3: return t.mode.upper()
+                case 4: return str(t.quantity)
+                case 5: return str(t.filled_quantity)
+                case 6: return f"${t.entry_price:.2f}"
+                case 7:
+                    value = t.filled_quantity * t.entry_price
+                    return f"${value:,.2f}" if t.filled_quantity else "—"
+                case 8: return str(t.order_state)
+                case 9: return t.strategy_id
             return ""
 
         if role == Qt.ItemDataRole.BackgroundRole:
-            if base_col == 6:
+            if base_col == 8:
                 return QColor(self._ORDER_STATE_BG.get(str(t.order_state), C.SURFACE))
             return None
 
@@ -281,7 +295,7 @@ class TradeHistoryModel(QAbstractTableModel):
 
         if role == Qt.ItemDataRole.TextAlignmentRole:
             shift = 1 if self._show_user else 0
-            if col in [shift + c for c in (3, 4, 5)]:
+            if col in [shift + c for c in (4, 5, 6, 7)]:
                 return Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
             return Qt.AlignmentFlag.AlignCenter
 

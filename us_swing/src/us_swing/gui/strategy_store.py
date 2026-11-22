@@ -64,6 +64,7 @@ class StrategyConfig:
     per_trade_pct: int = 100
     run_state: str = "STOPPED"
     direction: str = "LONG"
+    fixed_qty: int = 0  # > 0 buys exactly this many shares instead of percent sizing
 
 
 # ── Schema ────────────────────────────────────────────────────────────────────
@@ -99,6 +100,7 @@ strategies = sa.Table(
     sa.Column("rex_count",          sa.Integer, nullable=False, server_default="0"),
     sa.Column("run_state",          sa.Text,    nullable=False, server_default="STOPPED"),
     sa.Column("direction",          sa.Text,    nullable=False, server_default="LONG"),
+    sa.Column("fixed_qty",          sa.Integer, nullable=False, server_default="0"),
     sa.Column("updated_at",         sa.Text,    nullable=False),
 )
 
@@ -126,6 +128,7 @@ def _engine() -> Engine:
 _COLUMN_ADDITIONS: tuple[tuple[str, str], ...] = (
     ("per_trade_pct", "INTEGER NOT NULL DEFAULT 100"),
     ("direction", "TEXT NOT NULL DEFAULT 'LONG'"),
+    ("fixed_qty", "INTEGER NOT NULL DEFAULT 0"),
 )
 
 

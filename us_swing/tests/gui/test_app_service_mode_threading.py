@@ -79,6 +79,7 @@ def _wire_query(svc, open_snaps=(), hist_snaps=()) -> None:
     q.open_cycles.return_value = tuple(open_snaps)
     q.history.return_value     = tuple(hist_snaps)
     svc._tc_query = q
+    svc._db = None  # keep the real trades ledger out of these cycle-only checks
 
 
 class TestRehydrateStampsRealMode:

@@ -67,6 +67,20 @@ def _cmd_gui() -> None:
     _theme.load_fonts()
     app.setStyleSheet(_theme.THEMES[_theme.load_theme_id()])
 
+    # One copy only: two copies each send orders, so a stock is bought twice.
+    from us_swing.execution.app_lock import claim_app_lock
+
+    if not claim_app_lock():
+        import logging
+
+        from us_swing.gui.popups import notify
+
+        logging.getLogger(__name__).warning("[App] USSwing is already running — this copy closed")
+        notify(None, "Already Running",
+               "USSwing is already running.\nUse the open window, or close it before starting again.",
+               kind="warning")
+        sys.exit(1)
+
     try:
         from update_dialog import check_for_updates_gui  # type: ignore[import]
         check_for_updates_gui()

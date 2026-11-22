@@ -164,3 +164,26 @@ async def test_network_drop_logs_plain_warning_and_retries(caplog):
     notify = [r for r in caplog.records if "[Notify]" in r.message]
     assert [r.levelname for r in notify] == ["WARNING"]
     assert notify[0].exc_info is None
+
+
+async def test_telegram_server_error_logs_plain_warning_and_retries(caplog):
+    """UT-INF-010.001.M10.T11: a Telegram 502 logs one plain warning, no traceback, and polling goes on."""
+    polls: list[httpx.Request] = []
+
+    def _handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith("/getUpdates"):
+            polls.append(request)
+            if len(polls) == 1:
+                return httpx.Response(502, request=request)
+            raise asyncio.CancelledError
+        return httpx.Response(200, json={"ok": True})
+
+    client = httpx.AsyncClient(transport=httpx.MockTransport(_handler))
+    poller = TelegramPoller("token", "999", client, CommandRouter(_FakePort()), poll_timeout_s=0)
+    with caplog.at_level("WARNING"), pytest.raises(asyncio.CancelledError):
+        await poller.run()
+    assert len(polls) == 2
+    notify = [r for r in caplog.records if "[Notify]" in r.message]
+    assert [r.levelname for r in notify] == ["WARNING"]
+    assert "error 502" in notify[0].getMessage()
+    assert notify[0].exc_info is None

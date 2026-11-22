@@ -1937,13 +1937,13 @@ class AppService(QObject):
     # ── Chart plan strategy (SRD-GUI-045.001 – .005) ──────────────────────────
 
     def send_chart_plan(self, symbol: str, entry: float, stop: float, target: float,
-                        risk_pct: float) -> str | None:
-        """Add *symbol* to the picks and save a one-trade auto strategy from its plan.
+                        shares: int) -> str | None:
+        """Add *symbol* to the picks and save a one-trade auto strategy buying *shares*.
 
         Returns:
             A message for the user when nothing was saved, else None.
         """
-        from us_swing.gui.chart_plan import build_chart_plan, capital_pct, chart_plan_name
+        from us_swing.gui.chart_plan import build_chart_plan, chart_plan_name
         from us_swing.gui.strategy_store import load_strategies, save_strategies
 
         sym = symbol.strip().upper().replace(" ", ".")
@@ -1954,17 +1954,13 @@ class AppService(QObject):
         name = chart_plan_name(sym)
         if self.get_open_symbols_for_strategy(name):
             return f"{sym} already has an open chart plan trade"
-        try:
-            equity = float(self.get_account_state().equity)
-        except Exception:  # noqa: BLE001
-            equity = 0.0
-        pct = capital_pct(entry, stop, risk_pct, equity, self.effective_capital())
-        cfg = build_chart_plan(sym, entry, stop, target, pct, self._market_today())
+        cfg = build_chart_plan(sym, entry, stop, target, shares, self._market_today())
         configs = [c for c in load_strategies() if c.name != name] + [cfg]
         save_strategies(configs)
         self._reset_rex(name)
         self._after_strategies_saved()
-        _log.info("[Execution] Chart plan for %s saved — buys once above %.2f today", sym, entry)
+        _log.info("[Execution] Chart plan for %s saved — buys %d share(s) once above %.2f today",
+                  sym, shares, entry)
         return None
 
     def purge_old_chart_plans(self) -> None:
@@ -2672,6 +2668,7 @@ class AppService(QObject):
         if not isinstance(event, OrderEvent):
             return
         if event.status not in (
+            OrderStatus.NEW,
             OrderStatus.FILLED,
             OrderStatus.PARTIAL_FILLED,
             OrderStatus.CANCELLED,
@@ -2709,6 +2706,22 @@ class AppService(QObject):
         ctx = self._strategy_engine.registry.get(name) if hasattr(self, "_strategy_engine") else None
         return ctx.cfg if ctx is not None else None
 
+    def _load_order_rows(self) -> None:
+        """Fill Trade History from the trades ledger so each order shows its real
+        state — NEW while waiting, then FILLED, CANCELLED or REJECTED."""
+        if self._db is None:
+            return
+        since = datetime.datetime.now() - datetime.timedelta(days=30)
+        try:
+            rows = self._db.fetch_trades(since)
+        except Exception:
+            _log.exception("[Orders] Failed to load order history")
+            return
+        for row in rows:
+            if row.exit_price is not None:
+                row = dataclasses.replace(row, entry_price=row.exit_price)
+            self._trades.append(row)
+
     def _rehydrate_positions_from_cycles(self) -> None:
         """Restore _positions and _trades from the trade_cycles ledger on boot.
 
@@ -2730,6 +2743,7 @@ class AppService(QObject):
         # lists must be cleared first or each closed cycle is re-added every time.
         self._trades.clear()
         self._positions.clear()
+        self._load_order_rows()
         if not open_snaps and not hist_snaps:
             return
 
@@ -2745,34 +2759,37 @@ class AppService(QObject):
             except Exception:
                 return None
 
-        seen_trade_ids: set[str] = set()
+        # Orders already shown from the trades ledger keep their real state; the
+        # cycle rows below only fill in older history the ledger does not hold.
+        seen_trade_ids: set[str] = {t.trade_id for t in self._trades}
         for snap in hist_snaps:
             tid = snap.entry_order_id or f"cyc-{snap.cycle_id}"
-            if tid in seen_trade_ids:
-                continue
-            seen_trade_ids.add(tid)
             entry_dt = _parse_iso(snap.entry_time) or datetime.datetime.now()
             exit_dt  = _parse_iso(snap.exit_time)
-            self._trades.append(TradeRecord(
-                trade_id        = tid,
-                user_id         = snap.user_id or self._active_uid,
-                symbol          = snap.symbol,
-                side            = order_side(snap.direction, is_entry=True).value,
-                quantity        = snap.entry_qty,
-                entry_price     = snap.entry_price,
-                mode            = user_mode,
-                strategy_id     = snap.strategy_id,
-                entry_time      = entry_dt,
-                exit_price      = snap.exit_price,
-                exit_time       = exit_dt,
-                order_state     = "FILLED",
-                filled_quantity = snap.entry_qty,
-            ))
+            if tid not in seen_trade_ids:
+                seen_trade_ids.add(tid)
+                self._trades.append(TradeRecord(
+                    trade_id        = tid,
+                    user_id         = snap.user_id or self._active_uid,
+                    symbol          = snap.symbol,
+                    side            = order_side(snap.direction, is_entry=True).value,
+                    quantity        = snap.entry_qty,
+                    entry_price     = snap.entry_price,
+                    mode            = user_mode,
+                    strategy_id     = snap.strategy_id,
+                    entry_time      = entry_dt,
+                    exit_price      = snap.exit_price,
+                    exit_time       = exit_dt,
+                    order_state     = "FILLED",
+                    filled_quantity = snap.entry_qty,
+                ))
             # Closed cycle → restore its exit row too (one row per order).
-            if snap.exit_order_id or snap.exit_time:
+            exit_tid = snap.exit_order_id or f"cyc-{snap.cycle_id}-sell"
+            if (snap.exit_order_id or snap.exit_time) and exit_tid not in seen_trade_ids:
+                seen_trade_ids.add(exit_tid)
                 exit_qty = snap.exit_qty or snap.entry_qty
                 self._trades.append(TradeRecord(
-                    trade_id        = snap.exit_order_id or f"cyc-{snap.cycle_id}-sell",
+                    trade_id        = exit_tid,
                     user_id         = snap.user_id or self._active_uid,
                     symbol          = snap.symbol,
                     side            = order_side(snap.direction, is_entry=False).value,

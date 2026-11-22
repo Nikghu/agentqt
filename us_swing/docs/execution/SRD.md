@@ -1,12 +1,16 @@
 # Software Requirement Document — Execution & Risk Management (EXE)
 
 **Document ID:** SRD-EXE
-**Version:** 1.36.0
+**Version:** 1.38.1
 **Traces To:** FO-EXE v1.14.0
 **Status:** Draft
-**Last Updated:** 2026-11-02
+**Last Updated:** 2026-11-21
 **Project:** US Swing Trading System
 
+> v1.38.1: SRD-EXE-015.007–.008 approved by user 2026-11-21; Implemented.
+> v1.38.0: SRD-EXE-015.007–.008 added as Draft — one app copy at a time, checked at start and before each order (user request 2026-11-21, after two copies bought HRL twice on 2026-11-20).
+> v1.37.1: SRD-EXE-017.028 approved by user 2026-11-20; Implemented.
+> v1.37.0: SRD-EXE-017.028 added as Draft — fixed share count per strategy (user request 2026-11-20).
 > v1.36.0: AI Desk and Market Floor removed (user, 2026-11-17; docs/audit/DESK_REMOVAL_2026-11-17.md): section 21 (SRD-EXE-021.001–.007) removed.
 > v1.7.0: Sections 11 + 12 added — SRD-EXE-011.001–015 (Strategy Engine) and SRD-EXE-012.001–013 (Trade Cycle Ledger).
 > v1.8.0: SRD-EXE-011.016–019 added — per-symbol re-execution counter (rex_count enforcement).
@@ -298,6 +302,8 @@
 | SRD-EXE-015.004 | FO-EXE-015 | Must | `build_broker(mode, broker_name)` (`execution/broker_factory.py`) routes paper → `SimBroker`, live → name-keyed registry (`IBKR` → `IBKRBroker`). Wired into `app_service`. Forwards an optional `price_provider` to `SimBroker` for live-priced paper fills (cross-tool: SRD-INF-009.007). | `(mode, broker_name)` | bound broker + event subscription | Routing + registry done; `app_service` passes hard-coded `paper`/`IBKR` — reading the values from `users.mode`/Settings is the deferred GUI step | Partial |
 | SRD-EXE-015.005 | FO-EXE-015 | Must | The pipeline maps broker `OrderStatus` onto `BuyOrderState` (BUY) / `SellOrderState` (SELL) by order side, relying on identical member values — no lookup table. | `OrderEvent.status`, side | `trades.order_state` value | Mapping must fail loudly (raise) if a status value has no matching execution-enum member | Implemented |
 | SRD-EXE-015.006 | FO-EXE-015 | Must | Once the adapter and ingestion are verified live, `ExecutionEngine`, `PaperEngine`, `PaperBroker`, and the paper-only `app_service` methods (`_on_paper_fill`, `_record_paper_entry`, `_record_paper_exit`) are removed. | legacy modules | deleted code | Existing `trades`/`trade_cycles` audit rows retained; removal gated on contract tests passing | Implemented |
+| SRD-EXE-015.007 | FO-EXE-015 | Must | At start the app takes a one-copy lock; if another copy already holds it, the new copy shows "USSwing is already running" and closes before any broker, feed or strategy starts. | app start | lock held, or app closes | Check under 1 ms; Windows frees the lock when the app closes or crashes; tests that build the app service do not take it | Implemented |
+| SRD-EXE-015.008 | FO-EXE-015 | Must | Before sending each order, the broker adapter checks that this copy still holds the one-copy lock; if not, the order is not sent and an `[Orders]` error is logged. | order submit | order sent, or blocked | In-memory check, no added wait; a blocked order is handled like a failed submit, so the signal returns to pending | Implemented |
 
 ---
 
@@ -404,4 +410,5 @@
 | SRD ID | Parent FO | Priority | Description | Inputs | Outputs | Constraints | Status |
 |---|---|---|---|---|---|---|---|
 | SRD-EXE-017.027 | FO-EXE-017 | Must | For a paper user, `get_account_state` returns start-of-day equity = Max Capital, daily P&L = realised P&L of cycles closed today (ET), equity = Max Capital + daily P&L + unrealised P&L, cash = Max Capital + daily P&L − entry value of open positions, and gross position value = market value of open positions. | Max Capital, today's closed cycles, open positions | `AccountState` | Sizing still uses Max Capital (`effective_capital`); live accounts unchanged | Implemented |
+| SRD-EXE-017.028 | FO-EXE-017 | Must | A strategy with a fixed share count (`fixed_qty` > 0) buys exactly that many shares instead of the percent sizing. | `fixed_qty` | `int` shares per trade | The capital cap and `margin_available()` clamp still apply; 0 keeps SRD-EXE-017.024 sizing; used by the Charts chart plan (SRD-GUI-045.008) | Implemented |
 

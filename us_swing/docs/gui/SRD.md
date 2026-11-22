@@ -1,10 +1,16 @@
 # Software Requirements Document — GUI Module (GUI)
 
 **Document ID:** SRD-GUI
-**Version:** 2.138.0
+**Version:** 2.140.3
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
-**Last Updated:** 2026-11-20
+**Last Updated:** 2026-11-21
+> v2.140.3: SRD-GUI-002.005 (Reopen) — Trade History adds a Value column and drag-resizable columns (ISS-GUI-0023, user request 2026-11-21).
+> v2.140.2: SRD-GUI-019.012–.017 Implemented.
+> v2.140.1: SRD-GUI-019.012–.017 approved by user 2026-11-20.
+> v2.140.0: SRD-GUI-019.012–.017 added as Draft — Dashboard Exit and Stop / Trail go through the stock's own strategy trade (user answers 2026-11-20).
+> v2.139.1: SRD-GUI-045.007–.008 approved by user 2026-11-20; Implemented.
+> v2.139.0: SRD-GUI-045.007–.008 added as Draft — shares from available capital, editable, bought exactly (user answers 2026-11-20).
 > v2.138.0: SRD-GUI-045.006 added and Implemented — Send without a valid plan warns and sends nothing (user request and choice 2026-11-20).
 > v2.137.1: SRD-GUI-045.001–.005 approved by user 2026-11-20; Implemented.
 > v2.137.0: SRD-GUI-045.001–.005 added as Draft — chart plan strategy (user answers 2026-11-20).
@@ -250,7 +256,7 @@
 | SRD-GUI-002.002 | FO-GUI-002 | Must | A scope pill strip (32px) sits in the dashboard. Pills: `🌐 All` + one per user (🔴/🔵 by mode). Click calls `AppService.set_viewing_uid()`. Pills auto-sync on `viewing_changed`. | User click / `viewing_changed` | Scope changed; pill highlight updated | Pills use `setAutoExclusive(True)` | Implemented |
 | SRD-GUI-002.003 | FO-GUI-002 | Must | Unrealised P&L column uses `BackgroundRole` (green/red tinted bg) and `ForegroundRole` (green/red text). | P&L value | Coloured cell | Implemented in `PositionTableModel._background/_foreground` | Implemented |
 | SRD-GUI-002.004 | FO-GUI-002 | Must | KPI cards (P&L, equity, positions, capital) reflect current scope's data. Updates on `account_updated` and `viewing_changed`. | Signal events | Refreshed cards | Same refresh path for all scopes | Implemented |
-| SRD-GUI-002.005 | FO-GUI-002 | Must | Trade history `QTableView` backed by `TradeHistoryModel`. Columns: Date & Time, Symbol, Side, Qty, Filled, Avg Price, Order State, Strategy, Mode. Optional "User" prefix column in All-Users scope. Sorted descending by entry time. No P&L column — P&L lives on KPI cards / `trade_cycles`. | `viewing_changed` | Filtered history table | Order State cell renders coloured badge per `BuyOrderState` / `SellOrderState` value | Reopen |
+| SRD-GUI-002.005 | FO-GUI-002 | Must | Trade history `QTableView` backed by `TradeHistoryModel`. Columns: Date & Time, Symbol, Side, Mode, Qty, Filled, Avg Price, Value (Filled × Avg Price), Order State, Strategy; every column edge can be dragged. Optional "User" prefix column in All-Users scope. Sorted descending by entry time. No P&L column — P&L lives on KPI cards / `trade_cycles`. | `viewing_changed` | Filtered history table | Order State cell renders coloured badge per `BuyOrderState` / `SellOrderState` value | Reopen |
 | SRD-GUI-002.006 | FO-GUI-002 | Must | "Manage Selected" action opens `_ExitPositionDialog` (frameless dialog, 580×540 min). Dialog has 4 tabs: Market Exit, Limit Exit, Scale Out, Stop/Trail. Admin attribution banner shown when acting on another user's position. | User interaction | Exit/update action on position | `user_id` taken from position row, not viewing scope | Implemented |
 
 ---
@@ -525,6 +531,12 @@
 | SRD-GUI-019.009 | FO-GUI-019 | Must | On every screen, a right panel button click shrinks the sidebar to mini before the panel slides in, and the sidebar stays mini while the panel is open. | right panel click | sidebar mini | Window must not grow past the screen; Expand waits until the panel closes | Implemented |
 | SRD-GUI-019.010 | FO-GUI-019 | Must | No screen's content can make the main window wider than the screen; a screen that needs more room scrolls inside its own area. | any screen, right panel open or closed | window, ✕, right panel and icon strip stay on screen | Found with live data at 1962 px on a 1920 px screen (ISS-GUI-0015) | Implemented |
 | SRD-GUI-019.011 | FO-GUI-019 | Must | Every screen gets exactly the window height, so its top section never scrolls away; tables and panels scroll inside the screen. | any screen, window shorter than the screen's content | no up-down scroll bar on the window; header stays on top | Found on Backtest (ISS-GUI-0019) | Draft |
+| SRD-GUI-019.012 | FO-GUI-019 | Must | A Dashboard position is a tool trade when its user and stock match an open Active Trades trade; otherwise it is a manual position. | selected position, open trades | tool trade(s) or manual | Only trades in the Open state count | Implemented |
+| SRD-GUI-019.013 | FO-GUI-019 | Must | Exit on a tool trade shows one confirm naming the shares, stock, strategy and rough value, then sends a full exit through that trade. | Exit, row double-click, Details Exit | real exit order | Same path as the Active Trades close button; no partial exit; changes SRD-GUI-019.006 for tool trades | Implemented |
+| SRD-GUI-019.014 | FO-GUI-019 | Must | Stop / Trail on a tool trade opens a popup with the Active Trades stop, target and trail editor; Save updates that trade. | Stop / Trail | trade stop, target, trail | A rejected value shows its error and the popup stays open | Implemented |
+| SRD-GUI-019.015 | FO-GUI-019 | Must | When one stock has more than one open tool trade for the user, the user picks the trade before Exit or Stop / Trail. | two or more tool trades | chosen trade | Cancel sends nothing | Implemented |
+| SRD-GUI-019.016 | FO-GUI-019 | Must | Square Off All exits every tool trade after one confirm; in live mode, manual positions are left and counted in a message. | Square Off All | real exit orders, message | Paper manual positions keep the old drawer; changes SRD-GUI-019.007 | Implemented |
+| SRD-GUI-019.017 | FO-GUI-019 | Must | Exit or Stop / Trail on a manual position in live mode shows a message to close it in TWS. | manual position, live mode | message, no order | Direct IBKR orders wait for a design review | Implemented |
 
 ## FO-GUI-020 — Charts Workspace
 
@@ -855,3 +867,5 @@ One phase. No engine change: uses the existing include scope, rex count and perc
 | SRD-GUI-045.004 | FO-GUI-045 | Must | Sending again replaces the stock's chart plan, unless its trade is open. | resend | strategy row or message | Message "SYM already has an open chart plan trade" | Implemented |
 | SRD-GUI-045.005 | FO-GUI-045 | Must | A chart plan is removed when its trade closes, when its pick is removed, or at the next start after its day. | close, remove, start | — | Never removed while its trade is open; trade count cleared; Strategies tab reloads | Implemented |
 | SRD-GUI-045.006 | FO-GUI-045 | Must | Send without Entry, Stop and Target, or with Stop not below Entry and Target, shows a warning and sends nothing. | click | warning | "Set Entry, Stop and Target with Edit first" / "Stop must be below Entry and Target above Entry"; changes "no valid plan adds the pick only" in SRD-GUI-045.001 and SRD-GUI-026.010 | Implemented |
+| SRD-GUI-045.007 | FO-GUI-045 | Must | The Inspector Shares row shows the shares the available capital buys at Entry (Max Capital minus open trades) and their cost; Edit can change the shares. | plan, available capital | shares, cost | The shares box cannot go above the available size; replaces the 1% risk size of SRD-GUI-026.006 and SRD-GUI-045.003 | Implemented |
+| SRD-GUI-045.008 | FO-GUI-045 | Must | Send buys exactly the shown shares; with no capital available it shows "No capital available for this trade" and sends nothing. | shares | strategy with a fixed share count | Uses SRD-EXE-017.028; the engine still never buys more than the free capital | Implemented |

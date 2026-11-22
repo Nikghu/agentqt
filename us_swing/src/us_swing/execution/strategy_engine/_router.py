@@ -562,6 +562,9 @@ class _Router:
         concurrent positions before its allocation cap (`can_allocate`) or the
         global `margin_available()` backstop stops it (SRD-EXE-017.024).
         """
+        fixed_qty = int(getattr(ctx.cfg, "fixed_qty", 0) or 0)
+        if fixed_qty > 0:
+            return fixed_qty
         if self._effective_capital_provider is None:
             return 1
         if entry_price <= 0:
