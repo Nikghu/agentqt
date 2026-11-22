@@ -66,7 +66,7 @@ def _make_engine(cfgs: list[_Cfg]) -> StrategyEngine:
     def loader() -> list[Any]:
         return cfgs  # type: ignore[return-value]
 
-    def saver(c: list[Any]) -> None:
+    def saver(name: str, run_state: str) -> None:
         pass
 
     def candles_provider(sym: str) -> dict[str, pd.DataFrame]:
@@ -96,6 +96,48 @@ def test_engine_starts_and_emits_started_ok(qtbot: QtBot) -> None:
     assert engine._loop is not None
     engine.request_stop()
     qtbot.waitSignal(engine.stopped, timeout=3500)
+
+
+def test_status_save_keeps_disabled_strategies(tmp_path: Any, monkeypatch: Any) -> None:
+    """UT-EXE-011.001.M01.T08: status save updates run state only; Disabled strategies stay."""
+    from us_swing.gui import strategy_store
+    from us_swing.gui.strategy_store import StrategyConfig
+
+    monkeypatch.setattr(strategy_store, "_DB_PATH", tmp_path / "candles.db")
+    monkeypatch.setattr(strategy_store, "_engine_cache", None)
+    try:
+        def cfg(name: str, mode: str) -> StrategyConfig:
+            return StrategyConfig(
+                name=name, mode=mode, capital_max=10, start_time="09:30", end_time="15:30",
+                start_date="2026-01-01", end_date="2099-12-31", days=["Monday"],
+                entry_condition="", exit_condition="",
+            )
+
+        strategy_store.save_strategies([cfg("live_one", "auto"), cfg("backtest_only", "disabled")])
+        engine = StrategyEngine(
+            registry_loader=strategy_store.load_strategies,
+            registry_saver=strategy_store.set_run_state,
+            candles_provider=lambda sym: {},
+            bar_provider=lambda sym, tf: None,
+            risk=_make_risk(),
+            submitter=MagicMock(),
+            pending=MagicMock(),
+            bus=MagicMock(),
+        )
+        engine._registry = engine._load_registry()
+        assert "backtest_only" not in engine._registry
+        from us_swing.execution import ExecutionEnums
+        engine._registry["live_one"].run_state = ExecutionEnums.StrategyRunState.RUNNING
+
+        engine._flush_persist()
+
+        saved = {c.name: c for c in strategy_store.load_strategies()}
+        assert set(saved) == {"live_one", "backtest_only"}
+        assert saved["live_one"].run_state == "RUNNING"
+        assert saved["backtest_only"].run_state == "STOPPED"
+    finally:
+        if strategy_store._engine_cache is not None:
+            strategy_store._engine_cache.dispose()
 
 
 def test_registry_load_skips_disabled(qtbot: QtBot) -> None:

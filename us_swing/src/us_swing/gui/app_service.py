@@ -1487,7 +1487,8 @@ class AppService(QObject):
         from us_swing.execution.pending_signal_store import PendingSignalStore
         from us_swing.execution.event_bus import QtEventBus
         from us_swing.execution.strategy_engine._engine import StrategyEngine
-        from us_swing.gui.strategy_builder_dialog import load_strategies, save_strategies
+        from us_swing.gui.strategy_builder_dialog import load_strategies
+        from us_swing.gui.strategy_store import set_run_state
 
         # Restore positions + trade history from the trade-cycle ledger.
         self._rehydrate_positions_from_cycles()
@@ -1597,7 +1598,7 @@ class AppService(QObject):
 
         self._strategy_engine = StrategyEngine(
             registry_loader=load_strategies,
-            registry_saver=save_strategies,
+            registry_saver=set_run_state,
             candles_provider=self._get_candles_df,
             bar_provider=self._get_latest_bar,
             risk=self._risk_manager,
