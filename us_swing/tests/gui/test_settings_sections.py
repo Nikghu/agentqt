@@ -312,3 +312,37 @@ def test_universe_row_updates_when_stock_done() -> None:
         'updateBt("BRK.B",["2024-01-02", "2026-11-03", "ok"]);')
     tab._meta_label.setText.assert_called_with(
         "503 constituents · backtest complete for 2 of 2 stocks")
+
+
+class _TallTab(_PlainTab):
+    def __init__(self, *_a: Any) -> None:
+        super().__init__()
+        self.setMinimumHeight(1500)
+
+
+def test_tall_section_does_not_scroll_others(
+    qtbot: Any, svc: _StubService, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """UT-GUI-027.001.M01.T03: only a section taller than the dialog scrolls; short ones fit."""
+    from us_swing.gui.settings_dialog import SettingsDialog
+
+    for name in ("_UniverseTab", "_DataPanel"):
+        monkeypatch.setattr(settings_panel, name, _PlainTab)
+    monkeypatch.setattr(settings_panel, "_UsersTab", _TallTab)
+    monkeypatch.setattr(settings_panel, "BacktestDataPanel", _PlainBacktest)
+    dialog = SettingsDialog(settings_panel.SettingsPanel(svc))  # type: ignore[arg-type]
+    qtbot.addWidget(dialog)
+    dialog.resize(900, 600)
+    dialog.show()
+    qtbot.waitExposed(dialog)
+
+    def bar_shown(section: str) -> bool:
+        dialog.panel.show_section(section)
+        qtbot.wait(20)
+        card = dialog.panel._stack.currentWidget()
+        scroll = card.findChild(settings_panel.QScrollArea)
+        return scroll.verticalScrollBar().isVisible()
+
+    assert bar_shown("Users")
+    assert not bar_shown("Candle data")
+    assert dialog.height() <= 600

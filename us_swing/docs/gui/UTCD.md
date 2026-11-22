@@ -910,6 +910,7 @@ Test files:
 |---|---|---|---|---|---|---|
 | UT-GUI-027.001.M01.T01 | MD-GUI-027.001.M01 | Positive | Dialog is frameless and modal | build dialog | frameless flag; application modal; title bar text "Settings" | Pass |
 | UT-GUI-027.001.M01.T02 | MD-GUI-027.001.M01 | Positive | Open at a section | `open_at("Telegram")` | dialog visible; Telegram section shown | Pass |
+| UT-GUI-027.001.M01.T03 | MD-GUI-027.001.M01 | Edge | Each section scrolls on its own | one section taller than the 600 px dialog | tall section shows a scroll bar; Candle data shows none; dialog stays 600 px | Pass |
 | UT-GUI-027.003.M01.T01 | MD-GUI-027.001.M01 | Positive | Footer buttons | open; click Cancel; open; click OK | Apply disabled at start; rejected; accepted | Pass |
 | UT-GUI-027.003.M01.T02 | MD-GUI-027.001.M01 | Positive | Footer follows the panel | panel dirty; Risk section shown; click Restore defaults | Apply and Restore defaults enabled; panel asked to restore | Pass |
 | UT-GUI-027.004.M02.T01 | MD-GUI-027.004.M02 | Positive | Settings item opens, screen stays | click Settings with Execution checked | `settings_requested` once; Execution still checked | Pass |
