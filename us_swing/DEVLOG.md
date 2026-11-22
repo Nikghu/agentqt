@@ -2,6 +2,17 @@
 
 ---
 
+## [20261122] GUI, BKT, EXE — Bugfix batch part 2: Universe Partial fill, Settings scroll, 3m gap days, strategy save fix
+
+- Type: Bugfix (branch `fix/bugfix-batch-20261122`; 7 commits: 04c504ac, 709ddc4f, 74f594ca, 118421de, 5c2ad7d6, 7d2c1057, 6db3d280)
+- FO(s): FO-GUI-027 (SRD-GUI-027.001), FO-GUI-030 (SRD-GUI-030.006, .008, .009, .011, .012), FO-BKT-001 (SRD-BKT-001.001, .005), FO-EXE-011 (SRD-EXE-011.001)
+- RN: RN-GUI-2.8.0-20261122, RN-BKT-1.14.0-20261122, RN-EXE-1.41.1-20261122
+- Artifacts: Code, Tests, UTCD (rows in place, Pass), TRACE (gui, backtest, execution), RN, CONTEXT, DEVLOG; ISS-BKT-0003, ISS-EXE-0015; no SRD edits (Implemented rows left as they are)
+- Decisions: Partial = BT From / BT To miss the range or no 3m data, floors not used; 3m gap days asked again as short jobs (delta runs skip them); Settings sections scroll on their own; strategy status save updates run state only
+- Open: user checks T223, T224; user to decide on Reopen of SRD-BKT-001.005 and SRD-GUI-030.009/.011/.012 wording
+
+---
+
 ## [20261122] GUI — Bugfix batch: chart plan shares, Dashboard exit via strategy, Trade History, one-copy lock
 
 - Type: Bugfix (branch `fix/bugfix-batch-20261120`, 9 commits, not in main; includes feature commits 924bdf2f and the EXE lock)

@@ -3,7 +3,7 @@
 **Document ID:** TRACE-BKT
 **Version:** 1.0.0
 **Project:** US Swing Trading System
-**Last Updated:** 2026-11-02 (SRD-BKT-002.083–.084 HTML report, ISS-BKT-0001)
+**Last Updated:** 2026-11-22 (RN-BKT-1.14.0-20261122: 3m gap days asked again, ISS-BKT-0003. Earlier: SRD-BKT-002.083–.084 HTML report, ISS-BKT-0001)
 
 ---
 
@@ -11,7 +11,7 @@
 
 | FO ID | SRD ID | DD ID | MD ID | UTCD IDs | Code File | Status | RN |
 |---|---|---|---|---|---|---|---|
-| FO-BKT-001 | SRD-BKT-001.001–.014 | DD-BKT-001.001.D01 | MD-BKT-001.001.M01, .004.M02, .005.M03, .006.M04, .009.M05 | UT-BKT-001.* (33 tests, Pass) | `backtest/store.py`, `backtest/settings.py`, `backtest/planner.py`, `backtest/downloader.py`, `backtest/schedule.py` | Implemented | RN-BKT-1.0.0-20261028, RN-BKT-1.1.0-20261029 |
+| FO-BKT-001 | SRD-BKT-001.001–.014 | DD-BKT-001.001.D01 | MD-BKT-001.001.M01, .004.M02, .005.M03, .006.M04, .009.M05 | UT-BKT-001.* (33 tests, Pass) | `backtest/store.py`, `backtest/settings.py`, `backtest/planner.py`, `backtest/downloader.py`, `backtest/schedule.py` | Implemented | RN-BKT-1.0.0-20261028, RN-BKT-1.1.0-20261029, RN-BKT-1.14.0-20261122 |
 | FO-BKT-002 | SRD-BKT-002.001–.019 | DD-BKT-002.001.D01, DD-BKT-002.010.D01 | MD-BKT-002.001.M01, .004.M02, .005.M03, .007.M04, .008.M05, .009.M06, .010.M07, .011.M08 | UT-BKT-002.001–.019 (36 tests, Pass) | `backtest/spec.py`, `backtest/universe.py`, `backtest/cache.py`, `backtest/results.py`, `backtest/service.py`, `backtest/cli.py`, `backtest/steps/stocks.py`, `core/backtest_bridge.py` | Implemented (Phase 0–1) | RN-BKT-1.2.0-20261029, RN-BKT-1.3.1-20261029 |
 | FO-BKT-002 | SRD-BKT-002.020–.029 | DD-BKT-002.020.D01 | MD-BKT-002.020.M09, .021.M10, .026.M11 (+ .008.M05, .009.M06, .011.M08) | UT-BKT-002.020–.029 (17 tests, Pass) | `core/expr/__init__.py`, `core/expr/series.py`, `backtest/steps/signals.py`, `backtest/service.py`, `backtest/cli.py`, `core/backtest_bridge.py` | Implemented (Phase 2) | RN-BKT-1.3.0-20261029 |
 | FO-BKT-002 | SRD-BKT-002.030–.039 | DD-BKT-002.030.D01 | MD-BKT-002.030.M12 (+ .007.M04, .008.M05, .009.M06) | UT-BKT-002.030–.039 (16 tests, Pass) | `backtest/steps/portfolio.py`, `backtest/results.py`, `backtest/service.py`, `backtest/cli.py` | Implemented (Phase 3) | RN-BKT-1.4.0-20261029 |
@@ -20,7 +20,7 @@
 | FO-BKT-002 | SRD-BKT-002.080–.081 | None (small step) | MD-BKT-002.080.M14 (+ .008.M05) | UT-BKT-002.080–.081 (5 tests, Pass) | `backtest/steps/recorded.py`, `backtest/service.py`, `backtest/spec.py` | Implemented (Phase 5) | RN-BKT-1.10.0-20261030 |
 | FO-BKT-002 | SRD-BKT-002.083–.084 | DD-BKT-002.083.D01, DD-BKT-002.084.D01 | MD-BKT-002.083.M15 (+ .008.M05) | UT-BKT-002.083.M15.T01–T09 (9 tests, Pass) | `backtest/html_report.py`, `backtest/service.py` | Implemented | RN-BKT-1.11.0-20261102 |
 | FO-BKT-001/002 | SRD-BKT-001.016, SRD-BKT-002.085 | DD-BKT-001.016.D01 | MD-BKT-001.001.M01, .021.M10, .026.M11 | UT-BKT-001.016.M01.T01–T02, UT-BKT-002.085.M10.T01, .M11.T01 (4 tests, Pass) | `backtest/store.py`, `core/expr/series.py`, `backtest/steps/signals.py` | Implemented | RN-BKT-1.11.0-20261102 |
-| FO-BKT-001 | SRD-BKT-001.005 (reopened 2026-11-04) | DD-BKT-001.001.D01 | MD-BKT-001.005.M03 | UT-BKT-001.005.M03.T01, T05 (2 tests, Pass) | `backtest/planner.py` | Implemented | RN-BKT-1.13.1-20261104 |
+| FO-BKT-001 | SRD-BKT-001.005 (reopened 2026-11-04) | DD-BKT-001.001.D01 | MD-BKT-001.005.M03 | UT-BKT-001.005.M03.T01, T05–T06 (3 tests, Pass) | `backtest/planner.py` | Implemented | RN-BKT-1.13.1-20261104, RN-BKT-1.14.0-20261122 |
 | FO-BKT-001 | SRD-BKT-001.017 (ISS-BKT-0002) | DD-BKT-001.001.D01 | MD-BKT-001.017.M02, .017.M04 | UT-BKT-001.006.M04.T03, UT-BKT-001.017.M02.T01, .M04.T01 (3 tests, Pass) | `backtest/downloader.py`, `backtest/settings.py` | Implemented | RN-BKT-1.13.0-20261104 |
 | FO-BKT-002 | SRD-BKT-002.086 | None (small step) | MD-BKT-002.001.M01, .008.M05 | UT-BKT-002.086.M01.T01, .M05.T01–T02 (3 tests, Pass) | `backtest/spec.py`, `backtest/service.py` | Implemented | Pending |
 | FO-BKT-002 | SRD-BKT-002.037 (ISS-BKT-0001) | DD-BKT-002.084.D01 | MD-BKT-002.030.M12 | UT-BKT-002.037.M12.T02 (1 test, Pass) | `backtest/steps/portfolio.py` | Implemented | RN-BKT-1.11.0-20261102 |
