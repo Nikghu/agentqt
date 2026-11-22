@@ -2,6 +2,17 @@
 
 ---
 
+## [20261122] GUI — Bugfix batch: chart plan shares, Dashboard exit via strategy, Trade History, one-copy lock
+
+- Type: Bugfix (branch `fix/bugfix-batch-20261120`, 9 commits, not in main; includes feature commits 924bdf2f and the EXE lock)
+- FO(s): FO-GUI-045 (SRD-GUI-045.007–.008), FO-GUI-019 (SRD-GUI-019.012–.017), FO-GUI-002 (SRD-GUI-002.005, Reopen), FO-EXE-015 (SRD-EXE-015.007–.008), FO-EXE-017 (SRD-EXE-017.028), FO-INF Telegram (no SRD ID)
+- RN: RN-GUI-2.7.0-20261122
+- Artifacts: SRD, MD, UTCD (UT-GUI-002.005.M01.T04–T07; UT-GUI-019.012–.017; UT-GUI-045.007–.008; UT-EXE-015.002/.005/.007/.008), Code, Tests, TRACE (gui, execution), RN, CONTEXT, DEVLOG; no DD (minimal GUI docs)
+- Decisions: chart plan size = shares from available capital, editable, sent exactly; Dashboard exit and stop go through the owning strategy trade; live manual positions get a "close in TWS" message (direct IBKR orders wait for review, T218); one app copy only, checked at start and before each order
+- Root cause (2026-11-20): two app copies bought HRL; IBKR reused order id 85 and overwrote the SW sell row (SW shows Qty 1 Filled 5). Data repair not done; waits for the user to confirm HRL quantity in TWS
+
+---
+
 ## [20261120] GUI — Chart plan strategy (FO-GUI-045) + Watchlist selection fix
 
 - Type: Feature + Bug fix (branches `feat/gui-chart-plan-strategy` and `fix/gui-watchlist-selection`, pushed and merged to main)

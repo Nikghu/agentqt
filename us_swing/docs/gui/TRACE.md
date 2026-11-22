@@ -1,9 +1,9 @@
 # Traceability Matrix — GUI Module (GUI)
 
 **Document ID:** TRACE-GUI
-**Version:** 1.21.0
+**Version:** 1.22.0
 **Project:** US Swing Trading System
-**Last Updated:** 2026-11-20 (SRD-GUI-019.012–.017 Dashboard exit through strategy trades added. Earlier: FO-GUI-045 Chart plan strategy rows added. Earlier: FO-GUI-044 Screener preset tree rows added. Earlier: FO-GUI-043 Screener focus layout rows added (Phases 1–2). Earlier: FO-GUI-042 Edit Preset side navigation rows added, RN-GUI-2.3.0-20261118. Earlier: SRD-GUI-004.014 row added, ISS-GUI-0021. Earlier: AI Desk and Market Floor removed: FO-GUI-034 to FO-GUI-041 rows dropped; SRD-GUI-029.007–.008 now trace to DD-GUI-029.007.D01; see docs/audit/DESK_REMOVAL_2026-11-17.md)
+**Last Updated:** 2026-11-22 (RN-GUI-2.7.0-20261122: SRD-GUI-019.012–.017 and SRD-GUI-045.007–.008 RN filled; SRD-GUI-002.005 Trade History fixes (ISS-GUI-0022, ISS-GUI-0023) and UT-GUI-002.005.M01.T04–T07 added. Earlier: SRD-GUI-019.012–.017 Dashboard exit through strategy trades added. Earlier: FO-GUI-045 Chart plan strategy rows added. Earlier: FO-GUI-044 Screener preset tree rows added. Earlier: FO-GUI-043 Screener focus layout rows added (Phases 1–2). Earlier: FO-GUI-042 Edit Preset side navigation rows added, RN-GUI-2.3.0-20261118. Earlier: SRD-GUI-004.014 row added, ISS-GUI-0021. Earlier: AI Desk and Market Floor removed: FO-GUI-034 to FO-GUI-041 rows dropped; SRD-GUI-029.007–.008 now trace to DD-GUI-029.007.D01; see docs/audit/DESK_REMOVAL_2026-11-17.md)
 
 ---
 
@@ -51,7 +51,7 @@
 | FO-GUI-013 | SRD-GUI-013.023 | DD-GUI v1.29.0 note | MD-GUI-013.001.M01 | UT-GUI-013.023.M01.T01 | `gui/strategy_builder_dialog.py` | Implemented | RN-GUI-1.54.0-20261102 |
 | FO-GUI-013 | SRD-GUI-013.024 | DD-EXE-011.027.D01 | MD-GUI-013.001.M01 | UT-GUI-013.024.M01.T01–T02 (2 tests, Pass) | `gui/strategy_builder_dialog.py` | Implemented | RN-EXE-1.41.0-20261102 |
 | FO-GUI-014 | SRD-GUI-014.016–.018 | DD-GUI-014.016.D01 | MD-GUI-014.001.M01–M03 | UT-GUI-014.016.M02.T01–03, .017.M01.T01–05, .018.M03.T01–04 | `gui/active_cycles_model.py`, `gui/active_cycles_panel.py`, `gui/risk_editor_widget.py` | Implemented | RN-GUI-1.5.0-20260917 |
-| FO-GUI-002 | SRD-GUI-002.005 (Reopen; fix conforms to SRD-EXE-018.003) | — | MD-GUI-004.001.M01 | UT-GUI-002.005.M01.T01–T03 | `gui/app_service.py` | Implemented (ISS-GUI-0002 fix only; SRD stays Reopen) | RN-GUI-1.5.1-20261016 |
+| FO-GUI-002 | SRD-GUI-002.005 (Reopen; fix conforms to SRD-EXE-018.003) | — | MD-GUI-004.001.M01, MD-GUI-002.001.M02 | UT-GUI-002.005.M01.T01–T07 | `gui/app_service.py`, `gui/position_table_model.py` | Implemented (ISS-GUI-0002, ISS-GUI-0022, ISS-GUI-0023 fixes; SRD stays Reopen) | RN-GUI-1.5.1-20261016, RN-GUI-2.7.0-20261122 |
 | FO-GUI-015 | SRD-GUI-015.002 | DD-GUI-015.001.D01 | MD-GUI-015.002.M01 | UT-GUI-015.002.M01.T01–T02 | `gui/frameless_dialog.py` | Implemented | RN-GUI-1.6.0-20261022 |
 | FO-GUI-015 | SRD-GUI-015.008, .009, .012 | DD-GUI-015.001.D01 | MD-GUI-015.008.M02 | UT-GUI-015.008.M02.T01–T03, .009.M02.T01–T03, .012.M02.T01–T02 | `gui/indicator_rule_model.py` | Implemented | RN-GUI-1.6.0-20261022 |
 | FO-GUI-015 | SRD-GUI-015.009, .010, .012, .015 | DD-GUI-015.001.D01 | MD-GUI-015.009.M03 | UT-GUI-015.009.M03.T01, .010.M03.T01–T02, .012.M03.T01–T03, .015.M03.T01–T02 | `gui/indicator_rule_delegates.py` | Implemented | RN-GUI-1.6.0-20261022 |
@@ -71,12 +71,12 @@
 | FO-GUI-019 | SRD-GUI-019.009 | — | MD-GUI-019.009.M03 | UT-GUI-019.009.M03.T01–T02 | `gui/main_window.py` | Implemented | RN-GUI-1.37.3-20261027 |
 | FO-GUI-019 | SRD-GUI-019.010 | — | MD-GUI-019.010.M03 | UT-GUI-019.010.M03.T01–T02 | `gui/main_window.py` | Implemented | RN-GUI-1.56.4-20261103 |
 | FO-GUI-019 | SRD-GUI-019.011 | — | MD-GUI-019.011.M03 | UT-GUI-019.011.M03.T01 | `gui/main_window.py` | Draft | — |
-| FO-GUI-019 | SRD-GUI-019.012 | — | MD-GUI-019.012.M01 | UT-GUI-019.012.M01.T01 | `gui/position_trades.py` | Implemented | — |
-| FO-GUI-019 | SRD-GUI-019.013 | — | MD-GUI-019.013.M02 | UT-GUI-019.013.M01.T01, UT-GUI-019.013.M02.T01–T04 | `gui/dashboard_panel.py`, `gui/position_table_model.py` | Implemented | — |
-| FO-GUI-019 | SRD-GUI-019.014 | — | MD-GUI-019.012.M01 | UT-GUI-019.014.M01.T01–T02, UT-GUI-019.014.M02.T01 | `gui/position_trades.py` | Implemented | — |
-| FO-GUI-019 | SRD-GUI-019.015 | — | MD-GUI-019.012.M01 | UT-GUI-019.015.M01.T01–T02 | `gui/position_trades.py` | Implemented | — |
-| FO-GUI-019 | SRD-GUI-019.016 | — | MD-GUI-019.013.M02 | UT-GUI-019.016.M02.T01 | `gui/dashboard_panel.py` | Implemented | — |
-| FO-GUI-019 | SRD-GUI-019.017 | — | MD-GUI-019.013.M02 | UT-GUI-019.017.M02.T01–T02 | `gui/dashboard_panel.py` | Implemented | — |
+| FO-GUI-019 | SRD-GUI-019.012 | — | MD-GUI-019.012.M01 | UT-GUI-019.012.M01.T01 | `gui/position_trades.py` | Implemented | RN-GUI-2.7.0-20261122 |
+| FO-GUI-019 | SRD-GUI-019.013 | — | MD-GUI-019.013.M02 | UT-GUI-019.013.M01.T01, UT-GUI-019.013.M02.T01–T04 | `gui/dashboard_panel.py`, `gui/position_table_model.py` | Implemented | RN-GUI-2.7.0-20261122 |
+| FO-GUI-019 | SRD-GUI-019.014 | — | MD-GUI-019.012.M01 | UT-GUI-019.014.M01.T01–T02, UT-GUI-019.014.M02.T01 | `gui/position_trades.py` | Implemented | RN-GUI-2.7.0-20261122 |
+| FO-GUI-019 | SRD-GUI-019.015 | — | MD-GUI-019.012.M01 | UT-GUI-019.015.M01.T01–T02 | `gui/position_trades.py` | Implemented | RN-GUI-2.7.0-20261122 |
+| FO-GUI-019 | SRD-GUI-019.016 | — | MD-GUI-019.013.M02 | UT-GUI-019.016.M02.T01 | `gui/dashboard_panel.py` | Implemented | RN-GUI-2.7.0-20261122 |
+| FO-GUI-019 | SRD-GUI-019.017 | — | MD-GUI-019.013.M02 | UT-GUI-019.017.M02.T01–T02 | `gui/dashboard_panel.py` | Implemented | RN-GUI-2.7.0-20261122 |
 | FO-GUI-020 | SRD-GUI-020.001–005 | DD-GUI-020.001.D01 | MD-GUI-020.001.M01 | UT-GUI-020.001.M01.T01–T02, .002.M01.T01, .003.M01.T01–T02, .004.M01.T01 | `gui/chart_workspace.py`, `gui/chart_panel.py`, `gui/screener_panel.py`, `gui/main_window.py` | Implemented | RN-GUI-1.12.0-20261023 |
 | FO-GUI-021 | SRD-GUI-021.001–004 | DD-GUI-021.001.D01 | MD-GUI-021.001.M01 | UT-GUI-021.001.M01.T01–T02, .002.M01.T01–T02, .003.M01.T01, .003.M02.T01, .004.M01.T01–T04, .004.M02.T01–T02 | `gui/settings_panel.py`, `gui/theme.py`, `gui/side_panels.py`, `gui/main_window.py` | Implemented | RN-GUI-1.15.0-20261023 |
 | FO-GUI-022 | SRD-GUI-022.013 | DD-GUI-022.001.D01 | MD-GUI-022.001.M01 | UT-GUI-022.013.M01.T01–T02 | `gui/screener_views.py` | Implemented | RN-GUI-2.2.0-20261118 |
@@ -138,7 +138,7 @@
 | FO-GUI-043 | SRD-GUI-043.001–.012 | DD-GUI-043.001.D01 | MD-GUI-043.001.M01, MD-GUI-043.003.M02, MD-GUI-043.007.M03, MD-GUI-043.011.M04 | UT-GUI-043.001.M01.T01–T03, .002.M01.T01, .003.M01.T01, .003.M02.T01–T02, .004.M01.T01, .005.M01.T01, .006.M01.T01, .007.M03.T01–T02, .008.M03.T01, .009.M03.T01, .010.M03.T01–T02, .011.M04.T01, .012.M03.T01 (18, Pass) | `gui/screener_panel.py`, `gui/screener_views.py`, `gui/chart_panel.py` | Implemented | RN-GUI-2.4.0-20261119, RN-GUI-2.5.0-20261119 |
 | FO-GUI-044 | SRD-GUI-044.001–.010 | DD-GUI-044.001.D01 | MD-GUI-044.001.M01, MD-GUI-044.001.M02, MD-GUI-044.004.M03 | UT-GUI-044.001.M02.T01–T02, .002.M02.T01–T04, .003.M02.T01–T02, .004.M03.T01, .004.M02.T01, .005.M02.T01–T03, .006.M02.T01, .007.M02.T01, .009.M02.T01, .010.M02.T01–T03 (19, Pass) | `gui/screener_tree.py`, `gui/screener_panel.py`, `gui/screener_views.py` | Implemented | RN-GUI-2.5.0-20261119 |
 | FO-GUI-045 | SRD-GUI-045.001–.006 | — (no DD, minimal GUI docs) | MD-GUI-045.001.M01, MD-GUI-045.001.M02 | UT-GUI-045.001.M01.T01–T08, UT-GUI-045.006.M02.T01 (9, Pass) | `gui/chart_plan.py`, `gui/app_service.py`, `gui/chart_workspace.py`, `gui/strategies_pane.py` | Implemented | RN-GUI-2.6.0-20261120 |
-| FO-GUI-045 | SRD-GUI-045.007–.008 | — (no DD, minimal GUI docs) | MD-GUI-045.007.M03, MD-GUI-045.001.M01, MD-GUI-045.001.M02 | UT-GUI-045.007.M03.T01, UT-GUI-045.008.M02.T01, UT-GUI-045.008.M01.T01–T02 (4, Pass) | `gui/chart_inspector.py`, `gui/chart_workspace.py`, `gui/chart_plan.py`, `gui/strategy_store.py` | Implemented | — |
+| FO-GUI-045 | SRD-GUI-045.007–.008 | — (no DD, minimal GUI docs) | MD-GUI-045.007.M03, MD-GUI-045.001.M01, MD-GUI-045.001.M02 | UT-GUI-045.007.M03.T01, UT-GUI-045.008.M02.T01, UT-GUI-045.008.M01.T01–T02 (4, Pass) | `gui/chart_inspector.py`, `gui/chart_workspace.py`, `gui/chart_plan.py`, `gui/strategy_store.py` | Implemented | RN-GUI-2.7.0-20261122 |
 
 ---
 
