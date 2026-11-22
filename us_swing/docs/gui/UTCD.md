@@ -988,6 +988,7 @@ Test files:
 | UT-GUI-030.006.M01.T01 | MD-GUI-030.001.M01 | Positive | Dot state | empty / running / up to date | off / warn / ok | Pass |
 | UT-GUI-030.006.M01.T02 | MD-GUI-030.001.M01 | Negative | Missing 3m shows behind | 498 3m requests missing for 503 stocks | "3-minute candles missing for 503 stocks"; "498 requests · about 3 h 27 min"; Download missing | Pass |
 | UT-GUI-030.006.M01.T03 | MD-GUI-030.001.M01 | Negative | Partial stocks are not Up to date | nothing planned, 224 partial stocks | "224 stocks partial"; hint to Fill selected; button Partial, off (ISS-BKT-0003) | Pass |
+| UT-GUI-030.006.M01.T04 | MD-GUI-030.001.M01 | Positive | Time left uses this run's measured speed | 3m 100 of 200, then 120 of 200 after 40 s | first 42 min (fixed guess), then 3 min (2 s per request) | Pass |
 | UT-GUI-030.009.M01.T01 | MD-GUI-030.001.M01 | Negative | Unsaved range is saved on download | saved start 2026-01-01, field set to 2025-11-01 | "Range changed · not saved yet"; button Save range and download; click saves and starts | Pass |
 | UT-GUI-030.009.M02.T01 | MD-GUI-030.004.M02 | Positive | Stats worker counts missing | plan with 1 1d and 2 3m jobs for 2 stocks | missing_1d 1, missing_3m 2, short_stocks 2 | Pass |
 | UT-GUI-030.009.M02.T02 | MD-GUI-030.004.M02 | Positive | Stats worker counts partial | partial count 224 | partial_stocks 224 (ISS-BKT-0003) | Pass |
