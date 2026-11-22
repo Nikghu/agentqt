@@ -118,6 +118,28 @@ def test_universe_coverage_partial_ignores_floor(svc: Any) -> None:
     assert cov["NEWCO"][2] == "partial"
 
 
+def test_missing_3m_day_is_partial(svc: Any) -> None:
+    """UT-GUI-030.011.M02.T02: A stock covering the range but missing a 3m day inside it is
+    partial, and the day is listed (ISS-BKT-0003)."""
+    from us_swing.gui.app_service import _compute_last_trading_day
+
+    last = _compute_last_trading_day()
+    svc._sp500 = [Sp500Record("META", "META", "Meta", "Comm")]
+    store = svc._bkt_store
+    first = date(2024, 1, 3)
+    BacktestDataSettings(start_date=first).save(store.root)
+    now = datetime(2030, 1, 1, tzinfo=timezone.utc)
+    days = [first, date(2024, 1, 4), last]
+    store.save("META", "1d", pd.concat([_bars(d.isoformat()) for d in days]), now)
+    store.save("META", "3m", pd.concat([_bars(f"{d} 15:00") for d in (first, last)]), now)
+    assert svc.get_backtest_symbol_coverage()["META"][2] == "ok"  # gap cache not built yet
+
+    store.refresh_gaps(["META"])
+
+    assert svc.get_backtest_symbol_coverage()["META"][2] == "partial"
+    assert svc.get_backtest_gaps() == {"META": ["2024-01-04"]}
+
+
 def test_fill_selected_clears_floor_and_downloads_only_those(svc: Any) -> None:
     """UT-GUI-030.008.M02.T02: Fill selected drops the ticked stocks' listing dates and
     downloads only them; other floors stay (ISS-BKT-0003)."""

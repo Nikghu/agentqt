@@ -26,6 +26,8 @@
 |---|---|---|---|---|---|---|
 | UT-BKT-001.001.M01.T01 | MD-BKT-001.001.M01 | Positive | 3m bars split by year | bars over 2024-12-31 and 2025-01-02 | files `3m/AAPL/2024` and `2025`; read returns all rows in order | Pass |
 | UT-BKT-001.001.M01.T02 | MD-BKT-001.001.M01 | Negative | Unknown stock reads empty | no files for ZZZZ | empty frame; coverage None; no file created | Pass |
+| UT-BKT-001.001.M01.T03 | MD-BKT-001.001.M01 | Positive | Gap days inside 3m range | 1d Jan 2–9; 3m Jan 3 and Jan 8 | Jan 4 and Jan 5 (Jan 2, 9 outside 3m range); unknown stock none (ISS-BKT-0003) | Pass |
+| UT-BKT-001.001.M01.T04 | MD-BKT-001.001.M01 | Edge | Gap cache refresh | refresh, save the missing day, refresh | cached Jan 4; kept after save until refresh; then none | Pass |
 | UT-BKT-001.002.M01.T01 | MD-BKT-001.001.M01 | Positive | Overlap merge keeps one row per timestamp | save, then save overlapping rows with new close | no duplicate ts; new close kept | Pass |
 | UT-BKT-001.002.M01.T02 | MD-BKT-001.001.M01 | Negative | Failed write keeps old file | write raises mid-save | old file still readable; no `.tmp` left | Pass |
 | UT-BKT-001.003.M01.T01 | MD-BKT-001.001.M01 | Negative | Unfinished day dropped | today's bars, now 14:00 ET | today's rows not saved | Pass |
@@ -50,6 +52,7 @@
 | UT-BKT-001.005.M03.T03 | MD-BKT-001.005.M03 | Edge | Earlier start back-fills only older windows | saved 2024–2025, start moved to 2023 | 3m jobs only for 2023 windows; one 1d back-fill job | Pass |
 | UT-BKT-001.005.M03.T04 | MD-BKT-001.005.M03 | Edge | Floor skips windows before first data | floor 2024-06-01 | no 3m job ending before the floor | Pass |
 | UT-BKT-001.005.M03.T05 | MD-BKT-001.005.M03 | Edge | Stock with new and old 3m gaps finishes first | AAPL 3m saved Jul–Oct, MSFT full | only AAPL jobs, newest end first, last reaches start | Pass |
+| UT-BKT-001.005.M03.T06 | MD-BKT-001.005.M03 | Positive | Missing 3m days asked again | gaps 2024-12-05, Mar 6, 7, 10, Jul 2 2025; start 2025-01-01 | Jul 2 "1 D"; Mar 6–10 "3 D"; none before start; none in delta (ISS-BKT-0003) | Pass |
 | UT-BKT-001.015.M03.T01 | MD-BKT-001.005.M03 | Positive | SPY gets daily jobs | empty store, daily_only SPY | SPY 1d job; no SPY 3m job | Pass |
 | UT-BKT-001.015.M03.T02 | MD-BKT-001.005.M03 | Negative | Saved SPY | SPY 1d saved for range | no jobs | Pass |
 | UT-BKT-001.008.M03.T01 | MD-BKT-001.005.M03 | Positive | Delta asks days since last bar | last saved 3 trading days ago, `delta_only` | one job per stock and tf, duration "4 D" | Pass |

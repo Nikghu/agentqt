@@ -1003,7 +1003,9 @@ Test files:
 | UT-GUI-030.008.M03.T03 | MD-GUI-030.008.M06 | Negative | Fill sends IBKR symbols | nothing ticked, then BRK.B ticked | "Tick the stocks to fill first"; fill called with "BRK B"; ticks cleared | Pass |
 | UT-GUI-030.008.M03.T04 | MD-GUI-030.008.M06 | Positive | Fill button shows progress | fill UNP, UPS; progress UNP, UNP, UPS, SPY; then finished; then other download | "Filling 2 of 2 · UPS", off; "Fill selected", on; "Download running…" | Pass |
 | UT-GUI-030.008.M03.T05 | MD-GUI-030.008.M06 | Positive | Tick count toggles buttons | page title sel:40, then sel:0, then sel:0 while filling | "Clear selection (40)", "Fill selected (40)"; "Select partial", "Fill selected"; fill label kept while filling | Pass |
+| UT-GUI-030.008.M03.T06 | MD-GUI-030.008.M06 | Positive | Missing days in tooltip | META gaps 2024-01-05 | page holds the days; tooltip text for 3-minute candles | Pass |
 | UT-GUI-030.011.M02.T01 | MD-GUI-030.011.M02 | Positive | Partial ignores listing date | start 2024-01-01; AAPL 3m from 2024-04-05; NEWCO floor 2025-03-03, 3m from then | both `partial` (changed by ISS-BKT-0003) | Pass |
+| UT-GUI-030.011.M02.T02 | MD-GUI-030.011.M02 | Negative | Missing 3m day is partial | META range covered, 3m missing 2024-01-04 | ok before the gap check; partial after; gaps list 2024-01-04 (ISS-BKT-0003) | Pass |
 | UT-GUI-030.012.M02.T01 | MD-GUI-030.012.M02 | Positive | One stock's coverage | IBKR symbol "BRK B" listed as "BRK.B"; unknown "ZZZZ" | ("BRK.B", dates, status); None | Pass |
 | UT-GUI-030.012.M06.T01 | MD-GUI-030.012.M06 | Positive | Row updates when stock done | progress BRK B, BRK B, MSFT | one `updateBt("BRK.B", …)` call; "complete for 2 of 2 stocks" | Pass |
 

@@ -732,7 +732,9 @@ const SEL=new Set();
 
 function fc(b){{if(b===null)return'\u2014';if(b>=1000)return'$'+(b/1000).toFixed(2)+'T';if(b>=1)return'$'+b.toFixed(1)+'B';return'$'+(b*1000).toFixed(0)+'M';}}
 function applyFilters(text,_mn,_mx){{ft=text.toLowerCase();render();}}
-function updateBt(sym,c){{const r=D.find(x=>x[1]===sym);if(!r)return;r[8]=c[0];r[9]=c[1];r[10]=c[2];if(c[2]==='ok')SEL.delete(sym);render();syncSel();}}
+const G={gaps};
+function gapTip(sym){{const g=G[sym]||[];if(!g.length)return'';return' · missing '+g.length+' day(s) of 3-minute candles: '+g.slice(0,6).join(', ')+(g.length>6?' …':'');}}
+function updateBt(sym,c,g){{const r=D.find(x=>x[1]===sym);if(!r)return;r[8]=c[0];r[9]=c[1];r[10]=c[2];G[sym]=g||[];if(c[2]==='ok')SEL.delete(sym);render();syncSel();}}
 /* the page title carries the tick count to the Python buttons */
 function syncSel(){{
   const n=D.filter(r=>r[10]!=='ok').length;
@@ -856,7 +858,7 @@ function render(resort=true){{
       if(ci===5)  return `<td class="name" ${{style}}>${{r[5]}}</td>`;
       if(ci===6){{const st=r[7];const cl=st==='current'?'{st_ok}':st==='stale'?'{st_warn}':'{st_err}';const ic=st==='current'?'✔':st==='stale'?'⚠':'✘';return `<td style="width:${{w}}px;max-width:${{w}}px;color:${{cl}};font-size:13px;text-align:center">${{ic}}</td>`;}}
       if(ci===7){{const dt=r[6];const st=r[7];const cl=st==='current'?'{st_ok}':st==='stale'?'{st_warn}':'{st_err}';return `<td style="width:${{w}}px;max-width:${{w}}px;color:${{cl}};text-align:center">${{dt||'—'}}</td>`;}}
-      if(ci===8){{const st=r[10];const cl=st==='ok'?'{st_ok}':st==='none'?'{st_err}':'{st_warn}';const ic=st==='ok'?'✔':st==='none'?'✘':'⚠';const tip=st==='ok'?'Up to date':st==='partial'?'Partial — saved dates do not cover the Backtest Data range':'Not downloaded';return `<td title="${{tip}}" style="width:${{w}}px;max-width:${{w}}px;color:${{cl}};font-size:13px;text-align:center">${{ic}}</td>`;}}
+      if(ci===8){{const st=r[10];const cl=st==='ok'?'{st_ok}':st==='none'?'{st_err}':'{st_warn}';const ic=st==='ok'?'✔':st==='none'?'✘':'⚠';const tip=st==='ok'?'Up to date':st==='partial'?'Partial — saved candles do not cover the Backtest Data range'+gapTip(r[1]):'Not downloaded';return `<td title="${{tip}}" style="width:${{w}}px;max-width:${{w}}px;color:${{cl}};font-size:13px;text-align:center">${{ic}}</td>`;}}
       if((ci===9||ci===10)&&r[10]==='partial'){{return `<td title="Range is {bt_start} to {bt_end}" style="width:${{w}}px;max-width:${{w}}px;color:{st_warn};font-weight:600">${{r[di]}}</td>`;}}
       if(ci===9||ci===10){{return `<td ${{style}}>${{r[di]||'—'}}</td>`;}}
       return `<td ${{style}}>${{r[di]}}</td>`;
@@ -879,6 +881,7 @@ def _build_universe_html(
     last_trading_day: str | None = None,
     backtest: "dict[str, tuple[str | None, str | None, str]] | None" = None,
     bt_range: tuple[str, str] = ("", ""),
+    gaps: "dict[str, list[str]] | None" = None,
 ) -> str:
     """Serialize records to an HTML page with all data embedded as JSON.
 
@@ -889,6 +892,7 @@ def _build_universe_html(
         last_trading_day: "YYYY-MM-DD"; rows with older dates are marked stale.
         backtest: {symbol: (first, last, status)} from the backtest store (SRD-GUI-030.008).
         bt_range: Backtest Data range ``(start, end)`` shown on partial dates.
+        gaps: {symbol: ISO days with daily but no 3-minute candles}, shown in the tooltip.
     """
     cov = coverage or {}
     bkt = backtest or {}
@@ -912,6 +916,7 @@ def _build_universe_html(
     ct = active_palette()
     return _UNIVERSE_HTML.format(
         data=json.dumps(data),
+        gaps=json.dumps(gaps or {}),
         bg=ct.BG,
         fg=ct.TEXT,
         hdr_bg=ct.SURFACE,
@@ -945,6 +950,7 @@ class _UniverseTab(QWidget):
         self._bkt_symbol: str | None = None
         self._fill_symbols: set[str] = set()
         self._fill_seen: set[str] = set()
+        self._gaps_shown: dict[str, list[str]] = {}
         self._meta_text = ""
 
         # ── Meta bar ──────────────────────────────────────────────────────────
@@ -997,6 +1003,7 @@ class _UniverseTab(QWidget):
         svc.backtest_finished.connect(lambda *_: self._end_fill())
         svc.backtest_progress.connect(self._on_backtest_progress)
         svc.backtest_progress.connect(self._show_fill_progress)
+        svc.backtest_stats_changed.connect(lambda _stats: self._reload_if_gaps_changed())
 
     # ── Slots ─────────────────────────────────────────────────────────────────
 
@@ -1005,8 +1012,10 @@ class _UniverseTab(QWidget):
         coverage = self._svc.get_candle_symbol_coverage()
         ltd      = self._svc.get_last_trading_day()
         self._backtest = self._svc.get_backtest_symbol_coverage()
+        self._gaps_shown = self._svc.get_backtest_gaps()
         self._web.setHtml(_build_universe_html(records, coverage, ltd, self._backtest,
-                                               self._svc.get_backtest_range()))
+                                               self._svc.get_backtest_range(),
+                                               self._gaps_shown))
         meta  = self._svc.get_sp500_meta()
         stale = " (stale)" if meta.is_stale() else ""
         self._meta_text = f"{len(records)} constituents · last fetched: {meta.age_str()}{stale}"
@@ -1030,9 +1039,11 @@ class _UniverseTab(QWidget):
             return
         symbol, cov = found
         self._backtest[symbol] = cov
+        gaps = self._svc.get_backtest_gaps().get(symbol, [])
         page = self._web.page()
         if page is not None:
-            page.runJavaScript(f"updateBt({json.dumps(symbol)},{json.dumps(list(cov))});")
+            page.runJavaScript(
+                f"updateBt({json.dumps(symbol)},{json.dumps(list(cov))},{json.dumps(gaps)});")
         self._show_meta()
 
     def _push_filters(self) -> None:
@@ -1064,6 +1075,13 @@ class _UniverseTab(QWidget):
             self._meta_label.setText(f"Filling {len(ibkr)} stock(s) from the range start…")
         else:
             self._meta_label.setText("Could not start — a download is already running")
+
+    def _reload_if_gaps_changed(self) -> None:
+        """Redraw once the background check finds new missing days; never during a download."""
+        if self._svc.is_backtest_running():
+            return
+        if self._svc.get_backtest_gaps() != self._gaps_shown:
+            self._load_from_cache()
 
     def _on_ticks_changed(self, title: str) -> None:
         """The page reports its tick count as ``sel:N``; update both button labels."""

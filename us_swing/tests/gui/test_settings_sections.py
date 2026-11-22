@@ -284,7 +284,7 @@ def test_universe_html_has_backtest_columns() -> None:
 
     assert "['BT From',       8,100]" in html
     assert '"2026-01-02", "2026-10-27", "ok"' in html
-    assert "function updateBt(sym,c)" in html
+    assert "function updateBt(sym,c,g)" in html
 
 
 def test_universe_html_partial_tick_boxes() -> None:
@@ -299,6 +299,20 @@ def test_universe_html_partial_tick_boxes() -> None:
     assert "function selectPartial()" in html and "function selected()" in html
     assert 'type="checkbox"' in html
     assert "Range is 2022-01-03 to 2026-11-20" in html
+
+
+def test_universe_html_lists_missing_days() -> None:
+    """UT-GUI-030.008.M03.T06: Missing 3-minute days go into the page for the tooltip."""
+    from us_swing.universe.store import Sp500Record
+
+    html = settings_panel._build_universe_html(
+        [Sp500Record("META", "META", "Meta", "Comm")], {}, None,
+        {"META": ("2022-01-03", "2026-11-20", "partial")}, ("2022-01-03", "2026-11-20"),
+        {"META": ["2024-01-05"]},
+    )
+
+    assert 'const G={"META": ["2024-01-05"]};' in html
+    assert "day(s) of 3-minute candles" in html
 
 
 def test_fill_selected_maps_to_ibkr_symbols() -> None:
@@ -389,6 +403,7 @@ def test_universe_row_updates_when_stock_done() -> None:
     tab_cls = settings_panel._UniverseTab
     svc = MagicMock()
     svc.get_backtest_coverage_for.return_value = ("BRK.B", ("2024-01-02", "2026-11-03", "ok"))
+    svc.get_backtest_gaps.return_value = {}
     page = MagicMock()
     tab = SimpleNamespace(
         _svc=svc, _bkt_symbol=None, _meta_text="503 constituents",
@@ -403,7 +418,7 @@ def test_universe_row_updates_when_stock_done() -> None:
 
     svc.get_backtest_coverage_for.assert_called_once_with("BRK B")
     page.runJavaScript.assert_called_once_with(
-        'updateBt("BRK.B",["2024-01-02", "2026-11-03", "ok"]);')
+        'updateBt("BRK.B",["2024-01-02", "2026-11-03", "ok"],[]);')
     tab._meta_label.setText.assert_called_with(
         "503 constituents · backtest complete for 2 of 2 stocks")
 

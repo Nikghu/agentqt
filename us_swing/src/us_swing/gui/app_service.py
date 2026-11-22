@@ -64,7 +64,7 @@ import time
 from dataclasses import dataclass
 from functools import partial
 from pathlib import Path
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from typing import TYPE_CHECKING, Any
 
 import pandas as pd
@@ -4833,10 +4833,18 @@ class AppService(QObject):
         """Per S&P 500 symbol: backtest first date, last date and status (SRD-GUI-030.008).
 
         Dates come from 3m data when saved, else 1d. Status is ``ok`` when the dates cover the
-        Backtest Data range, ``partial`` when they do not or no 3m is saved, else ``none``.
+        Backtest Data range with no missing 3m day, ``partial`` when not, else ``none``.
+        Missing days come from the gap cache, which the stats refresh keeps up to date.
         """
-        cov = self._backtest_coverage_fn()
+        cov = self._backtest_coverage_fn(self._bkt_store.cached_gaps())
         return {rec.symbol: cov(rec.ibkr_symbol) for rec in self._sp500}
+
+    def get_backtest_gaps(self) -> dict[str, list[str]]:
+        """Per S&P 500 symbol, the cached days that have daily but no 3m candles (in range)."""
+        gaps = self._bkt_store.cached_gaps()
+        start = BacktestDataSettings.load(self._bkt_store.root).start_date
+        return {rec.symbol: [d.isoformat() for d in gaps.get(rec.ibkr_symbol, ()) if d >= start]
+                for rec in self._sp500 if gaps.get(rec.ibkr_symbol)}
 
     def get_backtest_range(self) -> tuple[str, str]:
         """The Backtest Data range as ``(start, end)`` ISO dates; end is the last trading day
@@ -4851,12 +4859,18 @@ class AppService(QObject):
     ) -> tuple[str, tuple[str | None, str | None, str]] | None:
         """One stock's Universe symbol and backtest coverage, or None when not listed.
 
-        Used to update a single Universe row while a download runs (SRD-GUI-030.012).
+        Used to update a single Universe row while a download runs (SRD-GUI-030.012); its
+        missing days are worked out again here, for this one stock only.
         """
         rec = next((r for r in self._sp500 if r.ibkr_symbol == ibkr_symbol), None)
-        return None if rec is None else (rec.symbol, self._backtest_coverage_fn()(ibkr_symbol))
+        if rec is None:
+            return None
+        gaps = self._bkt_store.refresh_gaps([ibkr_symbol])
+        return rec.symbol, self._backtest_coverage_fn(gaps)(ibkr_symbol)
 
-    def _backtest_coverage_fn(self) -> Callable[[str], tuple[str | None, str | None, str]]:
+    def _backtest_coverage_fn(
+        self, gaps: Mapping[str, list[datetime.date]],
+    ) -> Callable[[str], tuple[str | None, str | None, str]]:
         store = self._bkt_store
         settings = BacktestDataSettings.load(store.root)
         start = settings.start_date
@@ -4867,7 +4881,9 @@ class AppService(QObject):
             cov = cov_3m or store.coverage(symbol, "1d")
             if cov is None:
                 return None, None, "none"
-            full = cov_3m is not None and cov[0] <= start + _BKT_START_SLACK and cov[1] >= end
+            holes = any(d >= start for d in gaps.get(symbol, ()))
+            full = (cov_3m is not None and cov[0] <= start + _BKT_START_SLACK
+                    and cov[1] >= end and not holes)
             return cov[0].isoformat(), cov[1].isoformat(), "ok" if full else "partial"
 
         return coverage
@@ -4878,7 +4894,7 @@ class AppService(QObject):
         build = self._backtest_plan(symbols, delta=False) if symbols else None
 
         def count_partial() -> int:
-            cov = self._backtest_coverage_fn()
+            cov = self._backtest_coverage_fn(self._bkt_store.refresh_gaps(symbols))
             return sum(1 for s in symbols if cov(s)[2] == "partial")
 
         worker = _BacktestStatsWorker(self._bkt_store, build, count_partial, parent=self)
@@ -4935,9 +4951,10 @@ class AppService(QObject):
 
         def build_plan() -> list[Job]:
             floors = DownloadState.load(store.root).floors
+            gaps = None if delta else store.refresh_gaps(symbols)  # ISS-BKT-0003
             return plan(symbols, settings, store.coverage, floors,
                         _compute_last_trading_day(), delta,
-                        daily_only=(BENCHMARK,))  # SRD-BKT-001.015
+                        daily_only=(BENCHMARK,), gaps=gaps)  # SRD-BKT-001.015
 
         return build_plan
 

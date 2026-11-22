@@ -8,10 +8,13 @@ Parquet candle store for backtesting. 1d bars live in ``1d/<SYM>.parquet``; 3m b
 """
 from __future__ import annotations
 
+import json
 import os
 import shutil
+import threading
 import time as time_mod
 import uuid
+from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
 from pathlib import Path
@@ -36,6 +39,8 @@ _REPLACE_TRIES = 5
 _LISTED_SLACK = timedelta(days=7)
 _PRICE_COLUMNS = ["open", "high", "low", "close", "volume"]
 _COLUMNS = ["ts", *_PRICE_COLUMNS]
+GAPS_FILE = "gaps.json"
+_GAPS_LOCK = threading.Lock()
 
 
 @dataclass(frozen=True, slots=True)
@@ -206,11 +211,74 @@ class BacktestStore:
             first_3m=max(firsts_3m) if firsts_3m else None,
         )
 
+    def gap_days(self, symbol: str) -> list[date]:
+        """Days with a daily bar but no 3m bar, inside the stock's own 3m range (ISS-BKT-0003)."""
+        files = self._files(symbol, "3m")
+        one_day = self._single(symbol, "1d")
+        if not files or not one_day.exists():
+            return []
+        days_1d = set(_et_dates(pd.read_parquet(one_day, columns=["ts"])["ts"], "1d"))
+        ts = pd.concat([pd.read_parquet(f, columns=["ts"])["ts"] for f in files],
+                       ignore_index=True)
+        days_3m = set(_et_dates(ts, "3m"))
+        if not days_3m:
+            return []
+        first, last = min(days_3m), max(days_3m)
+        return sorted(d for d in days_1d if first <= d <= last and d not in days_3m)
+
+    def cached_gaps(self) -> dict[str, list[date]]:
+        """Gap days as last saved in ``gaps.json``; a fast read for the GUI thread.
+
+        It can lag a save until the next ``refresh_gaps``, which the stats refresh runs.
+        """
+        return {sym: _gap_list(entry) for sym, entry in self._read_gaps().items()}
+
+    def refresh_gaps(self, symbols: Iterable[str]) -> dict[str, list[date]]:
+        """Work out gap days for ``symbols`` whose files changed, save them, return all of them.
+
+        Slow on first use (reads every 3m timestamp), so call it off the GUI thread.
+        """
+        with _GAPS_LOCK:
+            cache = self._read_gaps()
+            changed = False
+            for symbol in symbols:
+                sig = self._gap_sig(symbol)
+                if cache.get(symbol, {}).get("sig") == sig:
+                    continue
+                cache[symbol] = {"sig": sig, "days": [d.isoformat()
+                                                      for d in self.gap_days(symbol)]}
+                changed = True
+            if changed:
+                self.root.mkdir(parents=True, exist_ok=True)
+                tmp = self.root / f"{GAPS_FILE}.{uuid.uuid4().hex}.tmp"
+                tmp.write_text(json.dumps(cache), encoding="utf-8")
+                _replace(tmp, self.root / GAPS_FILE)
+        return {sym: _gap_list(entry) for sym, entry in cache.items()}
+
+    def _read_gaps(self) -> dict[str, dict[str, object]]:
+        path = self.root / GAPS_FILE
+        try:
+            data = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
+        except (OSError, ValueError):
+            return {}
+        return data if isinstance(data, dict) else {}
+
+    def _gap_sig(self, symbol: str) -> str:
+        sig = []
+        for path in [*self._files(symbol, "3m"), *self._files(symbol, "1d")]:
+            try:
+                info = path.stat()
+            except OSError:
+                continue
+            sig.append((path.name, info.st_mtime_ns, info.st_size))
+        return json.dumps(sig)
+
     def clear(self) -> None:
         """Delete all saved candles and the download state; keep ``settings.json``."""
         for sub in ("1d", "3m", "15m", "30m", "1w"):
             shutil.rmtree(self.root / sub, ignore_errors=True)
         (self.root / STATE_FILE).unlink(missing_ok=True)
+        (self.root / GAPS_FILE).unlink(missing_ok=True)
 
     def _single(self, symbol: str, tf: StoredTf) -> Path:
         return self.root / tf / f"{symbol}.parquet"
@@ -291,6 +359,11 @@ def _ohlcv(bars: pd.DataFrame, key: pd.Series) -> pd.DataFrame:
         volume=("volume", "sum"),
     )
     return out.reset_index()
+
+
+def _gap_list(entry: dict[str, object]) -> list[date]:
+    days = entry.get("days")
+    return [date.fromisoformat(str(d)) for d in days] if isinstance(days, list) else []
 
 
 def _replace(tmp: Path, path: Path) -> None:
