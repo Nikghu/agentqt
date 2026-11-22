@@ -434,7 +434,7 @@ class BacktestDataPanel(QWidget):
         elif stats is None or not stats.stocks:
             self.state = "empty"
         else:
-            self.state = "behind" if missing else "ok"
+            self.state = "behind" if missing else "partial" if stats.partial_stocks else "ok"
         self._headline.setText(self._headline_text())
         self._detail.setText(_coverage(stats) if stats and stats.stocks else "")
         self._detail.setVisible(bool(self._detail.text()))
@@ -454,6 +454,8 @@ class BacktestDataPanel(QWidget):
         if not stats.stocks:
             return "No backtest candles yet"
         names = [n for n, c in (("Daily", stats.missing_1d), ("3-minute", stats.missing_3m)) if c]
+        if not names and stats.partial_stocks:
+            return f"{_stocks(stats.partial_stocks)} partial"
         if not names:
             return "All candles saved"
         return f"{' and '.join(names)} candles missing for {_stocks(stats.short_stocks)}"
@@ -481,6 +483,9 @@ class BacktestDataPanel(QWidget):
         elif self.state == "behind" and self._stats is not None:
             seconds = self._stats.missing_1d * _SECONDS_1D + self._stats.missing_3m * _SECONDS_3M
             self._info.setText(f"{missing:,} requests · about {_duration(seconds)}")
+        elif self.state == "partial":
+            self._info.setText("Saved dates do not cover the range · tick them in Universe "
+                               "and press Fill selected")
         else:
             self._info.setText("")
         self._info_row.setVisible(bool(self._info.text()))
@@ -493,6 +498,8 @@ class BacktestDataPanel(QWidget):
             label, icon, enabled = "Save range and download", "play", connected
         elif self.state == "ok":
             label, icon, enabled = "Up to date", "check", False
+        elif self.state == "partial":
+            label, icon, enabled = "Partial", "download", False
         elif self.state == "empty":
             label, icon, enabled = "Download", "play", connected
         else:

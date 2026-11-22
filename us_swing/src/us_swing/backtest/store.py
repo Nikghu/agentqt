@@ -55,6 +55,7 @@ class BacktestStats:
         missing_1d: 1d requests the download plan still needs (set by the caller).
         missing_3m: 3m requests the download plan still needs (set by the caller).
         short_stocks: Stocks with any request in the download plan (set by the caller).
+        partial_stocks: Stocks whose saved dates do not cover the range (set by the caller).
     """
 
     stocks: int
@@ -68,6 +69,7 @@ class BacktestStats:
     missing_1d: int = 0
     missing_3m: int = 0
     short_stocks: int = 0
+    partial_stocks: int = 0
 
 
 class BacktestStore:

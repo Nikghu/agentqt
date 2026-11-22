@@ -724,15 +724,22 @@ let COLS=[
   ['Backtest',     10, 80],
   ['BT From',       8,100],
   ['BT To',         9,100],
+  ['',             -2, 36],
 ];
-let colOrder=[0,1,2,3,4,5,6,7,8,9,10];   /* indices into COLS */
+let colOrder=[11,0,1,2,3,4,5,6,7,8,9,10];   /* indices into COLS */
 let sc=4, sa=false, ft='';
+const SEL=new Set();
 
 function fc(b){{if(b===null)return'\u2014';if(b>=1000)return'$'+(b/1000).toFixed(2)+'T';if(b>=1)return'$'+b.toFixed(1)+'B';return'$'+(b*1000).toFixed(0)+'M';}}
 function applyFilters(text,_mn,_mx){{ft=text.toLowerCase();render();}}
-function updateBt(sym,c){{const r=D.find(x=>x[1]===sym);if(!r)return;r[8]=c[0];r[9]=c[1];r[10]=c[2];render();}}
+function updateBt(sym,c){{const r=D.find(x=>x[1]===sym);if(!r)return;r[8]=c[0];r[9]=c[1];r[10]=c[2];if(c[2]==='ok')SEL.delete(sym);render();}}
+function tog(sym,on){{if(on)SEL.add(sym);else SEL.delete(sym);}}
+function selectPartial(){{D.forEach(r=>{{if(r[10]!=='ok')SEL.add(r[1]);}});render(false);}}
+function selected(){{return Array.from(SEL);}}
+function clearSel(){{SEL.clear();render(false);}}
 function S(ci){{
   const di=COLS[colOrder[ci]][1];
+  if(di===-2)return;
   if(sc===di){{sa=!sa}}else{{sc=di;sa=(di!==-1&&di!==4)}};
   render();
 }}
@@ -829,13 +836,14 @@ function render(resort=true){{
       const [,di,w]=COLS[ci];
       const style=`style="width:${{w}}px;max-width:${{w}}px"`;
       if(di===-1) return `<td ${{style}}>${{i+1}}</td>`;
+      if(di===-2) return r[10]==='ok'?`<td ${{style}}></td>`:`<td ${{style}}><input type="checkbox" title="Tick to fill this stock" ${{SEL.has(r[1])?'checked':''}} onclick="tog('${{r[1]}}',this.checked)"></td>`;
       if(ci===1)  return `<td class="sym" ${{style}}>${{r[1]}}</td>`;
       if(ci===4)  return `<td class="cap" ${{style}}>${{fc(r[4])}}</td>`;
       if(ci===5)  return `<td class="name" ${{style}}>${{r[5]}}</td>`;
       if(ci===6){{const st=r[7];const cl=st==='current'?'{st_ok}':st==='stale'?'{st_warn}':'{st_err}';const ic=st==='current'?'✔':st==='stale'?'⚠':'✘';return `<td style="width:${{w}}px;max-width:${{w}}px;color:${{cl}};font-size:13px;text-align:center">${{ic}}</td>`;}}
       if(ci===7){{const dt=r[6];const st=r[7];const cl=st==='current'?'{st_ok}':st==='stale'?'{st_warn}':'{st_err}';return `<td style="width:${{w}}px;max-width:${{w}}px;color:${{cl}};text-align:center">${{dt||'—'}}</td>`;}}
-      if(ci===8){{const st=r[10];const cl=st==='ok'?'{st_ok}':st==='none'?'{st_err}':'{st_warn}';const ic=st==='ok'?'✔':st==='none'?'✘':'⚠';const tip=st==='ok'?'Up to date':st==='behind'?'Behind':st==='late'?'3m starts after the start date':st==='1d'?'1d only, no 3m yet':'Not downloaded';return `<td title="${{tip}}" style="width:${{w}}px;max-width:${{w}}px;color:${{cl}};font-size:13px;text-align:center">${{ic}}</td>`;}}
-      if(ci===9&&r[10]==='late'){{return `<td title="3m starts after the start date" style="width:${{w}}px;max-width:${{w}}px;color:{st_warn};font-weight:600">${{r[di]}}</td>`;}}
+      if(ci===8){{const st=r[10];const cl=st==='ok'?'{st_ok}':st==='none'?'{st_err}':'{st_warn}';const ic=st==='ok'?'✔':st==='none'?'✘':'⚠';const tip=st==='ok'?'Up to date':st==='partial'?'Partial — saved dates do not cover the Backtest Data range':'Not downloaded';return `<td title="${{tip}}" style="width:${{w}}px;max-width:${{w}}px;color:${{cl}};font-size:13px;text-align:center">${{ic}}</td>`;}}
+      if((ci===9||ci===10)&&r[10]==='partial'){{return `<td title="Range is {bt_start} to {bt_end}" style="width:${{w}}px;max-width:${{w}}px;color:{st_warn};font-weight:600">${{r[di]}}</td>`;}}
       if(ci===9||ci===10){{return `<td ${{style}}>${{r[di]||'—'}}</td>`;}}
       return `<td ${{style}}>${{r[di]}}</td>`;
     }}).join('');
@@ -855,6 +863,7 @@ def _build_universe_html(
     coverage: "dict[str, str | None] | None" = None,
     last_trading_day: str | None = None,
     backtest: "dict[str, tuple[str | None, str | None, str]] | None" = None,
+    bt_range: tuple[str, str] = ("", ""),
 ) -> str:
     """Serialize records to an HTML page with all data embedded as JSON.
 
@@ -864,6 +873,7 @@ def _build_universe_html(
             ``None`` means the DB has not been queried yet.
         last_trading_day: "YYYY-MM-DD"; rows with older dates are marked stale.
         backtest: {symbol: (first, last, status)} from the backtest store (SRD-GUI-030.008).
+        bt_range: Backtest Data range ``(start, end)`` shown on partial dates.
     """
     cov = coverage or {}
     bkt = backtest or {}
@@ -901,6 +911,8 @@ def _build_universe_html(
         st_ok=ct.GREEN,
         st_warn=ct.YELLOW,
         st_err=ct.RED,
+        bt_start=bt_range[0],
+        bt_end=bt_range[1],
     )
 
 
@@ -928,9 +940,19 @@ class _UniverseTab(QWidget):
         refresh_btn.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         refresh_btn.clicked.connect(self._on_refresh)
 
+        select_btn = QPushButton("Select partial")
+        select_btn.setToolTip("Tick every stock whose backtest data is partial or missing")
+        select_btn.clicked.connect(lambda: self._run_js("selectPartial();"))
+        self._fill_btn = QPushButton("Fill selected")
+        set_icon(self._fill_btn, "download", "go")
+        self._fill_btn.setToolTip("Download the ticked stocks again from the range start")
+        self._fill_btn.clicked.connect(self._on_fill_clicked)
+
         top = QHBoxLayout()
         top.addWidget(self._meta_label)
         top.addStretch()
+        top.addWidget(select_btn)
+        top.addWidget(self._fill_btn)
         top.addWidget(refresh_btn)
 
         # ── Search bar ────────────────────────────────────────────────────────
@@ -963,7 +985,8 @@ class _UniverseTab(QWidget):
         coverage = self._svc.get_candle_symbol_coverage()
         ltd      = self._svc.get_last_trading_day()
         self._backtest = self._svc.get_backtest_symbol_coverage()
-        self._web.setHtml(_build_universe_html(records, coverage, ltd, self._backtest))
+        self._web.setHtml(_build_universe_html(records, coverage, ltd, self._backtest,
+                                               self._svc.get_backtest_range()))
         meta  = self._svc.get_sp500_meta()
         stale = " (stale)" if meta.is_stale() else ""
         self._meta_text = f"{len(records)} constituents · last fetched: {meta.age_str()}{stale}"
@@ -995,6 +1018,29 @@ class _UniverseTab(QWidget):
     def _push_filters(self) -> None:
         text = json.dumps(self._search.text())
         self._web.page().runJavaScript(f"applyFilters({text}, 0, 0);")
+
+    def _run_js(self, script: str) -> None:
+        page = self._web.page()
+        if page is not None:
+            page.runJavaScript(script)
+
+    def _on_fill_clicked(self) -> None:
+        page = self._web.page()
+        if page is not None:
+            page.runJavaScript("selected();", self._fill_selected)
+
+    def _fill_selected(self, symbols: object) -> None:
+        """Start a fill for the ticked Universe rows (symbols come back from the page)."""
+        picked = set(symbols) if isinstance(symbols, list) else set()
+        ibkr = [r.ibkr_symbol for r in self._svc.get_sp500_universe() if r.symbol in picked]
+        if not ibkr:
+            self._meta_label.setText("Tick the stocks to fill first")
+            return
+        if self._svc.fill_backtest_symbols(ibkr):
+            self._run_js("clearSel();")
+            self._meta_label.setText(f"Filling {len(ibkr)} stock(s) from the range start…")
+        else:
+            self._meta_label.setText("Could not start — a download is already running")
 
     def _on_refresh(self) -> None:
         self._meta_label.setText("Refreshing from Wikipedia…")
@@ -1794,7 +1840,7 @@ class SettingsPanel(QWidget):
         self.set_section_state("Telegram", self._sys.telegram_state())
         data = {"complete": "ok", "partial": "warn", "downloading": "warn"}
         self.set_section_state("Candle data", data.get(self._data.state[0], "off"))
-        backtest = {"ok": "ok", "running": "warn", "behind": "warn"}
+        backtest = {"ok": "ok", "running": "warn", "behind": "warn", "partial": "warn"}
         self.set_section_state("Backtest data", backtest.get(self._backtest.state, "off"))
 
     @staticmethod

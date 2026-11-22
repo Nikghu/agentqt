@@ -1191,11 +1191,13 @@ class _BacktestStatsWorker(QThread):
         self,
         store: BacktestStore,
         build_plan: Callable[[], list[Job]] | None = None,
+        count_partial: Callable[[], int] | None = None,
         parent: QObject | None = None,
     ) -> None:
         super().__init__(parent)
         self._store = store
         self._build_plan = build_plan
+        self._count_partial = count_partial
 
     def run(self) -> None:
         try:
@@ -1212,6 +1214,8 @@ class _BacktestStatsWorker(QThread):
                     missing_3m=sum(1 for j in jobs if j.tf == "3m"),
                     short_stocks=len({j.symbol for j in jobs}),
                 )
+            if self._count_partial is not None:
+                stats = dataclasses.replace(stats, partial_stocks=self._count_partial())
             self.done.emit(stats)
         except Exception:  # noqa: BLE001
             _log.exception("[Backtest] Could not read backtest data stats")
@@ -4828,11 +4832,19 @@ class AppService(QObject):
     def get_backtest_symbol_coverage(self) -> dict[str, tuple[str | None, str | None, str]]:
         """Per S&P 500 symbol: backtest first date, last date and status (SRD-GUI-030.008).
 
-        Dates come from 3m data when saved, else 1d. Status is ``ok``, ``late`` (3m starts
-        after the start date, SRD-GUI-030.011), ``behind``, ``1d`` (no 3m yet) or ``none``.
+        Dates come from 3m data when saved, else 1d. Status is ``ok`` when the dates cover the
+        Backtest Data range, ``partial`` when they do not or no 3m is saved, else ``none``.
         """
         cov = self._backtest_coverage_fn()
         return {rec.symbol: cov(rec.ibkr_symbol) for rec in self._sp500}
+
+    def get_backtest_range(self) -> tuple[str, str]:
+        """The Backtest Data range as ``(start, end)`` ISO dates; end is the last trading day
+        when the range runs to the latest day."""
+        settings = BacktestDataSettings.load(self._bkt_store.root)
+        last = _compute_last_trading_day()
+        end = min(settings.end_date or last, last)
+        return settings.start_date.isoformat(), end.isoformat()
 
     def get_backtest_coverage_for(
         self, ibkr_symbol: str,
@@ -4847,19 +4859,16 @@ class AppService(QObject):
     def _backtest_coverage_fn(self) -> Callable[[str], tuple[str | None, str | None, str]]:
         store = self._bkt_store
         settings = BacktestDataSettings.load(store.root)
-        floors = DownloadState.load(store.root).floors
-        end = settings.end_date or _compute_last_trading_day()
+        start = settings.start_date
+        end = min(settings.end_date or _compute_last_trading_day(), _compute_last_trading_day())
 
         def coverage(symbol: str) -> tuple[str | None, str | None, str]:
             cov_3m = store.coverage(symbol, "3m")
             cov = cov_3m or store.coverage(symbol, "1d")
             if cov is None:
                 return None, None, "none"
-            start = max(settings.start_date, floors.get(symbol, settings.start_date))
-            status = ("1d" if cov_3m is None
-                      else "late" if cov[0] > start + _BKT_START_SLACK
-                      else "behind" if cov[1] < end else "ok")
-            return cov[0].isoformat(), cov[1].isoformat(), status
+            full = cov_3m is not None and cov[0] <= start + _BKT_START_SLACK and cov[1] >= end
+            return cov[0].isoformat(), cov[1].isoformat(), "ok" if full else "partial"
 
         return coverage
 
@@ -4867,13 +4876,39 @@ class AppService(QObject):
         """Read store stats in the background; emits ``backtest_stats_changed``."""
         symbols = [r.ibkr_symbol for r in self._sp500]
         build = self._backtest_plan(symbols, delta=False) if symbols else None
-        worker = _BacktestStatsWorker(self._bkt_store, build, parent=self)
+
+        def count_partial() -> int:
+            cov = self._backtest_coverage_fn()
+            return sum(1 for s in symbols if cov(s)[2] == "partial")
+
+        worker = _BacktestStatsWorker(self._bkt_store, build, count_partial, parent=self)
         worker.done.connect(self.backtest_stats_changed)
         worker.finished.connect(worker.deleteLater)
         worker.start()
 
-    def _start_backtest(self, *, delta: bool) -> bool:
-        symbols = [r.ibkr_symbol for r in self._sp500]
+    def fill_backtest_symbols(self, symbols: list[str]) -> bool:
+        """Download the chosen stocks again from the range start, ignoring saved listing dates.
+
+        Args:
+            symbols: IBKR symbols ticked in the Universe table.
+
+        Returns:
+            True when the download started.
+        """
+        if not symbols:
+            return False
+        if self.is_backtest_running():
+            self.log_message.emit("WARNING", "[Backtest] A download is already running — try again")
+            return False
+        root = self._bkt_store.root
+        state = DownloadState.load(root)
+        for symbol in symbols:
+            state.floors.pop(symbol, None)
+        state.save(root)
+        return self._start_backtest(delta=False, symbols=symbols)
+
+    def _start_backtest(self, *, delta: bool, symbols: list[str] | None = None) -> bool:
+        symbols = symbols or [r.ibkr_symbol for r in self._sp500]
         if self.is_backtest_running():
             return False
         if not symbols:

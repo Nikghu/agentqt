@@ -287,6 +287,43 @@ def test_universe_html_has_backtest_columns() -> None:
     assert "function updateBt(sym,c)" in html
 
 
+def test_universe_html_partial_tick_boxes() -> None:
+    """UT-GUI-030.008.M03.T02: Partial rows get a tick box and show the range on their dates."""
+    from us_swing.universe.store import Sp500Record
+
+    html = settings_panel._build_universe_html(
+        [Sp500Record("UNP", "UNP", "Union Pacific", "Industrials")], {}, None,
+        {"UNP": ("2024-01-02", "2026-11-20", "partial")}, ("2022-01-03", "2026-11-20"),
+    )
+
+    assert "function selectPartial()" in html and "function selected()" in html
+    assert 'type="checkbox"' in html
+    assert "Range is 2022-01-03 to 2026-11-20" in html
+
+
+def test_fill_selected_maps_to_ibkr_symbols() -> None:
+    """UT-GUI-030.008.M03.T03: Ticked rows are sent as IBKR symbols; nothing ticked asks to tick."""
+    from types import SimpleNamespace
+    from unittest.mock import MagicMock
+
+    from us_swing.universe.store import Sp500Record
+
+    tab_cls = settings_panel._UniverseTab
+    svc = MagicMock()
+    svc.get_sp500_universe.return_value = [Sp500Record("BRK.B", "BRK B", "Berkshire", "Fin"),
+                                           Sp500Record("UNP", "UNP", "Union Pacific", "Ind")]
+    svc.fill_backtest_symbols.return_value = True
+    tab = SimpleNamespace(_svc=svc, _meta_label=MagicMock(), _run_js=MagicMock())
+
+    tab_cls._fill_selected(tab, [])
+    tab._meta_label.setText.assert_called_with("Tick the stocks to fill first")
+    svc.fill_backtest_symbols.assert_not_called()
+
+    tab_cls._fill_selected(tab, ["BRK.B"])
+    svc.fill_backtest_symbols.assert_called_once_with(["BRK B"])
+    tab._run_js.assert_called_once_with("clearSel();")
+
+
 def test_universe_row_updates_when_stock_done() -> None:
     """UT-GUI-030.012.M06.T01: The next stock in progress updates the previous stock's row only."""
     from types import SimpleNamespace

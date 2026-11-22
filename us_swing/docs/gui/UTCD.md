@@ -987,15 +987,21 @@ Test files:
 | UT-GUI-030.005.M01.T02 | MD-GUI-030.001.M01 | Positive | Clear needs typed CLEAR | type "clear", then "CLEAR" | button disabled, then enabled; accept calls clear | Pass |
 | UT-GUI-030.006.M01.T01 | MD-GUI-030.001.M01 | Positive | Dot state | empty / running / up to date | off / warn / ok | Pass |
 | UT-GUI-030.006.M01.T02 | MD-GUI-030.001.M01 | Negative | Missing 3m shows behind | 498 3m requests missing for 503 stocks | "3-minute candles missing for 503 stocks"; "498 requests · about 3 h 27 min"; Download missing | Pass |
+| UT-GUI-030.006.M01.T03 | MD-GUI-030.001.M01 | Negative | Partial stocks are not Up to date | nothing planned, 224 partial stocks | "224 stocks partial"; hint to Fill selected; button Partial, off (ISS-BKT-0003) | Pass |
 | UT-GUI-030.009.M01.T01 | MD-GUI-030.001.M01 | Negative | Unsaved range is saved on download | saved start 2026-01-01, field set to 2025-11-01 | "Range changed · not saved yet"; button Save range and download; click saves and starts | Pass |
 | UT-GUI-030.009.M02.T01 | MD-GUI-030.004.M02 | Positive | Stats worker counts missing | plan with 1 1d and 2 3m jobs for 2 stocks | missing_1d 1, missing_3m 2, short_stocks 2 | Pass |
+| UT-GUI-030.009.M02.T02 | MD-GUI-030.004.M02 | Positive | Stats worker counts partial | partial count 224 | partial_stocks 224 (ISS-BKT-0003) | Pass |
 | UT-GUI-030.004.M02.T01 | MD-GUI-030.004.M02 | Positive | Auto delta starts once when due | `delta_due` true twice, fake downloader | one delta started; none while it runs | Pass |
 | UT-GUI-030.004.M02.T02 | MD-GUI-030.004.M02 | Negative | Clear refused while downloading | `clear_backtest_data()` while a run is active | returns False; store files kept | Pass |
 | UT-GUI-030.007.M05.T01 | MD-GUI-030.007.M05 | Positive | Sidebar shows backtest state | progress 1d 35 of 503, then finished ok | row "35 of 503" / "1d candles", then "Done" green, hidden after 15 s | Pass |
 | UT-GUI-030.007.M05.T02 | MD-GUI-030.007.M05 | Negative | No status bar | main window class | no status bar handlers | Pass |
-| UT-GUI-030.008.M02.T01 | MD-GUI-030.008.M06 | Positive | Per-stock backtest coverage | AAPL 1d+3m to last day, MSFT 1d only, NVDA none | ok / 1d / none with dates | Pass |
+| UT-GUI-030.008.M02.T01 | MD-GUI-030.008.M06 | Positive | Per-stock backtest coverage | AAPL 1d+3m to last day, MSFT 1d only, NVDA none | ok / partial / none with dates | Pass |
+| UT-GUI-030.008.M02.T02 | MD-GUI-030.008.M06 | Positive | Fill selected | floors UNP, V; fill UNP, UPS | UNP floor removed, V kept; jobs only for UNP, UPS (ISS-BKT-0003) | Pass |
+| UT-GUI-030.008.M02.T03 | MD-GUI-030.008.M06 | Negative | Fill selected refused | nothing ticked; download running | False; floors kept | Pass |
 | UT-GUI-030.008.M03.T01 | MD-GUI-030.008.M06 | Positive | Universe HTML has backtest columns | one record with coverage | BT From column and dates in data | Pass |
-| UT-GUI-030.011.M02.T01 | MD-GUI-030.011.M02 | Positive | Late 3m start marked | start 2024-01-01; AAPL 3m from 2024-04-05; NEWCO floor 2025-03-03, 3m from then | AAPL `late`; NEWCO not `late` | Pass |
+| UT-GUI-030.008.M03.T02 | MD-GUI-030.008.M06 | Positive | Partial rows get tick boxes | UNP partial; range 2022-01-03 to 2026-11-20 | tick box; Select partial / selected functions; range on dates | Pass |
+| UT-GUI-030.008.M03.T03 | MD-GUI-030.008.M06 | Negative | Fill sends IBKR symbols | nothing ticked, then BRK.B ticked | "Tick the stocks to fill first"; fill called with "BRK B"; ticks cleared | Pass |
+| UT-GUI-030.011.M02.T01 | MD-GUI-030.011.M02 | Positive | Partial ignores listing date | start 2024-01-01; AAPL 3m from 2024-04-05; NEWCO floor 2025-03-03, 3m from then | both `partial` (changed by ISS-BKT-0003) | Pass |
 | UT-GUI-030.012.M02.T01 | MD-GUI-030.012.M02 | Positive | One stock's coverage | IBKR symbol "BRK B" listed as "BRK.B"; unknown "ZZZZ" | ("BRK.B", dates, status); None | Pass |
 | UT-GUI-030.012.M06.T01 | MD-GUI-030.012.M06 | Positive | Row updates when stock done | progress BRK B, BRK B, MSFT | one `updateBt("BRK.B", …)` call; "complete for 2 of 2 stocks" | Pass |
 
