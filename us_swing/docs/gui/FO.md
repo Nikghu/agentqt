@@ -1,12 +1,13 @@
 # Functional Overview — GUI Module (GUI)
 
 **Document ID:** FO-GUI
-**Version:** 2.37.0
+**Version:** 2.38.0
 **Traces To:** requirements.md §21, §22, §23.3, §24, §25, §28.1, §29.1, §32
 **Status:** Draft
 **Last Updated:** 2026-11-23
 **Project:** US Swing Trading System
 
+> v2.38.0: FO-GUI-046 adds easy-setup statements (user, 2026-11-23).
 > v2.37.0: FO-GUI-046 adds the AI guide and open-or-create project statements (user, 2026-11-23).
 > v2.36.0: FO-GUI-046 Custom indicators screen added as Draft (user design, 2026-11-23).
 > v2.35.1: FO-GUI-045 approved by user 2026-11-20.
@@ -1097,6 +1098,8 @@ The system shall let a user manage their own indicators in the tool and use them
 - The system shall let the user start a new indicator from a ready project folder and open it in VS Code when it is installed.
 - The system shall put a guide in each new project so an AI helper in VS Code knows the indicator rules and the check command.
 - The system shall let the user open an existing indicator project or create a new one from the same New indicator button.
+- The system shall give a plain-language guide to the indicator API, in each project and in the tool.
+- The system shall set up the Python that indicator tests need with one click.
 
 ### Acceptance Criteria
 

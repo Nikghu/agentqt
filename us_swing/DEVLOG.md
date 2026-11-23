@@ -2,6 +2,17 @@
 
 ---
 
+## [20261123] GUI — Easy indicator setup: API guide + Help, missing files on Open, extension tips, one-click Python
+
+- Type: Feature (branch `feat/usswing-indicator-plugins`, unpushed)
+- FO(s): FO-GUI-046 (2 statements added; SRD-GUI-046.010–.013 added by user request in chat, Implemented)
+- Artifacts: FO, SRD, MD (MD-GUI-046.013.M04 new), UTCD (6 tests Pass), TRACE, Code (`gui/indicator_guides.py`, `gui/indicator_python.py` new; `indicator_project.py` rewritten around `ensure_project_files`; `indicators_section.py` Help + Set up Python), Tests, TODO (T235), CONTEXT, DEVLOG
+- Decisions: one shared Python env for all projects (not one per project); env from the PC's own Python (`py -3.11` first, Windows Store stub skipped); guides added only when missing; two-timeframe recipe lines up by candle close time (no future leak)
+- Checked for real: Set up Python on this PC (85 s) and the project test passed with it; Help, Set up Python and section screenshots
+- Open: T232–T235 user checks; Revision Notes; PR when the user says
+
+---
+
 ## [20261123] GUI — AI guide in new indicator projects; New indicator opens or creates a project
 
 - Type: Feature (branch `feat/usswing-indicator-plugins`, unpushed)

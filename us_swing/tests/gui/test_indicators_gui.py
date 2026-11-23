@@ -8,6 +8,7 @@ on-screen message when a strategy cannot start.
 from __future__ import annotations
 
 import json
+import re
 import shutil
 from collections.abc import Iterator
 from pathlib import Path
@@ -24,6 +25,7 @@ import us_swing.data  # noqa: F401  — load data before db (db ↔ data import 
 from tests.execution.plugin_helpers import SWING_PLUS, frames, swing_plus_source
 from us_swing.core.indicator_plugins import REGISTRY, builtin_names, check_file, plugin_dir
 from us_swing.gui import indicator_project as project
+from us_swing.gui import indicator_python as pysetup
 from us_swing.gui import indicators_section as sec
 from us_swing.gui import strategy_store as store
 from us_swing.gui.app_service import AppService
@@ -353,7 +355,8 @@ def test_project_has_ai_guide(tmp_path: Path) -> None:
 
     assert guide.startswith("# VWAP_CROSS")
     assert "indicator check vwap_cross.py" in guide
-    assert "SWING" in guide and "shift(-1)" in guide and "usswing.dev" in guide
+    assert "SWING" in guide and "negative `shift`" in guide and "usswing.dev" in guide
+    assert "USSWING_API.md" in guide
     assert str(project.sdk_dir()) in guide
     assert "{" not in guide.replace("```", "")
 
@@ -380,6 +383,116 @@ def test_project_dialog_open_or_create(qtbot: QtBot) -> None:
     assert maker.created is True and maker.folder is not None
     assert (maker.folder / "new_one.py").is_file()
     assert [p.name for p in project.list_projects(1)] == ["my_st", "new_one"]
+
+
+def test_project_has_api_guide_and_help(qtbot: QtBot, tmp_path: Path) -> None:
+    """UT-GUI-046.010.M03.T01: New project has the API guide; Help shows it; plain dashes."""
+    folder = project.create_project(1, "MY_ST", root=tmp_path)
+
+    guide = (folder / "USSWING_API.md").read_text(encoding="utf-8")
+    assert all(f"## {n}." in guide for n in range(1, 12))
+    assert "indicator check my_st.py" in guide
+    for name in ("my_st.py", "test_my_st.py"):
+        assert "—" not in (folder / name).read_text(encoding="utf-8")
+    help_dialog = sec.HelpDialog()
+    qtbot.addWidget(help_dialog)
+    assert "Ready recipes" in help_dialog.text.toPlainText()
+
+
+def _recipes() -> list[str]:
+    guide = (project.create_project(9, "RECIPES") / "USSWING_API.md").read_text(encoding="utf-8")
+    section = guide.split("## 8.")[1].split("## 9.")[0]
+    return re.findall(r"```python\n(.*?)```", section, re.S)
+
+
+def test_guide_recipes_pass_the_check(tmp_path: Path) -> None:
+    """UT-GUI-046.010.M03.T02: Every ready recipe in the guide passes the import check."""
+    data = {tf: f.rename(columns={"ts": "datetime"}) for tf, f in frames(160).items()}
+    recipes = _recipes()
+    assert len(recipes) == 4
+    for number, recipe in enumerate(recipes):
+        body = "\n".join("        " + line for line in recipe.splitlines()
+                         if not line.startswith("import "))
+        source = ("import pandas as pd\nfrom usswing import Input, Number, USSwingIndicator\n\n"
+                  "class Recipe(USSwingIndicator):\n"
+                  f"    indicator_name = 'RECIPE_{number}'\n"
+                  "    description = 'recipe'\n    version = '1.0'\n    output_type = 'value'\n"
+                  "    parameters = [Number('Candles', default=20, minimum=2, maximum=50,"
+                  " whole_number=True), Input('Timeframe', options=['3m'], default='3m')]\n\n"
+                  f"    def calculate(self):\n{body}\n")
+        path = tmp_path / f"recipe_{number}.py"
+        path.write_text(source, encoding="utf-8")
+        report = check_file(path, builtin_names=builtin_names(),
+                            candle_probe=lambda: [("AAPL", data)])
+        assert report.ok, (number, report.reasons)
+
+
+def test_opening_old_project_adds_missing_files(tmp_path: Path) -> None:
+    """UT-GUI-046.011.M03.T01: Opening an old project adds missing files, keeps the user's."""
+    folder = tmp_path / "1" / "projects" / "old_one"
+    (folder / ".vscode").mkdir(parents=True)
+    code = "# my own code\n"
+    (folder / "old_one.py").write_text(code, encoding="utf-8")
+    (folder / ".vscode" / "settings.json").write_text('{"editor.fontSize": 15}',
+                                                       encoding="utf-8")
+
+    added = project.ensure_project_files(folder, root=tmp_path)
+
+    assert set(added) == {".env", "CLAUDE.md", "USSWING_API.md", ".vscode/tasks.json",
+                          ".vscode/launch.json", ".vscode/extensions.json",
+                          ".vscode/settings.json"}
+    assert (folder / "old_one.py").read_text(encoding="utf-8") == code
+    settings = json.loads((folder / ".vscode" / "settings.json").read_text(encoding="utf-8"))
+    assert settings["editor.fontSize"] == 15 and "python.envFile" in settings
+    assert project.ensure_project_files(folder, root=tmp_path) == []
+
+
+def test_project_recommends_extensions(tmp_path: Path) -> None:
+    """UT-GUI-046.012.M03.T01: The project recommends the Python and Claude Code extensions."""
+    folder = project.create_project(1, "MY_ST", root=tmp_path)
+
+    data = json.loads((folder / ".vscode" / "extensions.json").read_text(encoding="utf-8"))
+
+    assert data == {"recommendations": ["ms-python.python", "anthropic.claude-code"]}
+
+
+def test_python_setup_makes_env_and_points_projects(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """UT-GUI-046.013.M04.T01: Set up Python makes the env, installs, points projects at it."""
+    folder = project.create_project(1, "MY_ST", root=tmp_path)
+    monkeypatch.setattr(pysetup.shutil, "which",
+                        lambda name: r"C:\Python311\python.exe" if name == "python" else None)
+    calls: list[list[str]] = []
+
+    def fake_run(args: list[str], _timeout: float) -> tuple[int, str]:
+        calls.append(args)
+        if "venv" in args:
+            python = project.env_python(tmp_path)
+            python.parent.mkdir(parents=True)
+            python.write_text("", encoding="utf-8")
+        return 0, "311\n" if "-c" in args else ""
+
+    steps: list[str] = []
+    python = pysetup.setup_python(tmp_path, run=fake_run, step=steps.append)
+
+    assert python == project.env_python(tmp_path)
+    assert calls[1] == [r"C:\Python311\python.exe", "-m", "venv",
+                        str(project.python_env_dir(tmp_path))]
+    assert calls[2][-3:] == ["pandas", "numpy", "pytest"] and calls[2][0] == str(python)
+    settings = json.loads((folder / ".vscode" / "settings.json").read_text(encoding="utf-8"))
+    assert settings[project.INTERPRETER_KEY] == str(python)
+    assert len(steps) == 3 and pysetup.python_ready(tmp_path)
+
+
+def test_python_setup_without_python(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """UT-GUI-046.013.M04.T02: No Python on the PC gives a plain message with the link."""
+    monkeypatch.setattr(pysetup.shutil, "which", lambda _name: None)
+    calls: list[list[str]] = []
+
+    with pytest.raises(pysetup.PythonSetupError, match="python.org"):
+        pysetup.setup_python(tmp_path, run=lambda args, _t: (calls.append(args), (1, ""))[1])
+
+    assert calls == []
 
 
 def test_vs_code_not_found_opens_folder(tmp_path: Path,

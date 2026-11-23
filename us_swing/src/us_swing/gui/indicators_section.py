@@ -30,6 +30,7 @@ from PyQt6.QtWidgets import (
     QPushButton,
     QTableWidget,
     QTableWidgetItem,
+    QTextBrowser,
     QVBoxLayout,
     QWidget,
 )
@@ -46,7 +47,16 @@ from us_swing.core.indicator_plugins import (
 )
 from us_swing.gui.frameless_dialog import FramelessDialog
 from us_swing.gui.icons import mark_danger, set_icon
-from us_swing.gui.indicator_project import create_project, list_projects, open_project
+from us_swing.gui.indicator_guides import api_guide
+from us_swing.gui.indicator_project import (
+    check_command,
+    create_project,
+    ensure_project_files,
+    env_python,
+    list_projects,
+    open_project,
+)
+from us_swing.gui.indicator_python import PythonSetupError, python_ready, setup_python
 from us_swing.gui.popups import confirm, notify
 from us_swing.gui.theme import C
 
@@ -99,6 +109,8 @@ class IndicatorsSection(QWidget):
         self.reload_btn = QPushButton("Reload")
         self.check_btn = QPushButton("Check")
         self.new_btn = QPushButton("New indicator")
+        self.python_btn = QPushButton("Set up Python")
+        self.help_btn = QPushButton("Help")
         set_icon(self.import_btn, "plus", "add")
         set_icon(self.export_btn, "download")
         set_icon(self.remove_btn, "trash-2", "danger")
@@ -112,13 +124,16 @@ class IndicatorsSection(QWidget):
         self.reload_btn.clicked.connect(self._on_reload)
         self.check_btn.clicked.connect(self._on_check)
         self.new_btn.clicked.connect(self._on_new)
+        self.python_btn.clicked.connect(lambda: PythonSetupDialog(self).exec())
+        self.help_btn.clicked.connect(lambda: HelpDialog(self).exec())
 
         buttons = QHBoxLayout()
         for btn in (self.import_btn, self.export_btn, self.remove_btn, self.reload_btn,
                     self.check_btn):
             buttons.addWidget(btn)
         buttons.addStretch()
-        buttons.addWidget(self.new_btn)
+        for btn in (self.new_btn, self.python_btn, self.help_btn):
+            buttons.addWidget(btn)
 
         layout = QVBoxLayout(self)
         layout.addWidget(self.table, 1)
@@ -248,6 +263,11 @@ class IndicatorsSection(QWidget):
         folder = dialog.folder
         if dialog.created:
             _log.info("[Indicators] Made a new indicator project in %s", folder)
+        else:
+            added = ensure_project_files(folder)
+            if added:
+                _log.info("[Indicators] Added %d missing file(s) to the %s project",
+                          len(added), folder.name.upper())
         if open_project(folder):
             text = f"The project was opened in VS Code\n{folder}"
         else:
@@ -442,6 +462,110 @@ class ProjectDialog(FramelessDialog):
             return
         self.created = True
         self.accept()
+
+
+class HelpDialog(FramelessDialog):
+    """The indicator API guide (SRD-GUI-046.010)."""
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__("Indicator guide", min_width=760, min_height=640, parent=parent)
+        self.text = QTextBrowser()
+        self.text.setOpenExternalLinks(True)
+        self.text.setMarkdown(api_guide(check_command("my_st.py")))
+        self.content_layout().addWidget(self.text, 1)
+
+
+class _SetupRun(QObject):
+    """Makes the shared Python environment away from the screen thread."""
+
+    step = pyqtSignal(str)
+    done = pyqtSignal(str)
+    failed = pyqtSignal(str)
+
+    def run(self) -> None:
+        try:
+            python = setup_python(step=self.step.emit)
+        except PythonSetupError as exc:
+            self.failed.emit(str(exc))
+        except Exception as exc:  # noqa: BLE001 — show any problem instead of crashing
+            self.failed.emit(f"Python setup failed: {exc}")
+        else:
+            self.done.emit(str(python))
+
+
+class PythonSetupDialog(FramelessDialog):
+    """Make the shared Python for indicator tests and charts (SRD-GUI-046.013)."""
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__("Set up Python", min_width=520, parent=parent)
+        self._thread: QThread | None = None
+        self._run: _SetupRun | None = None
+        intro = QLabel("Only the test file and the chart preview need Python. Writing and "
+                       "checking an indicator works without it.\nThis makes one Python "
+                       "environment for all your indicator projects, with pandas, numpy and "
+                       "pytest, from the Python installed on this PC.")
+        intro.setWordWrap(True)
+        self.status = QLabel()
+        self.status.setWordWrap(True)
+        self.status.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        self.start_btn = QPushButton()
+        set_icon(self.start_btn, "play", "go")
+        self.start_btn.clicked.connect(self.start)
+        self._show_state()
+
+        layout = self.content_layout()
+        layout.addWidget(intro)
+        layout.addWidget(self.status)
+        row = QHBoxLayout()
+        row.addStretch()
+        row.addWidget(self.start_btn)
+        layout.addLayout(row)
+
+    def _show_state(self) -> None:
+        if python_ready():
+            self.status.setText(f"Python is ready:\n{env_python()}")
+            self.start_btn.setText("Set up again")
+        else:
+            self.status.setText("Not set up yet")
+            self.start_btn.setText("Set up")
+
+    def start(self) -> None:
+        if self._thread is not None:
+            return
+        self.start_btn.setEnabled(False)
+        self.status.setText("Looking for Python on this PC")
+        self._thread = QThread(self)
+        self._run = _SetupRun()
+        self._run.moveToThread(self._thread)
+        self._thread.started.connect(self._run.run)
+        self._run.step.connect(self.status.setText)
+        self._run.done.connect(self._done)
+        self._run.failed.connect(self._failed)
+        self._run.done.connect(self._thread.quit)
+        self._run.failed.connect(self._thread.quit)
+        self._thread.finished.connect(self._finished)
+        self._thread.start()
+
+    def _done(self, python: str) -> None:
+        _log.info("[Indicators] Python for indicator projects is ready")
+        self.status.setText(f"Python is ready:\n{python}\nYour indicator projects now use "
+                            "it. Reopen them in VS Code.")
+        self.start_btn.setText("Set up again")
+
+    def _failed(self, message: str) -> None:
+        _log.warning("[Indicators] Python setup failed: %s", message)
+        self.status.setText(message)
+        self.start_btn.setText("Set up again")
+
+    def _finished(self) -> None:
+        self._thread = None
+        self._run = None
+        self.start_btn.setEnabled(True)
+
+    def reject(self) -> None:
+        if self._thread is not None:
+            return
+        super().reject()
 
 
 def _heading(text: str) -> QLabel:

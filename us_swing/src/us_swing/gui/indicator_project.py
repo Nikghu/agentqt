@@ -3,8 +3,9 @@ Module: MD-GUI-046.007.M03 — New indicator project
 Parent SRD: SRD-GUI-046.007
 
 Makes a VS Code project folder with an example indicator, a test file, VS Code
-settings and a guide for AI helpers (CLAUDE.md, SRD-GUI-046.008), and opens it in
-VS Code (or shows the folder when VS Code is not found).
+settings, the API guide and a guide for AI helpers (SRD-GUI-046.008, .010, .012);
+adds missing support files when an old project is opened (SRD-GUI-046.011); opens it
+in VS Code (or shows the folder when VS Code is not found).
 """
 from __future__ import annotations
 
@@ -14,16 +15,20 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
+from typing import Any
 
 from PyQt6.QtCore import QUrl
 from PyQt6.QtGui import QDesktopServices
 
 from us_swing.core.indicator_plugins import REGISTRY, builtin_names
+from us_swing.gui.indicator_guides import AI_FILE, API_FILE, ai_guide, api_guide
 
 _NAME = re.compile(r"^[A-Z][A-Z0-9_]{1,31}$")
+INTERPRETER_KEY = "python.defaultInterpreterPath"
+RECOMMENDED_EXTENSIONS = ["ms-python.python", "anthropic.claude-code"]
 
 _INDICATOR = '''"""
-{name} — my custom indicator for USSwing.
+{name} - my custom indicator for USSwing.
 
 Gives how far the close is from its average over the last N candles.
 When it is ready, add it in USSwing: Settings > Indicators > Import.
@@ -56,7 +61,8 @@ class {cls}(USSwingIndicator):
 '''
 
 _TEST = '''"""
-Tests for {name}. Run them with your own Python 3.11 and pandas: python -m pytest
+Tests for {name}. They need the project's Python (USSwing: Settings > Indicators >
+Set up Python). Run them with the Testing panel in VS Code, or: python -m pytest
 """
 import numpy as np
 import pandas as pd
@@ -89,70 +95,6 @@ def test_one_value_per_candle():
 #     preview({cls}, load_candles("AAPL", ["3m"], days=5))
 '''
 
-_AI_GUIDE = '''# {name} — guide for AI helpers
-
-This folder is a custom indicator for the USSwing trading tool. The indicator is
-`{stem}.py`. Change that file to do what the user asks, then check it as below.
-
-## Rules (the tool refuses the file if one is broken)
-
-- One class per file that extends `USSwingIndicator`
-  (`from usswing import Input, Number, USSwingIndicator`). pandas and numpy are fine.
-- Set all of these on the class:
-  - `indicator_name`: 2 to 32 capital letters, numbers or `_`, starting with a letter.
-    Keep `{name}` unless the user asks for another name.
-  - `description` and `version`: not empty.
-  - `output_type`: `"value"` (a number per candle) or `"signal"` (above 0 = up,
-    below 0 = down, 0 = nothing).
-- `indicator_name` must not be a built-in name: {builtins}.
-- `parameters` lists every popup option, in popup order, each label once:
-  - `Number("Candles", default=20, minimum=2, maximum=500, whole_number=True)`
-  - `Input("Timeframe", options=["3m", "15m", "30m", "1d"], default="3m")`
-  - Keep `Input("Symbol Type", options=["Spot", "RSP"], default="Spot")` first if the
-    indicator reads candles with it.
-- In `calculate()`:
-  - Read each option with `self.parameter("Label")`; every label read must be in
-    `parameters`.
-  - Read candles with `self.candles(symbol_type=..., timeframe=...)`. You get a pandas
-    DataFrame with columns datetime, open, high, low, close, volume, oldest first.
-    Timeframes: 3m, 15m, 30m, 1d, 1w.
-  - The first timeframe you read is the main one. Return one value per main candle
-    (a pandas Series, a list or a numpy array of the same length). NaN is fine while
-    there are not enough candles yet; infinite values are not.
-  - Never use future candles: no `shift(-1)` or any negative shift, no
-    `rolling(..., center=True)`. A value must not change when newer candles arrive.
-  - Optional: `self.debug_value("Name", series)` keeps extra series for the test table
-    and the chart.
-  - It must finish in under 2 seconds. Use pandas or numpy, not Python loops over
-    many candles.
-- Do not import `usswing.dev` in `{stem}.py`. Use it only in tests or scripts.
-- No file or network access and no `sys.exit()` in the indicator.
-
-## Check it (do this after every change)
-
-Run this in the terminal from this folder (PowerShell):
-
-```
-{check}
-```
-
-It prints one line per check. A line with ✘ gives a reason; fix it and run the check
-again until it ends with "passed on N stock(s)". Exit code 0 means it passed.
-VS Code task "Check indicator" runs the same command.
-
-## Tests and chart (need Python 3.11 with pandas)
-
-- `test_{stem}.py` uses `usswing.testing.run` on made-up candles. Keep it passing:
-  `python -m pytest` (the `.env` file puts the usswing library on the path).
-- `usswing.testing.load_candles("AAPL", ["3m"], days=5)` reads the tool's saved candles.
-- `usswing.dev.preview({cls}, candles)` opens a chart in the browser (scripts only).
-- The usswing library code, if you need details: `{sdk}`
-
-## When it passes
-
-Tell the user to add it in the tool: Settings > Indicators > Import, and pick `{stem}.py`.
-'''
-
 
 def sdk_dir() -> Path:
     """Folder that holds the ``usswing`` library files shipped with the tool."""
@@ -172,8 +114,25 @@ def tool_command() -> list[str]:
     return [sys.executable, str(Path(us_swing.__file__).resolve().parents[2] / "run_gui.py")]
 
 
+def check_command(file_name: str) -> str:
+    """The PowerShell command that checks ``file_name`` from its project folder."""
+    return "& " + " ".join(f'"{part}"' for part in tool_command()) + \
+        f" indicator check {file_name}"
+
+
 def projects_dir(user_id: int, root: Path | None = None) -> Path:
     return (root or REGISTRY.root) / str(user_id) / "projects"
+
+
+def python_env_dir(root: Path | None = None) -> Path:
+    """The one Python environment shared by all indicator projects (SRD-GUI-046.013)."""
+    return (root or REGISTRY.root) / "python"
+
+
+def env_python(root: Path | None = None) -> Path:
+    scripts = "Scripts" if sys.platform == "win32" else "bin"
+    name = "python.exe" if sys.platform == "win32" else "python"
+    return python_env_dir(root) / scripts / name
 
 
 def list_projects(user_id: int, root: Path | None = None) -> list[Path]:
@@ -196,47 +155,67 @@ def create_project(user_id: int, name: str, root: Path | None = None) -> Path:
         raise ValueError("Use 2 to 32 capital letters, numbers or _, starting with a "
                          "letter, for example MY_ST")
     stem = name.lower()
-    cls = "".join(part.capitalize() for part in stem.split("_") if part) or "MyIndicator"
     folder = projects_dir(user_id, root) / stem
     if folder.exists():
         raise FileExistsError(f"A project called {name} already exists in {folder}")
-    vscode = folder / ".vscode"
-    vscode.mkdir(parents=True)
-    sdk = str(sdk_dir())
-    command = tool_command()
+    folder.mkdir(parents=True)
+    cls = _class_name(stem)
     (folder / f"{stem}.py").write_text(_INDICATOR.format(name=name, cls=cls), encoding="utf-8")
     (folder / f"test_{stem}.py").write_text(_TEST.format(name=name, cls=cls, stem=stem),
                                              encoding="utf-8")
-    (folder / ".env").write_text(f"PYTHONPATH={sdk}\n", encoding="utf-8")
-    check = "& " + " ".join(f'"{part}"' for part in command) + f" indicator check {stem}.py"
-    (folder / "CLAUDE.md").write_text(_AI_GUIDE.format(
-        name=name, stem=stem, cls=cls, sdk=sdk, check=check,
-        builtins=", ".join(sorted(builtin_names()))), encoding="utf-8")
-    _write_json(vscode / "settings.json", {
-        "python.analysis.extraPaths": [sdk],
-        "python.envFile": "${workspaceFolder}/.env",
-        "python.testing.pytestEnabled": True,
-        "python.testing.pytestArgs": ["."],
-    })
-    _write_json(vscode / "tasks.json", {"version": "2.0.0", "tasks": [{
-        "label": "Check indicator",
-        "type": "process",
-        "command": command[0],
-        "args": [*command[1:], "indicator", "check", f"${{workspaceFolder}}/{stem}.py"],
-        "group": {"kind": "test", "isDefault": True},
-        "problemMatcher": [],
-    }]})
-    _write_json(vscode / "launch.json", {"version": "0.2.0", "configurations": [{
-        "name": "Run tests",
-        "type": "debugpy",
-        "request": "launch",
-        "module": "pytest",
-        "args": ["-q"],
-        "cwd": "${workspaceFolder}",
-        "env": {"PYTHONPATH": sdk},
-        "console": "integratedTerminal",
-    }]})
+    ensure_project_files(folder, root)
     return folder
+
+
+def ensure_project_files(folder: Path, root: Path | None = None) -> list[str]:
+    """Add the guides and VS Code files a project is missing; the user's code is not touched.
+
+    Returns:
+        The files that were added or changed, relative to ``folder``.
+    """
+    stem = folder.name
+    name = stem.upper()
+    sdk = str(sdk_dir())
+    command = tool_command()
+    check = check_command(f"{stem}.py")
+    vscode = folder / ".vscode"
+    vscode.mkdir(parents=True, exist_ok=True)
+    wanted: dict[str, str] = {
+        ".env": f"PYTHONPATH={sdk}\n",
+        AI_FILE: ai_guide(name, stem, _class_name(stem), check, sdk,
+                          ", ".join(sorted(builtin_names()))),
+        API_FILE: api_guide(check),
+        ".vscode/tasks.json": _json({"version": "2.0.0", "tasks": [{
+            "label": "Check indicator",
+            "type": "process",
+            "command": command[0],
+            "args": [*command[1:], "indicator", "check", f"${{workspaceFolder}}/{stem}.py"],
+            "group": {"kind": "test", "isDefault": True},
+            "problemMatcher": [],
+        }]}),
+        ".vscode/launch.json": _json({"version": "0.2.0", "configurations": [{
+            "name": "Run tests",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "pytest",
+            "args": ["-q"],
+            "cwd": "${workspaceFolder}",
+            "env": {"PYTHONPATH": sdk},
+            "console": "integratedTerminal",
+        }]}),
+        ".vscode/extensions.json": _json({"recommendations": RECOMMENDED_EXTENSIONS}),
+    }
+    added = [rel for rel, text in wanted.items() if _write_new(folder / rel, text)]
+    if _update_settings(folder, root):
+        added.append(".vscode/settings.json")
+    return added
+
+
+def point_projects_at_python(root: Path | None = None) -> int:
+    """Set every user's projects to use the shared Python; returns how many changed."""
+    base = root or REGISTRY.root
+    folders = sorted(base.glob("*/projects/*")) if base.is_dir() else []
+    return sum(_update_settings(f, root) for f in folders if f.is_dir())
 
 
 def open_project(folder: Path) -> bool:
@@ -254,5 +233,39 @@ def open_project(folder: Path) -> bool:
     return False
 
 
-def _write_json(path: Path, data: object) -> None:
-    path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+def _class_name(stem: str) -> str:
+    return "".join(part.capitalize() for part in stem.split("_") if part) or "MyIndicator"
+
+
+def _update_settings(folder: Path, root: Path | None) -> bool:
+    """Write the project's VS Code settings, keeping the user's own keys."""
+    path = folder / ".vscode" / "settings.json"
+    try:
+        settings: dict[str, Any] = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        settings = {}
+    before = dict(settings)
+    settings.setdefault("python.analysis.extraPaths", [str(sdk_dir())])
+    settings.setdefault("python.envFile", "${workspaceFolder}/.env")
+    settings.setdefault("python.testing.pytestEnabled", True)
+    settings.setdefault("python.testing.pytestArgs", ["."])
+    python = env_python(root)
+    if python.is_file():
+        settings[INTERPRETER_KEY] = str(python)
+    if settings == before and path.is_file():
+        return False
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(_json(settings), encoding="utf-8")
+    return True
+
+
+def _write_new(path: Path, text: str) -> bool:
+    if path.exists():
+        return False
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text, encoding="utf-8")
+    return True
+
+
+def _json(data: object) -> str:
+    return json.dumps(data, indent=2) + "\n"
