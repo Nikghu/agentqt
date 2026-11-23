@@ -1,12 +1,13 @@
 # Unit Test Case Document â€” Execution & Risk Management (EXE)
 
 **Document ID:** UTCD-EXE
-**Version:** 1.26.3
+**Version:** 1.26.4
 **Traces To:** MD-EXE v1.15.0
 **Status:** Draft
 **Last Updated:** 2026-11-23
 **Project:** US Swing Trading System
 
+> v1.26.4: UT-EXE-022.017.M07.T01 Pass (P4).
 > v1.26.3: UT-EXE-022.012.M05.T04 added — live frames (datetime column) warn once per candle.
 > v1.26.2: UT-EXE-022.015–.016 (4 tests) Pass (P3).
 > v1.26.1: UT-EXE-022.014.M05.T03 added — refused start reaches the screen.
@@ -1020,5 +1021,5 @@
 | UT-EXE-022.015.M06.T02 | MD-EXE-022.015.M06 | Positive | Run gives values and a debug table | SWING example on those candles | values and table with time, value, debug columns | Pass |
 | UT-EXE-022.016.M06.T01 | MD-EXE-022.015.M06 | Positive | Command line check passes | `indicator check swing.py --symbols AAPL --trace t.csv` | ✔ lines, exit 0, CSV written | Pass |
 | UT-EXE-022.016.M06.T02 | MD-EXE-022.015.M06 | Negative | Command line check refuses | file with a missing field | ✘ line with the reason, exit 1 | Pass |
-| UT-EXE-022.017.M07.T01 | MD-EXE-022.017.M07 | Positive | Preview writes an HTML chart | SWING example; browser open stubbed | HTML file holds the indicator name and the debug series names | Not Run |
+| UT-EXE-022.017.M07.T01 | MD-EXE-022.017.M07 | Positive | Preview writes an HTML chart | SWING example; browser open stubbed | HTML file holds the indicator name and the debug series names | Pass |
 

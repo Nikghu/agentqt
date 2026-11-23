@@ -2,6 +2,17 @@
 
 ---
 
+## [20261123] EXE — Custom indicator plugins P4: chart preview; live warning-per-candle fix
+
+- Type: Feature + fix (branch `feat/usswing-indicator-plugins`, unpushed)
+- FO(s): FO-EXE-022 (SRD-EXE-022.017 Implemented — all FO-EXE-022 and FO-GUI-046 SRDs now built)
+- Artifacts: SRD, DD (preview layout), UTCD (UT-EXE-022.017.M07.T01 Pass; UT-EXE-022.012.M05.T04 added, Pass), TRACE, Code (`sdk/usswing/dev.py`, `core/indicator_plugins/_runner.py`, project template hint), Tests (`tests/execution/test_usswing_dev.py`, runtime test), TODO (T230), CONTEXT, DEVLOG
+- Decisions: lines go in a second pane (not over candles); signal arrows on candles; chart script read from the install, web copy only as fallback; title and data escaped
+- Fix: `_candle_key` now reads `datetime` (live) or `ts` (replay), so a failing indicator warns once per candle, not on every failure
+- Open: T232/T233 user checks; Revision Notes; PR when the user says
+
+---
+
 ## [20261123] EXE, GUI — Custom indicator plugins P3: testing kit, indicator check command, Check button, New indicator project
 
 - Type: Feature (branch `feat/usswing-indicator-plugins`, unpushed)

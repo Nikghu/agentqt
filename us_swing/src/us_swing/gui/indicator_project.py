@@ -82,6 +82,10 @@ def test_one_value_per_candle():
 # To try it on the tool's saved candles:
 #     from usswing.testing import load_candles
 #     print(run({cls}, load_candles("AAPL", ["3m"], days=5)).table().tail(20))
+#
+# To see it on a chart in the browser (only in tests or scripts, never in {stem}.py):
+#     from usswing.dev import preview
+#     preview({cls}, load_candles("AAPL", ["3m"], days=5))
 '''
 
 

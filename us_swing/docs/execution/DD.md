@@ -4299,7 +4299,7 @@ class USSwingIndicator:
 
 ## DD-EXE-022.017.D01 — Chart Preview (Could)
 
-**Traces:** SRD-EXE-022.017. `usswing.dev.preview(indicator_class, candles, values=None, *, path=None)` writes one HTML file. It holds the candles, the indicator values (a line for "value", markers for "signal") and the debug series (lines), drawn with the same TradingView lightweight-charts script the tool's chart uses (embedded). It then opens the file in the default browser. It is built last; an indicator file that imports it is refused (DD-EXE-022.005.D01).
+**Traces:** SRD-EXE-022.017. `usswing.dev.preview(indicator_class, candles, values=None, *, path=None)` writes one HTML file. It holds the candles, the indicator values (a line for "value", markers for "signal") and the debug series (lines), drawn with the same TradingView lightweight-charts script the tool's chart uses (embedded). It then opens the file in the default browser. Value and debug series are lines in a second pane under the candles; a "signal" indicator draws up arrows for values above 0 and down arrows below 0. Times are shown in New York time. The script is read from the tool's install (`us_swing/gui/resources`) and falls back to the web copy when not found. It is built last; an indicator file that imports it is refused (DD-EXE-022.005.D01).
 
 **Cross-tool notes.** `core/expr/series.py` belongs to BKT (MD-BKT-002.021.M10): only the registry lookup is added. GUI uses the registry for the trigger popup and the Settings Indicators section (FO-GUI-046, see `gui/MD.md`).
 
