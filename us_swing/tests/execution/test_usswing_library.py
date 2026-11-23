@@ -1,6 +1,7 @@
 """Tests for MD-EXE-022.001.M01 — the public ``usswing`` library."""
 from __future__ import annotations
 
+import ast
 import importlib.util
 from pathlib import Path
 from typing import Any
@@ -46,7 +47,12 @@ def test_public_names_import() -> None:
     assert {"USSwingIndicator", "Number", "Input"} <= set(usswing.__all__)
     package = Path(usswing.__file__).parent
     for file in package.glob("*.py"):
-        assert "us_swing" not in file.read_text(encoding="utf-8"), file.name
+        tree = ast.parse(file.read_text(encoding="utf-8"))
+        imported = [alias.name for node in ast.walk(tree) if isinstance(node, ast.Import)
+                    for alias in node.names]
+        imported += [node.module or "" for node in ast.walk(tree)
+                     if isinstance(node, ast.ImportFrom)]
+        assert not [m for m in imported if m.split(".")[0] == "us_swing"], file.name
 
 
 def test_old_and_internal_names_not_offered() -> None:
