@@ -2,6 +2,16 @@
 
 ---
 
+## [20261123] GUI — AI guide in new indicator projects; New indicator opens or creates a project
+
+- Type: Feature (branch `feat/usswing-indicator-plugins`, unpushed)
+- FO(s): FO-GUI-046 (2 statements added; SRD-GUI-046.008–.009 added by user request in chat, Implemented)
+- Artifacts: FO, SRD, MD, UTCD (2 tests Pass), TRACE, Code (`gui/indicator_project.py` CLAUDE.md + `list_projects`, `gui/indicators_section.py` `ProjectDialog`), Tests, TODO (T234), CONTEXT, DEVLOG
+- Decisions: option A (guide file) chosen over B (Create with AI in the tool); built-in names in the guide come from the tool; checked for real: the check command written in the guide passes; dialog checked by screenshot
+- Open: T232–T234 user checks; Revision Notes; PR when the user says
+
+---
+
 ## [20261123] EXE — Custom indicator plugins P4: chart preview; live warning-per-candle fix
 
 - Type: Feature + fix (branch `feat/usswing-indicator-plugins`, unpushed)

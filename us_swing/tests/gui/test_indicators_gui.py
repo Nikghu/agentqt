@@ -345,6 +345,43 @@ def test_new_project_files(tmp_path: Path) -> None:
         project.create_project(1, "MY_ST", root=tmp_path)
 
 
+def test_project_has_ai_guide(tmp_path: Path) -> None:
+    """UT-GUI-046.008.M03.T01: New project has an AI guide with the rules and check command."""
+    folder = project.create_project(1, "VWAP_CROSS", root=tmp_path)
+
+    guide = (folder / "CLAUDE.md").read_text(encoding="utf-8")
+
+    assert guide.startswith("# VWAP_CROSS")
+    assert "indicator check vwap_cross.py" in guide
+    assert "SWING" in guide and "shift(-1)" in guide and "usswing.dev" in guide
+    assert str(project.sdk_dir()) in guide
+    assert "{" not in guide.replace("```", "")
+
+
+def test_project_dialog_open_or_create(qtbot: QtBot) -> None:
+    """UT-GUI-046.009.M02.T01: New indicator lists projects to open and can create one."""
+    made = project.create_project(1, "MY_ST")
+    opener = sec.ProjectDialog(1)
+    qtbot.addWidget(opener)
+    assert [opener.projects.item(i).text() for i in range(opener.projects.count())] == ["MY_ST"]
+    assert not opener.open_btn.isEnabled()
+
+    opener.projects.setCurrentRow(0)
+    opener.open_btn.click()
+
+    assert opener.folder == made and opener.created is False
+    maker = sec.ProjectDialog(1)
+    qtbot.addWidget(maker)
+    maker.name.setText("MY_ST")
+    maker.name.returnPressed.emit()
+    assert "already exists" in maker.error.text() and maker.folder is None
+    maker.name.setText("new_one")
+    maker.name.returnPressed.emit()
+    assert maker.created is True and maker.folder is not None
+    assert (maker.folder / "new_one.py").is_file()
+    assert [p.name for p in project.list_projects(1)] == ["my_st", "new_one"]
+
+
 def test_vs_code_not_found_opens_folder(tmp_path: Path,
                                         monkeypatch: pytest.MonkeyPatch) -> None:
     """UT-GUI-046.007.M03.T02: VS Code not found."""

@@ -1,12 +1,13 @@
 # Unit Test Case Document â€” GUI Module (GUI)
 
 **Document ID:** UTCD-GUI
-**Version:** 1.58.2
+**Version:** 1.58.3
 **Traces To:** MD-GUI v1.7.0
 **Status:** Draft
 **Last Updated:** 2026-11-23
 **Project:** US Swing Trading System
 
+> v1.58.3: UT-GUI-046.008.M03.T01 and UT-GUI-046.009.M02.T01 added, Pass.
 > v1.58.2: UT-GUI-046.006–.007 (3 tests) Pass (P3).
 > v1.58.1: UT-GUI-046.001–.005 (13 tests) Pass (P2).
 > v1.58.0: 16 test cases for FO-GUI-046 Custom Indicators screen (UT-GUI-046.*).
@@ -1252,3 +1253,5 @@ Test files:
 | UT-GUI-046.006.M02.T01 | MD-GUI-046.003.M02 | Positive | Check shows the last 20 values | SWING_PLUS on AAPL test candles | 20 rows with time, value and debug columns | Pass |
 | UT-GUI-046.007.M03.T01 | MD-GUI-046.007.M03 | Positive | New project files | `create_project(1, "MY_ST")` | folder with `my_st.py`, `test_my_st.py`, `.vscode/settings.json`, `.vscode/launch.json`; example passes the check | Pass |
 | UT-GUI-046.007.M03.T02 | MD-GUI-046.007.M03 | Edge | VS Code not found | `code` not on PATH | folder opened instead | Pass |
+| UT-GUI-046.008.M03.T01 | MD-GUI-046.007.M03 | Positive | New project has an AI guide | `create_project(1, "VWAP_CROSS")` | CLAUDE.md names VWAP_CROSS, the check command, built-in names, no-future rule and the library folder | Pass |
+| UT-GUI-046.009.M02.T01 | MD-GUI-046.003.M02 | Positive | Open or create a project | project MY_ST exists; open it; then create MY_ST and new_one | MY_ST listed and opened; MY_ST refused as existing; NEW_ONE made | Pass |

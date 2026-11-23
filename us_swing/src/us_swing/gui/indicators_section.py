@@ -25,6 +25,8 @@ from PyQt6.QtWidgets import (
     QHeaderView,
     QLabel,
     QLineEdit,
+    QListWidget,
+    QListWidgetItem,
     QPushButton,
     QTableWidget,
     QTableWidgetItem,
@@ -44,7 +46,7 @@ from us_swing.core.indicator_plugins import (
 )
 from us_swing.gui.frameless_dialog import FramelessDialog
 from us_swing.gui.icons import mark_danger, set_icon
-from us_swing.gui.indicator_project import create_project, open_project
+from us_swing.gui.indicator_project import create_project, list_projects, open_project
 from us_swing.gui.popups import confirm, notify
 from us_swing.gui.theme import C
 
@@ -240,11 +242,12 @@ class IndicatorsSection(QWidget):
         dialog.exec()
 
     def _on_new(self) -> None:
-        dialog = _NewIndicatorDialog(self._demo.get_active_user().user_id, self)
+        dialog = ProjectDialog(self._demo.get_active_user().user_id, self)
         if dialog.exec() != FramelessDialog.DialogCode.Accepted or dialog.folder is None:
             return
         folder = dialog.folder
-        _log.info("[Indicators] Made a new indicator project in %s", folder)
+        if dialog.created:
+            _log.info("[Indicators] Made a new indicator project in %s", folder)
         if open_project(folder):
             text = f"The project was opened in VS Code\n{folder}"
         else:
@@ -370,13 +373,31 @@ class CheckDialog(FramelessDialog):
         super().reject()
 
 
-class _NewIndicatorDialog(FramelessDialog):
-    """Ask for the new indicator's name and make its project folder."""
+class ProjectDialog(FramelessDialog):
+    """Open an existing indicator project or make a new one (SRD-GUI-046.007, .009)."""
 
     def __init__(self, user_id: int, parent: QWidget | None = None) -> None:
-        super().__init__("New indicator", min_width=380, parent=parent)
+        super().__init__("New indicator", min_width=380, min_height=420, parent=parent)
         self._user_id = user_id
         self.folder: Path | None = None
+        self.created = False
+
+        self.projects = QListWidget()
+        for folder in list_projects(user_id):
+            item = QListWidgetItem(folder.name.upper())
+            item.setData(Qt.ItemDataRole.UserRole, str(folder))
+            self.projects.addItem(item)
+        self.open_btn = QPushButton("Open")
+        set_icon(self.open_btn, "folder")
+        self.open_btn.setEnabled(False)
+        self.projects.itemSelectionChanged.connect(
+            lambda: self.open_btn.setEnabled(bool(self.projects.selectedItems())))
+        self.projects.itemDoubleClicked.connect(lambda _item: self._open())
+        self.open_btn.clicked.connect(self._open)
+        empty = QLabel("No projects yet")
+        empty.setVisible(self.projects.count() == 0)
+        self.projects.setVisible(self.projects.count() > 0)
+
         self.name = QLineEdit()
         self.name.setPlaceholderText("MY_ST")
         self.name.setStyleSheet("QLineEdit { outline: none; } QLineEdit:focus { outline: none; }")
@@ -388,6 +409,15 @@ class _NewIndicatorDialog(FramelessDialog):
         self.name.returnPressed.connect(self._create)
 
         layout = self.content_layout()
+        layout.addWidget(_heading("Open a project"))
+        layout.addWidget(self.projects, 1)
+        layout.addWidget(empty)
+        open_row = QHBoxLayout()
+        open_row.addStretch()
+        open_row.addWidget(self.open_btn)
+        layout.addLayout(open_row)
+        layout.addSpacing(8)
+        layout.addWidget(_heading("Create a project"))
         layout.addWidget(QLabel("Indicator name"))
         layout.addWidget(self.name)
         layout.addWidget(self.error)
@@ -396,10 +426,27 @@ class _NewIndicatorDialog(FramelessDialog):
         row.addWidget(create)
         layout.addLayout(row)
 
+    def _open(self) -> None:
+        items = self.projects.selectedItems()
+        if not items:
+            return
+        self.folder = Path(items[0].data(Qt.ItemDataRole.UserRole))
+        self.created = False
+        self.accept()
+
     def _create(self) -> None:
         try:
             self.folder = create_project(self._user_id, self.name.text())
         except (ValueError, FileExistsError, OSError) as exc:
             self.error.setText(str(exc))
             return
+        self.created = True
         self.accept()
+
+
+def _heading(text: str) -> QLabel:
+    label = QLabel(text)
+    font = label.font()
+    font.setBold(True)
+    label.setFont(font)
+    return label

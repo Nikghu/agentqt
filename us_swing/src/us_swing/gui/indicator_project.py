@@ -2,8 +2,9 @@
 Module: MD-GUI-046.007.M03 — New indicator project
 Parent SRD: SRD-GUI-046.007
 
-Makes a VS Code project folder with an example indicator, a test file and VS Code
-settings, and opens it in VS Code (or shows the folder when VS Code is not found).
+Makes a VS Code project folder with an example indicator, a test file, VS Code
+settings and a guide for AI helpers (CLAUDE.md, SRD-GUI-046.008), and opens it in
+VS Code (or shows the folder when VS Code is not found).
 """
 from __future__ import annotations
 
@@ -17,7 +18,7 @@ from pathlib import Path
 from PyQt6.QtCore import QUrl
 from PyQt6.QtGui import QDesktopServices
 
-from us_swing.core.indicator_plugins import REGISTRY
+from us_swing.core.indicator_plugins import REGISTRY, builtin_names
 
 _NAME = re.compile(r"^[A-Z][A-Z0-9_]{1,31}$")
 
@@ -88,6 +89,70 @@ def test_one_value_per_candle():
 #     preview({cls}, load_candles("AAPL", ["3m"], days=5))
 '''
 
+_AI_GUIDE = '''# {name} — guide for AI helpers
+
+This folder is a custom indicator for the USSwing trading tool. The indicator is
+`{stem}.py`. Change that file to do what the user asks, then check it as below.
+
+## Rules (the tool refuses the file if one is broken)
+
+- One class per file that extends `USSwingIndicator`
+  (`from usswing import Input, Number, USSwingIndicator`). pandas and numpy are fine.
+- Set all of these on the class:
+  - `indicator_name`: 2 to 32 capital letters, numbers or `_`, starting with a letter.
+    Keep `{name}` unless the user asks for another name.
+  - `description` and `version`: not empty.
+  - `output_type`: `"value"` (a number per candle) or `"signal"` (above 0 = up,
+    below 0 = down, 0 = nothing).
+- `indicator_name` must not be a built-in name: {builtins}.
+- `parameters` lists every popup option, in popup order, each label once:
+  - `Number("Candles", default=20, minimum=2, maximum=500, whole_number=True)`
+  - `Input("Timeframe", options=["3m", "15m", "30m", "1d"], default="3m")`
+  - Keep `Input("Symbol Type", options=["Spot", "RSP"], default="Spot")` first if the
+    indicator reads candles with it.
+- In `calculate()`:
+  - Read each option with `self.parameter("Label")`; every label read must be in
+    `parameters`.
+  - Read candles with `self.candles(symbol_type=..., timeframe=...)`. You get a pandas
+    DataFrame with columns datetime, open, high, low, close, volume, oldest first.
+    Timeframes: 3m, 15m, 30m, 1d, 1w.
+  - The first timeframe you read is the main one. Return one value per main candle
+    (a pandas Series, a list or a numpy array of the same length). NaN is fine while
+    there are not enough candles yet; infinite values are not.
+  - Never use future candles: no `shift(-1)` or any negative shift, no
+    `rolling(..., center=True)`. A value must not change when newer candles arrive.
+  - Optional: `self.debug_value("Name", series)` keeps extra series for the test table
+    and the chart.
+  - It must finish in under 2 seconds. Use pandas or numpy, not Python loops over
+    many candles.
+- Do not import `usswing.dev` in `{stem}.py`. Use it only in tests or scripts.
+- No file or network access and no `sys.exit()` in the indicator.
+
+## Check it (do this after every change)
+
+Run this in the terminal from this folder (PowerShell):
+
+```
+{check}
+```
+
+It prints one line per check. A line with ✘ gives a reason; fix it and run the check
+again until it ends with "passed on N stock(s)". Exit code 0 means it passed.
+VS Code task "Check indicator" runs the same command.
+
+## Tests and chart (need Python 3.11 with pandas)
+
+- `test_{stem}.py` uses `usswing.testing.run` on made-up candles. Keep it passing:
+  `python -m pytest` (the `.env` file puts the usswing library on the path).
+- `usswing.testing.load_candles("AAPL", ["3m"], days=5)` reads the tool's saved candles.
+- `usswing.dev.preview({cls}, candles)` opens a chart in the browser (scripts only).
+- The usswing library code, if you need details: `{sdk}`
+
+## When it passes
+
+Tell the user to add it in the tool: Settings > Indicators > Import, and pick `{stem}.py`.
+'''
+
 
 def sdk_dir() -> Path:
     """Folder that holds the ``usswing`` library files shipped with the tool."""
@@ -109,6 +174,14 @@ def tool_command() -> list[str]:
 
 def projects_dir(user_id: int, root: Path | None = None) -> Path:
     return (root or REGISTRY.root) / str(user_id) / "projects"
+
+
+def list_projects(user_id: int, root: Path | None = None) -> list[Path]:
+    """The user's indicator project folders, by name (SRD-GUI-046.009)."""
+    folder = projects_dir(user_id, root)
+    if not folder.is_dir():
+        return []
+    return sorted((p for p in folder.iterdir() if p.is_dir()), key=lambda p: p.name)
 
 
 def create_project(user_id: int, name: str, root: Path | None = None) -> Path:
@@ -135,6 +208,10 @@ def create_project(user_id: int, name: str, root: Path | None = None) -> Path:
     (folder / f"test_{stem}.py").write_text(_TEST.format(name=name, cls=cls, stem=stem),
                                              encoding="utf-8")
     (folder / ".env").write_text(f"PYTHONPATH={sdk}\n", encoding="utf-8")
+    check = "& " + " ".join(f'"{part}"' for part in command) + f" indicator check {stem}.py"
+    (folder / "CLAUDE.md").write_text(_AI_GUIDE.format(
+        name=name, stem=stem, cls=cls, sdk=sdk, check=check,
+        builtins=", ".join(sorted(builtin_names()))), encoding="utf-8")
     _write_json(vscode / "settings.json", {
         "python.analysis.extraPaths": [sdk],
         "python.envFile": "${workspaceFolder}/.env",
