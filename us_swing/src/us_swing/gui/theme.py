@@ -1346,7 +1346,7 @@ QListWidget#result_list::item {{ border-radius: 5px; border: 1px solid transpare
 QListWidget#result_list::item:hover {{ background: {hover}; }}
 QListWidget#result_list::item:selected {{ background: {active_bg}; border-color: transparent; }}
 QWidget#result_row, QWidget#result_row QLabel {{ background: transparent; }}
-QLabel#row_symbol {{ color: {text}; font-size: 10pt; font-weight: bold; }}
+QLabel#row_symbol {{ color: {text}; font-size: 10pt; font-weight: normal; }}
 QFrame#tree_row, QFrame#tree_folder {{ background: transparent; border-radius: 5px; }}
 QFrame#tree_row:hover, QFrame#tree_folder:hover {{ background: {hover}; }}
 QFrame#tree_row[active="true"] {{ background: {hover}; }}
@@ -1359,7 +1359,7 @@ QFrame#tree_branch {{
 }}
 QFrame#tree_footer {{ background: transparent; border: none; border-top: 1px solid {line}; }}
 QLabel#tree_folder_name {{ color: {text}; font-weight: bold; }}
-QLabel#tree_preset_name {{ color: {text}; }}
+QLabel#tree_preset_name {{ color: {text}; font-weight: bold; }}
 QLabel#open_preset_name {{ color: {text}; font-weight: bold; }}
 QFrame#tree_stepper {{ background: transparent; border: none; }}
 QComboBox#flat_combo {{
