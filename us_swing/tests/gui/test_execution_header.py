@@ -77,22 +77,34 @@ def test_chips_running_and_unrealised(qtbot: QtBot) -> None:
     assert "+$6.00" in header.unrealised_chip.text()
 
 
-@pytest.mark.parametrize(("mode", "name"), [("paper", "Paper broker"), ("live", "IBKR live")])
-def test_broker_chip_follows_mode(qtbot: QtBot, mode: str, name: str) -> None:
-    """UT-GUI-024.001.M01.T02: Broker chip follows the active user's mode."""
-    header = eh.ExecutionHeader(_Svc(mode=mode))  # type: ignore[arg-type]
+@pytest.mark.parametrize(("mode", "connected", "name", "colour"), [
+    ("paper", False, "Paper", eh.C.GREEN),
+    ("live", True, "IBKR", eh.C.GREEN),
+    ("live", False, "IBKR", eh.C.RED),
+])
+def test_broker_chip_follows_mode(
+    qtbot: QtBot, mode: str, connected: bool, name: str, colour: str
+) -> None:
+    """UT-GUI-024.001.M01.T02: Broker value follows the mode; the status word is coloured by
+    status, with no dot."""
+    svc = _Svc(mode=mode)
+    if connected:
+        svc.connection_status = ConnectionStatus.CONNECTED
+    header = eh.ExecutionHeader(svc)  # type: ignore[arg-type]
     qtbot.addWidget(header)
 
-    assert name in header.broker_chip.text()
+    text = header.broker_chip.text()
+    assert text.startswith(name) and f"color:{colour}" in text and "●" not in text
 
 
 def test_charts_button_label(qtbot: QtBot) -> None:
-    """UT-GUI-024.008.M01.T03: The header charts button names the next action."""
+    """UT-GUI-024.008.M01.T03: The header charts icon button's tooltip names the next action."""
     header = eh.ExecutionHeader(_Svc())  # type: ignore[arg-type]
     qtbot.addWidget(header)
-    assert header.charts_btn.text() == "Hide charts"
+    assert header.charts_btn.text() == ""
+    assert header.charts_btn.toolTip() == "Hide charts"
     header.show_charts_state(True)
-    assert header.charts_btn.text() == "Show charts"
+    assert header.charts_btn.toolTip() == "Show charts"
 
 
 def test_breaker_button_trips_and_resets(qtbot: QtBot) -> None:

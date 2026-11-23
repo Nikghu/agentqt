@@ -41,7 +41,7 @@ COLUMNS = ("", "Strategy", "Status", "Dir", "Mode", "Type", "Entry window", "Per
 COL_CHECK, COL_NAME, COL_STATUS, COL_DIR = 0, 1, 2, 3
 COL_TOTAL, COL_TODAY, COL_BUTTON = 10, 11, 13
 _RIGHT = (7, 8, 9, 10, 11, 12)
-_WIDGET_COLUMNS = {COL_CHECK: 36, COL_STATUS: 120, COL_BUTTON: 110}
+_WIDGET_COLUMNS = {COL_CHECK: 48, COL_STATUS: 120, COL_BUTTON: 110}
 _MONO = '"IBM Plex Mono", Consolas, monospace'
 _DASH = "–"
 
@@ -270,6 +270,7 @@ class StrategyTable(QTreeWidget):
 
         check = QCheckBox()
         check.setAccessibleName(f"Select {row.name}")
+        check.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         check.setChecked(checked)
         check.toggled.connect(lambda _on: self.checked_changed.emit(self.checked_names()))
         self.setItemWidget(item, COL_CHECK, _centred(check))

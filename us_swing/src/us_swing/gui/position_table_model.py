@@ -211,6 +211,7 @@ class TradeHistoryModel(QAbstractTableModel):
         "REJECTED":       "#3a0a0a",
         "CANCELLED":      "#1a1a1a",
     }
+    _QTY_MISMATCH_BG = "#5a2a2e"
 
     def __init__(
         self,
@@ -286,6 +287,8 @@ class TradeHistoryModel(QAbstractTableModel):
         if role == Qt.ItemDataRole.BackgroundRole:
             if base_col == 8:
                 return QColor(self._ORDER_STATE_BG.get(str(t.order_state), C.SURFACE))
+            if base_col in (4, 5) and 0 < t.filled_quantity != t.quantity:
+                return QColor(self._QTY_MISMATCH_BG)
             return None
 
         if role == Qt.ItemDataRole.ForegroundRole:

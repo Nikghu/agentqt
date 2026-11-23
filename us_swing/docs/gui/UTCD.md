@@ -232,6 +232,7 @@
 | UT-GUI-006.001.M01.T17 | MD-GUI-006.001.M01 | Negative | Editing a user keeps fields the dialog does not show | User with Telegram on, chat id, notify toggles, configs; change display name | All hidden fields unchanged (ISS-GUI-0005) | Pass |
 | UT-GUI-006.001.M01.T18 | MD-GUI-006.001.M01 | Positive | A new user starts with defaults | `_UserDialog(None)` | id -1, Telegram off, empty chat id (ISS-GUI-0005) | Pass |
 | UT-GUI-006.001.M01.T19 | MD-GUI-006.001.M01 | Negative | Tests never write the real users file | `save_users([user])` in a test | store path is not ~/.usswing/users.json; user reads back (ISS-GUI-0013) | Pass |
+| UT-GUI-006.001.M01.T20 | MD-GUI-006.001.M01 | Positive | User dialog frameless with Save (user request 2026-11-23) | open Edit and Add; click Save | frameless; titles "Edit User" / "Add User"; Save accepts | Pass |
 | UT-GUI-006.001.M01.T20 | MD-GUI-006.001.M01 | Positive | Oldest last date among index stocks decides the data date (SRD-GUI-006.020) | AAA to 11-02, BBB to 10-30 | `2026-10-30` | Pass |
 | UT-GUI-006.001.M01.T21 | MD-GUI-006.001.M01 | Negative | Stocks out of the index or in the failed list do not hold the date back | AAA 11-02, OLD 09-01 (not in index), KVUE 10-29 (failed) | `2026-11-02` | Pass |
 | UT-GUI-006.001.M01.T22 | MD-GUI-006.001.M01 | Positive | Status is PARTIAL when one stock is current and the rest are a day behind | 1 of 2 index stocks at last trading day | `status == PARTIAL`, `last_candle_date` = older date | Pass |
@@ -501,6 +502,7 @@
 | UT-GUI-002.005.M01.T05 | MD-GUI-004.001.M01 | Edge | Ledger rows replace cycle rows (ISS-GUI-0022) | ledger buy/sell of one cycle + an older cycle not in ledger | 4 rows, no duplicates; sell shows fill price | Pass |
 | UT-GUI-002.005.M01.T06 | MD-GUI-002.001.M02 | Positive | Value = filled shares × average price (ISS-GUI-0023) | 5 filled at $100; 0 filled | `$500.00`; `—` | Pass |
 | UT-GUI-002.005.M01.T07 | MD-GUI-002.001.M02 | Positive | Every Trade History column can be dragged and keeps its width on refresh (ISS-GUI-0023) | resize Filled to 140, refresh rows | all but last Interactive; width stays 140 | Pass |
+| UT-GUI-002.005.M01.T08 | MD-GUI-002.001.M02 | Positive | Qty and Filled light red on mismatch (user request 2026-11-23) | Qty 1 filled 5; Qty 5 filled 0; Qty 5 filled 5 | first row both cells `#5a2a2e`; other rows no colour | Pass |
 
 
 ---
@@ -702,7 +704,7 @@ Test files:
 | UT-GUI-022.002.M01.T01 | MD-GUI-022.001.M01 | Positive | List loads and shows first stock | 3 rows | 3 items; first selected; detail symbol, tier, "$222.00", "3.3 R", reasoning | Pass |
 | UT-GUI-022.002.M01.T02 | MD-GUI-022.001.M01 | Positive | Selection updates detail and chart | select row 2 | detail shows JCI; fake chart `show_symbol("JCI", "1d")`; chart built once | Pass |
 | UT-GUI-022.002.M01.T03 | MD-GUI-022.001.M01 | Negative | Missing plan shows dashes | row without plan | Entry, Stop, Target, R:R tiles "—" | Pass |
-| UT-GUI-022.002.M01.T04 | MD-GUI-022.001.M01 | Positive | Detail buttons emit symbol | click Open chart, Watchlist | `chart_requested("NVDA")`, `watchlist_requested("NVDA")` | Pass |
+| UT-GUI-022.002.M01.T04 | MD-GUI-022.001.M01 | Positive | Detail buttons icon-only, emit symbol | click Open chart, Watchlist | no text; tooltips "Open in Charts", "Add to watchlist"; `chart_requested("NVDA")`, `watchlist_requested("NVDA")` | Pass |
 | UT-GUI-022.002.M01.T05 | MD-GUI-022.001.M01 | Edge | Theme change keeps selection, no chart reload | select JCI; restyle | JCI still selected and shown; no new `show_symbol` call | Pass |
 | UT-GUI-022.003.M01.T01 | MD-GUI-022.001.M01 | Positive | One card per stock with actions | 3 rows; click card 2 Chart | 3 cards; "#1", "NVDA", "Strong"; `chart_requested("JCI")` | Removed (user, 2026-11-19, SRD-GUI-043.006) |
 | UT-GUI-022.003.M01.T02 | MD-GUI-022.001.M01 | Edge | Empty rows clear cards | load 3 then [] | 0 cards | Removed (user, 2026-11-19, SRD-GUI-043.006) |
@@ -750,7 +752,7 @@ Test files:
 | ID | Module | Type | Description | Input | Expected | Status |
 |---|---|---|---|---|---|---|
 | UT-GUI-024.001.M01.T01 | MD-GUI-024.001.M01 | Positive | Chips show running count and unrealised P&L | 3 strategies, 1 RUNNING + 1 with open cycle; open cycles P&L +10 and −4 | "2 of 3"; "+$6.00" | Pass |
-| UT-GUI-024.001.M01.T02 | MD-GUI-024.001.M01 | Positive | Broker chip follows user mode | active user paper / live | "Paper broker" / "IBKR live" | Pass |
+| UT-GUI-024.001.M01.T02 | MD-GUI-024.001.M01 | Positive | Broker value follows user mode and status | paper; live connected; live not connected | "Paper" + green "ready"; "IBKR" + green "live"; "IBKR" + red "offline"; no dot | Pass |
 | UT-GUI-024.002.M02.T01 | MD-GUI-024.002.M02 | Positive | Groups: Manual first, screeners A→Z, score order, counts | 1 pick, 2 "Price Action", 2 "Momentum" | groups Manual, Momentum, Price Action; counts 1, 2, 2; higher score first | Pass |
 | UT-GUI-024.002.M02.T02 | MD-GUI-024.002.M02 | Positive | ✕ on a pick removes it | click Score cell of pick row | `remove_manual_pick("DELL")` called once | Pass |
 | UT-GUI-024.002.M02.T03 | MD-GUI-024.002.M02 | Negative | Not-ready symbol is tinted | readiness {"NVDA": False} | NVDA row has a background brush; others none | Pass |
@@ -763,8 +765,9 @@ Test files:
 | UT-GUI-024.006.M05.T02 | MD-GUI-024.006.M05 | Positive | Card shows total and stats | summary total 412.6, 38 trades, win rate 0.55 | "+$412.60"; "38 trades"; "55%" | Pass |
 | UT-GUI-024.006.M05.T03 | MD-GUI-024.006.M05 | Positive | Range button asks for a start time | click 1W | provider called with since ≈ now − 7 days | Pass |
 | UT-GUI-024.006.M05.T04 | MD-GUI-024.006.M05 | Positive | Nice y ticks | min 0, max 412.6 | ticks 0, 150, 300, 450 | Pass |
+| UT-GUI-024.006.M05.T05 | MD-GUI-024.006.M05 | Positive | Stats box lines up with toggles (user request 2026-11-23) | card 1300 px wide, shown | stats box left x = P&L curve button left x; width ≥ 210 | Pass |
 | UT-GUI-024.008.M06.T01 | MD-GUI-024.008.M06 | Positive | Hide charts is remembered | `set_charts_hidden(True)`; new pane | `charts_toggled(True)`; setting true; new pane starts hidden | Pass |
-| UT-GUI-024.008.M01.T03 | MD-GUI-024.001.M01 | Positive | Header charts button names the next action | default; `show_charts_state(True)` | "Hide charts"; "Show charts" | Pass |
+| UT-GUI-024.008.M01.T03 | MD-GUI-024.001.M01 | Positive | Header charts icon button tooltip names the next action | default; `show_charts_state(True)` | no text; tooltip "Hide charts"; "Show charts" | Pass |
 
 ## FO-GUI-025 — Dashboard Tiled Workspace
 
@@ -1132,7 +1135,7 @@ Test files:
 | UT-GUI-032.003.M03.T01 | MD-GUI-032.003.M03 | Positive | Grouped view | 3 strategies | headers Running 1, Stopped 1, Disabled 1; click row fills detail | Pass |
 | UT-GUI-032.005.M03.T01 | MD-GUI-032.003.M03 | Positive | Inline detail opens and closes | Table view; click row B; click B again | detail under B, title B; then no detail row; detail widget still alive | Pass |
 | UT-GUI-032.005.M03.T02 | MD-GUI-032.003.M03 | Negative | Row button keeps the open detail | Table view; open A; Start on row B | B is RUNNING; A still picked and open | Pass |
-| UT-GUI-032.006.M03.T01 | MD-GUI-032.003.M03 | Positive | Bulk Stop | check running and stopped rows; Stop | bar "2 selected"; only the running one is STOPPED; saved once | Pass |
+| UT-GUI-032.006.M03.T01 | MD-GUI-032.003.M03 | Positive | Bulk Stop | check running and stopped rows; Stop | check column 48 px, checkbox takes no focus (no dotted box); bar "2 selected"; only the running one is STOPPED; saved once | Pass |
 | UT-GUI-032.006.M03.T02 | MD-GUI-032.003.M03 | Negative | Bulk Start skips disabled and running | check all; Start | only the stopped manual/auto one becomes RUNNING | Pass |
 | UT-GUI-032.007.M03.T01 | MD-GUI-032.003.M03 | Positive | View kept | pick B; Table; new pane with same settings | B still picked and open; new pane opens in Table | Pass |
 
@@ -1198,7 +1201,7 @@ Test files:
 | UT-GUI-044.002.M02.T02 | MD-GUI-044.001.M02 | Edge | Last open preset reopens | open B; new panel with the same settings | B open | Pass |
 | UT-GUI-044.002.M02.T03 | MD-GUI-044.001.M02 | Negative | Deleting the open preset clears it | open A; delete A | "No preset open"; no run dates; Run off; open section hidden; saved id removed | Pass |
 | UT-GUI-044.002.M02.T04 | MD-GUI-044.001.M02 | Edge | Opening a preset opens its closed folder | collapse all; open the Day preset; collapse all | Day open, Swing closed; then Day closed | Pass |
-| UT-GUI-044.003.M02.T01 | MD-GUI-044.001.M02 | Positive | Open row actions | open a preset with 3 saved rows | count 3; Run on; ⋯ has Export CSV, Quick test, Sort by; Quick test emits the id | Pass |
+| UT-GUI-044.003.M02.T01 | MD-GUI-044.001.M02 | Positive | Open row actions | open a preset with 3 saved rows | "Manual · Nov 19 · 3 matches"; Run on; ⋯ has Export CSV, Quick test, Sort by; Quick test emits the id | Pass |
 | UT-GUI-044.003.M02.T02 | MD-GUI-044.001.M02 | Positive | Controls moved | new panel; open A; pick Sort by → Rules passed | stepper hidden, then in the header; tags in the footer with the status line; no Sort box; sort key rules, only that choice ticked | Pass |
 | UT-GUI-044.004.M03.T01 | MD-GUI-044.004.M03 | Positive | One-line stock row | NVDA score 0.85 with 1 flag | symbol, bar filled 0.85, flag text | Pass |
 | UT-GUI-044.004.M02.T01 | MD-GUI-044.001.M02 | Negative | Stock list fits rows; no run hint | open A (3 rows), then B (no run) | list at least 3 rows high; then list hidden and "No runs yet — press Run now" | Pass |
@@ -1211,6 +1214,7 @@ Test files:
 | UT-GUI-044.010.M02.T01 | MD-GUI-044.001.M02 | Positive | Several presets open | open A, then B; click 2nd stock of A's preview | A preview 3 stocks; Run on B row; A active with that stock selected | Pass |
 | UT-GUI-044.010.M02.T02 | MD-GUI-044.001.M02 | Negative | Chevron closes | open A, B; chevron on active twice; chevron on C | A active; none active, date hidden; C open | Pass |
 | UT-GUI-044.010.M02.T03 | MD-GUI-044.001.M02 | Edge | Open presets kept | open C, A; new panel | C and A open, A active | Pass |
+| UT-GUI-044.010.M02.T04 | MD-GUI-044.001.M02 | Negative | Names after stock list loads (user report 2026-11-23) | open A, B with empty stock list; then list loads | A's rows get company name and sector | Pass |
 | UT-GUI-045.001.M01.T01 | MD-GUI-045.001.M02 | Positive | Send saves the chart plan | VRSN 310 / 300 / 330, risk 1% | "Chart plan - VRSN", include VRSN, auto, running, Positional, rex 0, stop 3.23%, target 6.45%, today only; pick added | Pass |
 | UT-GUI-045.001.M01.T02 | MD-GUI-045.001.M01 | Positive | Risk size as capital % | 310 / 300, equity and capital 100,000; stop 309; capital 0 | 31; 100 (capped); 1 | Removed (SRD-GUI-045.008) |
 | UT-GUI-045.001.M01.T03 | MD-GUI-045.001.M02 | Negative | Refused pick saves nothing | XYZ not in universe | message shown; no chart plan | Pass |

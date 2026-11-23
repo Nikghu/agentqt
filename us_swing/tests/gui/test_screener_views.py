@@ -124,10 +124,12 @@ def test_missing_plan_shows_dashes(qtbot, rows):
 
 
 def test_detail_buttons_emit_symbol(qtbot, rows):
-    """UT-GUI-022.002.M01.T04: Detail buttons emit symbol."""
+    """UT-GUI-022.002.M01.T04: Detail buttons are icon-only with a tooltip and emit symbol."""
     view = ListDetailView()
     qtbot.addWidget(view)
     view.load(rows)
+    assert (view.chart_btn.text(), view.chart_btn.toolTip()) == ("", "Open in Charts")
+    assert (view.watch_btn.text(), view.watch_btn.toolTip()) == ("", "Add to watchlist")
     with qtbot.waitSignal(view.chart_requested) as chart:
         view.chart_btn.click()
     with qtbot.waitSignal(view.watchlist_requested) as watch:

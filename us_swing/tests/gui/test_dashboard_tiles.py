@@ -341,6 +341,25 @@ def test_history_columns_can_be_dragged(qtbot, settings):
     assert header.sectionSize(4) == 140
 
 
+def test_history_qty_mismatch_highlight(qtbot, settings):
+    """UT-GUI-002.005.M01.T08: Qty and Filled turn red when they differ; nothing filled stays plain."""
+    from PyQt6.QtCore import Qt
+
+    panel = _history_panel(qtbot, settings)
+    model = panel._hist_model
+    qty, filled = model.COLUMNS.index("Qty"), model.COLUMNS.index("Filled")
+    base = vars(_trade("SW", 0, "FILLED"))
+    model.refresh([SimpleNamespace(**{**base, "quantity": 1}),
+                   SimpleNamespace(**{**base, "filled_quantity": 0}),
+                   _trade("EW", 0, "FILLED")])
+    bg = Qt.ItemDataRole.BackgroundRole
+    sw_rows = [r for r in range(3) if model.index(r, qty).data() == "1"]
+    assert model.index(sw_rows[0], qty).data(bg).name() == "#5a2a2e"
+    assert model.index(sw_rows[0], filled).data(bg).name() == "#5a2a2e"
+    others = [r for r in range(3) if r != sw_rows[0]]
+    assert all(model.index(r, c).data(bg) is None for r in others for c in (qty, filled))
+
+
 def test_export_writes_shown_rows(qtbot, settings, tmp_path):
     """UT-GUI-025.011.M02.T01: Export writes the header and the shown rows to CSV."""
     import csv

@@ -12,7 +12,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from PyQt6 import sip
-from PyQt6.QtCore import QSettings
+from PyQt6.QtCore import QSettings, Qt
 from pytestqt.qtbot import QtBot
 
 # QWebEngineWidgets DLL is unavailable in the test environment — stub it.
@@ -168,6 +168,8 @@ def test_bulk_stop(qtbot: QtBot, settings: QSettings, save: MagicMock) -> None:
     """UT-GUI-032.006.M03.T01: Bulk Stop stops only the checked running strategy."""
     pane = _pane(qtbot, settings)
     pane.set_view(sp.TABLE)
+    assert pane.table.header().sectionSize(0) == 48
+    assert pane.table._checks["Breakout_LE"].focusPolicy() == Qt.FocusPolicy.NoFocus
     for name in ("Breakout_LE", "Breakout_SE"):
         pane.table._checks[name].setChecked(True)
 
