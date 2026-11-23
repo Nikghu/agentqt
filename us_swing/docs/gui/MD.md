@@ -1,12 +1,13 @@
 # Module Decomposition — GUI Module (GUI)
 
 **Document ID:** MD-GUI
-**Version:** 1.67.7
+**Version:** 1.67.8
 **Traces To:** SRD-GUI v2.16.0 / DD-GUI v1.7.0
 **Status:** Draft
 **Last Updated:** 2026-11-23
 **Project:** US Swing Trading System
 
+> v1.67.8: MD-GUI-046.003.M02 Check reads Backtest Data for S&P 500 stocks.
 > v1.67.7: MD-GUI-046.007.M03 functions lose the user part (user decision 2026-11-23: one shared folder, no user part).
 > v1.67.6: MD-GUI-046.007.M03 adds `import_start_folder`.
 > v1.67.5: MD-GUI-046.007.M03 adds `gui/guide_html.py`; Help opens the web page.
@@ -480,6 +481,6 @@ Minimal GUI docs: design in DD-EXE-022.*.D01 (registry, check, runner). Phases P
 | MD ID | SRD | File | Purpose | Public API | Depends on | Async |
 |---|---|---|---|---|---|---|
 | MD-GUI-046.001.M01 | SRD-GUI-046.001 | `us_swing/src/us_swing/gui/strategy_builder_dialog.py` | Trigger popup lists loaded plugins after built-ins; rows built from `parameters` (`Number` → number box with limits and default, `Input` → dropdown with default); expression args in `parameters` order | `plugin_indicator_data(spec)`, `_ConditionSelectorDialog` indicator list | `core.indicator_plugins` registry | No |
-| MD-GUI-046.003.M02 | SRD-GUI-046.003 | `us_swing/src/us_swing/gui/indicators_section.py` (new), `gui/settings_panel.py` | Settings "Indicators" section: list with name, version and status; Import (warning, check before copy), Export, Remove (asks, names and stops the strategies that use it), Reload, Check on one stock | `IndicatorsSection`, `CheckDialog`, `ProjectDialog`, `PythonSetupDialog`, `strategies_using(name)` | `AppService.reload_indicators()`, `.stop_strategies()`, `.indicator_probe()`, `.candle_frames()`, `.get_candle_symbols()`, `core.indicator_plugins`, `strategy_store`, `popups` | Check runs in a worker thread |
+| MD-GUI-046.003.M02 | SRD-GUI-046.003 | `us_swing/src/us_swing/gui/indicators_section.py` (new), `gui/settings_panel.py` | Settings "Indicators" section: list with name, version and status; Import (warning, check before copy), Export, Remove (asks, names and stops the strategies that use it), Reload, Check on one stock | `IndicatorsSection`, `CheckDialog`, `ProjectDialog`, `PythonSetupDialog`, `strategies_using(name)` | `AppService.reload_indicators()`, `.stop_strategies()`, `.indicator_probe()`, `.backtest_frames()`, `.get_sp500_universe()`, `core.indicator_plugins`, `strategy_store`, `popups` | Check runs in a worker thread |
 | MD-GUI-046.007.M03 | SRD-GUI-046.007 | `us_swing/src/us_swing/gui/indicator_project.py` (new), `gui/indicator_guides.py`, `gui/guide_html.py` (new) | New indicator project: example indicator, test file, VS Code settings, launch (own Python) a Check indicator task (the tool's command) and a CLAUDE.md guide for AI helpers; lists projects; opens VS Code or the folder | `create_project(name) -> Path`, `list_projects()`, `import_start_folder()`, `ensure_project_files(folder)`, `check_command(file)`, `point_projects_at_python()`, `open_project(path)` | `core.indicator_plugins.plugin_dir` | No |
 | MD-GUI-046.013.M04 | SRD-GUI-046.013 | `us_swing/src/us_swing/gui/indicator_python.py` (new) | Finds Python 3.10+ (`py` launcher, then PATH), makes `<plugins>/python` venv, installs pandas, numpy, pytest, points projects at it | `find_base_python()`, `setup_python(root, run, step)`, `python_ready()`, `PythonSetupError` | `indicator_project` | Runs in a worker thread from `PythonSetupDialog` |

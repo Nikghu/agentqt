@@ -55,6 +55,22 @@ def test_public_names_import() -> None:
         assert not [m for m in imported if m.split(".")[0] == "us_swing"], file.name
 
 
+def test_candles_always_have_datetime() -> None:
+    """UT-EXE-022.003.M01.T04: Replay frames (``ts``) reach the indicator as ``datetime``."""
+    replay = frame(10)
+    assert "ts" in replay and "datetime" not in replay
+
+    class ReadsTime(_Signal):
+        def calculate(self) -> Any:
+            candles = self.candles("Spot", "3m")
+            return candles["datetime"].dt.minute >= 0
+
+    result = compute(ReadsTime(_source(replay)))
+
+    assert result.values.tolist() == [1.0] * 10
+    assert result.table()["time"].tolist() == replay["ts"].tolist()
+
+
 def test_old_and_internal_names_not_offered() -> None:
     """UT-EXE-022.001.M01.T02: Old or internal names are not offered by the package."""
     with pytest.raises(ImportError):

@@ -4203,7 +4203,7 @@ class USSwingIndicator:
         raise NotImplementedError
 ```
 - `candle_source(symbol_type, timeframe)` is a callable given by the host (live engine, replay, check or testing). `candles()` returns a copy, so a plugin cannot change the tool's frames. The **first** timeframe asked for is the indicator's *main timeframe*; the result of `calculate()` is aligned to its candles.
-- Frames are the frames the engine already uses: columns `open`, `high`, `low`, `close`, `volume`, one row per closed candle, oldest first.
+- Frames are the frames the engine already uses: columns `open`, `high`, `low`, `close`, `volume`, one row per closed candle, oldest first. The time column is always `datetime`: replay and Backtest Data frames name it `ts`, so `candles()` renames it.
 - `symbol_type` takes "Spot" or "RSP". Like every built-in indicator today, both give the stock's own candles (known limit, see below).
 - `parameter(label)` returns the converted value; an unknown label raises `ParameterError("Unknown parameter 'Lookback'")`.
 - `debug_value(name, series)` stores the series in `self._debug[name]`.

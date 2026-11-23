@@ -47,6 +47,8 @@ class USSwingIndicator:
         The first timeframe you ask for is the one ``calculate()`` must give values for.
         """
         frame = self._candle_source(symbol_type, timeframe)
+        if "datetime" not in frame and "ts" in frame:
+            frame = frame.rename(columns={"ts": "datetime"})
         if self._main_candles is None:
             self._main_timeframe = timeframe
             self._main_candles = frame

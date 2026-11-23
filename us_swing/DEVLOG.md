@@ -2,6 +2,18 @@
 
 ---
 
+## [20261123] EXE, GUI — Check reads Backtest Data for S&P 500 stocks; candles always have datetime
+
+- Type: Change + fix (branch `feat/usswing-indicator-plugins`, unpushed); user's screenshot showed Check failing with no 3m data for stock A
+- FO(s): FO-GUI-046 (SRD-GUI-046.006), FO-EXE-022 (SRD-EXE-022.003/.011)
+- Artifacts: SRD, DD, MD, UTCD (UT-GUI-046.006.M02.T02–T03, UT-EXE-022.003.M01.T04), TRACE, Code (`app_service.backtest_frames`, `CheckDialog` S&P 500 list, `usswing._indicator.candles` renames ts), Tests, DEVLOG
+- Decisions: Check reads the last 60 days of 3m/15m/30m and 3 years of 1d/1w from Backtest Data (rule: analysis reads Backtest Data); stocks from the S&P 500 list, read by their IBKR symbol (BRK.B -> BRK B)
+- Fix found on the way: replay gave indicators a `ts` column while live gave `datetime`, so `candles["datetime"]` broke in backtests; `candles()` now always gives `datetime`
+- Checked for real: 503 stocks; AAPL and BRK B read in under 0.2 s and run SWING_PLUS
+- Open: the import check's dry run and `indicator check` still read candles.db (asked the user); T232–T236; Revision Notes; PR when the user says
+
+---
+
 ## [20261123] EXE, GUI — One shared indicator folder (no user id); Import opens the projects folder
 
 - Type: Change (branch `feat/usswing-indicator-plugins`, unpushed); user asked why the path had `1` and chose one shared folder

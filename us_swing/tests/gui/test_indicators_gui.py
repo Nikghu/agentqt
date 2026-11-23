@@ -16,6 +16,7 @@ from types import SimpleNamespace
 from typing import Any
 from unittest.mock import MagicMock
 
+import pandas as pd
 import pytest
 from PyQt6.QtCore import QObject, pyqtSignal
 from PyQt6.QtWidgets import QComboBox, QSpinBox
@@ -321,7 +322,7 @@ def test_check_shows_last_20_values(qtbot: QtBot, swing_plus: Path) -> None:
     """UT-GUI-046.006.M02.T01: Check shows the last 20 values."""
     spec = REGISTRY.get("SWING_PLUS")
     assert spec is not None
-    dialog = sec.CheckDialog(spec, ["AAPL"], lambda _symbol: frames(120))
+    dialog = sec.CheckDialog(spec, [("AAPL", "AAPL")], lambda _symbol: frames(120))
     qtbot.addWidget(dialog)
 
     dialog.start()
@@ -331,6 +332,49 @@ def test_check_shows_last_20_values(qtbot: QtBot, swing_plus: Path) -> None:
                for c in range(dialog.table.columnCount())]
     assert headers == ["time", "value", "Swing high", "Swing low"]
     assert dialog.table.item(19, 1).text() != ""
+
+
+def test_check_uses_sp500_list_and_backtest_symbol(qtbot: QtBot, swing_plus: Path) -> None:
+    """UT-GUI-046.006.M02.T02: Check lists S&P 500 stocks and reads Backtest Data by its symbol."""
+    spec = REGISTRY.get("SWING_PLUS")
+    assert spec is not None
+    asked: list[str] = []
+
+    def read(stored: str) -> dict[str, Any]:
+        asked.append(stored)
+        return {}
+
+    dialog = sec.CheckDialog(spec, [("A", "A"), ("BRK.B", "BRK B")], read)
+    qtbot.addWidget(dialog)
+    assert [dialog.stock.itemText(i) for i in range(dialog.stock.count())] == ["A", "BRK.B"]
+
+    dialog.stock.setCurrentIndex(1)
+    dialog.start()
+    qtbot.waitUntil(lambda: dialog.run_btn.isEnabled())
+
+    assert asked == ["BRK B"]
+    assert dialog.status.text().startswith("No Backtest Data for BRK.B")
+    assert "Settings > Backtest data" in dialog.status.text()
+
+
+def test_backtest_frames_read_recent_store_data(tmp_path: Path) -> None:
+    """UT-GUI-046.006.M02.T03: Backtest Data frames hold recent intraday and daily candles."""
+    from us_swing.backtest.store import BacktestStore
+
+    store = BacktestStore(tmp_path)
+    now = pd.Timestamp.now(tz="UTC").floor("D")
+    old = pd.DataFrame({"ts": [now - pd.Timedelta(days=200) + pd.Timedelta(hours=15)],
+                        "open": [1.0], "high": [1.0], "low": [1.0], "close": [1.0],
+                        "volume": [1.0]})
+    recent = old.assign(ts=[now - pd.Timedelta(days=3) + pd.Timedelta(hours=15)])
+    store.save("AAPL", "3m", pd.concat([old, recent]), now.to_pydatetime())
+    service = SimpleNamespace(_bkt_store=store)
+
+    got = AppService.backtest_frames(service, "AAPL")  # type: ignore[arg-type]
+
+    assert set(got) == {"3m", "15m", "30m"}
+    assert len(got["3m"]) == 1 and got["3m"]["ts"].iloc[0] == recent["ts"].iloc[0]
+    assert AppService.backtest_frames(service, "MSFT") == {}  # type: ignore[arg-type]
 
 
 def test_new_project_files(tmp_path: Path) -> None:

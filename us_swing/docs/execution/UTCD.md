@@ -1,12 +1,13 @@
 # Unit Test Case Document â€” Execution & Risk Management (EXE)
 
 **Document ID:** UTCD-EXE
-**Version:** 1.26.5
+**Version:** 1.26.6
 **Traces To:** MD-EXE v1.15.0
 **Status:** Draft
 **Last Updated:** 2026-11-23
 **Project:** US Swing Trading System
 
+> v1.26.6: UT-EXE-022.003.M01.T04 added — candles always have datetime.
 > v1.26.5: UT-EXE-022.008.M03.T01–T03 for the shared folder (user decision 2026-11-23: one shared folder, no user part).
 > v1.26.4: UT-EXE-022.017.M07.T01 Pass (P4).
 > v1.26.3: UT-EXE-022.012.M05.T04 added — live frames (datetime column) warn once per candle.
@@ -983,6 +984,7 @@
 | UT-EXE-022.003.M01.T01 | MD-EXE-022.001.M01 | Positive | SWING example gives one value per candle | 30 hand-made 3m candles; Range, Current, 5 candles | 30 values; value at candle 10 = max high − min low of candles 6–10 | Pass |
 | UT-EXE-022.003.M01.T02 | MD-EXE-022.001.M01 | Positive | Signal output becomes 1/0 | `calculate()` returns a True/False series | floats 1.0 and 0.0 | Pass |
 | UT-EXE-022.003.M01.T03 | MD-EXE-022.001.M01 | Negative | Wrong length or infinite value | 120 values for 390 candles; one `inf` | `OutputError` with "120 values, but there are 390 candles"; then infinite | Pass |
+| UT-EXE-022.003.M01.T04 | MD-EXE-022.001.M01 | Positive | Replay frames give datetime | frame with a `ts` column | indicator reads `candles["datetime"]`; table time = ts | Pass |
 | UT-EXE-022.004.M01.T01 | MD-EXE-022.001.M01 | Positive | Candles are a copy; debug value kept | change the returned frame; `debug_value("High", s)` | source frame unchanged; debug has "High" | Pass |
 | UT-EXE-022.004.M01.T02 | MD-EXE-022.001.M01 | Negative | Unknown parameter label | `parameter("Lookback")` | `ParameterError` "Unknown parameter 'Lookback'" | Pass |
 | UT-EXE-022.005.M02.T01 | MD-EXE-022.005.M02 | Positive | SWING example passes the check | example file; 3 probe stocks | ok; spec name SWING_PLUS, 5 parameters in order | Pass |

@@ -4298,9 +4298,22 @@ class AppService(QObject):
         except Exception:
             _log.warning("[Indicators] Could not load custom indicators", exc_info=True)
 
-    def candle_frames(self, symbol: str) -> dict[str, pd.DataFrame]:
-        """The candle frames the strategy engine uses for ``symbol`` (SRD-GUI-046.006)."""
-        return self._get_candles_df(symbol)
+    def backtest_frames(self, ibkr_symbol: str, intraday_days: int = 60,
+                        daily_days: int = 3 * 365) -> dict[str, pd.DataFrame]:
+        """Recent Backtest Data candles of one stock, per timeframe (SRD-GUI-046.006).
+
+        Intraday frames hold the last ``intraday_days`` days, 1d and 1w the last
+        ``daily_days``; timeframes with no saved candles are left out.
+        """
+        today = datetime.datetime.now(tz=datetime.timezone.utc).date()
+        frames: dict[str, pd.DataFrame] = {}
+        for tf in ("3m", "15m", "30m", "1d", "1w"):
+            days = daily_days if tf in ("1d", "1w") else intraday_days
+            frame = self._bkt_store.read(ibkr_symbol, tf,
+                                         start=today - datetime.timedelta(days=days))
+            if not frame.empty:
+                frames[tf] = frame
+        return frames
 
     def indicator_probe(self) -> list[tuple[str, dict[str, pd.DataFrame]]]:
         """Up to 3 stocks with 3m candles for the custom indicator dry run (SRD-EXE-022.007)."""

@@ -1,10 +1,11 @@
 # Software Requirements Document — GUI Module (GUI)
 
 **Document ID:** SRD-GUI
-**Version:** 2.143.2
+**Version:** 2.143.3
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-11-23
+> v2.143.3: SRD-GUI-046.006 reads Backtest Data and lists S&P 500 stocks (user asked 2026-11-23).
 > v2.143.2: SRD-GUI-046.001/.003 wording: indicators shared by all users (user decision 2026-11-23: one shared folder, no user part).
 > v2.143.1: SRD-GUI-046.010 wording: the guide is a web page opened in the browser (user asked 2026-11-23).
 > v2.143.0: SRD-GUI-046.010–.013 added (user asked in chat 2026-11-23) and Implemented.
@@ -890,7 +891,7 @@ Builds on FO-EXE-022. Every popup row comes from the indicator file; the screen 
 | SRD-GUI-046.003 | FO-GUI-046 | Must | Settings gains an Indicators section that lists the indicators (shared by all users) with name, version and status. | plugin folder | list | Status is Loaded, or Refused with its reason | Implemented |
 | SRD-GUI-046.004 | FO-GUI-046 | Must | Import picks a `.py` file, warns that it runs code on this PC, and adds it only when the plugin check passes. | file | added indicator, or reason | Uses the checks of SRD-EXE-022.005–.007 | Implemented |
 | SRD-GUI-046.005 | FO-GUI-046 | Must | Export saves a copy of an indicator file, Reload re-reads all files, and Remove asks first and names the strategies that use it. | selected indicator | file copy, reloaded list, removed file | Remove of a used indicator also stops those strategies | Implemented |
-| SRD-GUI-046.006 | FO-GUI-046 | Should | Check runs the indicator on a chosen stock and shows its last 20 values and debug values. | indicator, stock | values table | Same check as SRD-EXE-022.007 | Implemented |
+| SRD-GUI-046.006 | FO-GUI-046 | Should | Check runs the indicator on a chosen S&P 500 stock's Backtest Data and shows its last 20 values and debug values. | indicator, stock | values table | Same check as SRD-EXE-022.007 | Implemented |
 | SRD-GUI-046.007 | FO-GUI-046 | Should | New indicator creates a project folder with an example indicator, a test file and VS Code settings, and opens it in VS Code when installed. | name | project folder | Shows the folder instead when VS Code is not found | Implemented |
 | SRD-GUI-046.008 | FO-GUI-046 | Should | A new project holds a `CLAUDE.md` guide with the indicator rules, the built-in names and the exact check command. | name | guide file | Lets an AI helper write and check the indicator | Implemented |
 | SRD-GUI-046.009 | FO-GUI-046 | Should | New indicator lists the user's projects to open, and also creates a new one. | user's projects | opened or new project | Opens in VS Code, or shows the folder | Implemented |

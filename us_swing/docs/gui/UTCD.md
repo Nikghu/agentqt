@@ -1,12 +1,13 @@
 # Unit Test Case Document â€” GUI Module (GUI)
 
 **Document ID:** UTCD-GUI
-**Version:** 1.58.7
+**Version:** 1.58.8
 **Traces To:** MD-GUI v1.7.0
 **Status:** Draft
 **Last Updated:** 2026-11-23
 **Project:** US Swing Trading System
 
+> v1.58.8: UT-GUI-046.006.M02.T02–T03 added — S&P 500 list, Backtest Data.
 > v1.58.7: UT-GUI-046.003.M02.T02 and .004.M02.T04 changed (user decision 2026-11-23: one shared folder, no user part).
 > v1.58.6: UT-GUI-046.004.M02.T04 added — Import opens in the latest project.
 > v1.58.5: UT-GUI-046.010.M03.T01 now checks the web page.
@@ -1256,6 +1257,8 @@ Test files:
 | UT-GUI-046.005.M02.T02 | MD-GUI-046.003.M02 | Positive | Remove a used indicator | strategy WTrend_X uses it; confirm Yes | message names WTrend_X; it is STOPPED; file gone | Pass |
 | UT-GUI-046.005.M02.T03 | MD-GUI-046.003.M02 | Negative | Remove answered No | confirm No | file kept; strategy unchanged | Pass |
 | UT-GUI-046.006.M02.T01 | MD-GUI-046.003.M02 | Positive | Check shows the last 20 values | SWING_PLUS on AAPL test candles | 20 rows with time, value and debug columns | Pass |
+| UT-GUI-046.006.M02.T02 | MD-GUI-046.003.M02 | Positive | S&P 500 list and store symbol | stocks A and BRK.B; Run on BRK.B with no data | list shows A, BRK.B; reads "BRK B"; message says no Backtest Data and where to download it | Pass |
+| UT-GUI-046.006.M02.T03 | MD-GUI-046.003.M02 | Positive | Backtest Data frames | 3m candles 200 days and 3 days old | 3m, 15m, 30m with only the recent candle; unknown stock gives none | Pass |
 | UT-GUI-046.007.M03.T01 | MD-GUI-046.007.M03 | Positive | New project files | `create_project(1, "MY_ST")` | folder with `my_st.py`, `test_my_st.py`, `.vscode/settings.json`, `.vscode/launch.json`; example passes the check | Pass |
 | UT-GUI-046.007.M03.T02 | MD-GUI-046.007.M03 | Edge | VS Code not found | `code` not on PATH | folder opened instead | Pass |
 | UT-GUI-046.008.M03.T01 | MD-GUI-046.007.M03 | Positive | New project has an AI guide | `create_project(1, "VWAP_CROSS")` | CLAUDE.md names VWAP_CROSS, the check command, built-in names, no-future rule and the library folder | Pass |

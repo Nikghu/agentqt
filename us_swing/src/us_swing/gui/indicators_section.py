@@ -252,8 +252,8 @@ class IndicatorsSection(QWidget):
         spec = REGISTRY.get(status.name) if status is not None else None
         if spec is None:
             return
-        dialog = CheckDialog(spec, self._demo.get_candle_symbols(), self._demo.candle_frames,
-                             self)
+        stocks = sorted((r.symbol, r.ibkr_symbol) for r in self._demo.get_sp500_universe())
+        dialog = CheckDialog(spec, stocks, self._demo.backtest_frames, self)
         dialog.exec()
 
     def _on_new(self) -> None:
@@ -302,7 +302,8 @@ class _CheckRun(QObject):
         try:
             result = run_plugin(self._spec, {}, self._frames(self._symbol))
         except NoCandleData as exc:
-            self.failed.emit(f"{self._symbol}: {exc}")
+            self.failed.emit(f"No Backtest Data for {self._symbol}: {exc}. Download it in "
+                             "Settings > Backtest data")
         except Exception as exc:  # noqa: BLE001 — user code; show what went wrong
             self.failed.emit(f"{self._spec.name} failed on {self._symbol}: "
                              f"{exc or type(exc).__name__}")
@@ -311,11 +312,13 @@ class _CheckRun(QObject):
 
 
 class CheckDialog(FramelessDialog):
-    """Run one indicator on a chosen stock and show its last values (SRD-GUI-046.006)."""
+    """Run one indicator on an S&P 500 stock's Backtest Data and show its last values
+    (SRD-GUI-046.006)."""
 
-    def __init__(self, spec: PluginSpec, symbols: list[str],
+    def __init__(self, spec: PluginSpec, stocks: list[tuple[str, str]],
                  frames: Callable[[str], dict[str, pd.DataFrame]],
                  parent: QWidget | None = None) -> None:
+        """``stocks`` holds (symbol shown, symbol in Backtest Data) pairs."""
         super().__init__(f"Check {spec.name}", min_width=620, min_height=520, parent=parent)
         self._spec = spec
         self._frames = frames
@@ -324,12 +327,15 @@ class CheckDialog(FramelessDialog):
 
         self.stock = QComboBox()
         self.stock.setEditable(True)
-        self.stock.addItems(symbols)
+        for shown, stored in stocks:
+            self.stock.addItem(shown, stored)
         self.stock.setFixedWidth(140)
         self.run_btn = QPushButton("Run")
         set_icon(self.run_btn, "play", "go")
         self.run_btn.clicked.connect(self.start)
-        self.status = QLabel(f"Last {CHECK_ROWS} candles with default values")
+        self.status = QLabel(
+            f"Last {CHECK_ROWS} candles from Backtest Data, with default values" if stocks
+            else "The S&P 500 list is not loaded yet; type a stock symbol")
         self.status.setWordWrap(True)
         self.table = QTableWidget(0, 0)
         self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
@@ -351,10 +357,12 @@ class CheckDialog(FramelessDialog):
         symbol = self.stock.currentText().strip().upper()
         if not symbol or self._thread is not None:
             return
+        index = self.stock.findText(symbol)
+        stored = self.stock.itemData(index) if index >= 0 else symbol.replace(".", " ")
         self.run_btn.setEnabled(False)
         self.status.setText(f"Running {self._spec.name} on {symbol}")
         self._thread = QThread(self)
-        self._run = _CheckRun(self._spec, symbol, self._frames)
+        self._run = _CheckRun(self._spec, symbol, lambda _shown: self._frames(stored))
         self._run.moveToThread(self._thread)
         self._thread.started.connect(self._run.run)
         self._run.done.connect(self._show)
