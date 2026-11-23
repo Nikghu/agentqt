@@ -14,6 +14,7 @@ from typing import Callable
 from us_swing.core.notifications._dto import NotificationMessage
 from us_swing.core.notifications._events import (
     DayEndPnLEvent,
+    IndicatorStoppedEvent,
     MarketQuote,
     MorningBriefEvent,
     NotificationEvent,
@@ -68,6 +69,16 @@ def _fmt_screener_approved(event: NotificationEvent) -> NotificationMessage:
     return NotificationMessage(
         text=f"Screener approved {len(event.symbols)} stock(s): {names}",
         event_kind=ScreenerApprovedEvent.__name__,
+    )
+
+
+def _fmt_indicator_stopped(event: NotificationEvent) -> NotificationMessage:
+    assert isinstance(event, IndicatorStoppedEvent)
+    names = ", ".join(event.strategies)
+    return NotificationMessage(
+        text=(f"Indicator {event.indicator} failed {event.failures} times in a row. "
+              f"Stopped: {names}. Open trades keep their stop and target."),
+        event_kind=IndicatorStoppedEvent.__name__,
     )
 
 
@@ -153,4 +164,5 @@ def default_registry() -> FormatterRegistry:
     registry.register(ScreenerApprovedEvent, _fmt_screener_approved)
     registry.register(DayEndPnLEvent, _fmt_day_end_pnl)
     registry.register(MorningBriefEvent, _fmt_morning_brief)
+    registry.register(IndicatorStoppedEvent, _fmt_indicator_stopped)
     return registry

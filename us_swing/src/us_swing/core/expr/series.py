@@ -22,6 +22,14 @@ import pandas as pd
 import talib
 
 from us_swing.core.expr import EvaluatorError, boss_st_args, parse, swing_args
+from us_swing.core.indicator_plugins import REGISTRY as INDICATOR_REGISTRY
+from us_swing.core.indicator_plugins import (
+    NoCandleData,
+    PluginArgError,
+    PluginSpec,
+    run_plugin,
+    values_from_args,
+)
 from us_swing.core.market_structure import TIMEFRAME_MINUTES, bars_from_frame, boss_st
 
 FloatArray = npt.NDArray[np.float64]
@@ -190,7 +198,10 @@ class _Walker:
     def _function(self, node: dict[str, Any]) -> FloatArray:
         name = node["name"]
         if name not in _ARITY:
-            raise EvaluatorError(f"Unknown indicator {name!r}")
+            spec = INDICATOR_REGISTRY.get(name)
+            if spec is None:
+                raise EvaluatorError(f"Unknown indicator {name!r}")
+            return self._plugin(spec, node)
         args = [self._constant(a) for a in node["args"]]
         if len(args) not in (_ARITY[name], _LEGACY_ARITY.get(name)):
             raise EvaluatorError(f"Indicator {name!r} expects {_ARITY[name]} arg(s), "
@@ -208,6 +219,21 @@ class _Walker:
         out = _as_of(series, available_ns(self._frame(tf), tf), self.close_ns)
         label = f"{name}({', '.join(str(a) for a in args[1:])})"
         self.values[label] = out
+        return out
+
+    def _plugin(self, spec: PluginSpec, node: dict[str, Any]) -> FloatArray:
+        """A custom indicator's full series, as of each 3m close (SRD-EXE-022.011)."""
+        args = [self._constant(a) for a in node["args"]]
+        try:
+            result = run_plugin(spec, values_from_args(spec, args), self.frames)
+        except (PluginArgError, NoCandleData) as exc:
+            raise EvaluatorError(str(exc)) from None
+        except Exception as exc:  # noqa: BLE001 — user code; the run reports it
+            raise EvaluatorError(f"{spec.name}: {exc}") from None
+        tf = result.main_timeframe
+        out = _as_of(result.values.to_numpy(dtype=np.float64),
+                     available_ns(self._frame(tf), tf), self.close_ns)
+        self.values[f"{spec.name}({', '.join(str(a) for a in args[1:])})"] = out
         return out
 
     def _boss_st(self, args: list[Any]) -> tuple[str, FloatArray]:

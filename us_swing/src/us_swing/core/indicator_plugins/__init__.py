@@ -11,6 +11,7 @@ from us_swing.core.indicator_plugins._check import (
     check_file,
     frame_source,
 )
+from us_swing.core.indicator_plugins._guard import GUARD, PluginCallError, PluginGuard
 from us_swing.core.indicator_plugins._registry import (
     REGISTRY,
     IndicatorRegistry,
@@ -18,8 +19,16 @@ from us_swing.core.indicator_plugins._registry import (
     builtin_names,
     plugin_dir,
 )
+from us_swing.core.indicator_plugins._runner import (
+    NoCandleData,
+    PluginArgError,
+    last_value,
+    run_plugin,
+    values_from_args,
+)
 
 __all__ = [
-    "REGISTRY", "CheckReport", "IndicatorRegistry", "PluginSpec", "PluginStatus",
-    "builtin_names", "check_file", "frame_source", "plugin_dir",
+    "GUARD", "REGISTRY", "CheckReport", "IndicatorRegistry", "NoCandleData", "PluginArgError",
+    "PluginCallError", "PluginGuard", "PluginSpec", "PluginStatus", "builtin_names",
+    "check_file", "frame_source", "last_value", "plugin_dir", "run_plugin", "values_from_args",
 ]

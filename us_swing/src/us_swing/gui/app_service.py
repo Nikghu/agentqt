@@ -147,6 +147,7 @@ from us_swing.core.monitoring_session import (
 from us_swing.core.notifications import (
     AiConfig,
     DayEndPnLEvent,
+    IndicatorStoppedEvent,
     MorningBriefEvent,
     NotificationConfig,
     ScreenerApprovedEvent,
@@ -1614,6 +1615,7 @@ class AppService(QObject):
             effective_capital_provider=self.effective_capital,
             parent=self,
         )
+        self._strategy_engine.plugin_stopped.connect(self._on_indicator_stopped)
         self._strategy_engine.start()
         self.purge_old_chart_plans()
         self._event_bus.event_published.connect(self._on_strategy_event)
@@ -4265,6 +4267,11 @@ class AppService(QObject):
             _log.warning("[Sectors] Could not read sector candles from the local database")
             return {}
         return closes
+
+    def _on_indicator_stopped(self, indicator: str, strategies: list[str]) -> None:
+        """Alert the user that a failing custom indicator stopped strategies (SRD-EXE-022.013)."""
+        self.publish_notification(
+            IndicatorStoppedEvent(indicator=indicator, strategies=tuple(strategies)))
 
     def reload_indicators(self) -> None:
         """Load the active user's custom indicators again (SRD-EXE-022.008–.009)."""

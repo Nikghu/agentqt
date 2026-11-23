@@ -4259,7 +4259,7 @@ class USSwingIndicator:
 
 **Traces:** SRD-EXE-022.010–.011. Module `us_swing/core/indicator_plugins/_runner.py`, plus small changes in `execution/strategy_engine/_evaluator.py` and `core/expr/series.py`.
 
-**Arguments.** An expression calls a plugin by name with one argument per parameter, in `parameters` order, for example `SWING_PLUS("Spot", 20, "High", "Previous", "3m")`. `values_from_args(spec, args)`: a wrong count raises `EvaluatorError("SWING_PLUS expects 5 arg(s), got 4")`; each value goes through `Number.convert` / `Input.convert`, and a `ParameterError` becomes `EvaluatorError("SWING_PLUS: Candles must be 1 to 500, got 0")`. This is the same style as the built-in checks.
+**Arguments.** An expression calls a plugin by name with one argument per parameter, in `parameters` order, for example `SWING_PLUS('Spot', 20, 'High', 'Previous', '3m')` (text in single quotes, as for built-ins). `values_from_args(spec, args)`: a wrong count raises `EvaluatorError("SWING_PLUS expects 5 arg(s), got 4")`; each value goes through `Number.convert` / `Input.convert`, and a `ParameterError` becomes `EvaluatorError("SWING_PLUS: Candles must be 1 to 500, got 0")`. This is the same style as the built-in checks.
 
 **One computation.** `run_plugin(spec, values, frames) -> Result` builds the instance with `candle_source = lambda st, tf: frames[tf]` (a missing timeframe raises `EvaluatorError("No candle data for timeframe '1d'")`) and calls `compute()` inside the guard (DD-EXE-022.012.D01).
 

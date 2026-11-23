@@ -18,9 +18,13 @@ from zoneinfo import ZoneInfo
 
 from PyQt6.QtCore import QObject, QThread, pyqtSignal, pyqtSlot
 
+from us_swing.core.indicator_plugins import GUARD as PLUGIN_GUARD
+from us_swing.core.indicator_plugins import REGISTRY as INDICATOR_REGISTRY
+from us_swing.core.indicator_plugins import builtin_names
+from us_swing.core.indicator_plugins._guard import FAILURES_TO_STOP
 from us_swing.execution import ExecutionEnums
 from us_swing.execution.strategy_engine._context import _StrategyContext
-from us_swing.execution.strategy_engine._evaluator import ConditionEvaluator
+from us_swing.execution.strategy_engine._evaluator import ConditionEvaluator, function_names
 from us_swing.execution.strategy_engine._events import (
     StrategyEntered,
     StrategyExited,
@@ -67,6 +71,17 @@ def _parse_run_state(raw: str) -> _StrategyRunState:
         return _StrategyRunState.STOPPED
 
 
+def plugins_used(cfg: StrategyConfig) -> set[str]:
+    """Names in the strategy's conditions that are not built-in indicators."""
+    names = function_names(cfg.entry_condition or "") | function_names(cfg.exit_condition or "")
+    return names - builtin_names()
+
+
+def missing_plugins(cfg: StrategyConfig) -> list[str]:
+    """Custom indicators the strategy needs that are not loaded (SRD-EXE-022.014)."""
+    return sorted(plugins_used(cfg) - INDICATOR_REGISTRY.names())
+
+
 class StrategyEngine(QThread):
     """QThread-hosted asyncio engine that drives strategy evaluation.
 
@@ -79,6 +94,8 @@ class StrategyEngine(QThread):
     started_ok = pyqtSignal()
     stopped = pyqtSignal()
     run_state_changed = pyqtSignal(str, str)  # strategy_id, new_state
+    start_refused = pyqtSignal(str, str)      # strategy_id, message (SRD-EXE-022.014)
+    plugin_stopped = pyqtSignal(str, list)    # indicator name, stopped strategies (.013)
 
     def __init__(
         self,
@@ -126,17 +143,21 @@ class StrategyEngine(QThread):
     # ── QThread entry point ──────────────────────────────────────────────────
 
     def run(self) -> None:  # noqa: D401 — Qt override
+        PLUGIN_GUARD.add_limit_listener(self._on_plugin_limit)
         try:
             asyncio.run(self._async_run())
         except Exception:
             log.exception("[Strategy] engine loop crashed")
         finally:
+            PLUGIN_GUARD.remove_limit_listener(self._on_plugin_limit)
             self._loop = None
             self.stopped.emit()
 
     async def _async_run(self) -> None:
         self._loop = asyncio.get_running_loop()
         self._registry = self._load_registry()
+        for ctx in self._registry.values():
+            self._refuse_if_missing(ctx)
 
         queue: asyncio.Queue[TradeSignal] = asyncio.Queue(maxsize=512)
         self._router = _Router(
@@ -399,6 +420,8 @@ class StrategyEngine(QThread):
             return
         previous = ctx.run_state
         ctx.run_state = new_state
+        if self._refuse_if_missing(ctx):
+            return
         self._schedule_persist(strategy_id)
         self.run_state_changed.emit(strategy_id, new_state.value)
         log.info("[Strategy] %s run_state %s → %s", ctx.name, previous.value, new_state.value)
@@ -409,6 +432,51 @@ class StrategyEngine(QThread):
             log.info("[Strategy] %s started — reset %d rex counter(s)", ctx.name, deleted)
         if new_state is _StrategyRunState.SQUARING_OFF:
             asyncio.create_task(self._router.squaring_off_exit(ctx))
+
+    # ── Custom indicators (SRD-EXE-022.013–.014) ─────────────────────────────
+
+    def _refuse_if_missing(self, ctx: _StrategyContext) -> bool:
+        """Keep a strategy STOPPED when it needs a custom indicator that is not loaded."""
+        if ctx.run_state is not _StrategyRunState.RUNNING:
+            return False
+        missing = missing_plugins(ctx.cfg)
+        if not missing:
+            return False
+        ctx.run_state = _StrategyRunState.STOPPED
+        ctx.cfg.run_state = _StrategyRunState.STOPPED.value
+        try:
+            self._registry_saver(ctx.name, _StrategyRunState.STOPPED.value)
+        except Exception:
+            log.exception("[Strategy] could not save %s as stopped", ctx.name)
+        noun = "indicator" if len(missing) == 1 else "indicators"
+        verb = "is" if len(missing) == 1 else "are"
+        message = f"{ctx.name} cannot start: {noun} {', '.join(missing)} {verb} not installed"
+        log.warning("[Strategy] %s", message)
+        self.run_state_changed.emit(ctx.name, _StrategyRunState.STOPPED.value)
+        self.start_refused.emit(ctx.name, message)
+        return True
+
+    def _on_plugin_limit(self, plugin_name: str) -> None:
+        """Guard callback, from any thread: stop the strategies that use the indicator."""
+        loop = self._loop
+        if loop is not None:
+            loop.call_soon_threadsafe(self.stop_plugin_users, plugin_name)
+
+    def stop_plugin_users(self, plugin_name: str) -> list[str]:
+        """Stop every running strategy that uses ``plugin_name``; open trades stay managed."""
+        stopped: list[str] = []
+        for ctx in self._registry.values():
+            if (ctx.run_state is _StrategyRunState.RUNNING
+                    and plugin_name in plugins_used(ctx.cfg)):
+                ctx.run_state = _StrategyRunState.STOPPED
+                self._schedule_persist(ctx.name)
+                self.run_state_changed.emit(ctx.name, _StrategyRunState.STOPPED.value)
+                log.error("[Strategy] %s stopped: indicator %s failed %d times in a row",
+                          ctx.name, plugin_name, FAILURES_TO_STOP)
+                stopped.append(ctx.name)
+        if stopped:
+            self.plugin_stopped.emit(plugin_name, stopped)
+        return stopped
 
     # ── Fan-out ──────────────────────────────────────────────────────────────
 
@@ -534,6 +602,8 @@ class StrategyEngine(QThread):
             else:
                 run_state = _parse_run_state(cfg.run_state)
                 self._registry[name] = _StrategyContext(cfg=cfg, run_state=run_state)
+        for ctx in self._registry.values():
+            self._refuse_if_missing(ctx)
 
         # Publish a synthetic event so listeners can refresh.
         for name in new_cfgs:

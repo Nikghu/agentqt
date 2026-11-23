@@ -1237,7 +1237,7 @@ Test files:
 | UT-GUI-046.001.M01.T01 | MD-GUI-046.001.M01 | Positive | Plugin listed after built-ins | registry with SWING_PLUS | indicator list ends with SWING_PLUS after BOSS_ST | Not Run |
 | UT-GUI-046.001.M01.T02 | MD-GUI-046.001.M01 | Negative | Refused plugin not listed | registry status: BAD_ONE refused | BAD_ONE not in the list | Not Run |
 | UT-GUI-046.002.M01.T01 | MD-GUI-046.001.M01 | Positive | Rows follow `parameters` | pick SWING_PLUS | rows Symbol Type, Candles, Price Swing, Window, Timeframe in order; Candles box 1–500 showing 20 | Not Run |
-| UT-GUI-046.002.M01.T02 | MD-GUI-046.001.M01 | Positive | Dropdowns and expression | Price Swing options; Add with defaults | High, Low, Range with High chosen; `SWING_PLUS("Spot", 20, "High", "Previous", "3m")` | Not Run |
+| UT-GUI-046.002.M01.T02 | MD-GUI-046.001.M01 | Positive | Dropdowns and expression | Price Swing options; Add with defaults | High, Low, Range with High chosen; `SWING_PLUS('Spot', 20, 'High', 'Previous', '3m')` | Not Run |
 | UT-GUI-046.002.M01.T03 | MD-GUI-046.001.M01 | Negative | Number box keeps limits | type 0 and 900 in Candles | 1 and 500 | Not Run |
 | UT-GUI-046.003.M02.T01 | MD-GUI-046.003.M02 | Positive | List shows status | one good file, one broken | SWING_PLUS 1.0 Loaded; broken file Refused with its reason | Not Run |
 | UT-GUI-046.003.M02.T02 | MD-GUI-046.003.M02 | Negative | Other user's indicators hidden | files for user 2; active user 1 | empty list | Not Run |

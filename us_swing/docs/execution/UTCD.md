@@ -969,48 +969,48 @@
 
 | ID | Module | Type | Objective | Input | Expected Output | Status |
 |---|---|---|---|---|---|---|
-| UT-EXE-022.001.M01.T01 | MD-EXE-022.001.M01 | Positive | Public names import | `from usswing import USSwingIndicator, Number, Input` | all three import; module has no `us_swing` import | Not Run |
-| UT-EXE-022.001.M01.T02 | MD-EXE-022.001.M01 | Negative | Old or internal names are not offered | `from usswing import Choice`; `from usswing import compute` | `ImportError` for both | Not Run |
-| UT-EXE-022.002.M01.T01 | MD-EXE-022.001.M01 | Positive | Number keeps its fields and converts | `Number("Candles", 20, 1, 500, whole_number=True)`; convert "35" | fields kept; 35 as int | Not Run |
-| UT-EXE-022.002.M01.T02 | MD-EXE-022.001.M01 | Negative | Number default outside limits | default 600, maximum 500 | `ParameterError` starting "Candles" | Not Run |
-| UT-EXE-022.002.M01.T03 | MD-EXE-022.001.M01 | Negative | Input default not in options | options High/Low; default "Mid" | `ParameterError` starting "Price Swing" | Not Run |
-| UT-EXE-022.002.M01.T04 | MD-EXE-022.001.M01 | Negative | Convert out of range | Candles convert 0 | "Candles must be 1 to 500, got 0" | Not Run |
-| UT-EXE-022.003.M01.T01 | MD-EXE-022.001.M01 | Positive | SWING example gives one value per candle | 30 hand-made 3m candles; Range, Current, 5 candles | 30 values; value at candle 10 = max high − min low of candles 6–10 | Not Run |
-| UT-EXE-022.003.M01.T02 | MD-EXE-022.001.M01 | Positive | Signal output becomes 1/0 | `calculate()` returns a True/False series | floats 1.0 and 0.0 | Not Run |
-| UT-EXE-022.003.M01.T03 | MD-EXE-022.001.M01 | Negative | Wrong length or infinite value | 120 values for 390 candles; one `inf` | `OutputError` with "120 values, but there are 390 candles"; then infinite | Not Run |
-| UT-EXE-022.004.M01.T01 | MD-EXE-022.001.M01 | Positive | Candles are a copy; debug value kept | change the returned frame; `debug_value("High", s)` | source frame unchanged; debug has "High" | Not Run |
-| UT-EXE-022.004.M01.T02 | MD-EXE-022.001.M01 | Negative | Unknown parameter label | `parameter("Lookback")` | `ParameterError` "Unknown parameter 'Lookback'" | Not Run |
-| UT-EXE-022.005.M02.T01 | MD-EXE-022.005.M02 | Positive | SWING example passes the check | example file; 3 probe stocks | ok; spec name SWING_PLUS, 5 parameters in order | Not Run |
-| UT-EXE-022.005.M02.T02 | MD-EXE-022.005.M02 | Negative | No class or two classes | file without a subclass; file with two | "no USSwingIndicator class found"; "one indicator per file — found A, B" | Not Run |
-| UT-EXE-022.005.M02.T03 | MD-EXE-022.005.M02 | Negative | Field missing with a hint | class sets `name` but not `indicator_name` | reason contains "did you mean \"indicator_name\"" | Not Run |
-| UT-EXE-022.005.M02.T04 | MD-EXE-022.005.M02 | Negative | Duplicate labels or taken name | two "Candles" labels; name "EMA"; name taken by another plugin | three reasons, one per problem | Not Run |
-| UT-EXE-022.005.M02.T05 | MD-EXE-022.005.M02 | Negative | Imports the dev tools | `from usswing.dev import preview` | refused: "uses testing tools (usswing.dev)" | Not Run |
-| UT-EXE-022.005.M02.T06 | MD-EXE-022.005.M02 | Negative | File fails to load | syntax error on line 7 | refused with the message and line 7 | Not Run |
-| UT-EXE-022.006.M02.T01 | MD-EXE-022.005.M02 | Negative | Reads a label that is not declared | `self.parameter("Lookback")`, no such parameter | "calculate() reads parameter \"Lookback\", but it is not in parameters" | Not Run |
-| UT-EXE-022.006.M02.T02 | MD-EXE-022.005.M02 | Positive | All read labels are declared | SWING example | no label reason | Not Run |
-| UT-EXE-022.007.M02.T01 | MD-EXE-022.005.M02 | Negative | Dry run error | `calculate()` divides by zero | "failed on <stock>: division by zero (line n)" | Not Run |
-| UT-EXE-022.007.M02.T02 | MD-EXE-022.005.M02 | Negative | Too slow | clock moved 3.4 s during one stock | "took 3.4 s on <stock> (limit 2 s)" | Not Run |
-| UT-EXE-022.007.M02.T03 | MD-EXE-022.005.M02 | Negative | Uses future candles | `close.shift(-1)` | "uses future candles" | Not Run |
-| UT-EXE-022.007.M02.T04 | MD-EXE-022.005.M02 | Edge | Empty values at the start are fine | 20-candle rolling max (NaN for first 19) | ok | Not Run |
-| UT-EXE-022.007.M02.T05 | MD-EXE-022.005.M02 | Positive | Dry run passes on 3 stocks | SWING_PLUS example; 3 probe stocks | ok; one value per candle on each; each under 2 s | Not Run |
-| UT-EXE-022.008.M03.T01 | MD-EXE-022.008.M03 | Positive | Only the active user's folder loads | plugins for users 1 and 2; load user 1 | user 1's names only | Not Run |
-| UT-EXE-022.008.M03.T02 | MD-EXE-022.008.M03 | Negative | Other user's indicator unknown | load user 2; `get` user 1's name | None | Not Run |
-| UT-EXE-022.009.M03.T01 | MD-EXE-022.008.M03 | Positive | Good loaded, broken skipped and logged | one good file, one with a syntax error | good in `names()`; broken in `statuses()` with reason; one WARNING "[Indicators] … was not loaded" | Not Run |
-| UT-EXE-022.009.M03.T02 | MD-EXE-022.008.M03 | Edge | Reload after a file is removed | load, delete file, load again | name gone; listener called twice | Not Run |
-| UT-EXE-022.009.M03.T03 | MD-EXE-022.008.M03 | Negative | A file that exits while loading does not stop the app | file calls `sys.exit()` at import | skipped with a reason; load returns; other files loaded | Not Run |
-| UT-EXE-022.010.M04.T01 | MD-EXE-022.010.M04 | Positive | Arguments map in parameters order | `("Spot", 20, "High", "Previous", "3m")` | values by label with Candles = 20 (int) | Not Run |
-| UT-EXE-022.010.M04.T02 | MD-EXE-022.010.M04 | Negative | Wrong count or value | 4 arguments; Candles 0 | "expects 5 arg(s), got 4"; "Candles must be 1 to 500, got 0" | Not Run |
-| UT-EXE-022.011.M04.T01 | MD-EXE-022.010.M04 | Positive | Live equals replay | condition `Price(...) > SWING_PLUS(...)` on stored candles | live last value equals replay value at the same candle | Not Run |
-| UT-EXE-022.011.M04.T02 | MD-EXE-022.010.M04 | Edge | Built-in names win | a plugin can't be named EMA (check); EMA expression | built-in EMA result unchanged | Not Run |
-| UT-EXE-022.011.M04.T03 | MD-EXE-022.010.M04 | Negative | Not enough candles live | last value NaN | `EvaluatorError` "insufficient bars" (no signal) | Not Run |
-| UT-EXE-022.012.M05.T01 | MD-EXE-022.012.M05 | Negative | Error gives no signal and one warning | plugin raises on the same candle twice | `PluginFailure`; one WARNING for that candle | Not Run |
-| UT-EXE-022.012.M05.T02 | MD-EXE-022.012.M05 | Negative | Slow call counts as a failure | run takes 2.5 s (clock moved) | `PluginFailure`; result thrown away | Not Run |
-| UT-EXE-022.012.M05.T03 | MD-EXE-022.012.M05 | Positive | A normal call passes through | plugin returns values in 0.1 s | value returned; no warning; count 0 | Not Run |
-| UT-EXE-022.013.M05.T01 | MD-EXE-022.012.M05 | Positive | Three failures stop its strategies and alert | 2 strategies use the plugin, 1 does not; 3 failures | the 2 are STOPPED and saved; one alert; the third keeps running | Not Run |
-| UT-EXE-022.013.M05.T02 | MD-EXE-022.012.M05 | Edge | A success resets the count | fail, fail, ok, fail, fail | still running | Not Run |
-| UT-EXE-022.013.M05.T03 | MD-EXE-022.012.M05 | Negative | Two failures do not stop | 2 failures in a row | strategies keep running; no alert | Not Run |
-| UT-EXE-022.014.M05.T01 | MD-EXE-022.012.M05 | Negative | Missing plugin blocks start | strategy uses MY_ST; registry empty; Start | stays STOPPED; "cannot start: indicator MY_ST is not installed" | Not Run |
-| UT-EXE-022.014.M05.T02 | MD-EXE-022.012.M05 | Positive | Plugin present lets it start | same with MY_ST loaded | RUNNING | Not Run |
+| UT-EXE-022.001.M01.T01 | MD-EXE-022.001.M01 | Positive | Public names import | `from usswing import USSwingIndicator, Number, Input` | all three import; module has no `us_swing` import | Pass |
+| UT-EXE-022.001.M01.T02 | MD-EXE-022.001.M01 | Negative | Old or internal names are not offered | `from usswing import Choice`; `from usswing import compute` | `ImportError` for both | Pass |
+| UT-EXE-022.002.M01.T01 | MD-EXE-022.001.M01 | Positive | Number keeps its fields and converts | `Number("Candles", 20, 1, 500, whole_number=True)`; convert "35" | fields kept; 35 as int | Pass |
+| UT-EXE-022.002.M01.T02 | MD-EXE-022.001.M01 | Negative | Number default outside limits | default 600, maximum 500 | `ParameterError` starting "Candles" | Pass |
+| UT-EXE-022.002.M01.T03 | MD-EXE-022.001.M01 | Negative | Input default not in options | options High/Low; default "Mid" | `ParameterError` starting "Price Swing" | Pass |
+| UT-EXE-022.002.M01.T04 | MD-EXE-022.001.M01 | Negative | Convert out of range | Candles convert 0 | "Candles must be 1 to 500, got 0" | Pass |
+| UT-EXE-022.003.M01.T01 | MD-EXE-022.001.M01 | Positive | SWING example gives one value per candle | 30 hand-made 3m candles; Range, Current, 5 candles | 30 values; value at candle 10 = max high − min low of candles 6–10 | Pass |
+| UT-EXE-022.003.M01.T02 | MD-EXE-022.001.M01 | Positive | Signal output becomes 1/0 | `calculate()` returns a True/False series | floats 1.0 and 0.0 | Pass |
+| UT-EXE-022.003.M01.T03 | MD-EXE-022.001.M01 | Negative | Wrong length or infinite value | 120 values for 390 candles; one `inf` | `OutputError` with "120 values, but there are 390 candles"; then infinite | Pass |
+| UT-EXE-022.004.M01.T01 | MD-EXE-022.001.M01 | Positive | Candles are a copy; debug value kept | change the returned frame; `debug_value("High", s)` | source frame unchanged; debug has "High" | Pass |
+| UT-EXE-022.004.M01.T02 | MD-EXE-022.001.M01 | Negative | Unknown parameter label | `parameter("Lookback")` | `ParameterError` "Unknown parameter 'Lookback'" | Pass |
+| UT-EXE-022.005.M02.T01 | MD-EXE-022.005.M02 | Positive | SWING example passes the check | example file; 3 probe stocks | ok; spec name SWING_PLUS, 5 parameters in order | Pass |
+| UT-EXE-022.005.M02.T02 | MD-EXE-022.005.M02 | Negative | No class or two classes | file without a subclass; file with two | "no USSwingIndicator class found"; "one indicator per file — found A, B" | Pass |
+| UT-EXE-022.005.M02.T03 | MD-EXE-022.005.M02 | Negative | Field missing with a hint | class sets `name` but not `indicator_name` | reason contains "did you mean \"indicator_name\"" | Pass |
+| UT-EXE-022.005.M02.T04 | MD-EXE-022.005.M02 | Negative | Duplicate labels or taken name | two "Candles" labels; name "EMA"; name taken by another plugin | three reasons, one per problem | Pass |
+| UT-EXE-022.005.M02.T05 | MD-EXE-022.005.M02 | Negative | Imports the dev tools | `from usswing.dev import preview` | refused: "uses testing tools (usswing.dev)" | Pass |
+| UT-EXE-022.005.M02.T06 | MD-EXE-022.005.M02 | Negative | File fails to load | syntax error on line 7 | refused with the message and line 7 | Pass |
+| UT-EXE-022.006.M02.T01 | MD-EXE-022.005.M02 | Negative | Reads a label that is not declared | `self.parameter("Lookback")`, no such parameter | "calculate() reads parameter \"Lookback\", but it is not in parameters" | Pass |
+| UT-EXE-022.006.M02.T02 | MD-EXE-022.005.M02 | Positive | All read labels are declared | SWING example | no label reason | Pass |
+| UT-EXE-022.007.M02.T01 | MD-EXE-022.005.M02 | Negative | Dry run error | `calculate()` divides by zero | "failed on <stock>: division by zero (line n)" | Pass |
+| UT-EXE-022.007.M02.T02 | MD-EXE-022.005.M02 | Negative | Too slow | clock moved 3.4 s during one stock | "took 3.4 s on <stock> (limit 2 s)" | Pass |
+| UT-EXE-022.007.M02.T03 | MD-EXE-022.005.M02 | Negative | Uses future candles | `close.shift(-1)` | "uses future candles" | Pass |
+| UT-EXE-022.007.M02.T04 | MD-EXE-022.005.M02 | Edge | Empty values at the start are fine | 20-candle rolling max (NaN for first 19) | ok | Pass |
+| UT-EXE-022.007.M02.T05 | MD-EXE-022.005.M02 | Positive | Dry run passes on 3 stocks | SWING_PLUS example; 3 probe stocks | ok; one value per candle on each; each under 2 s | Pass |
+| UT-EXE-022.008.M03.T01 | MD-EXE-022.008.M03 | Positive | Only the active user's folder loads | plugins for users 1 and 2; load user 1 | user 1's names only | Pass |
+| UT-EXE-022.008.M03.T02 | MD-EXE-022.008.M03 | Negative | Other user's indicator unknown | load user 2; `get` user 1's name | None | Pass |
+| UT-EXE-022.009.M03.T01 | MD-EXE-022.008.M03 | Positive | Good loaded, broken skipped and logged | one good file, one with a syntax error | good in `names()`; broken in `statuses()` with reason; one WARNING "[Indicators] … was not loaded" | Pass |
+| UT-EXE-022.009.M03.T02 | MD-EXE-022.008.M03 | Edge | Reload after a file is removed | load, delete file, load again | name gone; listener called twice | Pass |
+| UT-EXE-022.009.M03.T03 | MD-EXE-022.008.M03 | Negative | A file that exits while loading does not stop the app | file calls `sys.exit()` at import | skipped with a reason; load returns; other files loaded | Pass |
+| UT-EXE-022.010.M04.T01 | MD-EXE-022.010.M04 | Positive | Arguments map in parameters order | `("Spot", 20, "High", "Previous", "3m")` | values by label with Candles = 20 (int) | Pass |
+| UT-EXE-022.010.M04.T02 | MD-EXE-022.010.M04 | Negative | Wrong count or value | 4 arguments; Candles 0 | "expects 5 arg(s), got 4"; "Candles must be 1 to 500, got 0" | Pass |
+| UT-EXE-022.011.M04.T01 | MD-EXE-022.010.M04 | Positive | Live equals replay | condition `Price(...) > SWING_PLUS(...)` on stored candles | live last value equals replay value at the same candle | Pass |
+| UT-EXE-022.011.M04.T02 | MD-EXE-022.010.M04 | Edge | Built-in names win | a plugin can't be named EMA (check); EMA expression | built-in EMA result unchanged | Pass |
+| UT-EXE-022.011.M04.T03 | MD-EXE-022.010.M04 | Negative | Not enough candles live | last value NaN | `EvaluatorError` "insufficient bars" (no signal) | Pass |
+| UT-EXE-022.012.M05.T01 | MD-EXE-022.012.M05 | Negative | Error gives no signal and one warning | plugin raises on the same candle twice | `PluginFailure`; one WARNING for that candle | Pass |
+| UT-EXE-022.012.M05.T02 | MD-EXE-022.012.M05 | Negative | Slow call counts as a failure | run takes 2.5 s (clock moved) | `PluginFailure`; result thrown away | Pass |
+| UT-EXE-022.012.M05.T03 | MD-EXE-022.012.M05 | Positive | A normal call passes through | plugin returns values in 0.1 s | value returned; no warning; count 0 | Pass |
+| UT-EXE-022.013.M05.T01 | MD-EXE-022.012.M05 | Positive | Three failures stop its strategies and alert | 2 strategies use the plugin, 1 does not; 3 failures | the 2 are STOPPED and saved; one alert; the third keeps running | Pass |
+| UT-EXE-022.013.M05.T02 | MD-EXE-022.012.M05 | Edge | A success resets the count | fail, fail, ok, fail, fail | still running | Pass |
+| UT-EXE-022.013.M05.T03 | MD-EXE-022.012.M05 | Negative | Two failures do not stop | 2 failures in a row | strategies keep running; no alert | Pass |
+| UT-EXE-022.014.M05.T01 | MD-EXE-022.012.M05 | Negative | Missing plugin blocks start | strategy uses MY_ST; registry empty; Start | stays STOPPED; "cannot start: indicator MY_ST is not installed" | Pass |
+| UT-EXE-022.014.M05.T02 | MD-EXE-022.012.M05 | Positive | Plugin present lets it start | same with MY_ST loaded | RUNNING | Pass |
 | UT-EXE-022.015.M06.T01 | MD-EXE-022.015.M06 | Positive | Load candles read-only | temp SQLite with 3m rows; `load_candles("AAPL", ["3m"], days=2)` | frame of 2 days; writing to the DB through it fails | Not Run |
 | UT-EXE-022.015.M06.T02 | MD-EXE-022.015.M06 | Positive | Run gives values and a debug table | SWING example on those candles | values and table with time, value, debug columns | Not Run |
 | UT-EXE-022.016.M06.T01 | MD-EXE-022.015.M06 | Positive | Command line check passes | `indicator check swing.py --symbols AAPL --trace t.csv` | ✔ lines, exit 0, CSV written | Not Run |
