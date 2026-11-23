@@ -1,12 +1,13 @@
 # Software Requirement Document — Execution & Risk Management (EXE)
 
 **Document ID:** SRD-EXE
-**Version:** 1.39.0
+**Version:** 1.39.1
 **Traces To:** FO-EXE v1.14.0
 **Status:** Draft
 **Last Updated:** 2026-11-23
 **Project:** US Swing Trading System
 
+> v1.39.1: SRD-EXE-022.001–.017 approved by user 2026-11-23.
 > v1.39.0: SRD-EXE-022.001–.017 added as Draft — Custom Indicator Plugins (user design 2026-11-23).
 > v1.38.1: SRD-EXE-015.007–.008 approved by user 2026-11-21; Implemented.
 > v1.38.0: SRD-EXE-015.007–.008 added as Draft — one app copy at a time, checked at start and before each order (user request 2026-11-21, after two copies bought HRL twice on 2026-11-20).
@@ -417,21 +418,21 @@
 
 | SRD ID | Parent FO | Priority | Description | Inputs | Outputs | Constraints | Status |
 |---|---|---|---|---|---|---|---|
-| SRD-EXE-022.001 | FO-EXE-022 | Must | A public package `usswing` exports `USSwingIndicator`, `Number` and `Input`. | — | importable package | Lives in `src/usswing/`; bundled in the installer and shipped as a wheel for Python 3.11 | Draft |
-| SRD-EXE-022.002 | FO-EXE-022 | Must | `Number(label, default, minimum, maximum, whole_number=False)` and `Input(label, options, default)` each describe one parameter. | label, limits or options, default | parameter object | A default outside its limits or options raises an error naming the label | Draft |
-| SRD-EXE-022.003 | FO-EXE-022 | Must | A `USSwingIndicator` subclass declares `indicator_name`, `description`, `version`, `output_type` and `parameters`, and `calculate()` returns one value per candle. | indicator file | value series | `output_type` is "value" or "signal"; a True/False result becomes 1/0 | Draft |
-| SRD-EXE-022.004 | FO-EXE-022 | Must | `self.candles(symbol_type, timeframe)` returns the stock's candles, `self.parameter(label)` the chosen value and `self.debug_value(name, series)` records a series. | symbol type, timeframe, label | candles, value | Candles are read-only; an unknown label raises an error naming it | Draft |
-| SRD-EXE-022.005 | FO-EXE-022 | Must | The plugin check refuses a file that lacks one `USSwingIndicator` subclass, a required field, unique labels or a free name, or that imports `usswing.dev`. | indicator file | pass, or plain reasons | Name must not match a built-in or another plugin of the user | Draft |
-| SRD-EXE-022.006 | FO-EXE-022 | Must | The plugin check refuses a file whose `calculate()` reads a label that is not in `parameters`. | indicator file | reason naming the label | Literal labels are found by reading the code; others by the dry run | Draft |
-| SRD-EXE-022.007 | FO-EXE-022 | Must | The plugin check runs `calculate()` with default parameters on 3 stocks of local candles and needs one value per candle, no error and under 2 s per stock. | indicator, local candles | pass, or plain reasons | Values may be empty (NaN) but not infinite | Draft |
-| SRD-EXE-022.008 | FO-EXE-022 | Must | Each user's indicator files are kept in `~/.usswing/plugins/<user_id>/indicators/`, and only the active user's are loaded. | active user | loaded indicators | Never in the code repository or the installer | Draft |
-| SRD-EXE-022.009 | FO-EXE-022 | Must | At start and on reload, files that pass the check are added to the indicator registry; others are skipped and logged with the reason. | plugin folder | registry entries | A broken file never stops the app | Draft |
-| SRD-EXE-022.010 | FO-EXE-022 | Must | Trigger expressions call a plugin by `indicator_name` with arguments in `parameters` order. | expression | parameter values | A wrong count or value fails like a built-in indicator | Draft |
-| SRD-EXE-022.011 | FO-EXE-022 | Must | The live engine uses the last value and the strategy replay the full series of the same `calculate()` result. | candles, parameter values | value or series | Built-in indicators keep their current results | Draft |
-| SRD-EXE-022.012 | FO-EXE-022 | Must | A plugin error or timeout gives no signal for that candle and logs one warning. | failed call | no signal, log line | Time limit 2 s per call | Draft |
-| SRD-EXE-022.013 | FO-EXE-022 | Must | Three failed calls in a row stop every strategy that uses the plugin and alert the user. | failure count | stopped strategies, alert | Telegram alert when the user has it on; open trades stay managed | Draft |
-| SRD-EXE-022.014 | FO-EXE-022 | Must | A strategy whose conditions name a plugin not loaded for the user cannot start, and the message names the plugin. | strategy start | refusal | Applies to manual start and auto start | Draft |
-| SRD-EXE-022.015 | FO-EXE-022 | Should | `usswing.testing.load_candles(symbol, timeframes, days)` reads local candles and `run(indicator, candles, values)` returns the series and debug values. | symbol, timeframes, values | series, debug table | Read-only access to the local stores | Draft |
-| SRD-EXE-022.016 | FO-EXE-022 | Should | `USSwing.exe indicator check <file>` runs the plugin check on chosen stocks, prints the result and can save the debug table as CSV. | file, symbols, days, trace path | report, CSV | Uses the tool's own Python; needs no Python install | Draft |
-| SRD-EXE-022.017 | FO-EXE-022 | Could | `usswing.dev.preview(...)` opens a browser chart with candles, the indicator and its debug values. | indicator, candles | HTML chart | For tests and scripts only (see SRD-EXE-022.005) | Draft |
+| SRD-EXE-022.001 | FO-EXE-022 | Must | A public package `usswing` exports `USSwingIndicator`, `Number` and `Input`. | — | importable package | Lives in `src/usswing/`; bundled in the installer and shipped as a wheel for Python 3.11 | Approved |
+| SRD-EXE-022.002 | FO-EXE-022 | Must | `Number(label, default, minimum, maximum, whole_number=False)` and `Input(label, options, default)` each describe one parameter. | label, limits or options, default | parameter object | A default outside its limits or options raises an error naming the label | Approved |
+| SRD-EXE-022.003 | FO-EXE-022 | Must | A `USSwingIndicator` subclass declares `indicator_name`, `description`, `version`, `output_type` and `parameters`, and `calculate()` returns one value per candle. | indicator file | value series | `output_type` is "value" or "signal"; a True/False result becomes 1/0 | Approved |
+| SRD-EXE-022.004 | FO-EXE-022 | Must | `self.candles(symbol_type, timeframe)` returns the stock's candles, `self.parameter(label)` the chosen value and `self.debug_value(name, series)` records a series. | symbol type, timeframe, label | candles, value | Candles are read-only; an unknown label raises an error naming it | Approved |
+| SRD-EXE-022.005 | FO-EXE-022 | Must | The plugin check refuses a file that lacks one `USSwingIndicator` subclass, a required field, unique labels or a free name, or that imports `usswing.dev`. | indicator file | pass, or plain reasons | Name must not match a built-in or another plugin of the user | Approved |
+| SRD-EXE-022.006 | FO-EXE-022 | Must | The plugin check refuses a file whose `calculate()` reads a label that is not in `parameters`. | indicator file | reason naming the label | Literal labels are found by reading the code; others by the dry run | Approved |
+| SRD-EXE-022.007 | FO-EXE-022 | Must | The plugin check runs `calculate()` with default parameters on 3 stocks of local candles and needs one value per candle, no error and under 2 s per stock. | indicator, local candles | pass, or plain reasons | Values may be empty (NaN) but not infinite | Approved |
+| SRD-EXE-022.008 | FO-EXE-022 | Must | Each user's indicator files are kept in `~/.usswing/plugins/<user_id>/indicators/`, and only the active user's are loaded. | active user | loaded indicators | Never in the code repository or the installer | Approved |
+| SRD-EXE-022.009 | FO-EXE-022 | Must | At start and on reload, files that pass the check are added to the indicator registry; others are skipped and logged with the reason. | plugin folder | registry entries | A broken file never stops the app | Approved |
+| SRD-EXE-022.010 | FO-EXE-022 | Must | Trigger expressions call a plugin by `indicator_name` with arguments in `parameters` order. | expression | parameter values | A wrong count or value fails like a built-in indicator | Approved |
+| SRD-EXE-022.011 | FO-EXE-022 | Must | The live engine uses the last value and the strategy replay the full series of the same `calculate()` result. | candles, parameter values | value or series | Built-in indicators keep their current results | Approved |
+| SRD-EXE-022.012 | FO-EXE-022 | Must | A plugin error or timeout gives no signal for that candle and logs one warning. | failed call | no signal, log line | Time limit 2 s per call | Approved |
+| SRD-EXE-022.013 | FO-EXE-022 | Must | Three failed calls in a row stop every strategy that uses the plugin and alert the user. | failure count | stopped strategies, alert | Telegram alert when the user has it on; open trades stay managed | Approved |
+| SRD-EXE-022.014 | FO-EXE-022 | Must | A strategy whose conditions name a plugin not loaded for the user cannot start, and the message names the plugin. | strategy start | refusal | Applies to manual start and auto start | Approved |
+| SRD-EXE-022.015 | FO-EXE-022 | Should | `usswing.testing.load_candles(symbol, timeframes, days)` reads local candles and `run(indicator, candles, values)` returns the series and debug values. | symbol, timeframes, values | series, debug table | Read-only access to the local stores | Approved |
+| SRD-EXE-022.016 | FO-EXE-022 | Should | `USSwing.exe indicator check <file>` runs the plugin check on chosen stocks, prints the result and can save the debug table as CSV. | file, symbols, days, trace path | report, CSV | Uses the tool's own Python; needs no Python install | Approved |
+| SRD-EXE-022.017 | FO-EXE-022 | Could | `usswing.dev.preview(...)` opens a browser chart with candles, the indicator and its debug values. | indicator, candles | HTML chart | For tests and scripts only (see SRD-EXE-022.005) | Approved |
 

@@ -1082,7 +1082,7 @@ The system shall turn the Charts trade plan into a one-time auto strategy when t
 
 ## FO-GUI-046: Custom Indicators Screen
 
-**Status:** Draft
+**Status:** Approved (user, 2026-11-23)
 **Priority:** Should
 **Depends on:** FO-EXE-022 (Custom Indicator Plugins), FO-GUI-013 (strategy builder trigger conditions), FO-GUI-027 (Settings dialog)
 **Source:** User design 2026-11-23 — every popup row comes from the indicator file's `parameters`; import and export from the tool; build and test in VS Code.

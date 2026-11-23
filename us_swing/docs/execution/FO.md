@@ -681,7 +681,7 @@ The system shall save each user's account equity every 5 minutes while the marke
 
 ## FO-EXE-022: Custom Indicator Plugins
 
-**Status:** Draft
+**Status:** Approved (user, 2026-11-23)
 **Priority:** Should
 **Depends on:** FO-EXE-011 (strategy engine and trigger expressions)
 **Source:** User design 2026-11-23 — private indicators written in VS Code with a `usswing` library, kept on the user's PC, imported into the tool; names fixed by the user (`USSwingIndicator`, `parameters`, `Number`, `Input`, `calculate`, `self.candles`, `self.parameter`, `self.debug_value`).
