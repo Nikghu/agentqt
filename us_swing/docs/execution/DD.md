@@ -4274,7 +4274,7 @@ class USSwingIndicator:
 **Traces:** SRD-EXE-022.012–.014. Module `us_swing/core/indicator_plugins/_guard.py`, plus hooks in `execution/strategy_engine/_engine.py`.
 
 **One call.** `guarded(spec, fn)` runs `fn()`:
-- any exception, an `OutputError`, or a run longer than 2 s counts as a failure. A slow run cannot be stopped mid-way; its result is thrown away;
+- any exception (including `sys.exit()`), an `OutputError`, or a run longer than 2 s counts as a failure. User code runs in a daemon worker thread (`call_with_deadline`): after 2 s the engine stops waiting, marks the indicator *hung*, never calls it again, and stops its strategies at once. The thread cannot be killed, so a restart frees it. Loading a file has a 5 s wait and replay a 60 s wait. Failures are counted per indicator **and stock** (review fix 2026-11-23);
 - a failure raises `PluginFailure(EvaluatorError)` carrying `spec.name`, so the engine's existing "condition could not be evaluated" path gives **no signal**;
 - one WARNING per plugin per candle time: `[Indicators] MY_ST failed on AAPL: division by zero`.
 
