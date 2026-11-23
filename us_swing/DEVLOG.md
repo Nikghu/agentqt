@@ -2,6 +2,15 @@
 
 ---
 
+## [20261123] EXE, GUI — Custom indicator plugins: FO/SRD/DD/MD/UTCD + P1 code; also PR #173–#175 merged
+
+- Type: Feature (branch `feat/usswing-indicator-plugins`, unpushed) + GUI fix batch (PR #175 merged de7abafd) + SRD wording reopen (PR #174)
+- FO(s): FO-EXE-022 (SRD-EXE-022.001–.017 approved; .001–.014 Implemented), FO-GUI-046 (SRD-GUI-046.001–.007 approved, not built)
+- Artifacts: FO, SRD, DD (DD-EXE-022.*), MD (MD-EXE-022.M01–M07, MD-GUI-046.M01–M03), UTCD (47 EXE, 16 GUI; UT-EXE-022.001–.014 Pass), TRACE, Code (`src/usswing/`, `core/indicator_plugins/`, evaluator/series/engine hooks, IndicatorStoppedEvent), Tests (56 plugin tests), TODO (T230, T231), CONTEXT, DEVLOG; no RN yet (feature not finished)
+- Decisions: user-fixed API names (`parameters`, `Input` capital I, `self.parameter`); every popup row comes only from the file's `parameters`; plugins per user under `~/.usswing/plugins/<user_id>/indicators/`; plotting only in `usswing.dev` (refused in plugin files); review fixes: worker-thread deadline, sys.exit caught, per-stock failure count, fresh compile, probe errors give notes not refusals
+- Open: P2 GUI (see CONTEXT §0 handover), P3 kit/CLI, P4 preview; T231 old failing manual-picks tests; push/PR only when user says
+
+---
 ## [20261123] GUI, BKT, EXE — Bugfix batch part 3: date pickers, time left, Direction column, Swing Lookback 1–500, benchmark key
 
 - Type: Bugfix (branch `fix/bugfix-batch-20261122-2`; 6 commits: 7fdee873, b8ae904c, eb9fef3e, 14961e7a, 48188ccd, c2409af2; unpushed)
