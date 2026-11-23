@@ -1,12 +1,13 @@
 # Unit Test Case Document â€” GUI Module (GUI)
 
 **Document ID:** UTCD-GUI
-**Version:** 1.58.6
+**Version:** 1.58.7
 **Traces To:** MD-GUI v1.7.0
 **Status:** Draft
 **Last Updated:** 2026-11-23
 **Project:** US Swing Trading System
 
+> v1.58.7: UT-GUI-046.003.M02.T02 and .004.M02.T04 changed (user decision 2026-11-23: one shared folder, no user part).
 > v1.58.6: UT-GUI-046.004.M02.T04 added — Import opens in the latest project.
 > v1.58.5: UT-GUI-046.010.M03.T01 now checks the web page.
 > v1.58.4: UT-GUI-046.010–.013 (6 tests) added, Pass.
@@ -1246,11 +1247,11 @@ Test files:
 | UT-GUI-046.002.M01.T02 | MD-GUI-046.001.M01 | Positive | Dropdowns and expression | Price Swing options; Add with defaults | High, Low, Range with High chosen; `SWING_PLUS('Spot', 20, 'High', 'Previous', '3m')` | Pass |
 | UT-GUI-046.002.M01.T03 | MD-GUI-046.001.M01 | Negative | Number box keeps limits | type 0 and 900 in Candles | 1 and 500 | Pass |
 | UT-GUI-046.003.M02.T01 | MD-GUI-046.003.M02 | Positive | List shows status | one good file, one broken | SWING_PLUS 1.0 Loaded; broken file Refused with its reason | Pass |
-| UT-GUI-046.003.M02.T02 | MD-GUI-046.003.M02 | Negative | Other user's indicators hidden | files for user 2; active user 1 | empty list | Pass |
+| UT-GUI-046.003.M02.T02 | MD-GUI-046.003.M02 | Positive | All users see the same indicators | one file; users 1 and 2 | both list SWING_PLUS 1.0 Loaded | Pass |
 | UT-GUI-046.004.M02.T01 | MD-GUI-046.003.M02 | Positive | Import a good file | pick file; warning Yes | copied to the user's folder; listed Loaded | Pass |
 | UT-GUI-046.004.M02.T02 | MD-GUI-046.003.M02 | Negative | Import a bad file | file with a missing field; warning Yes | reason shown; nothing copied | Pass |
 | UT-GUI-046.004.M02.T03 | MD-GUI-046.003.M02 | Negative | Warning answered No | pick file; warning No | nothing copied, no check run | Pass |
-| UT-GUI-046.004.M02.T04 | MD-GUI-046.003.M02 | Positive | Import opens in the latest project | no projects; then OLD_ST and NEW_ST, NEW_ST changed last | home folder; then the project whose .py file changed last | Pass |
+| UT-GUI-046.004.M02.T04 | MD-GUI-046.003.M02 | Positive | Import opens in the projects folder | no folder yet; then a project | `plugins/projects` made and used both times | Pass |
 | UT-GUI-046.005.M02.T01 | MD-GUI-046.003.M02 | Positive | Export and Reload | export to a temp path; Reload | same file content; registry loaded again | Pass |
 | UT-GUI-046.005.M02.T02 | MD-GUI-046.003.M02 | Positive | Remove a used indicator | strategy WTrend_X uses it; confirm Yes | message names WTrend_X; it is STOPPED; file gone | Pass |
 | UT-GUI-046.005.M02.T03 | MD-GUI-046.003.M02 | Negative | Remove answered No | confirm No | file kept; strategy unchanged | Pass |

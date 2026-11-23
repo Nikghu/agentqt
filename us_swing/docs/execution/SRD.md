@@ -1,12 +1,13 @@
 # Software Requirement Document — Execution & Risk Management (EXE)
 
 **Document ID:** SRD-EXE
-**Version:** 1.39.4
+**Version:** 1.39.5
 **Traces To:** FO-EXE v1.14.0
 **Status:** Draft
 **Last Updated:** 2026-11-23
 **Project:** US Swing Trading System
 
+> v1.39.5: SRD-EXE-022.008 changed: one shared indicator folder (user decision 2026-11-23: one shared folder, no user part).
 > v1.39.4: SRD-EXE-022.017 Implemented (P4).
 > v1.39.3: SRD-EXE-022.015–.016 Implemented (P3).
 > v1.39.2: SRD-EXE-022.001–.014 Implemented (P1).
@@ -428,7 +429,7 @@
 | SRD-EXE-022.005 | FO-EXE-022 | Must | The plugin check refuses a file that lacks one `USSwingIndicator` subclass, a required field, unique labels or a free name, or that imports `usswing.dev`. | indicator file | pass, or plain reasons | Name must not match a built-in or another plugin of the user | Implemented |
 | SRD-EXE-022.006 | FO-EXE-022 | Must | The plugin check refuses a file whose `calculate()` reads a label that is not in `parameters`. | indicator file | reason naming the label | Literal labels are found by reading the code; others by the dry run | Implemented |
 | SRD-EXE-022.007 | FO-EXE-022 | Must | The plugin check runs `calculate()` with default parameters on 3 stocks of local candles and needs one value per candle, no error and under 2 s per stock. | indicator, local candles | pass, or plain reasons | Values may be empty (NaN) but not infinite | Implemented |
-| SRD-EXE-022.008 | FO-EXE-022 | Must | Each user's indicator files are kept in `~/.usswing/plugins/<user_id>/indicators/`, and only the active user's are loaded. | active user | loaded indicators | Never in the code repository or the installer | Implemented |
+| SRD-EXE-022.008 | FO-EXE-022 | Must | Indicator files are kept in `~/.usswing/plugins/indicators/`, shared by all users; files in old per-user folders are moved there once. | plugin folder | loaded indicators | Never in the code repository or the installer | Implemented |
 | SRD-EXE-022.009 | FO-EXE-022 | Must | At start and on reload, files that pass the check are added to the indicator registry; others are skipped and logged with the reason. | plugin folder | registry entries | A broken file never stops the app | Implemented |
 | SRD-EXE-022.010 | FO-EXE-022 | Must | Trigger expressions call a plugin by `indicator_name` with arguments in `parameters` order. | expression | parameter values | A wrong count or value fails like a built-in indicator | Implemented |
 | SRD-EXE-022.011 | FO-EXE-022 | Must | The live engine uses the last value and the strategy replay the full series of the same `calculate()` result. | candles, parameter values | value or series | Built-in indicators keep their current results | Implemented |

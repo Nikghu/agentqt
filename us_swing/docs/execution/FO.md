@@ -1,12 +1,13 @@
 # Functional Objectives — Execution & Risk Management (EXE)
 
 **Document ID:** FO-EXE
-**Version:** 1.18.0
+**Version:** 1.18.1
 **Status:** Draft
 **Last Updated:** 2026-11-23
 **Project:** US Swing Trading System
 
 > Traces to: `us_swing/requirements.md` §10, §11, §12, §13, §21.4, §22, §23, §25
+> v1.18.1: FO-EXE-022 indicators shared by all users (user decision 2026-11-23: one shared folder, no user part).
 > v1.18.0: FO-EXE-022 added as Draft — Custom Indicator Plugins (`usswing` library; user design 2026-11-23).
 > v1.17.0: AI Desk and Market Floor removed (user, 2026-11-17; docs/audit/DESK_REMOVAL_2026-11-17.md): FO-EXE-021 removed.
 > v1.9.0: FO-EXE-014 added — Broker Order State Machine (Final_Execution.md Phase 3 split of `PositionState` into `BuyOrderState` + `SellOrderState`; `trades.pnl` and `positions.state` removed).
@@ -692,7 +693,7 @@ The system shall let a user write their own indicator as a Python file with the 
 - The system shall provide a public `usswing` library with the base class `USSwingIndicator` and the parameter types `Number` and `Input`.
 - An indicator file shall declare `indicator_name`, `description`, `version`, `output_type` and the full `parameters` list, and shall compute its values in `calculate()`.
 - The system shall add no parameter of its own; the indicator file is the only source of its parameters.
-- The system shall keep each user's indicators in that user's local plugins folder, never in the code repository or the installer.
+- The system shall keep the indicators in one local plugins folder on the PC, shared by all its users, never in the code repository or the installer.
 - The system shall check an indicator file and run it once on real candles before it can be used, and shall refuse it with a plain reason when a check fails.
 - The live engine and the strategy replay shall use the same `calculate()` result.
 - A failing indicator shall give no signal for that candle and be logged; three failures in a row shall stop the strategies that use it and alert the user.
@@ -705,5 +706,5 @@ The system shall let a user write their own indicator as a Python file with the 
 2. A file whose `calculate()` reads a parameter not in `parameters` is refused with that parameter's name.
 3. A strategy with condition `Price(Spot, 3m) > SWING(Spot, 20, High, Previous, 3m)` written with the imported SWING gives the same value live and in replay for the same candle.
 4. An indicator that raises an error on every candle stops its strategy after three candles and the user gets an alert.
-5. Another user on the same PC does not see the first user's indicators.
+5. Every user on the same PC sees the same indicators; files in the old per-user folders are moved to the shared folder once.
 

@@ -40,13 +40,13 @@ SWING_ARGS = "'Spot', 20, 'High', 'Previous', '3m'"
 
 
 def _install(text: str | None = None, name: str = "swing_plus.py") -> None:
-    folder = plugin_dir(1, REGISTRY.root)
+    folder = plugin_dir(REGISTRY.root)
     folder.mkdir(parents=True, exist_ok=True)
     if text is None:
         shutil.copy(SWING_PLUS, folder / name)
     else:
         write_plugin(folder, name, text)
-    REGISTRY.load_for_user(1)
+    REGISTRY.load()
 
 
 @pytest.fixture()
@@ -134,7 +134,7 @@ def test_error_gives_no_signal_and_one_warning(
     """UT-EXE-022.012.M05.T01: An error raises PluginFailure; one warning per candle."""
     _install(swing_plus_source(("count = self.parameter(\"Candles\")",
                                 "count = self.parameter(\"Candles\") / 0")))
-    REGISTRY.load_for_user(1)  # dry run skipped: no probe, so the broken file loads
+    REGISTRY.load()  # dry run skipped: no probe, so the broken file loads
     data = frames(60)
     expr = f"SWING_PLUS({SWING_ARGS}) > 0"
 

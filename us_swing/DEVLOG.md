@@ -2,6 +2,16 @@
 
 ---
 
+## [20261123] EXE, GUI — One shared indicator folder (no user id); Import opens the projects folder
+
+- Type: Change (branch `feat/usswing-indicator-plugins`, unpushed); user asked why the path had `1` and chose one shared folder
+- FO(s): FO-EXE-022 (SRD-EXE-022.008 changed), FO-GUI-046 (SRD-GUI-046.001/.003 wording; .004 Import folder)
+- Artifacts: FO, SRD, DD, MD, UTCD (UT-EXE-022.008.M03.T01–T03, UT-GUI-046.003.M02.T02, .004.M02.T04), TRACE, Code (`_registry.py` `plugin_dir()`, `move_user_folders()`, `load()`; `indicator_project.py` and `indicators_section.py` without user ids; `app_service.reload_indicators`), Tests, TODO (T236), CONTEXT, DEVLOG
+- Decisions: folders `plugins/indicators` and `plugins/projects`; old `plugins/<id>/` moved on load; never overwrite; an item Windows will not move stays and is tried again next start
+- Open: T232–T236 user checks; Revision Notes; PR when the user says
+
+---
+
 ## [20261123] GUI — Import opens in the latest indicator project
 
 - Type: Small change (branch `feat/usswing-indicator-plugins`, unpushed); user's screenshot showed Import opening in the home folder

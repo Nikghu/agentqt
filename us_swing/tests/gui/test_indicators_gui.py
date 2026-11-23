@@ -8,7 +8,6 @@ on-screen message when a strategy cannot start.
 from __future__ import annotations
 
 import json
-import os
 import re
 import shutil
 from collections.abc import Iterator
@@ -37,12 +36,12 @@ _BROKEN = swing_plus_source(('    version = "1.0"\n', ""),
                             ('indicator_name = "SWING_PLUS"', 'indicator_name = "BAD_ONE"'))
 
 
-def _load(user_id: int = 1) -> None:
-    REGISTRY.load_for_user(user_id, builtins=builtin_names())
+def _load() -> None:
+    REGISTRY.load(builtins=builtin_names())
 
 
-def _install(user_id: int, name: str, text: str) -> Path:
-    folder = plugin_dir(user_id, REGISTRY.root)
+def _install(name: str, text: str) -> Path:
+    folder = plugin_dir(REGISTRY.root)
     folder.mkdir(parents=True, exist_ok=True)
     path = folder / name
     path.write_text(text, encoding="utf-8")
@@ -51,7 +50,7 @@ def _install(user_id: int, name: str, text: str) -> Path:
 
 @pytest.fixture
 def swing_plus() -> Path:
-    path = _install(1, "swing_plus.py", SWING_PLUS.read_text(encoding="utf-8"))
+    path = _install("swing_plus.py", SWING_PLUS.read_text(encoding="utf-8"))
     _load()
     return path
 
@@ -90,7 +89,7 @@ class _Service(QObject):
 
     def reload_indicators(self) -> None:
         self.reloads += 1
-        _load(self.user_id)
+        _load()
 
     def reload_strategy_registry(self) -> None:
         pass
@@ -143,7 +142,7 @@ def test_plugin_listed_after_builtins(qtbot: QtBot, swing_plus: Path) -> None:
 
 def test_refused_plugin_not_listed(qtbot: QtBot) -> None:
     """UT-GUI-046.001.M01.T02: Refused plugin not listed."""
-    _install(1, "bad_one.py", _BROKEN)
+    _install("bad_one.py", _BROKEN)
     _load()
     assert not REGISTRY.statuses()[0].ok
 
@@ -197,7 +196,7 @@ def test_number_box_keeps_limits(qtbot: QtBot, swing_plus: Path) -> None:
 
 def test_list_shows_status(qtbot: QtBot, swing_plus: Path) -> None:
     """UT-GUI-046.003.M02.T01: List shows status."""
-    _install(1, "bad_one.py", _BROKEN)
+    _install("bad_one.py", _BROKEN)
     _load()
 
     section = _section(qtbot, _Service())
@@ -206,13 +205,15 @@ def test_list_shows_status(qtbot: QtBot, swing_plus: Path) -> None:
     assert "version" in section.table.item(0, 3).text()
 
 
-def test_other_users_indicators_hidden(qtbot: QtBot) -> None:
-    """UT-GUI-046.003.M02.T02: Other user's indicators hidden."""
-    _install(2, "swing_plus.py", SWING_PLUS.read_text(encoding="utf-8"))
-    service = _Service(user_id=1)
-    service.reload_indicators()
+def test_every_user_sees_same_indicators(qtbot: QtBot) -> None:
+    """UT-GUI-046.003.M02.T02: All users share one indicator folder."""
+    _install("swing_plus.py", SWING_PLUS.read_text(encoding="utf-8"))
+    first, second = _Service(user_id=1), _Service(user_id=2)
+    first.reload_indicators()
+    rows_first = _rows(_section(qtbot, first))
+    second.reload_indicators()
 
-    assert _rows(_section(qtbot, service)) == []
+    assert rows_first == _rows(_section(qtbot, second)) == [["SWING_PLUS", "1.0", "Loaded"]]
 
 
 def test_import_good_file(qtbot: QtBot, tmp_path: Path, popups: dict[str, Any],
@@ -225,7 +226,7 @@ def test_import_good_file(qtbot: QtBot, tmp_path: Path, popups: dict[str, Any],
 
     section.import_btn.click()
 
-    assert (plugin_dir(1, REGISTRY.root) / "swing_plus.py").read_bytes() == source.read_bytes()
+    assert (plugin_dir(REGISTRY.root) / "swing_plus.py").read_bytes() == source.read_bytes()
     assert _rows(section) == [["SWING_PLUS", "1.0", "Loaded"]]
     assert "runs Python code" in popups["confirm"][0]
 
@@ -242,7 +243,7 @@ def test_import_bad_file(qtbot: QtBot, tmp_path: Path, popups: dict[str, Any],
     section.import_btn.click()
 
     assert "version" in popups["notify"][0]
-    assert not plugin_dir(1, REGISTRY.root).exists()
+    assert not plugin_dir(REGISTRY.root).exists()
     assert service.reloads == 0
 
 
@@ -260,7 +261,7 @@ def test_import_warning_no(qtbot: QtBot, tmp_path: Path, popups: dict[str, Any],
     section.import_btn.click()
 
     assert checked == []
-    assert not plugin_dir(1, REGISTRY.root).exists()
+    assert not plugin_dir(REGISTRY.root).exists()
 
 
 def test_export_and_reload(qtbot: QtBot, tmp_path: Path, swing_plus: Path,
@@ -334,7 +335,7 @@ def test_check_shows_last_20_values(qtbot: QtBot, swing_plus: Path) -> None:
 
 def test_new_project_files(tmp_path: Path) -> None:
     """UT-GUI-046.007.M03.T01: New project files."""
-    folder = project.create_project(1, "MY_ST", root=tmp_path)
+    folder = project.create_project("MY_ST", root=tmp_path)
 
     names = {p.relative_to(folder).as_posix() for p in folder.rglob("*") if p.is_file()}
     assert {"my_st.py", "test_my_st.py", ".vscode/settings.json",
@@ -345,12 +346,12 @@ def test_new_project_files(tmp_path: Path) -> None:
     assert task["tasks"][0]["args"][-3:] == ["indicator", "check",
                                              "${workspaceFolder}/my_st.py"]
     with pytest.raises(FileExistsError):
-        project.create_project(1, "MY_ST", root=tmp_path)
+        project.create_project("MY_ST", root=tmp_path)
 
 
 def test_project_has_ai_guide(tmp_path: Path) -> None:
     """UT-GUI-046.008.M03.T01: New project has an AI guide with the rules and check command."""
-    folder = project.create_project(1, "VWAP_CROSS", root=tmp_path)
+    folder = project.create_project("VWAP_CROSS", root=tmp_path)
 
     guide = (folder / "CLAUDE.md").read_text(encoding="utf-8")
 
@@ -364,8 +365,8 @@ def test_project_has_ai_guide(tmp_path: Path) -> None:
 
 def test_project_dialog_open_or_create(qtbot: QtBot) -> None:
     """UT-GUI-046.009.M02.T01: New indicator lists projects to open and can create one."""
-    made = project.create_project(1, "MY_ST")
-    opener = sec.ProjectDialog(1)
+    made = project.create_project("MY_ST")
+    opener = sec.ProjectDialog()
     qtbot.addWidget(opener)
     assert [opener.projects.item(i).text() for i in range(opener.projects.count())] == ["MY_ST"]
     assert not opener.open_btn.isEnabled()
@@ -374,7 +375,7 @@ def test_project_dialog_open_or_create(qtbot: QtBot) -> None:
     opener.open_btn.click()
 
     assert opener.folder == made and opener.created is False
-    maker = sec.ProjectDialog(1)
+    maker = sec.ProjectDialog()
     qtbot.addWidget(maker)
     maker.name.setText("MY_ST")
     maker.name.returnPressed.emit()
@@ -383,13 +384,13 @@ def test_project_dialog_open_or_create(qtbot: QtBot) -> None:
     maker.name.returnPressed.emit()
     assert maker.created is True and maker.folder is not None
     assert (maker.folder / "new_one.py").is_file()
-    assert [p.name for p in project.list_projects(1)] == ["my_st", "new_one"]
+    assert [p.name for p in project.list_projects()] == ["my_st", "new_one"]
 
 
 def test_project_has_api_guide_and_help(tmp_path: Path,
                                         monkeypatch: pytest.MonkeyPatch) -> None:
     """UT-GUI-046.010.M03.T01: Project has the API guide (text + web page); Help opens it."""
-    folder = project.create_project(1, "MY_ST", root=tmp_path)
+    folder = project.create_project("MY_ST", root=tmp_path)
 
     guide = (folder / "USSWING_API.md").read_text(encoding="utf-8")
     assert all(f"## {n}." in guide for n in range(1, 10))
@@ -410,7 +411,7 @@ def test_project_has_api_guide_and_help(tmp_path: Path,
 
 
 def _recipes() -> list[str]:
-    guide = (project.create_project(9, "RECIPES") / "USSWING_API.md").read_text(encoding="utf-8")
+    guide = (project.create_project("RECIPES") / "USSWING_API.md").read_text(encoding="utf-8")
     section = guide.split("## 8.")[1].split("## 9.")[0]
     return re.findall(r"```python\n(.*?)```", section, re.S)
 
@@ -460,7 +461,7 @@ def test_opening_old_project_adds_missing_files(tmp_path: Path) -> None:
 
 def test_project_recommends_extensions(tmp_path: Path) -> None:
     """UT-GUI-046.012.M03.T01: The project recommends the Python and Claude Code extensions."""
-    folder = project.create_project(1, "MY_ST", root=tmp_path)
+    folder = project.create_project("MY_ST", root=tmp_path)
 
     data = json.loads((folder / ".vscode" / "extensions.json").read_text(encoding="utf-8"))
 
@@ -470,7 +471,7 @@ def test_project_recommends_extensions(tmp_path: Path) -> None:
 def test_python_setup_makes_env_and_points_projects(
         tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """UT-GUI-046.013.M04.T01: Set up Python makes the env, installs, points projects at it."""
-    folder = project.create_project(1, "MY_ST", root=tmp_path)
+    folder = project.create_project("MY_ST", root=tmp_path)
     monkeypatch.setattr(pysetup.shutil, "which",
                         lambda name: r"C:\Python311\python.exe" if name == "python" else None)
     calls: list[list[str]] = []
@@ -506,17 +507,13 @@ def test_python_setup_without_python(tmp_path: Path, monkeypatch: pytest.MonkeyP
     assert calls == []
 
 
-def test_import_opens_in_latest_project(tmp_path: Path) -> None:
-    """UT-GUI-046.004.M02.T04: Import opens in the project changed most recently."""
-    assert project.import_start_folder(1, root=tmp_path) == Path.home()
-    old = project.create_project(1, "OLD_ST", root=tmp_path)
-    new = project.create_project(1, "NEW_ST", root=tmp_path)
-    os.utime(new / "new_st.py", (1_000_000, 1_000_000))
-    os.utime(new / "test_new_st.py", (1_000_000, 1_000_000))
+def test_import_opens_in_projects_folder(tmp_path: Path) -> None:
+    """UT-GUI-046.004.M02.T04: Import opens in the projects folder, made when missing."""
+    folder = project.import_start_folder(root=tmp_path)
 
-    assert project.import_start_folder(1, root=tmp_path) == old
-    (new / "new_st.py").write_text("# changed\n", encoding="utf-8")
-    assert project.import_start_folder(1, root=tmp_path) == new
+    assert folder == project.projects_dir(root=tmp_path) and folder.is_dir()
+    project.create_project("MY_ST", root=tmp_path)
+    assert project.import_start_folder(root=tmp_path) == folder
 
 
 def test_vs_code_not_found_opens_folder(tmp_path: Path,

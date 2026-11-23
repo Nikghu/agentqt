@@ -2,12 +2,14 @@
 Module: MD-EXE-022.008.M03 — custom indicator registry
 Parent SRD: SRD-EXE-022.008
 
-Loads the active user's indicator files and keeps the ones that pass the check
-(SRD-EXE-022.008–.009). A broken file is skipped and logged; it never stops the app.
+Loads the indicator files of this PC (one folder shared by all users) and keeps the
+ones that pass the check (SRD-EXE-022.008–.009). A broken file is skipped and logged;
+it never stops the app. Files in the old per-user folders are moved once.
 """
 from __future__ import annotations
 
 import logging
+import shutil
 import threading
 from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
@@ -25,9 +27,55 @@ _log = logging.getLogger(__name__)
 PLUGINS_ROOT = Path.home() / ".usswing" / "plugins"
 
 
-def plugin_dir(user_id: int, root: Path | None = None) -> Path:
-    """Folder of one user's indicator files (not created here)."""
-    return (root or PLUGINS_ROOT) / str(user_id) / "indicators"
+def plugin_dir(root: Path | None = None) -> Path:
+    """Folder of the indicator files, shared by all users (not created here)."""
+    return (root or PLUGINS_ROOT) / "indicators"
+
+
+def move_user_folders(root: Path | None = None) -> list[str]:
+    """Move files from the old per-user folders (``<root>/<user id>/``) to the shared ones.
+
+    A file or project whose name already exists in the shared folder is left where it is.
+
+    Returns:
+        The names that were moved.
+    """
+    base = root or PLUGINS_ROOT
+    moved: list[str] = []
+    old_folders = sorted(p for p in base.glob("*") if p.is_dir() and p.name.isdigit()) \
+        if base.is_dir() else []
+    for old in old_folders:
+        for part in ("indicators", "projects"):
+            source = old / part
+            if not source.is_dir():
+                continue
+            target = base / part
+            target.mkdir(parents=True, exist_ok=True)
+            for item in sorted(source.iterdir()):
+                if (target / item.name).exists():
+                    _log.warning("[Indicators] %s was not moved to %s: a file with that name "
+                                 "is already there", item, target)
+                    continue
+                try:
+                    shutil.move(str(item), str(target / item.name))
+                except OSError as exc:
+                    _log.warning("[Indicators] %s was not moved to %s (it may be open in "
+                                 "another program); trying again on the next start: %s",
+                                 item, target, exc)
+                    continue
+                moved.append(item.name)
+            _remove_if_empty(source)
+        _remove_if_empty(old)
+    if moved:
+        _log.info("[Indicators] Moved %d item(s) to the shared indicator folders", len(moved))
+    return moved
+
+
+def _remove_if_empty(folder: Path) -> None:
+    try:
+        folder.rmdir()
+    except OSError:
+        pass
 
 
 def builtin_names() -> frozenset[str]:
@@ -50,7 +98,7 @@ class PluginStatus:
 
 
 class IndicatorRegistry:
-    """The active user's custom indicators, by ``indicator_name``."""
+    """The custom indicators of this PC (shared by all users), by ``indicator_name``."""
 
     def __init__(self, root: Path | None = None) -> None:
         self.root = root or PLUGINS_ROOT
@@ -58,12 +106,12 @@ class IndicatorRegistry:
         self._specs: dict[str, PluginSpec] = {}
         self._statuses: tuple[PluginStatus, ...] = ()
         self._listeners: list[Callable[[], None]] = []
-        self.user_id: int | None = None
 
-    def load_for_user(self, user_id: int, *, candle_probe: CandleProbe | None = None,
-                      builtins: Iterable[str] | None = None) -> None:
-        """Check every ``*.py`` file of the user's folder and keep the ones that pass."""
-        folder = plugin_dir(user_id, self.root)
+    def load(self, *, candle_probe: CandleProbe | None = None,
+             builtins: Iterable[str] | None = None) -> None:
+        """Check every ``*.py`` file of the indicator folder and keep the ones that pass."""
+        move_user_folders(self.root)
+        folder = plugin_dir(self.root)
         files = sorted(p for p in folder.glob("*.py") if not p.name.startswith("_")) \
             if folder.is_dir() else []
         taken_builtins = frozenset(builtins) if builtins is not None else builtin_names()
@@ -86,7 +134,6 @@ class IndicatorRegistry:
             for reason in report.reasons[1:]:
                 _log.debug("[Indicators] %s: %s", path.name, reason)
         with self._lock:
-            self.user_id = user_id
             self._specs = specs
             self._statuses = tuple(statuses)
             listeners = list(self._listeners)
@@ -116,7 +163,6 @@ class IndicatorRegistry:
         with self._lock:
             self._specs = {}
             self._statuses = ()
-            self.user_id = None
 
 
 def _cached(probe: CandleProbe) -> CandleProbe:

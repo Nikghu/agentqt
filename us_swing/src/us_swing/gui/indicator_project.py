@@ -122,8 +122,9 @@ def check_command(file_name: str) -> str:
         f" indicator check {file_name}"
 
 
-def projects_dir(user_id: int, root: Path | None = None) -> Path:
-    return (root or REGISTRY.root) / str(user_id) / "projects"
+def projects_dir(root: Path | None = None) -> Path:
+    """The indicator projects folder, shared by all users."""
+    return (root or REGISTRY.root) / "projects"
 
 
 def python_env_dir(root: Path | None = None) -> Path:
@@ -137,32 +138,22 @@ def env_python(root: Path | None = None) -> Path:
     return python_env_dir(root) / scripts / name
 
 
-def list_projects(user_id: int, root: Path | None = None) -> list[Path]:
-    """The user's indicator project folders, by name (SRD-GUI-046.009)."""
-    folder = projects_dir(user_id, root)
+def list_projects(root: Path | None = None) -> list[Path]:
+    """The indicator project folders, by name (SRD-GUI-046.009)."""
+    folder = projects_dir(root)
     if not folder.is_dir():
         return []
     return sorted((p for p in folder.iterdir() if p.is_dir()), key=lambda p: p.name)
 
 
-def import_start_folder(user_id: int, root: Path | None = None) -> Path:
-    """Where Import opens: the project changed most recently, else the projects folder.
-
-    Falls back to the home folder when the user has no projects yet (SRD-GUI-046.004).
-    """
-    projects = list_projects(user_id, root)
-    if not projects:
-        folder = projects_dir(user_id, root)
-        return folder if folder.is_dir() else Path.home()
-
-    def last_change(project: Path) -> float:
-        times = [p.stat().st_mtime for p in project.glob("*.py")]
-        return max(times, default=project.stat().st_mtime)
-
-    return max(projects, key=last_change)
+def import_start_folder(root: Path | None = None) -> Path:
+    """Where Import opens: the projects folder, made if missing (SRD-GUI-046.004)."""
+    folder = projects_dir(root)
+    folder.mkdir(parents=True, exist_ok=True)
+    return folder
 
 
-def create_project(user_id: int, name: str, root: Path | None = None) -> Path:
+def create_project(name: str, root: Path | None = None) -> Path:
     """Make the project folder for indicator ``name`` and return it.
 
     Raises:
@@ -174,7 +165,7 @@ def create_project(user_id: int, name: str, root: Path | None = None) -> Path:
         raise ValueError("Use 2 to 32 capital letters, numbers or _, starting with a "
                          "letter, for example MY_ST")
     stem = name.lower()
-    folder = projects_dir(user_id, root) / stem
+    folder = projects_dir(root) / stem
     if folder.exists():
         raise FileExistsError(f"A project called {name} already exists in {folder}")
     folder.mkdir(parents=True)
@@ -232,9 +223,9 @@ def ensure_project_files(folder: Path, root: Path | None = None) -> list[str]:
 
 
 def point_projects_at_python(root: Path | None = None) -> int:
-    """Set every user's projects to use the shared Python; returns how many changed."""
-    base = root or REGISTRY.root
-    folders = sorted(base.glob("*/projects/*")) if base.is_dir() else []
+    """Set every project to use the shared Python; returns how many changed."""
+    folder = projects_dir(root)
+    folders = sorted(folder.iterdir()) if folder.is_dir() else []
     return sum(_update_settings(f, root) for f in folders if f.is_dir())
 
 

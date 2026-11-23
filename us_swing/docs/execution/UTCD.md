@@ -1,12 +1,13 @@
 # Unit Test Case Document â€” Execution & Risk Management (EXE)
 
 **Document ID:** UTCD-EXE
-**Version:** 1.26.4
+**Version:** 1.26.5
 **Traces To:** MD-EXE v1.15.0
 **Status:** Draft
 **Last Updated:** 2026-11-23
 **Project:** US Swing Trading System
 
+> v1.26.5: UT-EXE-022.008.M03.T01–T03 for the shared folder (user decision 2026-11-23: one shared folder, no user part).
 > v1.26.4: UT-EXE-022.017.M07.T01 Pass (P4).
 > v1.26.3: UT-EXE-022.012.M05.T04 added — live frames (datetime column) warn once per candle.
 > v1.26.2: UT-EXE-022.015–.016 (4 tests) Pass (P3).
@@ -997,8 +998,9 @@
 | UT-EXE-022.007.M02.T03 | MD-EXE-022.005.M02 | Negative | Uses future candles | `close.shift(-1)` | "uses future candles" | Pass |
 | UT-EXE-022.007.M02.T04 | MD-EXE-022.005.M02 | Edge | Empty values at the start are fine | 20-candle rolling max (NaN for first 19) | ok | Pass |
 | UT-EXE-022.007.M02.T05 | MD-EXE-022.005.M02 | Positive | Dry run passes on 3 stocks | SWING_PLUS example; 3 probe stocks | ok; one value per candle on each; each under 2 s | Pass |
-| UT-EXE-022.008.M03.T01 | MD-EXE-022.008.M03 | Positive | Only the active user's folder loads | plugins for users 1 and 2; load user 1 | user 1's names only | Pass |
-| UT-EXE-022.008.M03.T02 | MD-EXE-022.008.M03 | Negative | Other user's indicator unknown | load user 2; `get` user 1's name | None | Pass |
+| UT-EXE-022.008.M03.T01 | MD-EXE-022.008.M03 | Positive | Shared folder loads | two files in `plugins/indicators` | both loaded | Pass |
+| UT-EXE-022.008.M03.T02 | MD-EXE-022.008.M03 | Positive | Old per-user folders moved once | files in `plugins/1/` and a clash in `plugins/2/` | moved to the shared folders; old folder removed; clash left in place | Pass |
+| UT-EXE-022.008.M03.T03 | MD-EXE-022.008.M03 | Negative | Item that cannot be moved | move raises a permission error | item stays; warning; indicators still load | Pass |
 | UT-EXE-022.009.M03.T01 | MD-EXE-022.008.M03 | Positive | Good loaded, broken skipped and logged | one good file, one with a syntax error | good in `names()`; broken in `statuses()` with reason; one WARNING "[Indicators] … was not loaded" | Pass |
 | UT-EXE-022.009.M03.T02 | MD-EXE-022.008.M03 | Edge | Reload after a file is removed | load, delete file, load again | name gone; listener called twice | Pass |
 | UT-EXE-022.009.M03.T03 | MD-EXE-022.008.M03 | Negative | A file that exits while loading does not stop the app | file calls `sys.exit()` at import | skipped with a reason; load returns; other files loaded | Pass |

@@ -172,12 +172,12 @@ class IndicatorsSection(QWidget):
         self.check_btn.setEnabled(status is not None and status.ok)
 
     def _folder(self) -> Path:
-        return plugin_dir(self._demo.get_active_user().user_id, REGISTRY.root)
+        return plugin_dir(REGISTRY.root)
 
     # ── Actions ──────────────────────────────────────────────────────────────
 
     def _pick_import_file(self) -> str:
-        start = import_start_folder(self._demo.get_active_user().user_id)
+        start = import_start_folder()
         path, _ = QFileDialog.getOpenFileName(self, "Import indicator", str(start),
                                               "Python files (*.py)")
         return path
@@ -257,7 +257,7 @@ class IndicatorsSection(QWidget):
         dialog.exec()
 
     def _on_new(self) -> None:
-        dialog = ProjectDialog(self._demo.get_active_user().user_id, self)
+        dialog = ProjectDialog(self)
         if dialog.exec() != FramelessDialog.DialogCode.Accepted or dialog.folder is None:
             return
         folder = dialog.folder
@@ -396,14 +396,13 @@ class CheckDialog(FramelessDialog):
 class ProjectDialog(FramelessDialog):
     """Open an existing indicator project or make a new one (SRD-GUI-046.007, .009)."""
 
-    def __init__(self, user_id: int, parent: QWidget | None = None) -> None:
+    def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__("New indicator", min_width=380, min_height=420, parent=parent)
-        self._user_id = user_id
         self.folder: Path | None = None
         self.created = False
 
         self.projects = QListWidget()
-        for folder in list_projects(user_id):
+        for folder in list_projects():
             item = QListWidgetItem(folder.name.upper())
             item.setData(Qt.ItemDataRole.UserRole, str(folder))
             self.projects.addItem(item)
@@ -456,7 +455,7 @@ class ProjectDialog(FramelessDialog):
 
     def _create(self) -> None:
         try:
-            self.folder = create_project(self._user_id, self.name.text())
+            self.folder = create_project(self.name.text())
         except (ValueError, FileExistsError, OSError) as exc:
             self.error.setText(str(exc))
             return

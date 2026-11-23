@@ -4246,14 +4246,14 @@ class USSwingIndicator:
 
 **Traces:** SRD-EXE-022.008–.009. Module `us_swing/core/indicator_plugins/_registry.py`.
 
-**Folder.** `plugin_dir(user_id) = ~/.usswing/plugins/<user_id>/indicators/`, created when missing. One indicator per `*.py` file; files starting with `_` are ignored. Projects made by "New indicator" live beside it in `~/.usswing/plugins/<user_id>/projects/` and are not loaded.
+**Folder.** `plugin_dir() = ~/.usswing/plugins/indicators/`, shared by all users, created when missing. One indicator per `*.py` file; files starting with `_` are ignored. Projects made by "New indicator" live beside it in `~/.usswing/plugins/projects/` and are not loaded. `move_user_folders()` moves files from the old `plugins/<user_id>/indicators|projects/` folders once; a name that already exists, or an item Windows will not move (open in another program), stays and is tried again on the next start.
 
 **Registry.** A module-level `IndicatorRegistry` (lock protected):
-- `load_for_user(user_id, candle_probe)` clears the registry, runs `check_file` on each file in name order (the names of files already passed count as taken), and keeps the passing specs. It records one `PluginStatus(file, name, version, ok, reasons)` per file for the Settings screen.
+- `load(candle_probe)` moves old per-user folders, clears the registry, runs `check_file` on each file in name order (the names of files already passed count as taken), and keeps the passing specs. It records one `PluginStatus(file, name, version, ok, reasons)` per file for the Settings screen.
 - `get(name) -> PluginSpec | None` (case-sensitive, as written in expressions), `names()`, `statuses()`, `add_listener(fn)` (called after every load).
 - Logs: INFO `[Indicators] Loaded 2 custom indicators`; WARNING `[Indicators] my_st.py was not loaded: <first reason>` (the rest at DEBUG).
 
-**When it loads.** `AppService` calls `load_for_user(active_user_id)` after start (after the candle store is ready), when the active user changes, and on Reload / Import / Remove from Settings. The probe reads candles through the existing intraday candle loader, read-only. A file that fails never stops the app.
+**When it loads.** `AppService` calls `load()` after start (after the candle store is ready), when the active user changes, and on Reload / Import / Remove from Settings. The probe reads candles through the existing intraday candle loader, read-only. A file that fails never stops the app.
 
 ## DD-EXE-022.010.D01 — Using a Plugin in Live and Replay
 

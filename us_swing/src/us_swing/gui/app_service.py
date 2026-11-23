@@ -4294,8 +4294,7 @@ class AppService(QObject):
     def reload_indicators(self) -> None:
         """Load the active user's custom indicators again (SRD-EXE-022.008–.009)."""
         try:
-            INDICATOR_REGISTRY.load_for_user(self._active_uid,
-                                             candle_probe=self.indicator_probe)
+            INDICATOR_REGISTRY.load(candle_probe=self.indicator_probe)
         except Exception:
             _log.warning("[Indicators] Could not load custom indicators", exc_info=True)
 

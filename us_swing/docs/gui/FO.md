@@ -1,12 +1,13 @@
 # Functional Overview — GUI Module (GUI)
 
 **Document ID:** FO-GUI
-**Version:** 2.38.0
+**Version:** 2.38.1
 **Traces To:** requirements.md §21, §22, §23.3, §24, §25, §28.1, §29.1, §32
 **Status:** Draft
 **Last Updated:** 2026-11-23
 **Project:** US Swing Trading System
 
+> v2.38.1: FO-GUI-046 indicators shared by all users (user decision 2026-11-23: one shared folder, no user part).
 > v2.38.0: FO-GUI-046 adds easy-setup statements (user, 2026-11-23).
 > v2.37.0: FO-GUI-046 adds the AI guide and open-or-create project statements (user, 2026-11-23).
 > v2.36.0: FO-GUI-046 Custom indicators screen added as Draft (user design, 2026-11-23).
@@ -1092,7 +1093,7 @@ The system shall turn the Charts trade plan into a one-time auto strategy when t
 The system shall let a user manage their own indicators in the tool and use them in strategy trigger conditions.
 
 - The system shall build the trigger condition popup rows of a custom indicator only from its `parameters`, in the same order, labels, limits and defaults.
-- The system shall show a Settings section listing the active user's indicators with name, version and status.
+- The system shall show a Settings section listing the indicators of this PC (shared by all users) with name, version and status.
 - The system shall let the user import an indicator file after a warning that it runs code on their PC, and shall show the reason when the import is refused.
 - The system shall let the user export, remove and reload an indicator, and check it on one stock.
 - The system shall let the user start a new indicator from a ready project folder and open it in VS Code when it is installed.
