@@ -23,11 +23,9 @@ from PyQt6.QtWidgets import (
     QComboBox,
     QDateEdit,
     QDialog,
-    QDialogButtonBox,
     QDoubleSpinBox,
     QFormLayout,
     QFrame,
-    QGroupBox,
     QHBoxLayout,
     QHeaderView,
     QLabel,
@@ -56,6 +54,7 @@ from us_swing.gui.app_service import AppService
 from us_swing.gui.backtest_data_panel import BacktestDataPanel
 from us_swing.data.market_calendar import NYSE_HOLIDAYS
 from us_swing.data.models import ConnectionStatus, RiskConfig, UserProfile
+from us_swing.gui.frameless_dialog import FramelessDialog
 from us_swing.gui.icons import mark_danger, set_icon
 from us_swing.gui.system_store import SystemConfig
 from us_swing.gui.popups import confirm, notify
@@ -67,17 +66,47 @@ _log = logging.getLogger(__name__)
 
 # ── User dialog ───────────────────────────────────────────────────────────────
 
-class _UserDialog(QDialog):
+_USER_DIALOG_QSS = f"""
+    QFrame#user_section {{ border: 1px solid {C.OVERLAY}; border-radius: 8px; }}
+    QFrame#user_section QLabel {{ border: none; background: transparent; }}
+    QLineEdit, QSpinBox, QDoubleSpinBox, QComboBox {{ outline: none; }}
+    QLineEdit:focus, QSpinBox:focus, QDoubleSpinBox:focus, QComboBox:focus {{
+        outline: none;
+    }}
+"""
+
+def _user_form() -> QFormLayout:
+    form = QFormLayout()
+    form.setHorizontalSpacing(16)
+    form.setVerticalSpacing(8)
+    form.setLabelAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+    form.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.AllNonFixedFieldsGrow)
+    return form
+
+
+def _user_section(title: str, form: QFormLayout) -> QFrame:
+    """A rounded box with a small heading over its form rows."""
+    box = QFrame()
+    box.setObjectName("user_section")
+    layout = QVBoxLayout(box)
+    layout.setContentsMargins(14, 10, 14, 12)
+    layout.setSpacing(8)
+    head = QLabel(title)
+    head.setObjectName("panel_group")
+    layout.addWidget(head)
+    layout.addLayout(form)
+    return box
+
+
+class _UserDialog(FramelessDialog):
     """Create or edit a UserProfile."""
 
     def __init__(self, user: UserProfile | None = None, parent: QWidget | None = None) -> None:
-        super().__init__(parent)
-        self.setWindowTitle("Edit User" if user else "Create User")
-        self.setMinimumWidth(380)
+        super().__init__("Edit User" if user else "Add User", min_width=440,
+                         extra_qss=_USER_DIALOG_QSS, parent=parent)
         self._user = user
 
-        form = QFormLayout()
-        form.setSpacing(10)
+        form = _user_form()
 
         self._username   = QLineEdit(user.username   if user else "")
         self._display    = QLineEdit(user.display_name if user else "")
@@ -89,15 +118,12 @@ class _UserDialog(QDialog):
         if user:
             self._mode.setCurrentText(user.mode if user.mode in ("paper", "live") else "paper")
 
-        form.addRow("Username:",         self._username)
-        form.addRow("Display Name:",     self._display)
-        form.addRow("IBKR Client ID:",   self._ibkr_id)
-        form.addRow("Mode:",             self._mode)
+        form.addRow("Username",          self._username)
+        form.addRow("Display name",      self._display)
+        form.addRow("IBKR client ID",    self._ibkr_id)
+        form.addRow("Mode",              self._mode)
 
-        # ── Risk Settings section ─────────────────────────────────────────────
-        risk_box = QGroupBox("Risk Settings")
-        risk_form = QFormLayout(risk_box)
-        risk_form.setSpacing(8)
+        risk_form = _user_form()
 
         rc = user.risk_config if user else RiskConfig()
         self._risk       = QDoubleSpinBox()
@@ -129,21 +155,29 @@ class _UserDialog(QDialog):
         self._confirm    = QCheckBox("Require order confirmation")
         self._confirm.setChecked(rc.confirm_orders if user else True)
 
-        risk_form.addRow("Risk per trade:",   self._risk)
-        risk_form.addRow("Max position:",     self._max_pos)
-        risk_form.addRow("Max capital:",      self._max_cap)
-        risk_form.addRow("Max daily loss:",   self._max_loss)
-        risk_form.addRow("Default order:",    self._order_type)
+        risk_form.addRow("Risk per trade",    self._risk)
+        risk_form.addRow("Max position",      self._max_pos)
+        risk_form.addRow("Max capital",       self._max_cap)
+        risk_form.addRow("Max daily loss",    self._max_loss)
+        risk_form.addRow("Default order",     self._order_type)
         risk_form.addRow("",                  self._confirm)
 
-        btns = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
-        btns.accepted.connect(self.accept)
-        btns.rejected.connect(self.reject)
+        cancel_btn = QPushButton("Cancel")
+        cancel_btn.clicked.connect(self.reject)
+        self.save_btn = QPushButton("Save")
+        self.save_btn.setObjectName("btn_green")
+        self.save_btn.setDefault(True)
+        self.save_btn.clicked.connect(self.accept)
+        footer = QHBoxLayout()
+        footer.addStretch(1)
+        footer.addWidget(cancel_btn)
+        footer.addWidget(self.save_btn)
 
-        layout = QVBoxLayout(self)
-        layout.addLayout(form)
-        layout.addWidget(risk_box)
-        layout.addWidget(btns)
+        layout = self.content_layout()
+        layout.setSpacing(12)
+        layout.addWidget(_user_section("ACCOUNT", form))
+        layout.addWidget(_user_section("RISK", risk_form))
+        layout.addLayout(footer)
 
     def get_profile(self) -> UserProfile:
         """Return the edited profile; fields this dialog does not show keep their values.

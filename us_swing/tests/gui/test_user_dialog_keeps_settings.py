@@ -57,6 +57,19 @@ def test_new_user_gets_defaults(qapp: Any) -> None:
     assert (profile.telegram_enabled, profile.telegram_chat_id) == (False, "")
 
 
+def test_user_dialog_frameless_with_save(qapp: Any) -> None:
+    """UT-GUI-006.001.M01.T20: The user dialog is frameless, titled Edit or Add User, and Save
+    accepts it."""
+    from PyQt6.QtCore import Qt
+    from PyQt6.QtWidgets import QDialog
+
+    edit, new = _UserDialog(_user()), _UserDialog(None)
+    assert edit.windowFlags() & Qt.WindowType.FramelessWindowHint
+    assert (edit.windowTitle(), new.windowTitle()) == ("Edit User", "Add User")
+    edit.save_btn.click()
+    assert edit.result() == QDialog.DialogCode.Accepted
+
+
 def test_tests_never_write_real_users_file() -> None:
     """UT-GUI-006.001.M01.T19: tests save users to a temp file, never ~/.usswing (ISS-GUI-0013)."""
     from pathlib import Path
