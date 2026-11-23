@@ -20,12 +20,17 @@ class _Demo(QObject):
     candle_db_status_changed = pyqtSignal(object)
     market_status_updated = pyqtSignal()
     log_message = pyqtSignal(str, str)
+    sp500_updated = pyqtSignal()
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.universe: list[Any] = []
 
     def get_active_user(self) -> Any:
         return SimpleNamespace(user_id="u1")
 
     def get_sp500_universe(self) -> list[Any]:
-        return []
+        return list(self.universe)
 
 
 class _Mgr:
@@ -407,6 +412,22 @@ def test_several_presets_open(make_panel):
     previews[0].itemClicked.emit(previews[0].item(1))
     assert panel._selected_preset_id == "a"
     assert panel._list_view.selected_symbol() == panel._latest_rows("a")[1].symbol
+
+
+def test_preview_names_after_universe_loads(make_panel):
+    """UT-GUI-044.010.M02.T04: An open preset that is not active shows company names once the
+    stock list loads after start."""
+    panel = make_panel(runs={"a": ["2026-11-19"], "b": ["2026-11-18"]})
+    panel._open_preset("a")
+    panel._open_preset("b")
+    assert all(not row.name for row in panel._latest_rows("a"))
+    panel._demo.universe = [SimpleNamespace(symbol=row.symbol, name=f"{row.symbol} Inc",
+                                            sector="Energy")
+                            for row in panel._latest_rows("a")]
+    panel._demo.sp500_updated.emit()
+    rows = panel._latest_rows("a")
+    assert all(row.name == f"{row.symbol} Inc" and row.sector == "Energy" for row in rows)
+    assert len(_preview_lists(panel)) == 1
 
 
 def test_chevron_closes_preset(make_panel):

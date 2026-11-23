@@ -2099,6 +2099,14 @@ class ScreenerPanel(QWidget):
             self._update_header()
             self._refresh_date_nav()
             self._refresh_transcript_visibility()
+        demo.sp500_updated.connect(self._on_universe_loaded)
+
+    def _on_universe_loaded(self) -> None:
+        """Re-read company names and sectors so open preset lists show them."""
+        self._names.clear()
+        self._sectors.clear()
+        self._preview_rows.clear()
+        self._populate_preset_list()
 
     # ── Backend init ──────────────────────────────────────────────────────
 

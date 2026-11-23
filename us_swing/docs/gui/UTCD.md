@@ -1212,6 +1212,7 @@ Test files:
 | UT-GUI-044.010.M02.T01 | MD-GUI-044.001.M02 | Positive | Several presets open | open A, then B; click 2nd stock of A's preview | A preview 3 stocks; Run on B row; A active with that stock selected | Pass |
 | UT-GUI-044.010.M02.T02 | MD-GUI-044.001.M02 | Negative | Chevron closes | open A, B; chevron on active twice; chevron on C | A active; none active, date hidden; C open | Pass |
 | UT-GUI-044.010.M02.T03 | MD-GUI-044.001.M02 | Edge | Open presets kept | open C, A; new panel | C and A open, A active | Pass |
+| UT-GUI-044.010.M02.T04 | MD-GUI-044.001.M02 | Negative | Names after stock list loads (user report 2026-11-23) | open A, B with empty stock list; then list loads | A's rows get company name and sector | Pass |
 | UT-GUI-045.001.M01.T01 | MD-GUI-045.001.M02 | Positive | Send saves the chart plan | VRSN 310 / 300 / 330, risk 1% | "Chart plan - VRSN", include VRSN, auto, running, Positional, rex 0, stop 3.23%, target 6.45%, today only; pick added | Pass |
 | UT-GUI-045.001.M01.T02 | MD-GUI-045.001.M01 | Positive | Risk size as capital % | 310 / 300, equity and capital 100,000; stop 309; capital 0 | 31; 100 (capped); 1 | Removed (SRD-GUI-045.008) |
 | UT-GUI-045.001.M01.T03 | MD-GUI-045.001.M02 | Negative | Refused pick saves nothing | XYZ not in universe | message shown; no chart plan | Pass |
