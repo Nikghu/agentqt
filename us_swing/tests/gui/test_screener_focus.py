@@ -181,10 +181,12 @@ def test_delete_open_preset_clears(make_panel, monkeypatch):
 
 
 def test_open_row_actions(make_panel, qtbot):
-    """UT-GUI-044.003.M02.T01: Open preset row shows count, Run and the ⋯ menu."""
+    """UT-GUI-044.003.M02.T01: Open preset row shows run type, date and count, Run and the ⋯
+    menu."""
     panel = make_panel()
     panel._open_preset("a")
-    assert panel._count_lbl.text() == "3" and panel._run_btn.isEnabled()
+    assert panel._count_lbl.text() == "Manual · Nov 19 · 3 matches"
+    assert panel._run_btn.isEnabled()
     menu = panel._more_btn.menu()
     shown = [a.text() for a in menu.actions() if a.isVisible() and not a.isSeparator()]
     assert shown == ["Export CSV", "Quick test", "Sort by"]

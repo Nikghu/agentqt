@@ -1199,7 +1199,7 @@ Test files:
 | UT-GUI-044.002.M02.T02 | MD-GUI-044.001.M02 | Edge | Last open preset reopens | open B; new panel with the same settings | B open | Pass |
 | UT-GUI-044.002.M02.T03 | MD-GUI-044.001.M02 | Negative | Deleting the open preset clears it | open A; delete A | "No preset open"; no run dates; Run off; open section hidden; saved id removed | Pass |
 | UT-GUI-044.002.M02.T04 | MD-GUI-044.001.M02 | Edge | Opening a preset opens its closed folder | collapse all; open the Day preset; collapse all | Day open, Swing closed; then Day closed | Pass |
-| UT-GUI-044.003.M02.T01 | MD-GUI-044.001.M02 | Positive | Open row actions | open a preset with 3 saved rows | count 3; Run on; ⋯ has Export CSV, Quick test, Sort by; Quick test emits the id | Pass |
+| UT-GUI-044.003.M02.T01 | MD-GUI-044.001.M02 | Positive | Open row actions | open a preset with 3 saved rows | "Manual · Nov 19 · 3 matches"; Run on; ⋯ has Export CSV, Quick test, Sort by; Quick test emits the id | Pass |
 | UT-GUI-044.003.M02.T02 | MD-GUI-044.001.M02 | Positive | Controls moved | new panel; open A; pick Sort by → Rules passed | stepper hidden, then in the header; tags in the footer with the status line; no Sort box; sort key rules, only that choice ticked | Pass |
 | UT-GUI-044.004.M03.T01 | MD-GUI-044.004.M03 | Positive | One-line stock row | NVDA score 0.85 with 1 flag | symbol, bar filled 0.85, flag text | Pass |
 | UT-GUI-044.004.M02.T01 | MD-GUI-044.001.M02 | Negative | Stock list fits rows; no run hint | open A (3 rows), then B (no run) | list at least 3 rows high; then list hidden and "No runs yet — press Run now" | Pass |

@@ -2910,7 +2910,9 @@ class ScreenerPanel(QWidget):
         )
         self._status_lbl.setStyleSheet("")
         self._export_act.setEnabled(count > 0)
-        self._count_lbl.setText(str(count))
+        run_kind = "Auto" if mode == "scheduled" else "Manual"
+        self._count_lbl.setText(
+            f"{run_kind} · {last_run_text(self._run_timestamp, count, _date.today())}")
         self._show_rule_strip(self._rule_summary())
         self._refresh_views()
         self._show_table(has_data=count > 0)
