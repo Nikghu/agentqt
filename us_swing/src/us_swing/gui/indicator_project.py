@@ -145,6 +145,23 @@ def list_projects(user_id: int, root: Path | None = None) -> list[Path]:
     return sorted((p for p in folder.iterdir() if p.is_dir()), key=lambda p: p.name)
 
 
+def import_start_folder(user_id: int, root: Path | None = None) -> Path:
+    """Where Import opens: the project changed most recently, else the projects folder.
+
+    Falls back to the home folder when the user has no projects yet (SRD-GUI-046.004).
+    """
+    projects = list_projects(user_id, root)
+    if not projects:
+        folder = projects_dir(user_id, root)
+        return folder if folder.is_dir() else Path.home()
+
+    def last_change(project: Path) -> float:
+        times = [p.stat().st_mtime for p in project.glob("*.py")]
+        return max(times, default=project.stat().st_mtime)
+
+    return max(projects, key=last_change)
+
+
 def create_project(user_id: int, name: str, root: Path | None = None) -> Path:
     """Make the project folder for indicator ``name`` and return it.
 

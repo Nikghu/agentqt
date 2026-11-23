@@ -8,6 +8,7 @@ on-screen message when a strategy cannot start.
 from __future__ import annotations
 
 import json
+import os
 import re
 import shutil
 from collections.abc import Iterator
@@ -503,6 +504,19 @@ def test_python_setup_without_python(tmp_path: Path, monkeypatch: pytest.MonkeyP
         pysetup.setup_python(tmp_path, run=lambda args, _t: (calls.append(args), (1, ""))[1])
 
     assert calls == []
+
+
+def test_import_opens_in_latest_project(tmp_path: Path) -> None:
+    """UT-GUI-046.004.M02.T04: Import opens in the project changed most recently."""
+    assert project.import_start_folder(1, root=tmp_path) == Path.home()
+    old = project.create_project(1, "OLD_ST", root=tmp_path)
+    new = project.create_project(1, "NEW_ST", root=tmp_path)
+    os.utime(new / "new_st.py", (1_000_000, 1_000_000))
+    os.utime(new / "test_new_st.py", (1_000_000, 1_000_000))
+
+    assert project.import_start_folder(1, root=tmp_path) == old
+    (new / "new_st.py").write_text("# changed\n", encoding="utf-8")
+    assert project.import_start_folder(1, root=tmp_path) == new
 
 
 def test_vs_code_not_found_opens_folder(tmp_path: Path,

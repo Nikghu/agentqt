@@ -50,6 +50,7 @@ from us_swing.gui.indicator_project import (
     create_project,
     ensure_project_files,
     env_python,
+    import_start_folder,
     list_projects,
     open_api_page,
     open_project,
@@ -176,7 +177,8 @@ class IndicatorsSection(QWidget):
     # ── Actions ──────────────────────────────────────────────────────────────
 
     def _pick_import_file(self) -> str:
-        path, _ = QFileDialog.getOpenFileName(self, "Import indicator", str(Path.home()),
+        start = import_start_folder(self._demo.get_active_user().user_id)
+        path, _ = QFileDialog.getOpenFileName(self, "Import indicator", str(start),
                                               "Python files (*.py)")
         return path
 

@@ -2,6 +2,15 @@
 
 ---
 
+## [20261123] GUI — Import opens in the latest indicator project
+
+- Type: Small change (branch `feat/usswing-indicator-plugins`, unpushed); user's screenshot showed Import opening in the home folder
+- FO(s): FO-GUI-046 (SRD-GUI-046.004)
+- Artifacts: MD, UTCD (UT-GUI-046.004.M02.T04 Pass), Code (`indicator_project.import_start_folder`, `indicators_section._pick_import_file`), Tests, DEVLOG
+- Decisions: open the project whose .py file changed last; else the projects folder; else home
+
+---
+
 ## [20261123] GUI — Indicator API guide as a web page in the browser
 
 - Type: Feature change (branch `feat/usswing-indicator-plugins`, unpushed); user found the in-app guide hard to read and copy from
