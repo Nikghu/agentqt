@@ -181,6 +181,20 @@ def test_pnl_range_asks_since(qtbot: QtBot) -> None:
     assert abs(datetime.now(timezone.utc) - timedelta(days=7) - since) < timedelta(minutes=1)
 
 
+def test_pnl_stats_line_up_with_toggles(qtbot: QtBot) -> None:
+    """UT-GUI-024.006.M05.T05: The stats box starts at the left edge of the P&L curve button."""
+    card = StrategyPnlCard()
+    qtbot.addWidget(card)
+    card.resize(1300, 260)
+    card.show()
+    qtbot.waitExposed(card)
+
+    toggle_left = card.mode_group.mapTo(card, card.mode_group.rect().topLeft()).x()
+    stats_left = card.stats_box.mapTo(card, card.stats_box.rect().topLeft()).x()
+    assert toggle_left == stats_left
+    assert card.stats_box.width() >= 210
+
+
 def test_nice_ticks() -> None:
     """UT-GUI-024.006.M05.T04: Round y ticks."""
     assert nice_ticks(0, 412.6) == [0, 150, 300, 450]

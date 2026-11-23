@@ -764,6 +764,7 @@ Test files:
 | UT-GUI-024.006.M05.T02 | MD-GUI-024.006.M05 | Positive | Card shows total and stats | summary total 412.6, 38 trades, win rate 0.55 | "+$412.60"; "38 trades"; "55%" | Pass |
 | UT-GUI-024.006.M05.T03 | MD-GUI-024.006.M05 | Positive | Range button asks for a start time | click 1W | provider called with since ≈ now − 7 days | Pass |
 | UT-GUI-024.006.M05.T04 | MD-GUI-024.006.M05 | Positive | Nice y ticks | min 0, max 412.6 | ticks 0, 150, 300, 450 | Pass |
+| UT-GUI-024.006.M05.T05 | MD-GUI-024.006.M05 | Positive | Stats box lines up with toggles (user request 2026-11-23) | card 1300 px wide, shown | stats box left x = P&L curve button left x; width ≥ 210 | Pass |
 | UT-GUI-024.008.M06.T01 | MD-GUI-024.008.M06 | Positive | Hide charts is remembered | `set_charts_hidden(True)`; new pane | `charts_toggled(True)`; setting true; new pane starts hidden | Pass |
 | UT-GUI-024.008.M01.T03 | MD-GUI-024.001.M01 | Positive | Header charts button names the next action | default; `show_charts_state(True)` | "Hide charts"; "Show charts" | Pass |
 

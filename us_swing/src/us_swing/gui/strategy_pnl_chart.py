@@ -14,7 +14,7 @@ from datetime import datetime, timedelta, timezone
 
 from PyQt6.QtCore import QPointF, QRectF, Qt
 from PyQt6.QtGui import QColor, QLinearGradient, QPainter, QPainterPath, QPaintEvent, QPen
-from PyQt6.QtWidgets import QFrame, QGridLayout, QHBoxLayout, QLabel, QVBoxLayout, QWidget
+from PyQt6.QtWidgets import QFrame, QGridLayout, QHBoxLayout, QLabel, QWidget
 
 from us_swing.execution.trade_cycle import StrategyPnlSummary
 from us_swing.gui.screener_views import ChipGroup
@@ -217,12 +217,15 @@ class StrategyPnlCard(QFrame):
         top.addWidget(self.total_lbl)
         top.addWidget(self.meta_lbl)
         top.addStretch(1)
-        top.addWidget(self.mode_group)
-        top.addWidget(self.range_group)
+        toggles = QHBoxLayout()
+        toggles.setSpacing(10)
+        toggles.addWidget(self.mode_group)
+        toggles.addWidget(self.range_group)
+        toggles.addStretch(1)
 
         self.chart = StrategyPnlChart()
-        stats = QWidget()
-        stats.setFixedWidth(210)
+        self.stats_box = stats = QWidget()
+        stats.setMinimumWidth(210)
         grid = QGridLayout(stats)
         grid.setContentsMargins(12, 0, 0, 0)
         grid.setVerticalSpacing(8)
@@ -238,15 +241,16 @@ class StrategyPnlCard(QFrame):
             self.stats[name] = value
         grid.setRowStretch(5, 1)
 
-        body = QHBoxLayout()
-        body.addWidget(self.chart, 1)
-        body.addWidget(stats)
-
-        root = QVBoxLayout(self)
+        root = QGridLayout(self)
         root.setContentsMargins(12, 10, 12, 10)
-        root.setSpacing(8)
-        root.addLayout(top)
-        root.addLayout(body, 1)
+        root.setVerticalSpacing(8)
+        root.setHorizontalSpacing(6)
+        root.addLayout(top, 0, 0)
+        root.addLayout(toggles, 0, 1)
+        root.addWidget(self.chart, 1, 0)
+        root.addWidget(stats, 1, 1)
+        root.setColumnStretch(0, 1)
+        root.setRowStretch(1, 1)
         self._summary = StrategyPnlSummary()
 
     def set_provider(self, provider: PnlProvider | None) -> None:
