@@ -419,7 +419,7 @@
 
 | SRD ID | Parent FO | Priority | Description | Inputs | Outputs | Constraints | Status |
 |---|---|---|---|---|---|---|---|
-| SRD-EXE-022.001 | FO-EXE-022 | Must | A public package `usswing` exports `USSwingIndicator`, `Number` and `Input`. | — | importable package | Lives in `src/usswing/`; bundled in the installer and shipped as a wheel for Python 3.11 | Implemented |
+| SRD-EXE-022.001 | FO-EXE-022 | Must | A public package `usswing` exports `USSwingIndicator`, `Number` and `Input`. | — | importable package | Lives in `sdk/usswing/`; bundled in the installer and shipped as a wheel for Python 3.11 | Implemented |
 | SRD-EXE-022.002 | FO-EXE-022 | Must | `Number(label, default, minimum, maximum, whole_number=False)` and `Input(label, options, default)` each describe one parameter. | label, limits or options, default | parameter object | A default outside its limits or options raises an error naming the label | Implemented |
 | SRD-EXE-022.003 | FO-EXE-022 | Must | A `USSwingIndicator` subclass declares `indicator_name`, `description`, `version`, `output_type` and `parameters`, and `calculate()` returns one value per candle. | indicator file | value series | `output_type` is "value" or "signal"; a True/False result becomes 1/0 | Implemented |
 | SRD-EXE-022.004 | FO-EXE-022 | Must | `self.candles(symbol_type, timeframe)` returns the stock's candles, `self.parameter(label)` the chosen value and `self.debug_value(name, series)` records a series. | symbol type, timeframe, label | candles, value | Candles are read-only; an unknown label raises an error naming it | Implemented |

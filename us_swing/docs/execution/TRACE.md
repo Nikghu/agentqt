@@ -63,13 +63,13 @@
 | FO-EXE-017 | SRD-EXE-017.027 | DD-EXE-017.027.D01 | MD-EXE-017.016.M14 | UT-EXE-017.027.M14.T01–T03 | `gui/app_service.py` | Implemented | RN-EXE-1.37.0-20261024 |
 | FO-EXE-017 | SRD-EXE-017.028 | — (one-line rule) | MD-EXE-017.028.M03 | UT-GUI-045.008.M01.T02 (test in `tests/gui/test_chart_plan_strategy.py`) | `execution/strategy_engine/_router.py`, `gui/strategy_store.py` | Implemented | RN-GUI-2.7.0-20261122 |
 | FO-EXE-020 | SRD-EXE-020.001–008 | DD-EXE-020.001.D01 | MD-EXE-020.001.M01, .004.M02 | UT-EXE-020.001.M01.T01–T02, .002.M01.T01–T04, .003.M01.T01–T03, .005.M01.T01, .005.M02.T01, .004.M02.T01–T05, .006.M02.T01, .007.M01.T01–T02, .008.M02.T01–T04 | `execution/equity_snapshot.py`, `gui/app_service.py`, `db/schema.py` | Implemented | RN-EXE-1.35.0-20261024, RN-EXE-1.36.0-20261024 |
-| FO-EXE-022 | SRD-EXE-022.001–.004 | DD-EXE-022.001.D01 | MD-EXE-022.001.M01 | UT-EXE-022.001.M01.T01–T02, .002.M01.T01–T04, .003.M01.T01–T03, .004.M01.T01–T02 (11, Pass) | `src/usswing/__init__.py`, `_parameters.py`, `_indicator.py` | Implemented | — |
+| FO-EXE-022 | SRD-EXE-022.001–.004 | DD-EXE-022.001.D01 | MD-EXE-022.001.M01 | UT-EXE-022.001.M01.T01–T02, .002.M01.T01–T04, .003.M01.T01–T03, .004.M01.T01–T02 (11, Pass) | `sdk/usswing/__init__.py`, `_parameters.py`, `_indicator.py` | Implemented | — |
 | FO-EXE-022 | SRD-EXE-022.005–.007 | DD-EXE-022.005.D01 | MD-EXE-022.005.M02 | UT-EXE-022.005.M02.T01–T06, .006.M02.T01–T02, .007.M02.T01–T05 (13, Pass) | `core/indicator_plugins/_check.py` | Implemented | — |
 | FO-EXE-022 | SRD-EXE-022.008–.009 | DD-EXE-022.008.D01 | MD-EXE-022.008.M03 | UT-EXE-022.008.M03.T01–T02, .009.M03.T01–T03 (5, Pass) | `core/indicator_plugins/_registry.py`, `gui/app_service.py` | Implemented | — |
 | FO-EXE-022 | SRD-EXE-022.010–.011 | DD-EXE-022.010.D01 | MD-EXE-022.010.M04 | UT-EXE-022.010.M04.T01–T02, .011.M04.T01–T03 (5, Pass) | `core/indicator_plugins/_runner.py`, `strategy_engine/_evaluator.py`, `core/expr/series.py` | Implemented | — |
 | FO-EXE-022 | SRD-EXE-022.012–.014 | DD-EXE-022.012.D01 | MD-EXE-022.012.M05 | UT-EXE-022.012.M05.T01–T03, .013.M05.T01–T03, .014.M05.T01–T02 (8, Pass) | `core/indicator_plugins/_guard.py`, `strategy_engine/_engine.py`, `core/notifications/_events.py`, `_formatters.py` | Implemented | — |
-| FO-EXE-022 | SRD-EXE-022.015–.016 | DD-EXE-022.015.D01 | MD-EXE-022.015.M06 | UT-EXE-022.015.M06.T01–T02, .016.M06.T01–T02 (4, Not Run) | `src/usswing/testing.py`, `__main__.py` (planned) | Approved — UTCD written | — |
-| FO-EXE-022 | SRD-EXE-022.017 | DD-EXE-022.017.D01 | MD-EXE-022.017.M07 | UT-EXE-022.017.M07.T01 (1, Not Run) | `src/usswing/dev.py` (planned) | Approved — UTCD written | — |
+| FO-EXE-022 | SRD-EXE-022.015–.016 | DD-EXE-022.015.D01 | MD-EXE-022.015.M06 | UT-EXE-022.015.M06.T01–T02, .016.M06.T01–T02 (4, Not Run) | `sdk/usswing/testing.py`, `__main__.py` (planned) | Approved — UTCD written | — |
+| FO-EXE-022 | SRD-EXE-022.017 | DD-EXE-022.017.D01 | MD-EXE-022.017.M07 | UT-EXE-022.017.M07.T01 (1, Not Run) | `sdk/usswing/dev.py` (planned) | Approved — UTCD written | — |
 
 ---
 

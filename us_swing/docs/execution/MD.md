@@ -388,17 +388,17 @@ Account Equity Snapshots. One new file (`execution/equity_snapshot.py`).
 
 ## Module Modifications for FO-EXE-022
 
-Custom Indicator Plugins (DD-EXE-022.*.D01). A new public package `src/usswing/` plus a new `core/indicator_plugins/` package.
+Custom Indicator Plugins (DD-EXE-022.*.D01). A new public package `sdk/usswing/` plus a new `core/indicator_plugins/` package.
 
 | Module ID | File | Change Required | SRD |
 |---|---|---|---|
-| MD-EXE-022.001.M01 | `src/usswing/__init__.py`, `_parameters.py`, `_indicator.py` (new) | `Number`, `Input` (with `convert`), `ParameterError`, `OutputError`, `USSwingIndicator` (`candles`, `parameter`, `debug_value`, `calculate`), `compute()` and `Result`; no `us_swing` imports. | SRD-EXE-022.001, .002, .003, .004 |
+| MD-EXE-022.001.M01 | `sdk/usswing/__init__.py`, `_parameters.py`, `_indicator.py` (new) | `Number`, `Input` (with `convert`), `ParameterError`, `OutputError`, `USSwingIndicator` (`candles`, `parameter`, `debug_value`, `calculate`), `compute()` and `Result`; no `us_swing` imports. | SRD-EXE-022.001, .002, .003, .004 |
 | MD-EXE-022.005.M02 | `src/us_swing/core/indicator_plugins/_check.py` (new) | `check_file(path, *, taken_names, candle_probe) -> CheckReport`, `PluginSpec`: code read, load, class and field checks, name hint, free name, labels read, dry run with time and future-candle checks. | SRD-EXE-022.005, .006, .007 |
 | MD-EXE-022.008.M03 | `src/us_swing/core/indicator_plugins/_registry.py` (new), `gui/app_service.py` | `plugin_dir(user_id)`, `IndicatorRegistry` (`load_for_user`, `get`, `names`, `statuses`, `add_listener`), `PluginStatus`; AppService loads at start, on user change and on request (`reload_indicators()`). | SRD-EXE-022.008, .009 |
 | MD-EXE-022.010.M04 | `src/us_swing/core/indicator_plugins/_runner.py` (new), `execution/strategy_engine/_evaluator.py`, `core/expr/series.py` | `values_from_args(spec, args)`, `run_plugin(spec, values, frames)`; registry lookup after built-ins in `ConditionEvaluator._eval` (last value) and `_Walker._function` (series via `_as_of`). | SRD-EXE-022.010, .011 |
 | MD-EXE-022.012.M05 | `src/us_swing/core/indicator_plugins/_guard.py` (new), `execution/strategy_engine/_engine.py` | `PluginFailure`, `PluginGuard` (2 s limit, warning per candle, count of failures in a row), `plugin_names(cfg)`; engine stops users of a plugin at 3 failures, alerts, and refuses to start a strategy with a missing plugin. | SRD-EXE-022.012, .013, .014 |
-| MD-EXE-022.015.M06 | `src/usswing/testing.py` (new), `src/us_swing/__main__.py` | `load_candles()` (read-only SQLite), `run()`, `Result.table()`; command `indicator check <file> [--symbols] [--days] [--trace]` with exit codes 0 and 1. | SRD-EXE-022.015, .016 |
-| MD-EXE-022.017.M07 | `src/usswing/dev.py` (new) | `preview()` writes and opens one HTML chart (Could; phase P4). | SRD-EXE-022.017 |
+| MD-EXE-022.015.M06 | `sdk/usswing/testing.py` (new), `src/us_swing/__main__.py` | `load_candles()` (read-only SQLite), `run()`, `Result.table()`; command `indicator check <file> [--symbols] [--days] [--trace]` with exit codes 0 and 1. | SRD-EXE-022.015, .016 |
+| MD-EXE-022.017.M07 | `sdk/usswing/dev.py` (new) | `preview()` writes and opens one HTML chart (Could; phase P4). | SRD-EXE-022.017 |
 
 **Cross-tool surface:** `core/expr/series.py` is BKT's MD-BKT-002.021.M10 (registry lookup only). GUI trigger popup and Settings Indicators section: FO-GUI-046 (see `gui/MD.md`).
 

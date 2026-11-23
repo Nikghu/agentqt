@@ -4166,7 +4166,7 @@ Cross-tool note: touches `data/engine.py` (INF, `_TF_MINUTES`), `db/schema.py` (
 
 **Traces:** SRD-EXE-022.001–.004
 
-**Package.** A new top-level package `src/usswing/`, next to `src/us_swing/`. It is the only code a plugin may import from the tool. Files: `__init__.py` (exports `USSwingIndicator`, `Number`, `Input`), `_parameters.py`, `_indicator.py`, `testing.py` (DD-EXE-022.015.D01), `dev.py` (DD-EXE-022.017.D01). It must not import `us_swing` internals, so the same files can ship as a wheel for VS Code.
+**Package.** A new top-level package `sdk/usswing/`, outside `src/` so it stays apart from the app package `src/us_swing/`. It is the only code a plugin may import from the tool. Files: `__init__.py` (exports `USSwingIndicator`, `Number`, `Input`), `_parameters.py`, `_indicator.py`, `testing.py` (DD-EXE-022.015.D01), `dev.py` (DD-EXE-022.017.D01). It must not import `us_swing` internals, so the same files can ship as a wheel for VS Code.
 
 **Parameters.** Frozen dataclasses with checks in `__post_init__`; a failed check raises `ParameterError` whose text starts with the label.
 ```python

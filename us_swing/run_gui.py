@@ -9,10 +9,10 @@ import multiprocessing
 import sys
 from pathlib import Path
 
-# Ensure the us_swing package is importable
-_SRC = Path(__file__).parent / "src"
-if str(_SRC) not in sys.path:
-    sys.path.insert(0, str(_SRC))
+# Ensure the us_swing app and the usswing plugin library are importable
+for _path in (Path(__file__).parent / "src", Path(__file__).parent / "sdk"):
+    if str(_path) not in sys.path:
+        sys.path.insert(0, str(_path))
 
 # Before pandas / keyring load: no console window flash on Windows (SRD-GUI-000.007).
 from us_swing.gui.quiet_platform import install as _quiet_platform  # noqa: E402

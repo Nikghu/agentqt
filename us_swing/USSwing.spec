@@ -3,7 +3,7 @@
 
 a = Analysis(
     ['run_gui.py'],
-    pathex=['src'],
+    pathex=['src', 'sdk'],
     binaries=[],
     datas=[('assets', 'assets'), ('src/us_swing/gui/resources', 'us_swing/gui/resources')],
     hiddenimports=['talib.stream'],
