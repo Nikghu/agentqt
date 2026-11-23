@@ -150,7 +150,7 @@ def test_candles_are_a_copy_and_debug_kept() -> None:
 
     pd.testing.assert_frame_equal(candles, before)
     assert list(result.debug) == ["High"]
-    assert result.table().columns.tolist() == ["value", "High"]
+    assert result.table().columns.tolist() == ["time", "value", "High"]
 
 
 def test_unknown_parameter_label() -> None:

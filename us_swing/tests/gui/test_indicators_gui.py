@@ -7,6 +7,7 @@ on-screen message when a strategy cannot start.
 """
 from __future__ import annotations
 
+import json
 import shutil
 from collections.abc import Iterator
 from pathlib import Path
@@ -20,8 +21,9 @@ from PyQt6.QtWidgets import QComboBox, QSpinBox
 from pytestqt.qtbot import QtBot
 
 import us_swing.data  # noqa: F401  — load data before db (db ↔ data import cycle)
-from tests.execution.plugin_helpers import SWING_PLUS, swing_plus_source
-from us_swing.core.indicator_plugins import REGISTRY, builtin_names, plugin_dir
+from tests.execution.plugin_helpers import SWING_PLUS, frames, swing_plus_source
+from us_swing.core.indicator_plugins import REGISTRY, builtin_names, check_file, plugin_dir
+from us_swing.gui import indicator_project as project
 from us_swing.gui import indicators_section as sec
 from us_swing.gui import strategy_store as store
 from us_swing.gui.app_service import AppService
@@ -307,6 +309,52 @@ def test_remove_answered_no(qtbot: QtBot, swing_plus: Path, db: None,
 
     assert swing_plus.exists()
     assert store.load_strategies()[0].run_state == "RUNNING"
+
+
+# ── Check and New indicator (SRD-GUI-046.006–.007) ──────────────────────────
+
+def test_check_shows_last_20_values(qtbot: QtBot, swing_plus: Path) -> None:
+    """UT-GUI-046.006.M02.T01: Check shows the last 20 values."""
+    spec = REGISTRY.get("SWING_PLUS")
+    assert spec is not None
+    dialog = sec.CheckDialog(spec, ["AAPL"], lambda _symbol: frames(120))
+    qtbot.addWidget(dialog)
+
+    dialog.start()
+    qtbot.waitUntil(lambda: dialog.table.rowCount() == 20 and dialog.run_btn.isEnabled())
+
+    headers = [dialog.table.horizontalHeaderItem(c).text()
+               for c in range(dialog.table.columnCount())]
+    assert headers == ["time", "value", "Swing high", "Swing low"]
+    assert dialog.table.item(19, 1).text() != ""
+
+
+def test_new_project_files(tmp_path: Path) -> None:
+    """UT-GUI-046.007.M03.T01: New project files."""
+    folder = project.create_project(1, "MY_ST", root=tmp_path)
+
+    names = {p.relative_to(folder).as_posix() for p in folder.rglob("*") if p.is_file()}
+    assert {"my_st.py", "test_my_st.py", ".vscode/settings.json",
+            ".vscode/launch.json", ".vscode/tasks.json"} <= names
+    assert check_file(folder / "my_st.py", builtin_names=builtin_names(),
+                      candle_probe=lambda: [("AAPL", frames(120))]).ok
+    task = json.loads((folder / ".vscode" / "tasks.json").read_text(encoding="utf-8"))
+    assert task["tasks"][0]["args"][-3:] == ["indicator", "check",
+                                             "${workspaceFolder}/my_st.py"]
+    with pytest.raises(FileExistsError):
+        project.create_project(1, "MY_ST", root=tmp_path)
+
+
+def test_vs_code_not_found_opens_folder(tmp_path: Path,
+                                        monkeypatch: pytest.MonkeyPatch) -> None:
+    """UT-GUI-046.007.M03.T02: VS Code not found."""
+    opened: list[str] = []
+    monkeypatch.setattr(project.shutil, "which", lambda _name: None)
+    monkeypatch.setattr(project.QDesktopServices, "openUrl",
+                        lambda url: opened.append(url.toLocalFile()))
+
+    assert project.open_project(tmp_path) is False
+    assert Path(opened[0]) == tmp_path
 
 
 # ── Refused start message (SRD-EXE-022.014) ──────────────────────────────────

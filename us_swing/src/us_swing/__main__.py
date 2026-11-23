@@ -3,12 +3,16 @@
 Commands:
     (none)   Launch the GUI in paper mode (default).
     health   Print a JSON health report and exit.
+    indicator check <file> [--symbols A,B] [--days N] [--trace out.csv]
+             Check a custom indicator file; exit code 0 passed, 1 refused.
 """
 from __future__ import annotations
 
+import io
 import json
 import sys
 from pathlib import Path
+from typing import TextIO
 
 
 # ── Log directory: ~/.usswing/logs/<date>.log ─────────────────────────────────
@@ -101,11 +105,36 @@ def _cmd_health() -> None:
     print(json.dumps(report, indent=2, default=str))
 
 
+def _console_out() -> TextIO:
+    """Text output for a command; the windowed exe borrows the console it was started from."""
+    if sys.stdout is None and sys.platform == "win32":
+        import ctypes
+
+        ctypes.windll.kernel32.AttachConsole(-1)
+        return open("CONOUT$", "w", encoding="utf-8", errors="replace")
+    if isinstance(sys.stdout, io.TextIOWrapper):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    return sys.stdout
+
+
+def _cmd_indicator(argv: list[str]) -> int:
+    import us_swing.data  # noqa: F401 — load data before db (db ↔ data import cycle)
+    from us_swing.core.indicator_plugins._cli import run_indicator_command
+
+    out = _console_out()
+    try:
+        return run_indicator_command(argv, out)
+    finally:
+        out.flush()
+
+
 def main() -> None:
     _setup_logging()
     command = sys.argv[1] if len(sys.argv) > 1 else "gui"
     if command == "health":
         _cmd_health()
+    elif command == "indicator":
+        sys.exit(_cmd_indicator(sys.argv[2:]))
     else:
         _cmd_gui()
 

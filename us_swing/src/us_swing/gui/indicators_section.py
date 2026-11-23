@@ -3,22 +3,28 @@ Module: MD-GUI-046.003.M02 — Settings Indicators section
 Parent SRD: SRD-GUI-046.003
 
 Lists the active user's custom indicators and lets the user import, export,
-remove and reload them (SRD-GUI-046.003–.005).
+remove, reload and check them, and start a new one (SRD-GUI-046.003–.007).
 """
 from __future__ import annotations
 
 import logging
+import math
 import shutil
+from collections.abc import Callable
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
-from PyQt6.QtCore import Qt
+import pandas as pd
+from PyQt6.QtCore import QObject, Qt, QThread, pyqtSignal
 from PyQt6.QtGui import QShowEvent
 from PyQt6.QtWidgets import (
     QAbstractItemView,
+    QComboBox,
     QFileDialog,
     QHBoxLayout,
     QHeaderView,
+    QLabel,
+    QLineEdit,
     QPushButton,
     QTableWidget,
     QTableWidgetItem,
@@ -28,13 +34,22 @@ from PyQt6.QtWidgets import (
 
 from us_swing.core.indicator_plugins import (
     REGISTRY,
+    NoCandleData,
+    PluginSpec,
     PluginStatus,
     builtin_names,
     check_file,
     plugin_dir,
+    run_plugin,
 )
+from us_swing.gui.frameless_dialog import FramelessDialog
 from us_swing.gui.icons import mark_danger, set_icon
+from us_swing.gui.indicator_project import create_project, open_project
 from us_swing.gui.popups import confirm, notify
+from us_swing.gui.theme import C
+
+CHECK_ROWS = 20
+_MARKET_TZ = "America/New_York"
 
 if TYPE_CHECKING:
     from us_swing.gui.app_service import AppService
@@ -80,20 +95,28 @@ class IndicatorsSection(QWidget):
         self.export_btn = QPushButton("Export")
         self.remove_btn = QPushButton("Remove")
         self.reload_btn = QPushButton("Reload")
+        self.check_btn = QPushButton("Check")
+        self.new_btn = QPushButton("New indicator")
         set_icon(self.import_btn, "plus", "add")
         set_icon(self.export_btn, "download")
         set_icon(self.remove_btn, "trash-2", "danger")
         set_icon(self.reload_btn, "refresh-cw")
+        set_icon(self.check_btn, "play", "go")
+        set_icon(self.new_btn, "folder")
         mark_danger(self.remove_btn)
         self.import_btn.clicked.connect(self._on_import)
         self.export_btn.clicked.connect(self._on_export)
         self.remove_btn.clicked.connect(self._on_remove)
         self.reload_btn.clicked.connect(self._on_reload)
+        self.check_btn.clicked.connect(self._on_check)
+        self.new_btn.clicked.connect(self._on_new)
 
         buttons = QHBoxLayout()
-        for btn in (self.import_btn, self.export_btn, self.remove_btn, self.reload_btn):
+        for btn in (self.import_btn, self.export_btn, self.remove_btn, self.reload_btn,
+                    self.check_btn):
             buttons.addWidget(btn)
         buttons.addStretch()
+        buttons.addWidget(self.new_btn)
 
         layout = QVBoxLayout(self)
         layout.addWidget(self.table, 1)
@@ -127,9 +150,10 @@ class IndicatorsSection(QWidget):
         return self._statuses[rows[0].row()] if rows else None
 
     def _sync_buttons(self) -> None:
-        has = self.selected() is not None
-        self.export_btn.setEnabled(has)
-        self.remove_btn.setEnabled(has)
+        status = self.selected()
+        self.export_btn.setEnabled(status is not None)
+        self.remove_btn.setEnabled(status is not None)
+        self.check_btn.setEnabled(status is not None and status.ok)
 
     def _folder(self) -> Path:
         return plugin_dir(self._demo.get_active_user().user_id, REGISTRY.root)
@@ -205,3 +229,177 @@ class IndicatorsSection(QWidget):
     def _on_reload(self) -> None:
         self._demo.reload_indicators()
         self.refresh()
+
+    def _on_check(self) -> None:
+        status = self.selected()
+        spec = REGISTRY.get(status.name) if status is not None else None
+        if spec is None:
+            return
+        dialog = CheckDialog(spec, self._demo.get_candle_symbols(), self._demo.candle_frames,
+                             self)
+        dialog.exec()
+
+    def _on_new(self) -> None:
+        dialog = _NewIndicatorDialog(self._demo.get_active_user().user_id, self)
+        if dialog.exec() != FramelessDialog.DialogCode.Accepted or dialog.folder is None:
+            return
+        folder = dialog.folder
+        _log.info("[Indicators] Made a new indicator project in %s", folder)
+        if open_project(folder):
+            text = f"The project was opened in VS Code\n{folder}"
+        else:
+            text = f"VS Code was not found, so the project folder was opened\n{folder}"
+        notify(self, "New indicator",
+               text + "\nWhen the indicator is ready, add it here with Import")
+
+
+def _cell(value: Any) -> str:
+    if isinstance(value, pd.Timestamp):
+        shown = value.tz_convert(_MARKET_TZ) if value.tzinfo is not None else value
+        return shown.strftime("%Y-%m-%d %H:%M")
+    if isinstance(value, float):
+        return "" if math.isnan(value) else f"{value:,.4f}"
+    return str(value)
+
+
+class _CheckRun(QObject):
+    """Runs the indicator on one stock away from the screen thread."""
+
+    done = pyqtSignal(object)
+    failed = pyqtSignal(str)
+
+    def __init__(self, spec: PluginSpec, symbol: str,
+                 frames: Callable[[str], dict[str, pd.DataFrame]]) -> None:
+        super().__init__()
+        self._spec = spec
+        self._symbol = symbol
+        self._frames = frames
+
+    def run(self) -> None:
+        try:
+            result = run_plugin(self._spec, {}, self._frames(self._symbol))
+        except NoCandleData as exc:
+            self.failed.emit(f"{self._symbol}: {exc}")
+        except Exception as exc:  # noqa: BLE001 — user code; show what went wrong
+            self.failed.emit(f"{self._spec.name} failed on {self._symbol}: "
+                             f"{exc or type(exc).__name__}")
+        else:
+            self.done.emit(result.table().tail(CHECK_ROWS))
+
+
+class CheckDialog(FramelessDialog):
+    """Run one indicator on a chosen stock and show its last values (SRD-GUI-046.006)."""
+
+    def __init__(self, spec: PluginSpec, symbols: list[str],
+                 frames: Callable[[str], dict[str, pd.DataFrame]],
+                 parent: QWidget | None = None) -> None:
+        super().__init__(f"Check {spec.name}", min_width=620, min_height=520, parent=parent)
+        self._spec = spec
+        self._frames = frames
+        self._thread: QThread | None = None
+        self._run: _CheckRun | None = None
+
+        self.stock = QComboBox()
+        self.stock.setEditable(True)
+        self.stock.addItems(symbols)
+        self.stock.setFixedWidth(140)
+        self.run_btn = QPushButton("Run")
+        set_icon(self.run_btn, "play", "go")
+        self.run_btn.clicked.connect(self.start)
+        self.status = QLabel(f"Last {CHECK_ROWS} candles with default values")
+        self.status.setWordWrap(True)
+        self.table = QTableWidget(0, 0)
+        self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        vertical = self.table.verticalHeader()
+        if vertical is not None:
+            vertical.setVisible(False)
+
+        top = QHBoxLayout()
+        top.addWidget(QLabel("Stock"))
+        top.addWidget(self.stock)
+        top.addWidget(self.run_btn)
+        top.addStretch()
+        layout = self.content_layout()
+        layout.addLayout(top)
+        layout.addWidget(self.status)
+        layout.addWidget(self.table, 1)
+
+    def start(self) -> None:
+        symbol = self.stock.currentText().strip().upper()
+        if not symbol or self._thread is not None:
+            return
+        self.run_btn.setEnabled(False)
+        self.status.setText(f"Running {self._spec.name} on {symbol}")
+        self._thread = QThread(self)
+        self._run = _CheckRun(self._spec, symbol, self._frames)
+        self._run.moveToThread(self._thread)
+        self._thread.started.connect(self._run.run)
+        self._run.done.connect(self._show)
+        self._run.failed.connect(self._fail)
+        self._run.done.connect(self._thread.quit)
+        self._run.failed.connect(self._thread.quit)
+        self._thread.finished.connect(self._finished)
+        self._thread.start()
+
+    def _show(self, table: pd.DataFrame) -> None:
+        self.table.setColumnCount(len(table.columns))
+        self.table.setHorizontalHeaderLabels([str(c) for c in table.columns])
+        self.table.setRowCount(len(table))
+        for row, values in enumerate(table.itertuples(index=False)):
+            for col, value in enumerate(values):
+                item = QTableWidgetItem(_cell(value))
+                item.setTextAlignment(Qt.AlignmentFlag.AlignRight
+                                      | Qt.AlignmentFlag.AlignVCenter)
+                self.table.setItem(row, col, item)
+        self.table.resizeColumnsToContents()
+        self.status.setText(f"Last {len(table)} candles of {self.stock.currentText().upper()}")
+
+    def _fail(self, message: str) -> None:
+        self.table.setRowCount(0)
+        self.status.setText(message)
+
+    def _finished(self) -> None:
+        self._thread = None
+        self._run = None
+        self.run_btn.setEnabled(True)
+
+    def reject(self) -> None:
+        if self._thread is not None:
+            self.status.setText("Still running; close again when it finishes")
+            return
+        super().reject()
+
+
+class _NewIndicatorDialog(FramelessDialog):
+    """Ask for the new indicator's name and make its project folder."""
+
+    def __init__(self, user_id: int, parent: QWidget | None = None) -> None:
+        super().__init__("New indicator", min_width=380, parent=parent)
+        self._user_id = user_id
+        self.folder: Path | None = None
+        self.name = QLineEdit()
+        self.name.setPlaceholderText("MY_ST")
+        self.name.setStyleSheet("QLineEdit { outline: none; } QLineEdit:focus { outline: none; }")
+        self.error = QLabel("")
+        self.error.setStyleSheet(f"color: {C.RED};")
+        self.error.setWordWrap(True)
+        create = QPushButton("Create")
+        create.clicked.connect(self._create)
+        self.name.returnPressed.connect(self._create)
+
+        layout = self.content_layout()
+        layout.addWidget(QLabel("Indicator name"))
+        layout.addWidget(self.name)
+        layout.addWidget(self.error)
+        row = QHBoxLayout()
+        row.addStretch()
+        row.addWidget(create)
+        layout.addLayout(row)
+
+    def _create(self) -> None:
+        try:
+            self.folder = create_project(self._user_id, self.name.text())
+        except (ValueError, FileExistsError, OSError) as exc:
+            self.error.setText(str(exc))
+            return
+        self.accept()

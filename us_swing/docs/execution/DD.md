@@ -4295,7 +4295,7 @@ class USSwingIndicator:
 - `run(indicator_class, candles, values=None) -> Result` uses defaults for missing values, runs the same conversion and `compute()` as the tool, and returns the values, the debug series and the main timeframe.
 - `Result.table()` gives a DataFrame of time, value and one column per debug series.
 
-**Command line.** `__main__.py` gains `indicator check <file> [--symbols A,B] [--days N] [--trace out.csv]`. It runs `check_file` (with `--symbols` replacing the 3 probe stocks), prints one ✔ or ✘ line per check plus counts, writes `Result.table()` to `--trace`, and exits with 0 on pass or 1 on refusal. It uses the tool's bundled Python.
+**Command line.** `__main__.py` gains `indicator check <file> [--symbols A,B] [--days N] [--trace out.csv]`. It runs `check_file` (with `--symbols` replacing the 3 probe stocks), prints one ✔ or ✘ line per check plus counts, writes `Result.table()` to `--trace`, and exits with 0 on pass or 1 on refusal. It uses the tool's bundled Python. The windowed exe has no console of its own, so the command attaches to the console it was started from. The installer also ships the `usswing` `.py` files as plain files (`<install>/_internal/sdk/`) so a "New indicator" project in VS Code gets code help from them.
 
 ## DD-EXE-022.017.D01 — Chart Preview (Could)
 

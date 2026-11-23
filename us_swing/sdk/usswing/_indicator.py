@@ -74,10 +74,14 @@ class Result:
     values: pd.Series
     main_timeframe: str
     debug: dict[str, pd.Series] = field(default_factory=dict)
+    times: pd.Series | None = None
 
     def table(self) -> pd.DataFrame:
-        """Value and debug series as columns, one row per candle."""
-        return pd.DataFrame({"value": self.values, **self.debug})
+        """Time (when the candles have one), value and debug series, one row per candle."""
+        columns: dict[str, pd.Series] = {"value": self.values, **self.debug}
+        if self.times is not None:
+            columns = {"time": self.times, **columns}
+        return pd.DataFrame(columns)
 
 
 def compute(indicator: USSwingIndicator) -> Result:
@@ -93,7 +97,16 @@ def compute(indicator: USSwingIndicator) -> Result:
     values = _as_series(raw, main.index, "calculate()")
     debug = {name: _as_series(series, main.index, f"debug value {name!r}")
              for name, series in indicator._debug.items()}
-    return Result(values=values, main_timeframe=indicator._main_timeframe, debug=debug)
+    return Result(values=values, main_timeframe=indicator._main_timeframe, debug=debug,
+                  times=_times(main))
+
+
+def _times(candles: pd.DataFrame) -> pd.Series | None:
+    """The candles' time column (``datetime`` in the tool, ``ts`` in replay), if any."""
+    for column in ("datetime", "ts"):
+        if column in candles:
+            return candles[column]
+    return None
 
 
 def _as_series(raw: Any, index: pd.Index, what: str) -> pd.Series:

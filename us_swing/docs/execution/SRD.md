@@ -1,12 +1,13 @@
 # Software Requirement Document — Execution & Risk Management (EXE)
 
 **Document ID:** SRD-EXE
-**Version:** 1.39.2
+**Version:** 1.39.3
 **Traces To:** FO-EXE v1.14.0
 **Status:** Draft
 **Last Updated:** 2026-11-23
 **Project:** US Swing Trading System
 
+> v1.39.3: SRD-EXE-022.015–.016 Implemented (P3).
 > v1.39.2: SRD-EXE-022.001–.014 Implemented (P1).
 > v1.39.1: SRD-EXE-022.001–.017 approved by user 2026-11-23.
 > v1.39.0: SRD-EXE-022.001–.017 added as Draft — Custom Indicator Plugins (user design 2026-11-23).
@@ -433,7 +434,7 @@
 | SRD-EXE-022.012 | FO-EXE-022 | Must | A plugin error or timeout gives no signal for that candle and logs one warning. | failed call | no signal, log line | Time limit 2 s per call | Implemented |
 | SRD-EXE-022.013 | FO-EXE-022 | Must | Three failed calls in a row stop every strategy that uses the plugin and alert the user. | failure count | stopped strategies, alert | Telegram alert when the user has it on; open trades stay managed | Implemented |
 | SRD-EXE-022.014 | FO-EXE-022 | Must | A strategy whose conditions name a plugin not loaded for the user cannot start, and the message names the plugin. | strategy start | refusal | Applies to manual start and auto start | Implemented |
-| SRD-EXE-022.015 | FO-EXE-022 | Should | `usswing.testing.load_candles(symbol, timeframes, days)` reads local candles and `run(indicator, candles, values)` returns the series and debug values. | symbol, timeframes, values | series, debug table | Read-only access to the local stores | Approved |
-| SRD-EXE-022.016 | FO-EXE-022 | Should | `USSwing.exe indicator check <file>` runs the plugin check on chosen stocks, prints the result and can save the debug table as CSV. | file, symbols, days, trace path | report, CSV | Uses the tool's own Python; needs no Python install | Approved |
+| SRD-EXE-022.015 | FO-EXE-022 | Should | `usswing.testing.load_candles(symbol, timeframes, days)` reads local candles and `run(indicator, candles, values)` returns the series and debug values. | symbol, timeframes, values | series, debug table | Read-only access to the local stores | Implemented |
+| SRD-EXE-022.016 | FO-EXE-022 | Should | `USSwing.exe indicator check <file>` runs the plugin check on chosen stocks, prints the result and can save the debug table as CSV. | file, symbols, days, trace path | report, CSV | Uses the tool's own Python; needs no Python install | Implemented |
 | SRD-EXE-022.017 | FO-EXE-022 | Could | `usswing.dev.preview(...)` opens a browser chart with candles, the indicator and its debug values. | indicator, candles | HTML chart | For tests and scripts only (see SRD-EXE-022.005) | Approved |
 

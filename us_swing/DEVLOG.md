@@ -2,6 +2,17 @@
 
 ---
 
+## [20261123] EXE, GUI — Custom indicator plugins P3: testing kit, indicator check command, Check button, New indicator project
+
+- Type: Feature (branch `feat/usswing-indicator-plugins`, unpushed)
+- FO(s): FO-EXE-022 (SRD-EXE-022.015–.016 Implemented), FO-GUI-046 (SRD-GUI-046.006–.007 Implemented)
+- Artifacts: SRD, DD (exe console + shipped sdk note), MD, UTCD (7 tests Pass), TRACE (EXE + GUI), Code (`sdk/usswing/testing.py`, `_indicator.py` time column, `core/indicator_plugins/_cli.py`, `__main__.py`, `gui/indicators_section.py` Check + New indicator, `gui/indicator_project.py`, `app_service.py` `candle_frames`, `USSwing.spec`), Tests (`tests/execution/test_usswing_testing.py`, `tests/gui/test_indicators_gui.py`), TODO (T230, T233), CONTEXT, DEVLOG
+- Decisions: user chose a VS Code project with a tool "Check indicator" task plus own-Python tests; trace CSV holds every stock with a symbol column; Check uses the engine's own candle frames, outside the live failure count
+- Found by a real run: the command crashed on the db ↔ data import cycle; fixed by importing `us_swing.data` first
+- Open: P4 preview (SRD-EXE-022.017); T232/T233 user checks; RN + PR when the user says; MCP config updated (restart Claude Code)
+
+---
+
 ## [20261123] EXE, GUI — Custom indicator plugins P2: popup rows, Settings Indicators, refused-start popup; library moved to sdk/
 
 - Type: Feature (branch `feat/usswing-indicator-plugins`, unpushed)

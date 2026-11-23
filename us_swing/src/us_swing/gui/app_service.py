@@ -4299,6 +4299,10 @@ class AppService(QObject):
         except Exception:
             _log.warning("[Indicators] Could not load custom indicators", exc_info=True)
 
+    def candle_frames(self, symbol: str) -> dict[str, pd.DataFrame]:
+        """The candle frames the strategy engine uses for ``symbol`` (SRD-GUI-046.006)."""
+        return self._get_candles_df(symbol)
+
     def indicator_probe(self) -> list[tuple[str, dict[str, pd.DataFrame]]]:
         """Up to 3 stocks with 3m candles for the custom indicator dry run (SRD-EXE-022.007)."""
         stocks: list[tuple[str, dict[str, pd.DataFrame]]] = []
