@@ -1347,7 +1347,6 @@ class AppService(QObject):
         self._tick_flush.timeout.connect(self._flush_tick_refresh)
         self._sp500_cache: set[str] = set()   # S&P 500 symbols, populated lazily
         self._cycle_symbols: frozenset[str] = frozenset()  # symbols of open trade cycles
-        self._pending_exit_reason: str = "manual"          # reason carried into the next exit fill
 
         # ── Live bar worker — must be initialised before _refresh_market_status ─
         self._live_bar_worker: LiveBarWorker | None = None
@@ -1576,7 +1575,6 @@ class AppService(QObject):
                 user_id_provider=lambda: self._active_uid,
                 session_date_provider=lambda: datetime.datetime.now().strftime("%Y-%m-%d"),
                 mode_provider=lambda: self.get_active_user().mode,
-                exit_reason_provider=lambda: self._pending_exit_reason,
                 on_event=self._on_order_event_gui,
             )
             self._submitter = self._broker_adapter
@@ -3045,10 +3043,9 @@ class AppService(QObject):
             symbol      = snap.symbol,
             strategy_id = snap.strategy_id,
             entry_price = float(exit_price),
-            reason      = "manual_force_exit",
+            reason      = reason,
             direction   = snap.direction,
         )
-        self._pending_exit_reason = reason
         if self._submitter is None:
             _log.error("[Orders] Cannot submit exit order — order submission is unavailable")
             return -1

@@ -1,7 +1,7 @@
 # Software Requirement Document — Execution & Risk Management (EXE)
 
 **Document ID:** SRD-EXE
-**Version:** 1.40.0
+**Version:** 1.41.0
 **Traces To:** FO-EXE v1.14.0
 **Status:** Draft
 **Last Updated:** 2026-11-23
@@ -35,6 +35,7 @@
 > v1.20.0: SRD-EXE-016.007 added (Approved, ISS-EXE-0008) — `mark_entered` re-arms a same-day `EXITED` ledger row back to `ENTERED` so a same-day re-entry no longer leaves an orphaned open cycle that the reconcile flags as an invariant violation.
 > v1.21.0: SRD-EXE-006.013 + SRD-EXE-011.023 added (Approved → Implemented, ISS-EXE-0009) — opening a trade cycle arms the historical + live candle feeds for its symbol (so a held off-screen position keeps full candle data); and ATR-based indicators raise `EvaluatorError` on insufficient bars instead of silently returning NaN→false, so a missed exit surfaces instead of hiding.
 > v1.40.0: SRD-EXE-011.028 added (Implemented, ISS-EXE-0016) — no rule check on an older day's bar after startup.
+> v1.41.0: SRD-EXE-015.009 added (Implemented, ISS-EXE-0017) — rule exits saved as strategy, not manual.
 > v1.22.0: SRD-EXE-011.024/.025 + SRD-EXE-012.014 added (Implemented, ISS-EXE-0010) — a position closed by one route drops its stale pending exit signal, executing a pending exit on a non-OPEN position is rejected, and an orphan/duplicate exit fill is logged and ignored instead of raising — so the dual exit routes (pending ► and force-exit ■) can no longer place a duplicate exit order.
 > v1.23.0: SRD-EXE-017.023/.024/.025 added (Approved, ISS-EXE-0011) — split the single per-strategy `Capital Max` into a strategy allocation (its budget cap) and a per-trade size (`per_trade_pct`, % of that allocation), so one strategy can open multiple concurrent positions up to `floor(100/per_trade_pct)` instead of being stuck at one. Refines SRD-EXE-017.003/.005/.009/.018.
 > v1.23.1: SRD-EXE-017.026 added (Approved) — makes explicit that Strategy Allocation is a non-reserved ceiling: a STOPPED strategy with no open positions frees its whole share to the shared pool; only live/in-flight positions consume Margin Available.
@@ -312,6 +313,7 @@
 | SRD-EXE-015.006 | FO-EXE-015 | Must | Once the adapter and ingestion are verified live, `ExecutionEngine`, `PaperEngine`, `PaperBroker`, and the paper-only `app_service` methods (`_on_paper_fill`, `_record_paper_entry`, `_record_paper_exit`) are removed. | legacy modules | deleted code | Existing `trades`/`trade_cycles` audit rows retained; removal gated on contract tests passing | Implemented |
 | SRD-EXE-015.007 | FO-EXE-015 | Must | At start the app takes a one-copy lock; if another copy already holds it, the new copy shows "USSwing is already running" and closes before any broker, feed or strategy starts. | app start | lock held, or app closes | Check under 1 ms; Windows frees the lock when the app closes or crashes; tests that build the app service do not take it | Implemented |
 | SRD-EXE-015.008 | FO-EXE-015 | Must | Before sending each order, the broker adapter checks that this copy still holds the one-copy lock; if not, the order is not sent and an `[Orders]` error is logged. | order submit | order sent, or blocked | In-memory check, no added wait; a blocked order is handled like a failed submit, so the signal returns to pending | Implemented |
+| SRD-EXE-015.009 | FO-EXE-015 | Must | Each exit order saves the exit reason carried by its own signal (strategy, hard_sl, target, manual, end of day and so on), never a shared value (ISS-EXE-0017). | exit signal | exit fill with its own reason | An unknown reason is saved as manual | Implemented |
 
 ---
 

@@ -1,7 +1,7 @@
 # Unit Test Case Document â€” Execution & Risk Management (EXE)
 
 **Document ID:** UTCD-EXE
-**Version:** 1.27.0
+**Version:** 1.28.0
 **Traces To:** MD-EXE v1.15.0
 **Status:** Draft
 **Last Updated:** 2026-11-23
@@ -785,6 +785,8 @@
 | UT-EXE-015.004.M01.T35 | MD-EXE-015.004.M01 | Negative | Force-exit into a dead socket reports instead of raising | open cycle; submitter raises `BrokerConnectionError` | `_submit_cycle_exit` returns -1, no exception propagates | Pass |
 | UT-EXE-015.004.M01.T36 | MD-EXE-015.004.M01 | Positive | A healthy exit submit is unchanged | submitter returns order id 91 | `_submit_cycle_exit` returns 91 | Pass |
 | UT-EXE-015.002.M01.T24 | MD-EXE-015.002.M01 | Positive | A waiting exit is announced and read back as NEW, then FILLED (ISS-GUI-0022) | exit submitted, fill held | one NEW event; ledger row NEW 0 filled; after fill FILLED 8 at fill price | Pass |
+| UT-EXE-015.002.M01.T25 | MD-EXE-015.002.M01 | Positive | Each exit saves its own signal's reason; a rule exit is saved as strategy (ISS-EXE-0017) | hard_sl exit then strategy exit | reasons hard_sl, strategy | Pass |
+| UT-EXE-015.002.M01.T26 | MD-EXE-015.002.M01 | Negative | An exit with an unknown reason is saved as manual (ISS-EXE-0017) | exit with empty reason | reason manual | Pass |
 | UT-EXE-015.005.M01.T16 | MD-EXE-015.002.M01 | Negative | A cancelled exit is read back as CANCELLED (ISS-GUI-0022) | exit submitted, cancelled before fill | ledger row CANCELLED, 0 filled | Pass |
 | UT-EXE-015.007.M01.T01 | MD-EXE-015.007.M01 | Positive | A second holder is refused until the first lets go | two `AppLock`s on one file | second refused; succeeds after release | Pass |
 | UT-EXE-015.007.M01.T02 | MD-EXE-015.007.M01 | Negative | Start-up claim fails while another copy holds the lock | lock held elsewhere | `claim_app_lock` False; True after release | Pass |

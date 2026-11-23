@@ -1,5 +1,5 @@
 """Module: MD-EXE-015.002.M01 — execution/broker_adapter.py
-Parent SRD: SRD-EXE-015.001, SRD-EXE-015.004, SRD-EXE-015.008
+Parent SRD: SRD-EXE-015.001, SRD-EXE-015.004, SRD-EXE-015.008, SRD-EXE-015.009
 
 Broker adapter (Broker_fix.md Phase 5).
 
@@ -35,8 +35,14 @@ from us_swing.execution.app_lock import check_order_allowed
 from us_swing.execution.direction import order_side, risk_levels
 from us_swing.execution.order_ingestion import OrderContext, OrderIngestion
 from us_swing.execution.strategy_engine._signals import Action, TradeSignal
+from us_swing.execution.trade_cycle import EXIT_REASONS
 
 log = logging.getLogger(__name__)
+
+
+def _exit_reason(signal: TradeSignal) -> str:
+    """The exit cause carried by the exit signal itself (ISS-EXE-0017)."""
+    return signal.reason if signal.reason in EXIT_REASONS else "manual"
 
 
 class BrokerAdapter:
@@ -51,7 +57,6 @@ class BrokerAdapter:
         user_id_provider: Callable[[], int],
         session_date_provider: Callable[[], str],
         mode_provider: Callable[[], str] | None = None,
-        exit_reason_provider: Callable[[], str] | None = None,
         on_event: Callable[[OrderEvent], None] | None = None,
     ) -> None:
         self._broker = broker
@@ -60,7 +65,6 @@ class BrokerAdapter:
         self._user_id_provider = user_id_provider
         self._session_date_provider = session_date_provider
         self._mode_provider = mode_provider or (lambda: "paper")
-        self._exit_reason_provider = exit_reason_provider or (lambda: "manual")
         self._on_event = on_event
         broker.on_event(self._on_broker_event)
 
@@ -133,7 +137,7 @@ class BrokerAdapter:
             target_type=target_type,
             stoploss_type=stoploss_type,
             monitoring_session_date=self._session_date_provider(),
-            exit_reason=self._exit_reason_provider() if not is_entry else "manual",
+            exit_reason=_exit_reason(signal) if not is_entry else "manual",
         )
 
     @staticmethod
