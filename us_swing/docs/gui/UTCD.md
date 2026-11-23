@@ -1134,7 +1134,7 @@ Test files:
 | UT-GUI-032.003.M03.T01 | MD-GUI-032.003.M03 | Positive | Grouped view | 3 strategies | headers Running 1, Stopped 1, Disabled 1; click row fills detail | Pass |
 | UT-GUI-032.005.M03.T01 | MD-GUI-032.003.M03 | Positive | Inline detail opens and closes | Table view; click row B; click B again | detail under B, title B; then no detail row; detail widget still alive | Pass |
 | UT-GUI-032.005.M03.T02 | MD-GUI-032.003.M03 | Negative | Row button keeps the open detail | Table view; open A; Start on row B | B is RUNNING; A still picked and open | Pass |
-| UT-GUI-032.006.M03.T01 | MD-GUI-032.003.M03 | Positive | Bulk Stop | check running and stopped rows; Stop | bar "2 selected"; only the running one is STOPPED; saved once | Pass |
+| UT-GUI-032.006.M03.T01 | MD-GUI-032.003.M03 | Positive | Bulk Stop | check running and stopped rows; Stop | check column 48 px, checkbox takes no focus (no dotted box); bar "2 selected"; only the running one is STOPPED; saved once | Pass |
 | UT-GUI-032.006.M03.T02 | MD-GUI-032.003.M03 | Negative | Bulk Start skips disabled and running | check all; Start | only the stopped manual/auto one becomes RUNNING | Pass |
 | UT-GUI-032.007.M03.T01 | MD-GUI-032.003.M03 | Positive | View kept | pick B; Table; new pane with same settings | B still picked and open; new pane opens in Table | Pass |
 
