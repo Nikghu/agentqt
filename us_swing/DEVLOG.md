@@ -2,6 +2,15 @@
 
 ---
 
+## [20261123] GUI — Settings Indicators buttons are icon-only with name tooltips
+
+- Type: Small change (branch `feat/usswing-indicator-plugins`, unpushed); user asked from a screenshot
+- FO(s): FO-GUI-046 (SRD-GUI-046.003)
+- Artifacts: UTCD (UT-GUI-046.003.M02.T03), Code (`indicators_section._icon_button`), Tests, DEVLOG
+- Decisions: Set up Python = wrench icon, Help = scroll-text icon; name also set as accessible name
+
+---
+
 ## [20261123] EXE, GUI — Check reads Backtest Data for S&P 500 stocks; candles always have datetime
 
 - Type: Change + fix (branch `feat/usswing-indicator-plugins`, unpushed); user's screenshot showed Check failing with no 3m data for stock A

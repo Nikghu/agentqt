@@ -206,6 +206,21 @@ def test_list_shows_status(qtbot: QtBot, swing_plus: Path) -> None:
     assert "version" in section.table.item(0, 3).text()
 
 
+def test_buttons_show_icons_with_name_on_hover(qtbot: QtBot) -> None:
+    """UT-GUI-046.003.M02.T03: Section buttons show only an icon; the name is the tooltip."""
+    section = _section(qtbot, _Service())
+    buttons = {
+        "Import": section.import_btn, "Export": section.export_btn,
+        "Remove": section.remove_btn, "Reload": section.reload_btn, "Check": section.check_btn,
+        "New indicator": section.new_btn, "Set up Python": section.python_btn,
+        "Help": section.help_btn,
+    }
+
+    for name, button in buttons.items():
+        assert button.text() == "" and not button.icon().isNull(), name
+        assert button.toolTip() == name == button.accessibleName()
+
+
 def test_every_user_sees_same_indicators(qtbot: QtBot) -> None:
     """UT-GUI-046.003.M02.T02: All users share one indicator folder."""
     _install("swing_plus.py", SWING_PLUS.read_text(encoding="utf-8"))

@@ -1,12 +1,13 @@
 # Unit Test Case Document â€” GUI Module (GUI)
 
 **Document ID:** UTCD-GUI
-**Version:** 1.58.8
+**Version:** 1.58.9
 **Traces To:** MD-GUI v1.7.0
 **Status:** Draft
 **Last Updated:** 2026-11-23
 **Project:** US Swing Trading System
 
+> v1.58.9: UT-GUI-046.003.M02.T03 added — icon-only buttons with name tooltips (user asked 2026-11-23).
 > v1.58.8: UT-GUI-046.006.M02.T02–T03 added — S&P 500 list, Backtest Data.
 > v1.58.7: UT-GUI-046.003.M02.T02 and .004.M02.T04 changed (user decision 2026-11-23: one shared folder, no user part).
 > v1.58.6: UT-GUI-046.004.M02.T04 added — Import opens in the latest project.
@@ -1249,6 +1250,7 @@ Test files:
 | UT-GUI-046.002.M01.T03 | MD-GUI-046.001.M01 | Negative | Number box keeps limits | type 0 and 900 in Candles | 1 and 500 | Pass |
 | UT-GUI-046.003.M02.T01 | MD-GUI-046.003.M02 | Positive | List shows status | one good file, one broken | SWING_PLUS 1.0 Loaded; broken file Refused with its reason | Pass |
 | UT-GUI-046.003.M02.T02 | MD-GUI-046.003.M02 | Positive | All users see the same indicators | one file; users 1 and 2 | both list SWING_PLUS 1.0 Loaded | Pass |
+| UT-GUI-046.003.M02.T03 | MD-GUI-046.003.M02 | Positive | Icon-only buttons | open the section | 8 buttons with an icon, no text; tooltip and accessible name = button name | Pass |
 | UT-GUI-046.004.M02.T01 | MD-GUI-046.003.M02 | Positive | Import a good file | pick file; warning Yes | copied to the user's folder; listed Loaded | Pass |
 | UT-GUI-046.004.M02.T02 | MD-GUI-046.003.M02 | Negative | Import a bad file | file with a missing field; warning Yes | reason shown; nothing copied | Pass |
 | UT-GUI-046.004.M02.T03 | MD-GUI-046.003.M02 | Negative | Warning answered No | pick file; warning No | nothing copied, no check run | Pass |

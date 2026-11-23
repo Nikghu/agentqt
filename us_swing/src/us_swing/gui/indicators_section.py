@@ -70,6 +70,16 @@ _log = logging.getLogger(__name__)
 _COLUMNS = ["Name", "Version", "Status", "Details"]
 
 
+def _icon_button(name: str, icon_name: str, role: str = "neutral") -> QPushButton:
+    """A square button with only an icon; ``name`` shows on hover (SRD-GUI-046.003)."""
+    button = QPushButton()
+    set_icon(button, icon_name, role)
+    button.setToolTip(name)
+    button.setAccessibleName(name)
+    button.setFixedWidth(C.BTN_H + 8)
+    return button
+
+
 def strategies_using(name: str) -> list[str]:
     """Names of the saved strategies whose conditions use indicator ``name``."""
     from us_swing.execution.strategy_engine._engine import plugins_used
@@ -102,20 +112,14 @@ class IndicatorsSection(QWidget):
         self.table.setColumnWidth(2, 80)
         self.table.itemSelectionChanged.connect(self._sync_buttons)
 
-        self.import_btn = QPushButton("Import")
-        self.export_btn = QPushButton("Export")
-        self.remove_btn = QPushButton("Remove")
-        self.reload_btn = QPushButton("Reload")
-        self.check_btn = QPushButton("Check")
-        self.new_btn = QPushButton("New indicator")
-        self.python_btn = QPushButton("Set up Python")
-        self.help_btn = QPushButton("Help")
-        set_icon(self.import_btn, "plus", "add")
-        set_icon(self.export_btn, "download")
-        set_icon(self.remove_btn, "trash-2", "danger")
-        set_icon(self.reload_btn, "refresh-cw")
-        set_icon(self.check_btn, "play", "go")
-        set_icon(self.new_btn, "folder")
+        self.import_btn = _icon_button("Import", "plus", "add")
+        self.export_btn = _icon_button("Export", "download")
+        self.remove_btn = _icon_button("Remove", "trash-2", "danger")
+        self.reload_btn = _icon_button("Reload", "refresh-cw")
+        self.check_btn = _icon_button("Check", "play", "go")
+        self.new_btn = _icon_button("New indicator", "folder")
+        self.python_btn = _icon_button("Set up Python", "wrench")
+        self.help_btn = _icon_button("Help", "scroll-text")
         mark_danger(self.remove_btn)
         self.import_btn.clicked.connect(self._on_import)
         self.export_btn.clicked.connect(self._on_export)
