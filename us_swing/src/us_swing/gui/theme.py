@@ -1493,6 +1493,16 @@ QLabel#exec_chip {{
     color: {sub}; background: transparent; border: 1px solid {line}; border-radius: 4px;
     padding: 2px 8px; font-size: 8.5pt;
 }}
+QFrame#exec_stats {{ background: {bg}; border: 1px solid {line}; border-radius: 8px; }}
+QFrame#exec_stats QWidget#exec_stat, QFrame#exec_stats QLabel {{ background: transparent; }}
+QFrame#exec_stats QWidget#exec_stat_next {{
+    background: transparent; border-left: 1px solid {line};
+}}
+QLabel#exec_stat_label {{ color: {sub}; font-size: 7.5pt; font-weight: bold; letter-spacing: 1px; }}
+QLabel#exec_stat_value {{
+    color: {text}; font-family: "IBM Plex Mono", Consolas, monospace; font-size: 11pt;
+    font-weight: 600;
+}}
 QPushButton#mode_btn:checked {{ background: {active_bg}; color: {accent}; border-color: {accent}; }}
 QFrame#settings_nav, QFrame#settings_card {{ border: 1px solid {line}; border-radius: 6px; }}
 QFrame#data_strip {{ border: 1px solid {line}; border-radius: 6px; }}

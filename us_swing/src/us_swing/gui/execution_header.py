@@ -88,9 +88,14 @@ class ExecutionHeader(QFrame):
         meta_row.addWidget(self.cb_banner, 1)
         title_box.addLayout(meta_row)
 
-        self.unrealised_chip = self._chip()
-        self.running_chip = self._chip()
-        self.broker_chip = self._chip()
+        stats = QFrame()
+        stats.setObjectName("exec_stats")
+        stats_row = QHBoxLayout(stats)
+        stats_row.setContentsMargins(0, 0, 0, 0)
+        stats_row.setSpacing(0)
+        self.unrealised_chip = self._stat(stats_row, "UNREALISED P&L", first=True)
+        self.running_chip = self._stat(stats_row, "STRATEGIES")
+        self.broker_chip = self._stat(stats_row, "BROKER")
         self.breaker_btn = QPushButton()
         self.breaker_btn.setToolTip("Stops all new orders until you reset it.")
         self.breaker_btn.clicked.connect(
@@ -107,22 +112,26 @@ class ExecutionHeader(QFrame):
         self.user_combo.setStyleSheet(
             "QComboBox { outline: none; } QComboBox:focus { outline: none; }"
         )
-        self.user_combo.addItem("All / Broadcast", None)
+        self.user_combo.addItem("All users", None)
         for user in svc.get_users():
             self.user_combo.addItem(f"{user.username}  ({user.mode.upper()})", user.user_id)
+        divider = QFrame()
+        divider.setObjectName("side_sep")
+        divider.setFixedSize(1, 24)
 
         row = QHBoxLayout(self)
         row.setContentsMargins(20, 12, 20, 12)
         row.setSpacing(8)
         row.addLayout(title_box, 1)
-        row.addWidget(self.unrealised_chip)
-        row.addWidget(self.running_chip)
-        row.addWidget(self.broker_chip)
-        row.addWidget(self.breaker_btn)
-        row.addWidget(self.charts_btn)
-        row.addSpacing(8)
+        row.addWidget(stats)
+        row.addSpacing(16)
         row.addWidget(exec_for)
         row.addWidget(self.user_combo)
+        row.addWidget(self.charts_btn)
+        row.addSpacing(4)
+        row.addWidget(divider)
+        row.addSpacing(4)
+        row.addWidget(self.breaker_btn)
 
         svc.screener_results_updated.connect(self.set_last_run)
         svc.viewing_changed.connect(self._on_scope_changed)
@@ -139,15 +148,28 @@ class ExecutionHeader(QFrame):
         self.refresh()
 
     @staticmethod
-    def _chip() -> QLabel:
-        chip = QLabel()
-        chip.setObjectName("exec_chip")
-        return chip
+    def _stat(row: QHBoxLayout, name: str, *, first: bool = False) -> QLabel:
+        """Add one labelled cell to the joined stat box; return its value label."""
+        cell = QWidget()
+        cell.setObjectName("exec_stat" if first else "exec_stat_next")
+        box = QVBoxLayout(cell)
+        box.setContentsMargins(16, 6, 16, 6)
+        box.setSpacing(2)
+        label = QLabel(name)
+        label.setObjectName("exec_stat_label")
+        value = QLabel()
+        value.setObjectName("exec_stat_value")
+        box.addWidget(label)
+        box.addWidget(value)
+        row.addWidget(cell)
+        return value
 
     def show_charts_state(self, hidden: bool) -> None:
-        """Label the charts toggle for the current state (SRD-GUI-024.008)."""
-        self.charts_btn.setText("Show charts" if hidden else "Hide charts")
-        set_icon(self.charts_btn, "chevron-up" if hidden else "chevron-down", "neutral", 13)
+        """Tooltip the charts toggle with its next action (SRD-GUI-024.008)."""
+        tip = "Show charts" if hidden else "Hide charts"
+        self.charts_btn.setToolTip(tip)
+        self.charts_btn.setAccessibleName(tip)
+        set_icon(self.charts_btn, "chart-candlestick", "neutral", 15)
 
     def show_breaker_state(self, active: bool) -> None:
         """Label the breaker button: Trip when off, Reset when tripped (SRD-GUI-027.009)."""
@@ -170,9 +192,7 @@ class ExecutionHeader(QFrame):
     def refresh_unrealised(self) -> None:
         total = self._unrealised_total()
         colour = C.GREEN if total > 0 else C.RED if total < 0 else C.TEXT
-        self.unrealised_chip.setText(
-            f"Unrealised <span style='color:{colour}'>{_money(total)}</span>"
-        )
+        self.unrealised_chip.setText(f"<span style='color:{colour}'>{_money(total)}</span>")
 
     def refresh_running(self, *_: object) -> None:
         configs = load_strategies()
@@ -181,15 +201,17 @@ class ExecutionHeader(QFrame):
             1 for c in configs if c.name in with_open or c.run_state in _LIVE_STATES
         )
         self.running_chip.setText(
-            f"Strategies running <b>{running}</b> of <b>{len(configs)}</b>"
+            f"<b>{running}</b> of <b>{len(configs)}</b> "
+            f"<span style='color:{C.SUBTEXT}'>running</span>"
         )
 
     def refresh_broker(self, *_: object) -> None:
-        live = self._svc.get_active_user().mode == "live"
+        if self._svc.get_active_user().mode != "live":
+            self.broker_chip.setText(f"Paper <span style='color:{C.GREEN}'>ready</span>")
+            return
         connected = self._svc.connection_status is ConnectionStatus.CONNECTED
-        dot = C.GREEN if connected or not live else C.MUTED
-        name = "IBKR live" if live else "Paper broker"
-        self.broker_chip.setText(f"<span style='color:{dot}'>●</span> {name}")
+        colour, state = (C.GREEN, "live") if connected else (C.RED, "offline")
+        self.broker_chip.setText(f"IBKR <span style='color:{colour}'>{state}</span>")
 
     def _unrealised_total(self) -> float:
         query = self._svc.cycle_query

@@ -751,7 +751,7 @@ Test files:
 | ID | Module | Type | Description | Input | Expected | Status |
 |---|---|---|---|---|---|---|
 | UT-GUI-024.001.M01.T01 | MD-GUI-024.001.M01 | Positive | Chips show running count and unrealised P&L | 3 strategies, 1 RUNNING + 1 with open cycle; open cycles P&L +10 and −4 | "2 of 3"; "+$6.00" | Pass |
-| UT-GUI-024.001.M01.T02 | MD-GUI-024.001.M01 | Positive | Broker chip follows user mode | active user paper / live | "Paper broker" / "IBKR live" | Pass |
+| UT-GUI-024.001.M01.T02 | MD-GUI-024.001.M01 | Positive | Broker value follows user mode and status | paper; live connected; live not connected | "Paper" + green "ready"; "IBKR" + green "live"; "IBKR" + red "offline"; no dot | Pass |
 | UT-GUI-024.002.M02.T01 | MD-GUI-024.002.M02 | Positive | Groups: Manual first, screeners A→Z, score order, counts | 1 pick, 2 "Price Action", 2 "Momentum" | groups Manual, Momentum, Price Action; counts 1, 2, 2; higher score first | Pass |
 | UT-GUI-024.002.M02.T02 | MD-GUI-024.002.M02 | Positive | ✕ on a pick removes it | click Score cell of pick row | `remove_manual_pick("DELL")` called once | Pass |
 | UT-GUI-024.002.M02.T03 | MD-GUI-024.002.M02 | Negative | Not-ready symbol is tinted | readiness {"NVDA": False} | NVDA row has a background brush; others none | Pass |
@@ -766,7 +766,7 @@ Test files:
 | UT-GUI-024.006.M05.T04 | MD-GUI-024.006.M05 | Positive | Nice y ticks | min 0, max 412.6 | ticks 0, 150, 300, 450 | Pass |
 | UT-GUI-024.006.M05.T05 | MD-GUI-024.006.M05 | Positive | Stats box lines up with toggles (user request 2026-11-23) | card 1300 px wide, shown | stats box left x = P&L curve button left x; width ≥ 210 | Pass |
 | UT-GUI-024.008.M06.T01 | MD-GUI-024.008.M06 | Positive | Hide charts is remembered | `set_charts_hidden(True)`; new pane | `charts_toggled(True)`; setting true; new pane starts hidden | Pass |
-| UT-GUI-024.008.M01.T03 | MD-GUI-024.001.M01 | Positive | Header charts button names the next action | default; `show_charts_state(True)` | "Hide charts"; "Show charts" | Pass |
+| UT-GUI-024.008.M01.T03 | MD-GUI-024.001.M01 | Positive | Header charts icon button tooltip names the next action | default; `show_charts_state(True)` | no text; tooltip "Hide charts"; "Show charts" | Pass |
 
 ## FO-GUI-025 — Dashboard Tiled Workspace
 
