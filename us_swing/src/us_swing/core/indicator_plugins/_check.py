@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import ast
 import difflib
-import importlib.util
 import re
 import sys
 import time
@@ -27,13 +26,22 @@ from usswing import Input, Number, USSwingIndicator
 from usswing._indicator import Result, compute
 from usswing._parameters import Parameter
 
+from us_swing.core.indicator_plugins._guard import (
+    DeadlineExceeded,
+    PluginExit,
+    call_with_deadline,
+)
+
 NAME_PATTERN = re.compile(r"^[A-Z][A-Z0-9_]{1,31}$")
 TIME_LIMIT_S = 2.0
 FUTURE_CANDLES = 5
 OUTPUT_TYPES = ("value", "signal")
 REQUIRED_FIELDS = ("indicator_name", "description", "version", "output_type", "parameters")
+LOAD_LIMIT_S = 5.0
 DEV_REASON = "uses testing tools (usswing.dev); move plotting to a separate script"
 FUTURE_REASON = "uses future candles (values change when newer candles arrive)"
+NOT_CHECKED_NOTE = "not checked on candles (no candle data yet)"
+FEW_CANDLES_NOTE = "future-candle check skipped (too few candles)"
 
 StockFrames = tuple[str, Mapping[str, pd.DataFrame]]
 CandleProbe = Callable[[], Sequence[StockFrames]]
@@ -55,10 +63,15 @@ class PluginSpec:
 
 @dataclass(frozen=True)
 class CheckReport:
-    """Result of checking one file: the spec when it passed, else the reasons."""
+    """Result of checking one file: the spec when it passed, else the reasons.
+
+    ``notes`` lists checks that could not run (for example no candle data); the file
+    still loads, and the live guard protects trading.
+    """
 
     reasons: tuple[str, ...]
     spec: PluginSpec | None = None
+    notes: tuple[str, ...] = ()
 
     @property
     def ok(self) -> bool:
@@ -92,7 +105,7 @@ def check_file(
         return CheckReport((f"syntax error on line {exc.lineno}: {exc.msg}",))
 
     reasons = [DEV_REASON] if _imports_dev(tree) else []
-    module, load_error = _load(path)
+    module, load_error = _load(path, source)
     if module is None:
         return CheckReport((*reasons, load_error))
     classes = _indicator_classes(module)
@@ -108,14 +121,20 @@ def check_file(
     if not field_reasons:
         reasons += _name_problems(cls.indicator_name, builtin_names, taken_names)
         reasons += _label_problems(_labels_read(tree), cls.parameters)
+    notes: list[str] = []
     if not reasons and candle_probe is not None:
-        reasons += _dry_run(cls, path, candle_probe(), clock)
+        stocks = candle_probe()
+        if stocks:
+            dry_reasons, notes = _dry_run(cls, path, stocks, clock)
+            reasons += dry_reasons
+        else:
+            notes.append(NOT_CHECKED_NOTE)
     if reasons:
         return CheckReport(tuple(reasons))
     return CheckReport((), PluginSpec(
         name=cls.indicator_name, description=cls.description, version=cls.version,
         output_type=cls.output_type, parameters=tuple(cls.parameters),
-        indicator_class=cls, path=path))
+        indicator_class=cls, path=path), tuple(notes))
 
 
 # ── Reading the code ──────────────────────────────────────────────────────────
@@ -153,17 +172,20 @@ def _labels_read(tree: ast.Module) -> list[str]:
 
 # ── Loading ───────────────────────────────────────────────────────────────────
 
-def _load(path: Path) -> tuple[ModuleType | None, str]:
+def _load(path: Path, source: str) -> tuple[ModuleType | None, str]:
+    """Run the file's code as a fresh module (no cached bytecode), with a time limit."""
     stem = re.sub(r"\W", "_", path.stem)
     name = f"usswing_plugin_{stem}_{abs(hash(str(path.resolve()))):x}"
-    spec = importlib.util.spec_from_file_location(name, path)
-    if spec is None or spec.loader is None:
-        return None, "cannot be loaded as a Python file"
-    module = importlib.util.module_from_spec(spec)
+    module = ModuleType(name)
+    module.__file__ = str(path)
     sys.modules[name] = module
     try:
-        spec.loader.exec_module(module)
-    except SystemExit:
+        code = compile(source, str(path), "exec")
+        call_with_deadline(lambda: exec(code, module.__dict__), LOAD_LIMIT_S)  # noqa: S102
+    except DeadlineExceeded:
+        sys.modules.pop(name, None)
+        return None, f"did not finish loading in {LOAD_LIMIT_S:g} s"
+    except PluginExit:
         sys.modules.pop(name, None)
         return None, "stopped while loading (sys.exit was called)"
     except Exception as exc:  # noqa: BLE001 — any error in user code becomes a reason
@@ -265,35 +287,51 @@ def frame_source(frames: Mapping[str, pd.DataFrame]) -> Callable[[str, str], pd.
     return source
 
 
+def _run_once(cls: type[USSwingIndicator], frames: Mapping[str, pd.DataFrame]) -> Result:
+    return call_with_deadline(lambda: compute(cls(frame_source(frames), {})), TIME_LIMIT_S)
+
+
 def _dry_run(cls: type[USSwingIndicator], path: Path, stocks: Sequence[StockFrames],
-             clock: Clock) -> list[str]:
+             clock: Clock) -> tuple[list[str], list[str]]:
+    """Reasons to refuse, and notes about checks that could not run."""
+    notes: list[str] = []
     for symbol, frames in stocks:
         start = clock()
         try:
-            result = compute(cls(frame_source(frames), {}))
+            result = _run_once(cls, frames)
+        except DeadlineExceeded:
+            return [f"did not finish in {TIME_LIMIT_S:g} s on {symbol}"], notes
         except Exception as exc:  # noqa: BLE001 — any error in user code becomes a reason
-            return [f"failed on {symbol}: {exc}{_line_of(exc, path)}"]
+            return [f"failed on {symbol}: {exc}{_line_of(exc, path)}"], notes
         took = clock() - start
         if took > TIME_LIMIT_S:
-            return [f"took {took:.1f} s on {symbol} (limit {TIME_LIMIT_S:g} s)"]
-        if _uses_future(cls, frames, result):
-            return [FUTURE_REASON]
-    return []
+            return [f"took {took:.1f} s on {symbol} (limit {TIME_LIMIT_S:g} s)"], notes
+        future = _future_problem(cls, path, frames, result)
+        if future == FEW_CANDLES_NOTE:
+            notes.append(f"{FEW_CANDLES_NOTE} on {symbol}")
+        elif future:
+            return [future], notes
+    return [], notes
 
 
-def _uses_future(cls: type[USSwingIndicator], frames: Mapping[str, pd.DataFrame],
-                 full: Result) -> bool:
-    """True when dropping the newest candles changes values of older candles."""
+def _future_problem(cls: type[USSwingIndicator], path: Path,
+                    frames: Mapping[str, pd.DataFrame], full: Result) -> str:
+    """A reason when dropping the newest candles changes older values; "" when fine."""
     main = frames[full.main_timeframe]
-    if len(main) <= 2 * FUTURE_CANDLES or "ts" not in main:
-        return False
-    cutoff = main["ts"].iloc[-FUTURE_CANDLES]
-    trimmed = {tf: (f[f["ts"] < cutoff] if "ts" in f else f.iloc[:-FUTURE_CANDLES])
-               for tf, f in frames.items()}
+    if len(main) <= 2 * FUTURE_CANDLES:
+        return FEW_CANDLES_NOTE
+    if "ts" in main:
+        cutoff = main["ts"].iloc[-FUTURE_CANDLES]
+        trimmed = {tf: (f[f["ts"] < cutoff] if "ts" in f else f.iloc[:-FUTURE_CANDLES])
+                   for tf, f in frames.items()}
+    else:
+        trimmed = {tf: f.iloc[:-FUTURE_CANDLES] for tf, f in frames.items()}
     try:
-        part = compute(cls(frame_source(trimmed), {}))
-    except Exception:  # noqa: BLE001 — not a future-candle problem
-        return False
+        part = _run_once(cls, trimmed)
+    except Exception as exc:  # noqa: BLE001 — must also work while candles are still arriving
+        return f"fails with fewer candles: {exc}{_line_of(exc, path)}"
     shared = len(part.values)
-    return not np.allclose(full.values.to_numpy()[:shared], part.values.to_numpy(),
-                           rtol=0.0, atol=1e-9, equal_nan=True)
+    if not np.allclose(full.values.to_numpy()[:shared], part.values.to_numpy(),
+                       rtol=0.0, atol=1e-9, equal_nan=True):
+        return FUTURE_REASON
+    return ""

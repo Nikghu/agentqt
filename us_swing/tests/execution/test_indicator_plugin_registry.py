@@ -92,6 +92,22 @@ def test_exit_while_loading_does_not_stop(tmp_path: Path) -> None:
     assert exiting.reasons == ("stopped while loading (sys.exit was called)",)
 
 
+def test_candle_read_error_still_loads(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
+    """UT-EXE-022.009.M03.T03 (review fix): A candle read error skips the dry run, not the load."""
+    _install(tmp_path, 1)
+    registry = IndicatorRegistry(tmp_path)
+
+    def broken_probe() -> list:  # type: ignore[type-arg]
+        raise OSError("database is locked")
+
+    with caplog.at_level(logging.WARNING):
+        registry.load_for_user(1, builtins=_BUILTINS, candle_probe=broken_probe)
+
+    assert registry.names() == {"SWING_PLUS"}
+    assert registry.statuses()[0].notes == ("not checked on candles (no candle data yet)",)
+    assert "[Indicators] Could not read candles for the indicator check" in caplog.text
+
+
 def test_same_name_twice_keeps_first(tmp_path: Path) -> None:
     """UT-EXE-022.009.M03.T01 (part): A second file with a taken name is refused."""
     _install(tmp_path, 1, "a.py")

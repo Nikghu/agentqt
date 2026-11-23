@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import logging
 import shutil
+import sys
+import time
 from collections.abc import Iterator
 from dataclasses import dataclass
 from unittest.mock import MagicMock
@@ -96,7 +98,9 @@ def test_live_equals_replay(guard: PluginGuard) -> None:
     data = frames(120)
     expr = f"Price('Spot', 'current', 'close', '3m') > SWING_PLUS({SWING_ARGS})"
 
-    series = replay(expr, data).values["SWING_PLUS(20, High, Previous, 3m)"]
+    values = replay(expr, data).values
+    label = next(k for k in values if k.startswith("SWING_PLUS(Spot, 20"))
+    series = values[label]
 
     for candle in (40, 80, 119):
         upto = {tf: f.iloc[:candle + 1] if tf == "3m" else f for tf, f in data.items()}
@@ -142,7 +146,7 @@ def test_error_gives_no_signal_and_one_warning(
     assert info.value.plugin_name == "SWING_PLUS"
     warnings = [r.getMessage() for r in caplog.records if r.name.endswith("_guard")]
     assert warnings == ["[Indicators] SWING_PLUS failed on AAA: division by zero"]
-    assert guard.failures("SWING_PLUS") == 2
+    assert guard.failures("SWING_PLUS", "AAA") == 2
 
 
 def test_slow_call_is_a_failure() -> None:
@@ -207,6 +211,49 @@ def test_two_failures_do_not_stop() -> None:
     _fail(guard, "BAD", "b")
 
     assert hits == [] and guard.failures("BAD") == 2
+
+
+def test_hung_plugin_is_stopped_and_never_called_again() -> None:
+    """UT-EXE-022.012.M05.T02 (review fix): A call that never returns is cut off and marked hung."""
+    guard = PluginGuard(limit_s=0.2)
+    hits: list[str] = []
+    guard.add_limit_listener(hits.append)
+    calls: list[int] = []
+
+    def hang() -> float:
+        calls.append(1)
+        time.sleep(1.5)
+        return 1.0
+
+    with pytest.raises(PluginCallError, match=r"did not finish in 0\.2 s"):
+        guard.run("HANG", hang, symbol="AAA")
+    with pytest.raises(PluginCallError, match="stopped earlier"):
+        guard.run("HANG", hang, symbol="AAA")
+
+    assert guard.is_hung("HANG") and hits == ["HANG"] and calls == [1]
+
+
+def test_sys_exit_in_plugin_is_a_failure() -> None:
+    """UT-EXE-022.012.M05.T01 (review fix): sys.exit() in user code is a failure, not an exit."""
+    guard = PluginGuard()
+
+    with pytest.raises(PluginCallError, match=r"called sys\.exit\(\)"):
+        guard.run("EXIT", lambda: sys.exit(1), symbol="AAA")
+    assert guard.failures("EXIT", "AAA") == 1
+
+
+def test_failures_counted_per_stock() -> None:
+    """UT-EXE-022.013.M05.T01 (review fix): Successes on other stocks do not hide one stock's failures."""
+    guard = PluginGuard()
+    hits: list[str] = []
+    guard.add_limit_listener(hits.append)
+
+    for candle in ("a", "b", "c"):
+        with pytest.raises(PluginCallError):
+            guard.run("BAD", lambda: 1 / 0, symbol="AAA", candle=candle)
+        guard.run("BAD", lambda: 1.0, symbol="BBB")
+
+    assert hits == ["BAD"]
 
 
 # ── Engine (M05) ──────────────────────────────────────────────────────────────

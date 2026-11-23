@@ -46,6 +46,7 @@ class PluginStatus:
     version: str
     ok: bool
     reasons: tuple[str, ...] = ()
+    notes: tuple[str, ...] = ()
 
 
 class IndicatorRegistry:
@@ -75,7 +76,10 @@ class IndicatorRegistry:
             if report.ok and report.spec is not None:
                 spec = report.spec
                 specs[spec.name] = spec
-                statuses.append(PluginStatus(path.name, spec.name, spec.version, True))
+                statuses.append(PluginStatus(path.name, spec.name, spec.version, True,
+                                             notes=report.notes))
+                for note in report.notes:
+                    _log.warning("[Indicators] %s loaded, %s", path.name, note)
                 continue
             statuses.append(PluginStatus(path.name, path.stem, "", False, report.reasons))
             _log.warning("[Indicators] %s was not loaded: %s", path.name, report.reasons[0])
@@ -121,7 +125,12 @@ def _cached(probe: CandleProbe) -> CandleProbe:
 
     def cached() -> Sequence[StockFrames]:
         if not cache:
-            cache.append(list(probe()))
+            try:
+                cache.append(list(probe()))
+            except Exception:
+                _log.warning("[Indicators] Could not read candles for the indicator check",
+                             exc_info=True)
+                cache.append([])
         return cache[0]
 
     return cached

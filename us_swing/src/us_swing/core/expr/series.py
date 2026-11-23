@@ -233,7 +233,7 @@ class _Walker:
         tf = result.main_timeframe
         out = _as_of(result.values.to_numpy(dtype=np.float64),
                      available_ns(self._frame(tf), tf), self.close_ns)
-        self.values[f"{spec.name}({', '.join(str(a) for a in args[1:])})"] = out
+        self.values[f"{spec.name}({', '.join(str(a) for a in args)})"] = out
         return out
 
     def _boss_st(self, args: list[Any]) -> tuple[str, FloatArray]:

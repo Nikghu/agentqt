@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 from tests.execution.plugin_helpers import SWING_PLUS, frames, swing_plus_source, write_plugin
+from us_swing.core.indicator_plugins import _check as check_module
 from us_swing.core.indicator_plugins import check_file
 from us_swing.core.indicator_plugins._check import DEV_REASON, FUTURE_REASON
 
@@ -151,6 +152,57 @@ def test_dry_run_passes_on_three_stocks() -> None:
 
     assert (ok, reasons) == (True, [])
     assert seen == [3]
+
+
+def test_hang_while_loading_or_running(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """UT-EXE-022.007.M02.T02 (review fix): Code that never finishes is cut off, not waited for."""
+    monkeypatch.setattr(check_module, "LOAD_LIMIT_S", 0.2)
+    monkeypatch.setattr(check_module, "TIME_LIMIT_S", 0.2)
+    load = write_plugin(tmp_path, "load.py", "import time\ntime.sleep(3)\n")
+    run = write_plugin(tmp_path, "run.py", swing_plus_source(
+        ('count = self.parameter("Candles")',
+         'count = self.parameter("Candles")\n        __import__("time").sleep(3)')))
+
+    assert _check(load) == (False, ["did not finish loading in 0.2 s"])
+    assert _check(run, candle_probe=_probe) == (False, ["did not finish in 0.2 s on AAA"])
+
+
+def test_sys_exit_in_calculate(tmp_path: Path) -> None:
+    """UT-EXE-022.007.M02.T01 (review fix): sys.exit() in calculate() is a reason, not an exit."""
+    path = write_plugin(tmp_path, "exit.py", swing_plus_source(
+        ('count = self.parameter("Candles")', 'count = __import__("sys").exit(1)')))
+
+    assert _check(path, candle_probe=_probe) == (False, ["failed on AAA: called sys.exit()"])
+
+
+def test_fails_with_fewer_candles(tmp_path: Path) -> None:
+    """UT-EXE-022.007.M02.T03 (review fix): An indicator that breaks on fewer candles is refused."""
+    path = write_plugin(tmp_path, "fewer.py", swing_plus_source(
+        ('count = self.parameter("Candles")',
+         'count = self.parameter("Candles")\n'
+         '        if len(candles) < 120:\n            raise ValueError("need 120 candles")')))
+
+    ok, reasons = _check(path, candle_probe=_probe)
+
+    assert not ok and reasons[0].startswith("fails with fewer candles: need 120 candles")
+
+
+def test_no_candle_data_loads_with_note() -> None:
+    """UT-EXE-022.007.M02.T04 (review fix): With no candle data the file loads with a note."""
+    report = check_file(SWING_PLUS, candle_probe=lambda: [])
+
+    assert report.ok and report.notes == (check_module.NOT_CHECKED_NOTE,)
+
+
+def test_changed_file_runs_new_code(tmp_path: Path) -> None:
+    """UT-EXE-022.009.M03.T02 (review fix): A file changed in the same second loads its new code."""
+    path = write_plugin(tmp_path, "same.py", swing_plus_source())
+    first = check_file(path)
+    path.write_text(swing_plus_source(('version = "1.0"', 'version = "2.0"')), encoding="utf-8")
+    second = check_file(path)
+
+    assert first.spec is not None and second.spec is not None
+    assert (first.spec.version, second.spec.version) == ("1.0", "2.0")
 
 
 @pytest.mark.parametrize("field", ["description", "version"])

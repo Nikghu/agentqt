@@ -18,7 +18,9 @@ from usswing._indicator import Result, compute
 from usswing._parameters import ParameterError
 
 from us_swing.core.indicator_plugins._check import PluginSpec
-from us_swing.core.indicator_plugins._guard import PluginGuard
+from us_swing.core.indicator_plugins._guard import PluginGuard, call_with_deadline
+
+REPLAY_LIMIT_S = 60.0
 
 
 class PluginArgError(ValueError):
@@ -61,7 +63,7 @@ def run_plugin(spec: PluginSpec, values: Mapping[str, Any], frames: Mapping[str,
         return compute(spec.indicator_class(source, values))
 
     if guard is None:
-        return call()
+        return call_with_deadline(call, REPLAY_LIMIT_S)
     return guard.run(spec.name, call, symbol=symbol, candle=_candle_key(frames),
                      passthrough=(NoCandleData,))
 
