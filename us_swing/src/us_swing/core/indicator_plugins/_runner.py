@@ -76,7 +76,11 @@ def last_value(result: Result) -> float:
 
 
 def _candle_key(frames: Mapping[str, pd.DataFrame]) -> str:
+    """Time of the newest 3m candle (``datetime`` in live frames, ``ts`` in replay)."""
     frame = frames.get("3m")
-    if frame is None or frame.empty or "ts" not in frame:
+    if frame is None or frame.empty:
         return ""
-    return str(frame["ts"].iloc[-1])
+    for column in ("datetime", "ts"):
+        if column in frame:
+            return str(frame[column].iloc[-1])
+    return ""

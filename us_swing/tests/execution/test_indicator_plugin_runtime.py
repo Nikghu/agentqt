@@ -149,6 +149,23 @@ def test_error_gives_no_signal_and_one_warning(
     assert guard.failures("SWING_PLUS", "AAA") == 2
 
 
+def test_live_frames_one_warning_per_candle(
+        guard: PluginGuard, caplog: pytest.LogCaptureFixture) -> None:
+    """UT-EXE-022.012.M05.T04: Live frames (``datetime`` column) also warn once per candle."""
+    _install(swing_plus_source(("count = self.parameter(\"Candles\")",
+                                "count = self.parameter(\"Candles\") / 0")))
+    data = {tf: f.rename(columns={"ts": "datetime"}) for tf, f in frames(60).items()}
+    expr = f"SWING_PLUS({SWING_ARGS}) > 0"
+
+    with caplog.at_level(logging.WARNING):
+        for _ in range(2):
+            with pytest.raises(PluginFailure):
+                ConditionEvaluator().evaluate(expr, data, "AAA")
+
+    warnings = [r.getMessage() for r in caplog.records if r.name.endswith("_guard")]
+    assert warnings == ["[Indicators] SWING_PLUS failed on AAA: division by zero"]
+
+
 def test_slow_call_is_a_failure() -> None:
     """UT-EXE-022.012.M05.T02: A call slower than 2 s is a failure; its result is dropped."""
     times: Iterator[float] = iter([0.0, 2.5])

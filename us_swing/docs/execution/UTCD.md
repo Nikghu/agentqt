@@ -1,12 +1,13 @@
 # Unit Test Case Document â€” Execution & Risk Management (EXE)
 
 **Document ID:** UTCD-EXE
-**Version:** 1.26.2
+**Version:** 1.26.3
 **Traces To:** MD-EXE v1.15.0
 **Status:** Draft
 **Last Updated:** 2026-11-23
 **Project:** US Swing Trading System
 
+> v1.26.3: UT-EXE-022.012.M05.T04 added — live frames (datetime column) warn once per candle.
 > v1.26.2: UT-EXE-022.015–.016 (4 tests) Pass (P3).
 > v1.26.1: UT-EXE-022.014.M05.T03 added — refused start reaches the screen.
 > v1.26.0: 47 test cases for FO-EXE-022 Custom Indicator Plugins (UT-EXE-022.*).
@@ -1008,6 +1009,7 @@
 | UT-EXE-022.012.M05.T01 | MD-EXE-022.012.M05 | Negative | Error gives no signal and one warning | plugin raises on the same candle twice | `PluginFailure`; one WARNING for that candle | Pass |
 | UT-EXE-022.012.M05.T02 | MD-EXE-022.012.M05 | Negative | Slow call counts as a failure | run takes 2.5 s (clock moved) | `PluginFailure`; result thrown away | Pass |
 | UT-EXE-022.012.M05.T03 | MD-EXE-022.012.M05 | Positive | A normal call passes through | plugin returns values in 0.1 s | value returned; no warning; count 0 | Pass |
+| UT-EXE-022.012.M05.T04 | MD-EXE-022.012.M05 | Negative | Live frames warn once per candle | frames with a `datetime` column; plugin raises on the same candle twice | `PluginFailure`; one WARNING | Pass |
 | UT-EXE-022.013.M05.T01 | MD-EXE-022.012.M05 | Positive | Three failures stop its strategies and alert | 2 strategies use the plugin, 1 does not; 3 failures | the 2 are STOPPED and saved; one alert; the third keeps running | Pass |
 | UT-EXE-022.013.M05.T02 | MD-EXE-022.012.M05 | Edge | A success resets the count | fail, fail, ok, fail, fail | still running | Pass |
 | UT-EXE-022.013.M05.T03 | MD-EXE-022.012.M05 | Negative | Two failures do not stop | 2 failures in a row | strategies keep running; no alert | Pass |
