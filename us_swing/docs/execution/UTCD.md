@@ -1,12 +1,13 @@
 # Unit Test Case Document â€” Execution & Risk Management (EXE)
 
 **Document ID:** UTCD-EXE
-**Version:** 1.26.0
+**Version:** 1.26.1
 **Traces To:** MD-EXE v1.15.0
 **Status:** Draft
 **Last Updated:** 2026-11-23
 **Project:** US Swing Trading System
 
+> v1.26.1: UT-EXE-022.014.M05.T03 added — refused start reaches the screen.
 > v1.26.0: 47 test cases for FO-EXE-022 Custom Indicator Plugins (UT-EXE-022.*).
 > v1.25.0: AI Desk and Market Floor removed (user, 2026-11-17; docs/audit/DESK_REMOVAL_2026-11-17.md): UT-EXE-021 tests removed.
 > v1.24.1: UT-EXE-021.006.M02.T02 reworded and T03 added (review fix).
@@ -1011,6 +1012,7 @@
 | UT-EXE-022.013.M05.T03 | MD-EXE-022.012.M05 | Negative | Two failures do not stop | 2 failures in a row | strategies keep running; no alert | Pass |
 | UT-EXE-022.014.M05.T01 | MD-EXE-022.012.M05 | Negative | Missing plugin blocks start | strategy uses MY_ST; registry empty; Start | stays STOPPED; "cannot start: indicator MY_ST is not installed" | Pass |
 | UT-EXE-022.014.M05.T02 | MD-EXE-022.012.M05 | Positive | Plugin present lets it start | same with MY_ST loaded | RUNNING | Pass |
+| UT-EXE-022.014.M05.T03 | MD-EXE-022.012.M05 | Positive | Refusal reaches the screen | two strategies refused together | strategy list reloaded; one popup with both messages | Pass |
 | UT-EXE-022.015.M06.T01 | MD-EXE-022.015.M06 | Positive | Load candles read-only | temp SQLite with 3m rows; `load_candles("AAPL", ["3m"], days=2)` | frame of 2 days; writing to the DB through it fails | Not Run |
 | UT-EXE-022.015.M06.T02 | MD-EXE-022.015.M06 | Positive | Run gives values and a debug table | SWING example on those candles | values and table with time, value, debug columns | Not Run |
 | UT-EXE-022.016.M06.T01 | MD-EXE-022.015.M06 | Positive | Command line check passes | `indicator check swing.py --symbols AAPL --trace t.csv` | ✔ lines, exit 0, CSV written | Not Run |

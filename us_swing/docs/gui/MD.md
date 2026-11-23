@@ -1,12 +1,13 @@
 # Module Decomposition — GUI Module (GUI)
 
 **Document ID:** MD-GUI
-**Version:** 1.67.0
+**Version:** 1.67.1
 **Traces To:** SRD-GUI v2.16.0 / DD-GUI v1.7.0
 **Status:** Draft
 **Last Updated:** 2026-11-23
 **Project:** US Swing Trading System
 
+> v1.67.1: MD-GUI-046.003.M02 uses AppService.stop_strategies() and .indicator_probe().
 > v1.67.0: MD-GUI-046.001.M01, .003.M02, .007.M03 added — Custom Indicators screen (SRD-GUI-046.001–.007).
 > v1.66.0: MD-GUI-019.012.M01 position trade actions + MD-GUI-019.013.M02 Dashboard routing (SRD-GUI-019.012–.017).
 > v1.65.0: MD-GUI-045.007.M03 Inspector Shares row and Edit shares box; MD-GUI-045.001.M01/.M02 pass a fixed share count (SRD-GUI-045.007–.008).
@@ -473,5 +474,5 @@ Minimal GUI docs: design in DD-EXE-022.*.D01 (registry, check, runner). Phases P
 | MD ID | SRD | File | Purpose | Public API | Depends on | Async |
 |---|---|---|---|---|---|---|
 | MD-GUI-046.001.M01 | SRD-GUI-046.001 | `us_swing/src/us_swing/gui/strategy_builder_dialog.py` | Trigger popup lists loaded plugins after built-ins; rows built from `parameters` (`Number` → number box with limits and default, `Input` → dropdown with default); expression args in `parameters` order | `plugin_indicator_data(spec)`, `_ConditionSelectorDialog` indicator list | `core.indicator_plugins` registry | No |
-| MD-GUI-046.003.M02 | SRD-GUI-046.003 | `us_swing/src/us_swing/gui/indicators_section.py` (new), `gui/settings_panel.py` | Settings "Indicators" section: list with name, version and status; Import (warning, check before copy), Export, Remove (asks, names and stops the strategies that use it), Reload, Check on one stock | `IndicatorsSection`, `strategies_using(name)` | `AppService.reload_indicators()`, `core.indicator_plugins`, `strategy_store`, `popups` | Check runs in a worker thread |
+| MD-GUI-046.003.M02 | SRD-GUI-046.003 | `us_swing/src/us_swing/gui/indicators_section.py` (new), `gui/settings_panel.py` | Settings "Indicators" section: list with name, version and status; Import (warning, check before copy), Export, Remove (asks, names and stops the strategies that use it), Reload, Check on one stock | `IndicatorsSection`, `strategies_using(name)` | `AppService.reload_indicators()`, `.stop_strategies()`, `.indicator_probe()`, `core.indicator_plugins`, `strategy_store`, `popups` | Check runs in a worker thread |
 | MD-GUI-046.007.M03 | SRD-GUI-046.007 | `us_swing/src/us_swing/gui/indicator_project.py` (new) | New indicator project: example indicator, test file, VS Code settings and launch; opens VS Code or the folder | `create_project(user_id, name) -> Path`, `open_project(path)` | `core.indicator_plugins.plugin_dir` | No |

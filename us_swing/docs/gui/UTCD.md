@@ -1,12 +1,13 @@
 # Unit Test Case Document â€” GUI Module (GUI)
 
 **Document ID:** UTCD-GUI
-**Version:** 1.58.0
+**Version:** 1.58.1
 **Traces To:** MD-GUI v1.7.0
 **Status:** Draft
 **Last Updated:** 2026-11-23
 **Project:** US Swing Trading System
 
+> v1.58.1: UT-GUI-046.001–.005 (13 tests) Pass (P2).
 > v1.58.0: 16 test cases for FO-GUI-046 Custom Indicators screen (UT-GUI-046.*).
 > v1.57.1: UT-GUI-019.013.M02.T03–T04 added — price updates no longer clear the Positions selection.
 > v1.57.0: UT-GUI-019.012–.017 rows added (12) — Dashboard exit and stop through strategy trades.
@@ -1234,19 +1235,19 @@ Test files:
 
 | ID | Module | Type | Objective | Input | Expected Output | Status |
 |---|---|---|---|---|---|---|
-| UT-GUI-046.001.M01.T01 | MD-GUI-046.001.M01 | Positive | Plugin listed after built-ins | registry with SWING_PLUS | indicator list ends with SWING_PLUS after BOSS_ST | Not Run |
-| UT-GUI-046.001.M01.T02 | MD-GUI-046.001.M01 | Negative | Refused plugin not listed | registry status: BAD_ONE refused | BAD_ONE not in the list | Not Run |
-| UT-GUI-046.002.M01.T01 | MD-GUI-046.001.M01 | Positive | Rows follow `parameters` | pick SWING_PLUS | rows Symbol Type, Candles, Price Swing, Window, Timeframe in order; Candles box 1–500 showing 20 | Not Run |
-| UT-GUI-046.002.M01.T02 | MD-GUI-046.001.M01 | Positive | Dropdowns and expression | Price Swing options; Add with defaults | High, Low, Range with High chosen; `SWING_PLUS('Spot', 20, 'High', 'Previous', '3m')` | Not Run |
-| UT-GUI-046.002.M01.T03 | MD-GUI-046.001.M01 | Negative | Number box keeps limits | type 0 and 900 in Candles | 1 and 500 | Not Run |
-| UT-GUI-046.003.M02.T01 | MD-GUI-046.003.M02 | Positive | List shows status | one good file, one broken | SWING_PLUS 1.0 Loaded; broken file Refused with its reason | Not Run |
-| UT-GUI-046.003.M02.T02 | MD-GUI-046.003.M02 | Negative | Other user's indicators hidden | files for user 2; active user 1 | empty list | Not Run |
-| UT-GUI-046.004.M02.T01 | MD-GUI-046.003.M02 | Positive | Import a good file | pick file; warning Yes | copied to the user's folder; listed Loaded | Not Run |
-| UT-GUI-046.004.M02.T02 | MD-GUI-046.003.M02 | Negative | Import a bad file | file with a missing field; warning Yes | reason shown; nothing copied | Not Run |
-| UT-GUI-046.004.M02.T03 | MD-GUI-046.003.M02 | Negative | Warning answered No | pick file; warning No | nothing copied, no check run | Not Run |
-| UT-GUI-046.005.M02.T01 | MD-GUI-046.003.M02 | Positive | Export and Reload | export to a temp path; Reload | same file content; registry loaded again | Not Run |
-| UT-GUI-046.005.M02.T02 | MD-GUI-046.003.M02 | Positive | Remove a used indicator | strategy WTrend_X uses it; confirm Yes | message names WTrend_X; it is STOPPED; file gone | Not Run |
-| UT-GUI-046.005.M02.T03 | MD-GUI-046.003.M02 | Negative | Remove answered No | confirm No | file kept; strategy unchanged | Not Run |
+| UT-GUI-046.001.M01.T01 | MD-GUI-046.001.M01 | Positive | Plugin listed after built-ins | registry with SWING_PLUS | indicator list ends with SWING_PLUS after BOSS_ST | Pass |
+| UT-GUI-046.001.M01.T02 | MD-GUI-046.001.M01 | Negative | Refused plugin not listed | registry status: BAD_ONE refused | BAD_ONE not in the list | Pass |
+| UT-GUI-046.002.M01.T01 | MD-GUI-046.001.M01 | Positive | Rows follow `parameters` | pick SWING_PLUS | rows Symbol Type, Candles, Price Swing, Window, Timeframe in order; Candles box 1–500 showing 20 | Pass |
+| UT-GUI-046.002.M01.T02 | MD-GUI-046.001.M01 | Positive | Dropdowns and expression | Price Swing options; Add with defaults | High, Low, Range with High chosen; `SWING_PLUS('Spot', 20, 'High', 'Previous', '3m')` | Pass |
+| UT-GUI-046.002.M01.T03 | MD-GUI-046.001.M01 | Negative | Number box keeps limits | type 0 and 900 in Candles | 1 and 500 | Pass |
+| UT-GUI-046.003.M02.T01 | MD-GUI-046.003.M02 | Positive | List shows status | one good file, one broken | SWING_PLUS 1.0 Loaded; broken file Refused with its reason | Pass |
+| UT-GUI-046.003.M02.T02 | MD-GUI-046.003.M02 | Negative | Other user's indicators hidden | files for user 2; active user 1 | empty list | Pass |
+| UT-GUI-046.004.M02.T01 | MD-GUI-046.003.M02 | Positive | Import a good file | pick file; warning Yes | copied to the user's folder; listed Loaded | Pass |
+| UT-GUI-046.004.M02.T02 | MD-GUI-046.003.M02 | Negative | Import a bad file | file with a missing field; warning Yes | reason shown; nothing copied | Pass |
+| UT-GUI-046.004.M02.T03 | MD-GUI-046.003.M02 | Negative | Warning answered No | pick file; warning No | nothing copied, no check run | Pass |
+| UT-GUI-046.005.M02.T01 | MD-GUI-046.003.M02 | Positive | Export and Reload | export to a temp path; Reload | same file content; registry loaded again | Pass |
+| UT-GUI-046.005.M02.T02 | MD-GUI-046.003.M02 | Positive | Remove a used indicator | strategy WTrend_X uses it; confirm Yes | message names WTrend_X; it is STOPPED; file gone | Pass |
+| UT-GUI-046.005.M02.T03 | MD-GUI-046.003.M02 | Negative | Remove answered No | confirm No | file kept; strategy unchanged | Pass |
 | UT-GUI-046.006.M02.T01 | MD-GUI-046.003.M02 | Positive | Check shows the last 20 values | SWING_PLUS on AAPL test candles | 20 rows with time, value and debug columns | Not Run |
 | UT-GUI-046.007.M03.T01 | MD-GUI-046.007.M03 | Positive | New project files | `create_project(1, "MY_ST")` | folder with `my_st.py`, `test_my_st.py`, `.vscode/settings.json`, `.vscode/launch.json`; example passes the check | Not Run |
 | UT-GUI-046.007.M03.T02 | MD-GUI-046.007.M03 | Edge | VS Code not found | `code` not on PATH | folder opened instead | Not Run |

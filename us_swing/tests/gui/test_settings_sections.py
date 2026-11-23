@@ -141,7 +141,7 @@ def test_sections_in_order(
     qapp: Any, svc: _StubService, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """UT-GUI-027.002.M04.T01 / UT-GUI-030.006.M03.T01: all sections in order, Backtest
-    data right after Candle data."""
+    data right after Candle data, Indicators after Backtest data (SRD-GUI-046.003)."""
     for name in ("_UsersTab", "_UniverseTab", "_DataPanel"):
         monkeypatch.setattr(settings_panel, name, _PlainTab)
     monkeypatch.setattr(settings_panel, "BacktestDataPanel", _PlainBacktest)
@@ -150,8 +150,8 @@ def test_sections_in_order(
     names = [b.text() for b in panel._nav_group.buttons()]
 
     assert names == ["Users", "Risk", "Connection", "Scheduler", "Telegram", "Universe",
-                     "Candle data", "Backtest data", "Appearance"]
-    assert panel._stack.count() == 9
+                     "Candle data", "Backtest data", "Indicators", "Appearance"]
+    assert panel._stack.count() == 10
 
 
 @pytest.fixture()

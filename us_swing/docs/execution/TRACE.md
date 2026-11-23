@@ -1,7 +1,7 @@
 # Traceability Matrix — Execution & Risk Management (EXE)
 
 **Document ID:** TRACE-EXE
-**Version:** 1.24.2
+**Version:** 1.24.3
 **Project:** US Swing Trading System
 **Last Updated:** 2026-11-23 (RN-EXE-1.41.2-20261123: SRD-EXE-011.027 Swing Lookback 1–500. Earlier: RN-EXE-1.41.1-20261122: SRD-EXE-011.001 status save keeps Disabled strategies, ISS-EXE-0015. Earlier: RN-GUI-2.7.0-20261122 filled for SRD-EXE-015.007–.008 and SRD-EXE-017.028. Earlier: SRD-EXE-015.007–.008 one app copy. Earlier: SRD-EXE-017.028 fixed share count. Earlier: SRD-EXE-011.027 BOSS_ST; SRD-EXE-006.015, .007.011 30m timeframe)
 
@@ -67,7 +67,7 @@
 | FO-EXE-022 | SRD-EXE-022.005–.007 | DD-EXE-022.005.D01 | MD-EXE-022.005.M02 | UT-EXE-022.005.M02.T01–T06, .006.M02.T01–T02, .007.M02.T01–T05 (13, Pass) | `core/indicator_plugins/_check.py` | Implemented | — |
 | FO-EXE-022 | SRD-EXE-022.008–.009 | DD-EXE-022.008.D01 | MD-EXE-022.008.M03 | UT-EXE-022.008.M03.T01–T02, .009.M03.T01–T03 (5, Pass) | `core/indicator_plugins/_registry.py`, `gui/app_service.py` | Implemented | — |
 | FO-EXE-022 | SRD-EXE-022.010–.011 | DD-EXE-022.010.D01 | MD-EXE-022.010.M04 | UT-EXE-022.010.M04.T01–T02, .011.M04.T01–T03 (5, Pass) | `core/indicator_plugins/_runner.py`, `strategy_engine/_evaluator.py`, `core/expr/series.py` | Implemented | — |
-| FO-EXE-022 | SRD-EXE-022.012–.014 | DD-EXE-022.012.D01 | MD-EXE-022.012.M05 | UT-EXE-022.012.M05.T01–T03, .013.M05.T01–T03, .014.M05.T01–T02 (8, Pass) | `core/indicator_plugins/_guard.py`, `strategy_engine/_engine.py`, `core/notifications/_events.py`, `_formatters.py` | Implemented | — |
+| FO-EXE-022 | SRD-EXE-022.012–.014 | DD-EXE-022.012.D01 | MD-EXE-022.012.M05 | UT-EXE-022.012.M05.T01–T03, .013.M05.T01–T03, .014.M05.T01–T03 (9, Pass) | `core/indicator_plugins/_guard.py`, `strategy_engine/_engine.py`, `gui/app_service.py`, `gui/strategies_pane.py`, `core/notifications/_events.py`, `_formatters.py` | Implemented | — |
 | FO-EXE-022 | SRD-EXE-022.015–.016 | DD-EXE-022.015.D01 | MD-EXE-022.015.M06 | UT-EXE-022.015.M06.T01–T02, .016.M06.T01–T02 (4, Not Run) | `sdk/usswing/testing.py`, `__main__.py` (planned) | Approved — UTCD written | — |
 | FO-EXE-022 | SRD-EXE-022.017 | DD-EXE-022.017.D01 | MD-EXE-022.017.M07 | UT-EXE-022.017.M07.T01 (1, Not Run) | `sdk/usswing/dev.py` (planned) | Approved — UTCD written | — |
 

@@ -4,6 +4,8 @@ Parent SRD: SRD-GUI-013.001
 """
 from __future__ import annotations
 
+from typing import Any
+
 from PyQt6.QtCore import QByteArray, QDate, QPoint, QSize, Qt, QTime, pyqtSignal
 from PyQt6.QtGui import QColor, QDoubleValidator, QIcon, QIntValidator, QMouseEvent, QPainter, QPen, QPixmap
 from PyQt6.QtSvg import QSvgRenderer
@@ -31,6 +33,9 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from usswing import Number
+
+from us_swing.core.indicator_plugins import REGISTRY, PluginSpec
 from us_swing.gui.theme import C, active_palette
 
 
@@ -175,6 +180,25 @@ _INDICATOR_DATA: list[dict] = [
 _TF_MINUTES = {"3m": 3, "15m": 15, "30m": 30}
 
 _INDICATOR_NAMES = [ind["name"] for ind in _INDICATOR_DATA]
+
+
+def plugin_indicator_data(spec: PluginSpec) -> dict[str, Any]:
+    """Popup rows for a custom indicator, in its ``parameters`` order (SRD-GUI-046.002)."""
+    rows: list[dict[str, Any]] = []
+    for param in spec.parameters:
+        if isinstance(param, Number):
+            rows.append({"name": param.label, "Type": "NumberBox",
+                         "Datatype": "int" if param.whole_number else "float",
+                         "Range": [param.minimum, param.maximum], "Default": param.default})
+        else:
+            rows.append({"name": param.label, "Type": "DropDown",
+                         "Datatype": list(param.options), "Default": param.default})
+    return {"name": spec.name, "parameters": rows}
+
+
+def _decimals(*values: float) -> int:
+    """Enough decimals to show every value exactly, at least 2."""
+    return max(2, *(len(f"{v:g}".partition(".")[2]) for v in values))
 
 # ── Strategy type constants ────────────────────────────────────────────────────
 
@@ -398,8 +422,14 @@ class _ConditionSelectorDialog(QDialog):
 
         bl.addWidget(QLabel(f"Select Technical Indicator for {slot_label}:"))
 
+        self._plugins: dict[str, dict[str, Any]] = {}
+        for name in sorted(REGISTRY.names()):
+            spec = REGISTRY.get(name)
+            if spec is not None:
+                self._plugins[name] = plugin_indicator_data(spec)
+
         self._ind_combo = QComboBox()
-        self._ind_combo.addItems(_INDICATOR_NAMES)
+        self._ind_combo.addItems(_INDICATOR_NAMES + list(self._plugins))
         self._ind_combo.setFixedHeight(C.INPUT_H)
         self._ind_combo.setStyleSheet(_combo_ss())
         self._ind_combo.currentTextChanged.connect(self._refresh_params)
@@ -432,6 +462,9 @@ class _ConditionSelectorDialog(QDialog):
 
     def _refresh_params(self, name: str) -> None:
         self._clear_params()
+        if name in self._plugins:
+            self._add_plugin_rows(self._plugins[name])
+            return
         symbol_combo: QComboBox | None = None
 
         for ind in _INDICATOR_DATA:
@@ -480,10 +513,41 @@ class _ConditionSelectorDialog(QDialog):
                 self._param_form.addRow(f"{param['name']}:", w)
             break
 
+    def _add_plugin_rows(self, data: dict[str, Any]) -> None:
+        """One row per custom indicator parameter: number box or dropdown, with its default."""
+        for param in data["parameters"]:
+            w: QWidget
+            if param["Type"] == "NumberBox":
+                low, high = param["Range"]
+                if param["Datatype"] == "int":
+                    box: QSpinBox | QDoubleSpinBox = QSpinBox()
+                    box.setStyleSheet(_spin_ss())
+                    box.setRange(int(low), int(high))
+                    box.setValue(int(param["Default"]))
+                else:
+                    box = QDoubleSpinBox()
+                    box.setStyleSheet(_double_spin_ss())
+                    box.setDecimals(_decimals(low, high, param["Default"]))
+                    box.setRange(float(low), float(high))
+                    box.setValue(float(param["Default"]))
+                w = box
+            else:
+                cb = QComboBox()
+                cb.setStyleSheet(_combo_ss())
+                cb.addItems(param["Datatype"])
+                cb.setCurrentText(param["Default"])
+                w = cb
+            self._inputs[param["name"]] = w
+            self._param_form.addRow(f"{param['name']}:", w)
+
     def _on_add(self) -> None:
         parts: list[str] = []
         for pname, w in self._inputs.items():
-            if isinstance(w, QLineEdit):
+            if isinstance(w, QSpinBox):
+                parts.append(str(w.value()))
+            elif isinstance(w, QDoubleSpinBox):
+                parts.append(f"{w.value():g}")
+            elif isinstance(w, QLineEdit):
                 val = w.text().strip()
                 if not val:
                     self._err_lbl.setText(f"'{pname}' is required.")

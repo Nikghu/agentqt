@@ -1,7 +1,7 @@
 # Traceability Matrix — GUI Module (GUI)
 
 **Document ID:** TRACE-GUI
-**Version:** 1.22.1
+**Version:** 1.22.2
 **Project:** US Swing Trading System
 **Last Updated:** 2026-11-23 (RN-GUI-2.8.1-20261123: backtest From / To from the Backtest Data range (SRD-GUI-031.087); time left (SRD-GUI-030.009); Direction column (SRD-GUI-031.073); report benchmark key (SRD-GUI-031.080); Swing Lookback 1–500 (SRD-GUI-013.024). Earlier: RN-GUI-2.8.0-20261122: Settings sections scroll on their own (SRD-GUI-027.001); Universe Partial status, tick boxes and Fill selected (ISS-BKT-0003; SRD-GUI-030.006, .008, .009, .011, .012 test refs). Earlier: RN-GUI-2.7.0-20261122: SRD-GUI-019.012–.017 and SRD-GUI-045.007–.008 RN filled; SRD-GUI-002.005 Trade History fixes (ISS-GUI-0022, ISS-GUI-0023) and UT-GUI-002.005.M01.T04–T07 added. Earlier: SRD-GUI-019.012–.017 Dashboard exit through strategy trades added. Earlier: FO-GUI-045 Chart plan strategy rows added. Earlier: FO-GUI-044 Screener preset tree rows added. Earlier: FO-GUI-043 Screener focus layout rows added (Phases 1–2). Earlier: FO-GUI-042 Edit Preset side navigation rows added, RN-GUI-2.3.0-20261118. Earlier: SRD-GUI-004.014 row added, ISS-GUI-0021. Earlier: AI Desk and Market Floor removed: FO-GUI-034 to FO-GUI-041 rows dropped; SRD-GUI-029.007–.008 now trace to DD-GUI-029.007.D01; see docs/audit/DESK_REMOVAL_2026-11-17.md)
 
@@ -139,8 +139,9 @@
 | FO-GUI-044 | SRD-GUI-044.001–.010 | DD-GUI-044.001.D01 | MD-GUI-044.001.M01, MD-GUI-044.001.M02, MD-GUI-044.004.M03 | UT-GUI-044.001.M02.T01–T02, .002.M02.T01–T04, .003.M02.T01–T02, .004.M03.T01, .004.M02.T01, .005.M02.T01–T03, .006.M02.T01, .007.M02.T01, .009.M02.T01, .010.M02.T01–T03 (19, Pass) | `gui/screener_tree.py`, `gui/screener_panel.py`, `gui/screener_views.py` | Implemented | RN-GUI-2.5.0-20261119 |
 | FO-GUI-045 | SRD-GUI-045.001–.006 | — (no DD, minimal GUI docs) | MD-GUI-045.001.M01, MD-GUI-045.001.M02 | UT-GUI-045.001.M01.T01–T08, UT-GUI-045.006.M02.T01 (9, Pass) | `gui/chart_plan.py`, `gui/app_service.py`, `gui/chart_workspace.py`, `gui/strategies_pane.py` | Implemented | RN-GUI-2.6.0-20261120 |
 | FO-GUI-045 | SRD-GUI-045.007–.008 | — (no DD, minimal GUI docs) | MD-GUI-045.007.M03, MD-GUI-045.001.M01, MD-GUI-045.001.M02 | UT-GUI-045.007.M03.T01, UT-GUI-045.008.M02.T01, UT-GUI-045.008.M01.T01–T02 (4, Pass) | `gui/chart_inspector.py`, `gui/chart_workspace.py`, `gui/chart_plan.py`, `gui/strategy_store.py` | Implemented | RN-GUI-2.7.0-20261122 |
-| FO-GUI-046 | SRD-GUI-046.001–.002 | — (minimal GUI docs; design in DD-EXE-022.*.D01) | MD-GUI-046.001.M01 | UT-GUI-046.001.M01.T01–T02, .002.M01.T01–T03 (5, Not Run) | `gui/strategy_builder_dialog.py` (planned) | Approved — UTCD written | — |
-| FO-GUI-046 | SRD-GUI-046.003–.006 | — (minimal GUI docs; design in DD-EXE-022.*.D01) | MD-GUI-046.003.M02 | UT-GUI-046.003.M02.T01–T02, .004.M02.T01–T03, .005.M02.T01–T03, .006.M02.T01 (9, Not Run) | `gui/indicators_section.py`, `gui/settings_panel.py` (planned) | Approved — UTCD written | — |
+| FO-GUI-046 | SRD-GUI-046.001–.002 | — (minimal GUI docs; design in DD-EXE-022.*.D01) | MD-GUI-046.001.M01 | UT-GUI-046.001.M01.T01–T02, .002.M01.T01–T03 (5, Pass) | `gui/strategy_builder_dialog.py` | Implemented (P2) | — |
+| FO-GUI-046 | SRD-GUI-046.003–.005 | — (minimal GUI docs; design in DD-EXE-022.*.D01) | MD-GUI-046.003.M02 | UT-GUI-046.003.M02.T01–T02, .004.M02.T01–T03, .005.M02.T01–T03 (8, Pass) | `gui/indicators_section.py`, `gui/settings_panel.py`, `gui/app_service.py` | Implemented (P2) | — |
+| FO-GUI-046 | SRD-GUI-046.006 | — (minimal GUI docs; design in DD-EXE-022.*.D01) | MD-GUI-046.003.M02 | UT-GUI-046.006.M02.T01 (1, Not Run) | `gui/indicators_section.py` (planned, P3) | Approved — UTCD written | — |
 | FO-GUI-046 | SRD-GUI-046.007 | — (minimal GUI docs; design in DD-EXE-022.*.D01) | MD-GUI-046.007.M03 | UT-GUI-046.007.M03.T01–T02 (2, Not Run) | `gui/indicator_project.py` (planned) | Approved — UTCD written | — |
 
 ---

@@ -2,6 +2,16 @@
 
 ---
 
+## [20261123] EXE, GUI — Custom indicator plugins P2: popup rows, Settings Indicators, refused-start popup; library moved to sdk/
+
+- Type: Feature (branch `feat/usswing-indicator-plugins`, unpushed)
+- FO(s): FO-GUI-046 (SRD-GUI-046.001–.005 Implemented), FO-EXE-022 (SRD-EXE-022.014 GUI side)
+- Artifacts: SRD, MD, UTCD (13 UT-GUI-046 Pass; UT-EXE-022.014.M05.T03 added, Pass), TRACE (GUI + EXE), DD/MD path fix for `sdk/usswing/`, Code (`gui/indicators_section.py` new, `strategy_builder_dialog.py`, `settings_panel.py`, `strategies_pane.py`, `app_service.py`), Tests (`tests/gui/test_indicators_gui.py`, `test_settings_sections.py` now 10 sections), TODO (T230 updated, T232 added), CONTEXT, DEVLOG; no RN yet (feature not finished)
+- Decisions: user chose to move the `usswing` library out of `src/` to `us_swing/sdk/` (import name kept); SRD-EXE-022.001 Notes path changed (Implemented row, path only, user told); Number rows use spin boxes so limits hold; refusals that arrive together show one popup
+- Open: T232 user app check; P3 kit/CLI/Check/New indicator; P4 preview; user's Claude MCP config needs `us_swing/sdk` on `PYTHONPATH`; push/PR only when user says
+
+---
+
 ## [20261123] EXE, GUI — Custom indicator plugins: FO/SRD/DD/MD/UTCD + P1 code; also PR #173–#175 merged
 
 - Type: Feature (branch `feat/usswing-indicator-plugins`, unpushed) + GUI fix batch (PR #175 merged de7abafd) + SRD wording reopen (PR #174)

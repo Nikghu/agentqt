@@ -56,6 +56,7 @@ from us_swing.data.market_calendar import NYSE_HOLIDAYS
 from us_swing.data.models import ConnectionStatus, RiskConfig, UserProfile
 from us_swing.gui.frameless_dialog import FramelessDialog
 from us_swing.gui.icons import mark_danger, set_icon
+from us_swing.gui.indicators_section import IndicatorsSection
 from us_swing.gui.system_store import SystemConfig
 from us_swing.gui.popups import confirm, notify
 from us_swing.gui.theme import C, active_palette
@@ -1813,6 +1814,7 @@ class SettingsPanel(QWidget):
             ("Universe", self._universe_tab),
             ("Candle data", self._data),
             ("Backtest data", self._backtest),
+            ("Indicators", IndicatorsSection(demo)),
             *self._sys.app_pages,
         ]
 

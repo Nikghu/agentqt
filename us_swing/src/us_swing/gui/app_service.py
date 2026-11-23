@@ -1270,6 +1270,7 @@ class AppService(QObject):
     _arm_candle_feeds_requested = pyqtSignal(object)       # list[str] — cross-thread marshal (ISS-EXE-0009)
     _clear_pending_exits_requested = pyqtSignal(str, str)  # (strategy_id, symbol) — marshal (ISS-EXE-0010)
     strategies_changed = pyqtSignal()  # saved strategy list changed outside the Strategies tab
+    strategy_start_refused = pyqtSignal(str, str)  # (strategy_name, message) — SRD-EXE-022.014
 
     def __init__(self, parent: QObject | None = None) -> None:
         super().__init__(parent)
@@ -1616,6 +1617,7 @@ class AppService(QObject):
             parent=self,
         )
         self._strategy_engine.plugin_stopped.connect(self._on_indicator_stopped)
+        self._strategy_engine.start_refused.connect(self._on_start_refused)
         self._strategy_engine.start()
         self.purge_old_chart_plans()
         self._event_bus.event_published.connect(self._on_strategy_event)
@@ -4273,15 +4275,31 @@ class AppService(QObject):
         self.publish_notification(
             IndicatorStoppedEvent(indicator=indicator, strategies=tuple(strategies)))
 
+    def _on_start_refused(self, strategy_name: str, message: str) -> None:
+        """The engine kept a strategy stopped: refresh the saved list and tell the user."""
+        self.strategies_changed.emit()
+        self.strategy_start_refused.emit(strategy_name, message)
+
+    def stop_strategies(self, names: list[str]) -> None:
+        """Stop the named strategies; open trades stay managed (SRD-GUI-046.005)."""
+        from us_swing.execution import ExecutionEnums
+        from us_swing.gui.strategy_store import set_run_state
+
+        for name in names:
+            set_run_state(name, "STOPPED")
+            self._strategy_engine.set_run_state(name, ExecutionEnums.StrategyRunState.STOPPED)
+        self.reload_strategy_registry()
+        self.strategies_changed.emit()
+
     def reload_indicators(self) -> None:
         """Load the active user's custom indicators again (SRD-EXE-022.008–.009)."""
         try:
             INDICATOR_REGISTRY.load_for_user(self._active_uid,
-                                             candle_probe=self._indicator_probe)
+                                             candle_probe=self.indicator_probe)
         except Exception:
             _log.warning("[Indicators] Could not load custom indicators", exc_info=True)
 
-    def _indicator_probe(self) -> list[tuple[str, dict[str, pd.DataFrame]]]:
+    def indicator_probe(self) -> list[tuple[str, dict[str, pd.DataFrame]]]:
         """Up to 3 stocks with 3m candles for the custom indicator dry run (SRD-EXE-022.007)."""
         stocks: list[tuple[str, dict[str, pd.DataFrame]]] = []
         for symbol in self.get_candle_symbols()[:20]:
