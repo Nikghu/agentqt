@@ -176,7 +176,7 @@ def test_fanout_calls_evaluate_for_accepting_contexts(qtbot: QtBot) -> None:
 
     bar = OHLCVBar(
         symbol="AAPL",
-        datetime=datetime(2026, 5, 19, 10, 0, tzinfo=_ET),
+        datetime=datetime.now(_ET),
         open=149.0, high=151.0, low=148.0, close=150.0,
         volume=1_000_000, timeframe="3m",
     )
@@ -216,7 +216,7 @@ def test_fanout_50_strategies_under_200ms(qtbot: QtBot) -> None:
 
     bar = OHLCVBar(
         symbol="AAPL",
-        datetime=datetime(2026, 5, 19, 10, 0, tzinfo=_ET),
+        datetime=datetime.now(_ET),
         open=149.0, high=151.0, low=148.0, close=150.0,
         volume=1_000_000, timeframe="3m",
     )
@@ -302,3 +302,19 @@ def test_empty_registry_no_evaluate_calls(qtbot: QtBot) -> None:
 
     engine.request_stop()
     qtbot.waitSignal(engine.stopped, timeout=3500)
+
+
+def test_bar_is_from_today_rejects_old_day_bar() -> None:
+    """UT-EXE-011.001.M01.T09: A bar from an earlier day is not used; today's bar is (ISS-EXE-0016)."""
+    from datetime import timedelta
+
+    from us_swing.data.models import OHLCVBar
+    from us_swing.execution.strategy_engine._engine import bar_is_from_today
+
+    now = datetime(2026, 11, 23, 9, 37, 51, tzinfo=_ET)
+    friday = OHLCVBar(symbol="APP", datetime=datetime(2026, 11, 20, 20, 57), open=1.0,
+                      high=1.0, low=1.0, close=348.46, volume=1, timeframe="3m")
+    today = OHLCVBar(symbol="APP", datetime=now - timedelta(minutes=3), open=1.0,
+                     high=1.0, low=1.0, close=375.0, volume=1, timeframe="3m")
+    assert not bar_is_from_today(friday, now)
+    assert bar_is_from_today(today, now)

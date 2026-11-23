@@ -1,7 +1,7 @@
 # Unit Test Case Document â€” Execution & Risk Management (EXE)
 
 **Document ID:** UTCD-EXE
-**Version:** 1.26.6
+**Version:** 1.27.0
 **Traces To:** MD-EXE v1.15.0
 **Status:** Draft
 **Last Updated:** 2026-11-23
@@ -478,6 +478,7 @@
 | UT-EXE-011.001.M01.T06 | MD-EXE-011.001.M01 | Edge | No `PyQt6` import in any business-logic module (`_signals`, `_events`, `_context`, `_evaluator`, `_router`, `_protocols`); `_engine.py` is the explicit Qt boundary and is allowed | Import each business-logic module and scan its module-level globals | None of the six business-logic modules has any name bound from `PyQt6.*` | Pass |
 | UT-EXE-011.001.M01.T07 | MD-EXE-011.001.M01 | Negative | `request_stop()` called before `start()` is a safe no-op | Construct engine; call `request_stop()` without prior `start()` | No exception raised; `isRunning() == False`; engine remains in a fresh constructable state | Pass |
 | UT-EXE-011.001.M01.T08 | MD-EXE-011.001.M01 | Negative | Status save keeps Disabled strategies (ISS-EXE-0015) | Real temp store with one Auto and one Disabled strategy; flush a RUNNING status | Both rows remain; only the Auto row's run state changes | Pass |
+| UT-EXE-011.001.M01.T09 | MD-EXE-011.001.M01 | Negative | A bar from an older day is not used for rule checks; today's bar is (ISS-EXE-0016) | Friday 20-Nov bar and a today bar at 09:37 ET on 23-Nov | Friday bar refused, today bar accepted | Pass |
 
 ---
 

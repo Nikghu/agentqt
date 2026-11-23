@@ -2,6 +2,16 @@
 
 ---
 
+## [20261123] EXE — Rules wait for today's first bar after startup (ISS-EXE-0016); session close
+
+- Type: Bugfix (branch `fix/exe-stale-startup-eval`, not committed)
+- FO(s): FO-EXE-011
+- RN: RN-EXE-1.42.1-20261123
+- Artifacts updated: SRD (SRD-EXE-011.028), UTCD (UT-EXE-011.001.M01.T09), TRACE, Code, Tests, Issue (ISS-EXE-0016), RN, CONTEXT, TODO, DEVLOG
+- Decisions: None
+
+---
+
 ## [20261123] EXE, GUI — Custom indicator plugins done end to end; session close (two RNs)
 
 - Type: Feature (branch `feat/usswing-indicator-plugins`, being pushed and merged to main)

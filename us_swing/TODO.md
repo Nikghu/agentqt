@@ -2,7 +2,7 @@
 
 **Document:** TODO.md
 **Project:** us_swing
-**Last Updated:** 2026-11-19 (Session 158)
+**Last Updated:** 2026-11-23 (Session 165)
 
 ---
 
@@ -246,3 +246,5 @@ Short, living task list. Keep each description ≤ 50 words; cite module + prior
 | T234 | GUI — User check: New indicator shows your projects to Open and a name to Create; in a new project ask Claude Code (it reads CLAUDE.md) to write an indicator and run the check | `gui/indicators_section.py`, `gui/indicator_project.py` | Medium | Open |
 | T235 | GUI — User check easy setup: restart USSwing; Help shows the guide; Set up Python (about 1.5 min); open the old `test` project (guides added); in VS Code open Claude Code with the ✱ icon, not Copilot Chat | `gui/indicators_section.py`, `gui/indicator_python.py` | Medium | Open |
 | T236 | EXE/GUI — User check shared indicator folder: close VS Code, restart USSwing; files move from `plugins\1\` to `plugins\indicators` and `plugins\projects`; Import opens `plugins\projects`; reopen projects in VS Code from New indicator | `core/indicator_plugins/_registry.py` | Medium | Open |
+| T237 | EXE — User app check ISS-EXE-0016: restart USSwing during market hours with an open strategy trade; no buy or sell until today's first 3m bar is saved. | `execution/strategy_engine/_engine.py` | High | Open |
+| T238 | EXE — Fix B: rule exits are saved with exit reason manual instead of strategy, because `_pending_exit_reason` in app_service is never reset. | `gui/app_service.py` | Medium | Open |
