@@ -1494,9 +1494,11 @@ QLabel#exec_chip {{
     padding: 2px 8px; font-size: 8.5pt;
 }}
 QPushButton#mode_btn:checked {{ background: {active_bg}; color: {accent}; border-color: {accent}; }}
-QFrame#settings_nav, QFrame#settings_card {{ border: 1px solid {line}; }}
+QFrame#settings_nav, QFrame#settings_card {{ border: 1px solid {line}; border-radius: 6px; }}
+QFrame#data_strip {{ border: 1px solid {line}; border-radius: 6px; }}
 QLabel#settings_head {{
     background: {hover}; border-bottom: 1px solid {line}; padding: 0 10px;
+    border-top-left-radius: 5px; border-top-right-radius: 5px;
     min-height: 32px; max-height: 32px; font-family: "IBM Plex Mono", Consolas, monospace;
     font-size: 8pt; font-weight: bold;
 }}

@@ -1257,7 +1257,8 @@ class _DataPanel(QWidget):
         top_l.addWidget(self._start_date_row_widget)
 
         # ── Stat strip (SRD-GUI-028.003) ──────────────────────────────────────
-        strip = QWidget()
+        strip = QFrame()
+        strip.setObjectName("data_strip")
         strip_l = QHBoxLayout(strip)
         strip_l.setContentsMargins(0, 0, 0, 0)
         strip_l.setSpacing(0)
@@ -1326,10 +1327,11 @@ class _DataPanel(QWidget):
         footer.addStretch()
         footer.addWidget(self._reset_db_btn)
 
+        strip_box = QHBoxLayout()
+        strip_box.setContentsMargins(12, 4, 12, 8)
+        strip_box.addWidget(strip)
         layout.addWidget(top)
-        layout.addWidget(_separator())
-        layout.addWidget(strip)
-        layout.addWidget(_separator())
+        layout.addLayout(strip_box)
         layout.addWidget(self._disc_group)
         layout.addWidget(self._disc_sep)
         layout.addStretch()
