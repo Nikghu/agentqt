@@ -1,10 +1,11 @@
 # Software Requirements Document — GUI Module (GUI)
 
 **Document ID:** SRD-GUI
-**Version:** 2.140.3
+**Version:** 2.140.4
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
-**Last Updated:** 2026-11-21
+**Last Updated:** 2026-11-23
+> v2.140.4: SRD-GUI-030.009/.011/.012 and SRD-GUI-031.073 reopened by user 2026-11-23 — wording updated to match the app (Partial button, partial Universe status, complete/partial top line, Direction column).
 > v2.140.3: SRD-GUI-002.005 (Reopen) — Trade History adds a Value column and drag-resizable columns (ISS-GUI-0023, user request 2026-11-21).
 > v2.140.2: SRD-GUI-019.012–.017 Implemented.
 > v2.140.1: SRD-GUI-019.012–.017 approved by user 2026-11-20.
@@ -703,10 +704,10 @@
 | SRD-GUI-030.006 | FO-GUI-030 | Should | The section dot is green when up to date, amber while downloading or behind, and grey when empty. | stats, run state | dot | Uses the existing section dot | Implemented |
 | SRD-GUI-030.007 | FO-GUI-030 | Should | A sidebar Connections row shows backtest download progress while a run is active and the result for 15 s after it ends. | progress, result | row text | Requested by user 2026-10-28; moved from the status bar 2026-10-31 (user reopened) | Implemented |
 | SRD-GUI-030.008 | FO-GUI-030 | Should | The Universe table shows each stock's backtest status, first date and last date. | backtest store | Backtest, BT From, BT To columns | Requested by user 2026-10-28; 3m dates, else 1d | Implemented |
-| SRD-GUI-030.009 | FO-GUI-030 | Must | The status shows one plain sentence, the saved coverage, what is still missing with its time, and a single button labelled Download, Download missing, Save range and download, Pause or Up to date. | stats, plan size, run state, range fields | sentence, progress, button | Requested by user 2026-10-29 (Option D); replaces the Fill delta button of .004 and the progress lines and stat strip of .001; auto delta unchanged | Implemented |
+| SRD-GUI-030.009 | FO-GUI-030 | Must | The status shows one plain sentence, the saved coverage, what is still missing with its time, and a single button labelled Download, Download missing, Save range and download, Pause, Partial or Up to date. | stats, plan size, run state, range fields | sentence, progress, button | Requested by user 2026-10-29 (Option D); replaces the Fill delta button of .004 and the progress lines and stat strip of .001; auto delta unchanged; reopened 2026-11-23: Partial state added | Implemented |
 | SRD-GUI-030.010 | FO-GUI-030 | Should | Under the coverage line, one short line says 15-minute and weekly candles are built from these. | stats | note line | Approved by user 2026-10-29 | Implemented |
-| SRD-GUI-030.011 | FO-GUI-030 | Must | The Universe table marks a stock whose 3m candles start more than 7 days after the start date (or its listing date) with a warning icon and an amber BT From. | backtest store, start date, floors | `late` status | Approved by user 2026-11-04 (ISS-BKT-0002) | Implemented |
-| SRD-GUI-030.012 | FO-GUI-030 | Should | During a backtest download, each stock's Universe row updates when that stock is done, and the top line shows how many stocks are complete. | progress symbol, one stock's coverage | updated row, "backtest complete for N of M stocks" | Approved by user 2026-11-04; only that row changes, no full reload; full reload at the end | Implemented |
+| SRD-GUI-030.011 | FO-GUI-030 | Must | The Universe table marks a stock as partial, with a warning icon and amber BT dates, when its 3m candles start more than 7 days after the Backtest Data start, end before the range end, or have missing days. | backtest store, Backtest Data range, gap days | `partial` status | Approved by user 2026-11-04 (ISS-BKT-0002); reopened 2026-11-23: `late` became `partial` with gap days (ISS-BKT-0003) | Implemented |
+| SRD-GUI-030.012 | FO-GUI-030 | Should | During a backtest download, each stock's Universe row updates when that stock is done, and the top line shows how many stocks are complete, partial and not downloaded. | progress symbol, one stock's coverage | updated row, "N complete · N partial · N not downloaded" | Approved by user 2026-11-04; only that row changes, no full reload; full reload at the end; reopened 2026-11-23: top line text | Implemented |
 
 ## FO-GUI-031 — Backtest Workspace
 
@@ -766,7 +767,7 @@
 | SRD-GUI-031.070 | FO-GUI-031 | Must | The left builder is removed; under the step strip a one-line plan summary shows with Edit setup and Run, and the results use the full width. | plan | summary chips | User picked C1 2026-10-30 | Implemented |
 | SRD-GUI-031.071 | FO-GUI-031 | Must | Edit setup opens a frameless Backtest setup window with a side menu (Run, Stocks, Screener, Strategies, Account); each item shows its current value and a ✓ or ! status. | click | window | ! when candles are missing or the section has an error | Implemented |
 | SRD-GUI-031.072 | FO-GUI-031 | Must | Each section shows titled cards with one help line, and rows with the label on the left and the control on the right. | plan | form | Same fields as today's builder | Implemented |
-| SRD-GUI-031.073 | FO-GUI-031 | Must | Screener source is a choice of Replay the screener or Saved lists; Strategies is a table of Use, Strategy, Allocation % and Per trade %. | presets, strategies | plan fields | Allocation and per-trade % shown from the live strategy, not edited | Implemented |
+| SRD-GUI-031.073 | FO-GUI-031 | Must | Screener source is a choice of Replay the screener or Saved lists; Strategies is a table of Use, Strategy, Direction, Allocation % and Per trade %. | presets, strategies | plan fields | Allocation and per-trade % shown from the live strategy, not edited; reopened 2026-11-23: Direction column | Implemented |
 | SRD-GUI-031.074 | FO-GUI-031 | Must | The window footer shows the data check line with Cancel, Save and Run; Run saves the plan, closes the window and starts the run. | click | plan, run | Cancel keeps the old plan | Implemented |
 | SRD-GUI-031.075 | FO-GUI-031 | Must | The header shows a numbered step stepper, a labelled field grid (Run, Stocks, Screener, Strategy, Account) and a data line with a status dot; Hide details folds the grid and data line and is remembered. | plan, estimate | header | Replaces the .070 one-line summary; no strategy shows in yellow | Implemented |
 | SRD-GUI-031.076 | FO-GUI-031 | Must | The trade chart loads candles from before entry to the exit day and shows ringed entry and exit dots joined by a path, IN / OUT price callouts and a P&L · % · sessions badge; candles outside the trade are dimmed. | trade, bars | chart | Extends .052; markers outside the loaded bars are not drawn | Implemented |
