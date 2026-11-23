@@ -385,18 +385,27 @@ def test_project_dialog_open_or_create(qtbot: QtBot) -> None:
     assert [p.name for p in project.list_projects(1)] == ["my_st", "new_one"]
 
 
-def test_project_has_api_guide_and_help(qtbot: QtBot, tmp_path: Path) -> None:
-    """UT-GUI-046.010.M03.T01: New project has the API guide; Help shows it; plain dashes."""
+def test_project_has_api_guide_and_help(tmp_path: Path,
+                                        monkeypatch: pytest.MonkeyPatch) -> None:
+    """UT-GUI-046.010.M03.T01: Project has the API guide (text + web page); Help opens it."""
     folder = project.create_project(1, "MY_ST", root=tmp_path)
 
     guide = (folder / "USSWING_API.md").read_text(encoding="utf-8")
-    assert all(f"## {n}." in guide for n in range(1, 12))
+    assert all(f"## {n}." in guide for n in range(1, 10))
     assert "indicator check my_st.py" in guide
+    page = (folder / "USSWING_API.html").read_text(encoding="utf-8")
+    assert page.count('class="copy"') == guide.count("```") // 2
+    assert '<a class="l3" href="#number-label-default-minimum-maximum-whole-number-false">' in page
+    assert '<h3 id="usswing-testing-run-indicator-class-candles-values-none" class="sig">' in page
+    assert '<span class="kw">return</span>' in page
     for name in ("my_st.py", "test_my_st.py"):
         assert "—" not in (folder / name).read_text(encoding="utf-8")
-    help_dialog = sec.HelpDialog()
-    qtbot.addWidget(help_dialog)
-    assert "Ready recipes" in help_dialog.text.toPlainText()
+    opened: list[str] = []
+    monkeypatch.setattr(project.QDesktopServices, "openUrl",
+                        lambda url: opened.append(url.toLocalFile()))
+    shown = project.open_api_page(tmp_path)
+    assert Path(opened[0]) == shown and shown.read_text(encoding="utf-8").startswith(
+        "<!doctype html>")
 
 
 def _recipes() -> list[str]:
@@ -438,7 +447,8 @@ def test_opening_old_project_adds_missing_files(tmp_path: Path) -> None:
 
     added = project.ensure_project_files(folder, root=tmp_path)
 
-    assert set(added) == {".env", "CLAUDE.md", "USSWING_API.md", ".vscode/tasks.json",
+    assert set(added) == {".env", "CLAUDE.md", "USSWING_API.md", "USSWING_API.html",
+                          ".vscode/tasks.json",
                           ".vscode/launch.json", ".vscode/extensions.json",
                           ".vscode/settings.json"}
     assert (folder / "old_one.py").read_text(encoding="utf-8") == code

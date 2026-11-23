@@ -1,10 +1,11 @@
 # Software Requirements Document — GUI Module (GUI)
 
 **Document ID:** SRD-GUI
-**Version:** 2.143.0
+**Version:** 2.143.1
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-11-23
+> v2.143.1: SRD-GUI-046.010 wording: the guide is a web page opened in the browser (user asked 2026-11-23).
 > v2.143.0: SRD-GUI-046.010–.013 added (user asked in chat 2026-11-23) and Implemented.
 > v2.142.0: SRD-GUI-046.008–.009 added (user asked in chat 2026-11-23) and Implemented.
 > v2.141.3: SRD-GUI-046.006–.007 Implemented (P3).
@@ -892,7 +893,7 @@ Builds on FO-EXE-022. Every popup row comes from the indicator file; the screen 
 | SRD-GUI-046.007 | FO-GUI-046 | Should | New indicator creates a project folder with an example indicator, a test file and VS Code settings, and opens it in VS Code when installed. | name | project folder | Shows the folder instead when VS Code is not found | Implemented |
 | SRD-GUI-046.008 | FO-GUI-046 | Should | A new project holds a `CLAUDE.md` guide with the indicator rules, the built-in names and the exact check command. | name | guide file | Lets an AI helper write and check the indicator | Implemented |
 | SRD-GUI-046.009 | FO-GUI-046 | Should | New indicator lists the user's projects to open, and also creates a new one. | user's projects | opened or new project | Opens in VS Code, or shows the folder | Implemented |
-| SRD-GUI-046.010 | FO-GUI-046 | Should | Each project holds a plain-language API guide (`USSWING_API.md`) and Settings > Indicators > Help shows it. | — | guide | Recipes in it pass the import check | Implemented |
+| SRD-GUI-046.010 | FO-GUI-046 | Should | Each project holds the API guide as text (`USSWING_API.md`) and as a web page (`USSWING_API.html`); Help opens the page in the browser. | — | guide, web page | Recipes in it pass the import check | Implemented |
 | SRD-GUI-046.011 | FO-GUI-046 | Should | Opening a project adds any missing guide and VS Code files. | project folder | added files | Never changes the user's code or own settings | Implemented |
 | SRD-GUI-046.012 | FO-GUI-046 | Could | Each project recommends the Python and Claude Code VS Code extensions. | — | `.vscode/extensions.json` | VS Code offers to install them | Implemented |
 | SRD-GUI-046.013 | FO-GUI-046 | Should | Set up Python makes one shared Python environment with pandas, numpy and pytest and points every project at it. | Python 3.10+ on the PC | environment, project settings | Plain message with the download link when no Python is found | Implemented |

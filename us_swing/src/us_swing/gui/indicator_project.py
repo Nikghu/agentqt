@@ -21,9 +21,11 @@ from PyQt6.QtCore import QUrl
 from PyQt6.QtGui import QDesktopServices
 
 from us_swing.core.indicator_plugins import REGISTRY, builtin_names
-from us_swing.gui.indicator_guides import AI_FILE, API_FILE, ai_guide, api_guide
+from us_swing.gui.guide_html import guide_page
+from us_swing.gui.indicator_guides import AI_FILE, API_FILE, API_HTML_FILE, ai_guide, api_guide
 
 _NAME = re.compile(r"^[A-Z][A-Z0-9_]{1,31}$")
+GUIDE_TITLE = "USSwing Indicator API"
 INTERPRETER_KEY = "python.defaultInterpreterPath"
 RECOMMENDED_EXTENSIONS = ["ms-python.python", "anthropic.claude-code"]
 
@@ -185,6 +187,7 @@ def ensure_project_files(folder: Path, root: Path | None = None) -> list[str]:
         AI_FILE: ai_guide(name, stem, _class_name(stem), check, sdk,
                           ", ".join(sorted(builtin_names()))),
         API_FILE: api_guide(check),
+        API_HTML_FILE: guide_page(api_guide(check), GUIDE_TITLE),
         ".vscode/tasks.json": _json({"version": "2.0.0", "tasks": [{
             "label": "Check indicator",
             "type": "process",
@@ -216,6 +219,22 @@ def point_projects_at_python(root: Path | None = None) -> int:
     base = root or REGISTRY.root
     folders = sorted(base.glob("*/projects/*")) if base.is_dir() else []
     return sum(_update_settings(f, root) for f in folders if f.is_dir())
+
+
+def write_api_page(root: Path | None = None) -> Path:
+    """Write the latest API guide web page for Help and return it (SRD-GUI-046.010)."""
+    page = (root or REGISTRY.root) / "docs" / API_HTML_FILE
+    page.parent.mkdir(parents=True, exist_ok=True)
+    page.write_text(guide_page(api_guide(check_command("my_st.py")), GUIDE_TITLE),
+                    encoding="utf-8")
+    return page
+
+
+def open_api_page(root: Path | None = None) -> Path:
+    """Open the API guide in the default browser."""
+    page = write_api_page(root)
+    QDesktopServices.openUrl(QUrl.fromLocalFile(str(page)))
+    return page
 
 
 def open_project(folder: Path) -> bool:

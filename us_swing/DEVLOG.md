@@ -2,6 +2,17 @@
 
 ---
 
+## [20261123] GUI — Indicator API guide as a web page in the browser
+
+- Type: Feature change (branch `feat/usswing-indicator-plugins`, unpushed); user found the in-app guide hard to read and copy from
+- FO(s): FO-GUI-046 (SRD-GUI-046.010 wording updated)
+- Artifacts: SRD, MD, UTCD, TRACE, Code (`gui/guide_html.py` new; `indicator_guides.py` rewritten as an API reference; `indicator_project.py` writes `USSWING_API.html` and `open_api_page`; `indicators_section.py` HelpDialog removed), Tests, CONTEXT, DEVLOG
+- Decisions: one text source (Markdown for AI helpers) turned into the web page, so they cannot drift; no web fonts or scripts from the internet (works offline); Copy uses the classic copy command first, the clipboard API as backup
+- Checked for real: page screenshots (menu, signatures, tables, recipes, search); Copy with a real click in Chrome pasted the code
+- Open: T232–T235 user checks; Revision Notes; PR when the user says
+
+---
+
 ## [20261123] GUI — Easy indicator setup: API guide + Help, missing files on Open, extension tips, one-click Python
 
 - Type: Feature (branch `feat/usswing-indicator-plugins`, unpushed)

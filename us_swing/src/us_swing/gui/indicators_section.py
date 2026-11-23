@@ -30,7 +30,6 @@ from PyQt6.QtWidgets import (
     QPushButton,
     QTableWidget,
     QTableWidgetItem,
-    QTextBrowser,
     QVBoxLayout,
     QWidget,
 )
@@ -47,13 +46,12 @@ from us_swing.core.indicator_plugins import (
 )
 from us_swing.gui.frameless_dialog import FramelessDialog
 from us_swing.gui.icons import mark_danger, set_icon
-from us_swing.gui.indicator_guides import api_guide
 from us_swing.gui.indicator_project import (
-    check_command,
     create_project,
     ensure_project_files,
     env_python,
     list_projects,
+    open_api_page,
     open_project,
 )
 from us_swing.gui.indicator_python import PythonSetupError, python_ready, setup_python
@@ -125,7 +123,7 @@ class IndicatorsSection(QWidget):
         self.check_btn.clicked.connect(self._on_check)
         self.new_btn.clicked.connect(self._on_new)
         self.python_btn.clicked.connect(lambda: PythonSetupDialog(self).exec())
-        self.help_btn.clicked.connect(lambda: HelpDialog(self).exec())
+        self.help_btn.clicked.connect(lambda: open_api_page())
 
         buttons = QHBoxLayout()
         for btn in (self.import_btn, self.export_btn, self.remove_btn, self.reload_btn,
@@ -462,17 +460,6 @@ class ProjectDialog(FramelessDialog):
             return
         self.created = True
         self.accept()
-
-
-class HelpDialog(FramelessDialog):
-    """The indicator API guide (SRD-GUI-046.010)."""
-
-    def __init__(self, parent: QWidget | None = None) -> None:
-        super().__init__("Indicator guide", min_width=760, min_height=640, parent=parent)
-        self.text = QTextBrowser()
-        self.text.setOpenExternalLinks(True)
-        self.text.setMarkdown(api_guide(check_command("my_st.py")))
-        self.content_layout().addWidget(self.text, 1)
 
 
 class _SetupRun(QObject):
