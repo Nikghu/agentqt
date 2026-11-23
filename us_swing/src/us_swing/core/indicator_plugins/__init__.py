@@ -11,5 +11,15 @@ from us_swing.core.indicator_plugins._check import (
     check_file,
     frame_source,
 )
+from us_swing.core.indicator_plugins._registry import (
+    REGISTRY,
+    IndicatorRegistry,
+    PluginStatus,
+    builtin_names,
+    plugin_dir,
+)
 
-__all__ = ["CheckReport", "PluginSpec", "check_file", "frame_source"]
+__all__ = [
+    "REGISTRY", "CheckReport", "IndicatorRegistry", "PluginSpec", "PluginStatus",
+    "builtin_names", "check_file", "frame_source", "plugin_dir",
+]

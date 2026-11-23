@@ -24,3 +24,6 @@ def _private_users_file(
     monkeypatch.setattr(user_store, "_STORE_FILE", folder / "users.json")
     from us_swing.core.notifications import _briefs
     monkeypatch.setattr(_briefs, "SEND_LOG_PATH", folder / "notify_state.json")
+    from us_swing.core.indicator_plugins import REGISTRY
+    monkeypatch.setattr(REGISTRY, "root", folder / "plugins")
+    REGISTRY.clear()

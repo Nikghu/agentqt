@@ -69,6 +69,7 @@ from typing import TYPE_CHECKING, Any
 
 import pandas as pd
 
+from us_swing.core.indicator_plugins import REGISTRY as INDICATOR_REGISTRY
 from us_swing.core.symbols import yahoo_symbol
 
 if TYPE_CHECKING:
@@ -1596,6 +1597,7 @@ class AppService(QObject):
             warning_sink=lambda w: self._event_bus.publish(w),
         )
 
+        self.reload_indicators()
         self._strategy_engine = StrategyEngine(
             registry_loader=load_strategies,
             registry_saver=set_run_state,
@@ -4263,6 +4265,26 @@ class AppService(QObject):
             _log.warning("[Sectors] Could not read sector candles from the local database")
             return {}
         return closes
+
+    def reload_indicators(self) -> None:
+        """Load the active user's custom indicators again (SRD-EXE-022.008–.009)."""
+        try:
+            INDICATOR_REGISTRY.load_for_user(self._active_uid,
+                                             candle_probe=self._indicator_probe)
+        except Exception:
+            _log.warning("[Indicators] Could not load custom indicators", exc_info=True)
+
+    def _indicator_probe(self) -> list[tuple[str, dict[str, pd.DataFrame]]]:
+        """Up to 3 stocks with 3m candles for the custom indicator dry run (SRD-EXE-022.007)."""
+        stocks: list[tuple[str, dict[str, pd.DataFrame]]] = []
+        for symbol in self.get_candle_symbols()[:20]:
+            frames = self._get_candles_df(symbol)
+            three_min = frames.get("3m")
+            if three_min is not None and not three_min.empty:
+                stocks.append((symbol, frames))
+            if len(stocks) == 3:
+                break
+        return stocks
 
     def get_candle_symbols(self) -> list[str]:
         """Return sorted list of all symbols that have data in price_1d."""
