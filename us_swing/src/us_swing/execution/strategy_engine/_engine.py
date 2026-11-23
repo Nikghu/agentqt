@@ -12,7 +12,7 @@ import asyncio
 import logging
 import time as _time
 from collections.abc import Callable
-from datetime import datetime
+from datetime import date, datetime, timezone
 from typing import TYPE_CHECKING
 from zoneinfo import ZoneInfo
 
@@ -69,6 +69,18 @@ def _parse_run_state(raw: str) -> _StrategyRunState:
         return _StrategyRunState(raw)
     except ValueError:
         return _StrategyRunState.STOPPED
+
+
+def bar_is_from_today(bar: OHLCVBar, now: datetime) -> bool:
+    """True when *bar* is from today's New York date (ISS-EXE-0016).
+
+    Rules must not run on an older day's bar, e.g. right after startup before
+    today's prices are loaded. A naive bar time is read as UTC.
+    """
+    stamp = bar.datetime
+    if stamp.tzinfo is None:
+        stamp = stamp.replace(tzinfo=timezone.utc)
+    return stamp.astimezone(_ET).date() == now.astimezone(_ET).date()
 
 
 def plugins_used(cfg: StrategyConfig) -> set[str]:
@@ -139,6 +151,7 @@ class StrategyEngine(QThread):
         self._cb_active = False
         self._last_persist_at: dict[str, float] = {}
         self._pending_persist = False
+        self._stale_logged: set[tuple[str, date]] = set()
 
     # ── QThread entry point ──────────────────────────────────────────────────
 
@@ -215,7 +228,17 @@ class StrategyEngine(QThread):
                 except Exception:
                     log.exception("[Strategy] tick eval crashed for %s", ctx.name)
 
-    async def _evaluate_ctx(self, ctx: _StrategyContext, _now: datetime) -> None:
+    def _bar_ready(self, symbol: str, bar: OHLCVBar, now: datetime) -> bool:
+        """True when *bar* is from today; log the wait once per stock per day."""
+        if bar_is_from_today(bar, now):
+            return True
+        key = (symbol, now.date())
+        if key not in self._stale_logged:
+            self._stale_logged.add(key)
+            log.info("[Strategy] Waiting for today's prices for %s before checking rules", symbol)
+        return False
+
+    async def _evaluate_ctx(self, ctx: _StrategyContext, now: datetime) -> None:
         """Fan out one evaluation pass for *ctx* across the candidate universe.
 
         Candidates are the union of the screened universe and the symbols that
@@ -244,7 +267,7 @@ class StrategyEngine(QThread):
         loop = asyncio.get_running_loop()
         for symbol in in_scope:
             bar = await loop.run_in_executor(None, self._bar_provider, symbol, self._primary_tf)
-            if bar is None:
+            if bar is None or not self._bar_ready(symbol, bar, now):
                 continue
             candles = await loop.run_in_executor(None, self._candles_provider, symbol)
             if not candles:
@@ -488,6 +511,8 @@ class StrategyEngine(QThread):
         if bar is None:
             log.debug("[Strategy] fan-out: no bar available for %s/%s",
                       symbol, self._primary_tf)
+            return
+        if not self._bar_ready(symbol, bar, datetime.now(_ET)):
             return
         candles = await loop.run_in_executor(None, self._candles_provider, symbol)
         if not candles:

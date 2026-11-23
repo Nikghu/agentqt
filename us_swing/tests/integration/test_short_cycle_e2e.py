@@ -69,7 +69,6 @@ class _Desk:
         self.cycles.start()
 
         self._scheduler = _Scheduler()
-        self._exit_reason = "manual"
         self.adapter = BrokerAdapter(
             broker=SimBroker(ImmediateFillModel(), scheduler=self._scheduler),
             ingestion=OrderIngestion(
@@ -81,11 +80,9 @@ class _Desk:
             config_provider=lambda _sid: _Config(),
             user_id_provider=lambda: 1,
             session_date_provider=lambda: "2026-09-17",
-            exit_reason_provider=lambda: self._exit_reason,
         )
 
     def submit(self, action: Action, price: float, qty: int = 10, reason: str = "manual") -> int:
-        self._exit_reason = reason
         order_id = self.adapter.submit(
             TradeSignal(
                 action=action,
@@ -93,6 +90,7 @@ class _Desk:
                 strategy_id="FADE",
                 entry_price=price,
                 qty_recommended=qty,
+                reason=reason,
                 user_id=1,
                 direction="SHORT",
             ),

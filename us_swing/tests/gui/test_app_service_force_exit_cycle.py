@@ -79,14 +79,14 @@ class TestForceExitCycle:
         assert qty == 16, "exited the first match instead of the named cycle"
 
     def test_carries_the_exit_reason(self, svc):
-        """UT-EXE-014.007.M01.T05: the reason reaches the pending-exit slot."""
+        """UT-EXE-014.007.M01.T05: the reason travels on the exit signal (ISS-EXE-0017)."""
         submitter = _wire(svc, [_snap(1)])
 
         with patch.object(svc, "get_latest_close", return_value=None):
             svc.force_exit_cycle(1, reason="hard_sl")
 
-        assert svc._pending_exit_reason == "hard_sl"
-        assert submitter.submit.called
+        sig, _qty = submitter.submit.call_args[0]
+        assert sig.reason == "hard_sl"
 
     def test_unknown_cycle_id_submits_nothing(self, svc):
         """UT-EXE-014.007.M01.T06: an id with no open cycle returns None, no order."""

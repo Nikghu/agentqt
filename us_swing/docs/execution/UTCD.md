@@ -1,7 +1,7 @@
 # Unit Test Case Document â€” Execution & Risk Management (EXE)
 
 **Document ID:** UTCD-EXE
-**Version:** 1.26.6
+**Version:** 1.28.0
 **Traces To:** MD-EXE v1.15.0
 **Status:** Draft
 **Last Updated:** 2026-11-23
@@ -478,6 +478,7 @@
 | UT-EXE-011.001.M01.T06 | MD-EXE-011.001.M01 | Edge | No `PyQt6` import in any business-logic module (`_signals`, `_events`, `_context`, `_evaluator`, `_router`, `_protocols`); `_engine.py` is the explicit Qt boundary and is allowed | Import each business-logic module and scan its module-level globals | None of the six business-logic modules has any name bound from `PyQt6.*` | Pass |
 | UT-EXE-011.001.M01.T07 | MD-EXE-011.001.M01 | Negative | `request_stop()` called before `start()` is a safe no-op | Construct engine; call `request_stop()` without prior `start()` | No exception raised; `isRunning() == False`; engine remains in a fresh constructable state | Pass |
 | UT-EXE-011.001.M01.T08 | MD-EXE-011.001.M01 | Negative | Status save keeps Disabled strategies (ISS-EXE-0015) | Real temp store with one Auto and one Disabled strategy; flush a RUNNING status | Both rows remain; only the Auto row's run state changes | Pass |
+| UT-EXE-011.001.M01.T09 | MD-EXE-011.001.M01 | Negative | A bar from an older day is not used for rule checks; today's bar is (ISS-EXE-0016) | Friday 20-Nov bar and a today bar at 09:37 ET on 23-Nov | Friday bar refused, today bar accepted | Pass |
 
 ---
 
@@ -784,6 +785,8 @@
 | UT-EXE-015.004.M01.T35 | MD-EXE-015.004.M01 | Negative | Force-exit into a dead socket reports instead of raising | open cycle; submitter raises `BrokerConnectionError` | `_submit_cycle_exit` returns -1, no exception propagates | Pass |
 | UT-EXE-015.004.M01.T36 | MD-EXE-015.004.M01 | Positive | A healthy exit submit is unchanged | submitter returns order id 91 | `_submit_cycle_exit` returns 91 | Pass |
 | UT-EXE-015.002.M01.T24 | MD-EXE-015.002.M01 | Positive | A waiting exit is announced and read back as NEW, then FILLED (ISS-GUI-0022) | exit submitted, fill held | one NEW event; ledger row NEW 0 filled; after fill FILLED 8 at fill price | Pass |
+| UT-EXE-015.002.M01.T25 | MD-EXE-015.002.M01 | Positive | Each exit saves its own signal's reason; a rule exit is saved as strategy (ISS-EXE-0017) | hard_sl exit then strategy exit | reasons hard_sl, strategy | Pass |
+| UT-EXE-015.002.M01.T26 | MD-EXE-015.002.M01 | Negative | An exit with an unknown reason is saved as manual (ISS-EXE-0017) | exit with empty reason | reason manual | Pass |
 | UT-EXE-015.005.M01.T16 | MD-EXE-015.002.M01 | Negative | A cancelled exit is read back as CANCELLED (ISS-GUI-0022) | exit submitted, cancelled before fill | ledger row CANCELLED, 0 filled | Pass |
 | UT-EXE-015.007.M01.T01 | MD-EXE-015.007.M01 | Positive | A second holder is refused until the first lets go | two `AppLock`s on one file | second refused; succeeds after release | Pass |
 | UT-EXE-015.007.M01.T02 | MD-EXE-015.007.M01 | Negative | Start-up claim fails while another copy holds the lock | lock held elsewhere | `claim_app_lock` False; True after release | Pass |

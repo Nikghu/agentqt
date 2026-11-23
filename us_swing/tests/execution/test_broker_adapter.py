@@ -150,7 +150,6 @@ def test_exit_signal_closes_cycle() -> None:
         config_provider=lambda _sid: _StubConfig(),
         user_id_provider=lambda: 1,
         session_date_provider=lambda: "2026-06-04",
-        exit_reason_provider=lambda: "target",
     )
     signal = TradeSignal(
         action=Action.EXIT,
@@ -158,6 +157,7 @@ def test_exit_signal_closes_cycle() -> None:
         strategy_id="S1",
         entry_price=110.0,
         qty_recommended=10,
+        reason="target",
         user_id=1,
     )
     order_id = adapter.submit(signal, 10)
@@ -364,3 +364,25 @@ def test_long_orders_unchanged() -> None:
     ctx = ingestion.contexts[0]
     assert ctx.hard_stop_loss == pytest.approx(98.0)  # type: ignore[attr-defined]
     assert ctx.target_price == pytest.approx(104.0)  # type: ignore[attr-defined]
+
+
+def _exit_with_reason(reason: str) -> TradeSignal:
+    return TradeSignal(action=Action.EXIT, symbol="APP", strategy_id="WTrend",
+                       entry_price=348.46, qty_recommended=2, reason=reason, user_id=1)
+
+
+def test_rule_exit_saved_as_strategy() -> None:
+    """UT-EXE-015.002.M01.T25: A strategy rule exit is saved with reason strategy, not manual (ISS-EXE-0017)."""
+    adapter, _broker, ingestion = _capture_adapter()
+    adapter.submit(_exit_with_reason("hard_sl"), 2)
+    adapter.submit(_exit_with_reason("strategy"), 2)
+
+    assert [c.exit_reason for c in ingestion.contexts] == ["hard_sl", "strategy"]  # type: ignore[attr-defined]
+
+
+def test_unknown_exit_reason_saved_as_manual() -> None:
+    """UT-EXE-015.002.M01.T26: An exit with an unknown reason is saved as manual (ISS-EXE-0017)."""
+    adapter, _broker, ingestion = _capture_adapter()
+    adapter.submit(_exit_with_reason(""), 2)
+
+    assert ingestion.contexts[0].exit_reason == "manual"  # type: ignore[attr-defined]
