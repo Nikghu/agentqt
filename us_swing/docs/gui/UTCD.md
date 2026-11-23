@@ -501,6 +501,7 @@
 | UT-GUI-002.005.M01.T05 | MD-GUI-004.001.M01 | Edge | Ledger rows replace cycle rows (ISS-GUI-0022) | ledger buy/sell of one cycle + an older cycle not in ledger | 4 rows, no duplicates; sell shows fill price | Pass |
 | UT-GUI-002.005.M01.T06 | MD-GUI-002.001.M02 | Positive | Value = filled shares × average price (ISS-GUI-0023) | 5 filled at $100; 0 filled | `$500.00`; `—` | Pass |
 | UT-GUI-002.005.M01.T07 | MD-GUI-002.001.M02 | Positive | Every Trade History column can be dragged and keeps its width on refresh (ISS-GUI-0023) | resize Filled to 140, refresh rows | all but last Interactive; width stays 140 | Pass |
+| UT-GUI-002.005.M01.T08 | MD-GUI-002.001.M02 | Positive | Qty and Filled light red on mismatch (user request 2026-11-23) | Qty 1 filled 5; Qty 5 filled 0; Qty 5 filled 5 | first row both cells `#5a2a2e`; other rows no colour | Pass |
 
 
 ---

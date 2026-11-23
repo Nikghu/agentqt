@@ -2165,7 +2165,7 @@ def _resize_columns(view: QTableView, fixed: dict[int, int]) -> None:
 
 # Date & Time, Symbol, Side, Mode, Qty, Filled, Avg Price, Value, Order State;
 # Strategy is last and takes the rest of the width.
-_HIST_WIDTHS = [115, 75, 60, 70, 55, 65, 95, 105, 125]
+_HIST_WIDTHS = [140, 75, 60, 70, 55, 65, 95, 105, 125]
 
 
 def _size_hist_columns(view: QTableView, show_user: bool) -> None:
