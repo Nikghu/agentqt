@@ -583,13 +583,6 @@ def _key_label(text: str) -> QLabel:
     return label
 
 
-def _action_button(text: str, icon_name: str, role: str) -> QPushButton:
-    button = QPushButton(text)
-    set_icon(button, icon_name, role, 14)
-    button.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-    return button
-
-
 class _FlowLayout(QLayout):
     """Left-to-right layout that wraps its widgets onto more lines when space runs out."""
 
@@ -1156,10 +1149,12 @@ class ListDetailView(QWidget):
         self.next_btn.setFixedWidth(C.BTN_H)
         self.next_btn.clicked.connect(lambda: self._step(1))
         top.addWidget(self.next_btn, 0, Qt.AlignmentFlag.AlignTop)
-        self.chart_btn = _action_button("Open in Charts", "chart-candlestick", "info")
+        self.chart_btn = icon_button("chart-candlestick", "info", "Open in Charts")
+        self.chart_btn.setFixedWidth(C.BTN_H)
         self.chart_btn.clicked.connect(lambda: self._emit_selected(self.chart_requested))
         top.addWidget(self.chart_btn, 0, Qt.AlignmentFlag.AlignTop)
-        self.watch_btn = _action_button("Add to watchlist", "plus", "add")
+        self.watch_btn = icon_button("plus", "add", "Add to watchlist")
+        self.watch_btn.setFixedWidth(C.BTN_H)
         self.watch_btn.clicked.connect(lambda: self._emit_selected(self.watchlist_requested))
         top.addWidget(self.watch_btn, 0, Qt.AlignmentFlag.AlignTop)
 

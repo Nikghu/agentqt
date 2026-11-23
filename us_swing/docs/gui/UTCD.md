@@ -703,7 +703,7 @@ Test files:
 | UT-GUI-022.002.M01.T01 | MD-GUI-022.001.M01 | Positive | List loads and shows first stock | 3 rows | 3 items; first selected; detail symbol, tier, "$222.00", "3.3 R", reasoning | Pass |
 | UT-GUI-022.002.M01.T02 | MD-GUI-022.001.M01 | Positive | Selection updates detail and chart | select row 2 | detail shows JCI; fake chart `show_symbol("JCI", "1d")`; chart built once | Pass |
 | UT-GUI-022.002.M01.T03 | MD-GUI-022.001.M01 | Negative | Missing plan shows dashes | row without plan | Entry, Stop, Target, R:R tiles "—" | Pass |
-| UT-GUI-022.002.M01.T04 | MD-GUI-022.001.M01 | Positive | Detail buttons emit symbol | click Open chart, Watchlist | `chart_requested("NVDA")`, `watchlist_requested("NVDA")` | Pass |
+| UT-GUI-022.002.M01.T04 | MD-GUI-022.001.M01 | Positive | Detail buttons icon-only, emit symbol | click Open chart, Watchlist | no text; tooltips "Open in Charts", "Add to watchlist"; `chart_requested("NVDA")`, `watchlist_requested("NVDA")` | Pass |
 | UT-GUI-022.002.M01.T05 | MD-GUI-022.001.M01 | Edge | Theme change keeps selection, no chart reload | select JCI; restyle | JCI still selected and shown; no new `show_symbol` call | Pass |
 | UT-GUI-022.003.M01.T01 | MD-GUI-022.001.M01 | Positive | One card per stock with actions | 3 rows; click card 2 Chart | 3 cards; "#1", "NVDA", "Strong"; `chart_requested("JCI")` | Removed (user, 2026-11-19, SRD-GUI-043.006) |
 | UT-GUI-022.003.M01.T02 | MD-GUI-022.001.M01 | Edge | Empty rows clear cards | load 3 then [] | 0 cards | Removed (user, 2026-11-19, SRD-GUI-043.006) |
