@@ -1008,7 +1008,7 @@ Test files:
 | UT-GUI-030.011.M02.T01 | MD-GUI-030.011.M02 | Positive | Partial ignores listing date | start 2024-01-01; AAPL 3m from 2024-04-05; NEWCO floor 2025-03-03, 3m from then | both `partial` (changed by ISS-BKT-0003) | Pass |
 | UT-GUI-030.011.M02.T02 | MD-GUI-030.011.M02 | Negative | Missing 3m day is partial | META range covered, 3m missing 2024-01-04 | ok before the gap check; partial after; gaps list 2024-01-04 (ISS-BKT-0003) | Pass |
 | UT-GUI-030.012.M02.T01 | MD-GUI-030.012.M02 | Positive | One stock's coverage | IBKR symbol "BRK B" listed as "BRK.B"; unknown "ZZZZ" | ("BRK.B", dates, status); None | Pass |
-| UT-GUI-030.012.M06.T01 | MD-GUI-030.012.M06 | Positive | Row updates when stock done | progress BRK B, BRK B, MSFT | one `updateBt("BRK.B", …)` call; "complete for 2 of 2 stocks" | Pass |
+| UT-GUI-030.012.M06.T01 | MD-GUI-030.012.M06 | Positive | Row updates when stock done | progress BRK B, BRK B, MSFT | one `updateBt("BRK.B", …)` call; "503 stocks · 2 complete · 1 partial · 1 not downloaded" | Pass |
 
 ## FO-GUI-031 — Backtest Workspace
 
