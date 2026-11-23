@@ -1,10 +1,11 @@
 # Software Requirements Document — GUI Module (GUI)
 
 **Document ID:** SRD-GUI
-**Version:** 2.140.4
+**Version:** 2.141.0
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-11-23
+> v2.141.0: SRD-GUI-046.001–.007 added as Draft — Custom Indicators screen (user design 2026-11-23).
 > v2.140.4: SRD-GUI-030.009/.011/.012 and SRD-GUI-031.073 reopened by user 2026-11-23 — wording updated to match the app (Partial button, partial Universe status, complete/partial top line, Direction column).
 > v2.140.3: SRD-GUI-002.005 (Reopen) — Trade History adds a Value column and drag-resizable columns (ISS-GUI-0023, user request 2026-11-21).
 > v2.140.2: SRD-GUI-019.012–.017 Implemented.
@@ -870,3 +871,17 @@ One phase. No engine change: uses the existing include scope, rex count and perc
 | SRD-GUI-045.006 | FO-GUI-045 | Must | Send without Entry, Stop and Target, or with Stop not below Entry and Target, shows a warning and sends nothing. | click | warning | "Set Entry, Stop and Target with Edit first" / "Stop must be below Entry and Target above Entry"; changes "no valid plan adds the pick only" in SRD-GUI-045.001 and SRD-GUI-026.010 | Implemented |
 | SRD-GUI-045.007 | FO-GUI-045 | Must | The Inspector Shares row shows the shares the available capital buys at Entry (Max Capital minus open trades) and their cost; Edit can change the shares. | plan, available capital | shares, cost | The shares box cannot go above the available size; replaces the 1% risk size of SRD-GUI-026.006 and SRD-GUI-045.003 | Implemented |
 | SRD-GUI-045.008 | FO-GUI-045 | Must | Send buys exactly the shown shares; with no capital available it shows "No capital available for this trade" and sends nothing. | shares | strategy with a fixed share count | Uses SRD-EXE-017.028; the engine still never buys more than the free capital | Implemented |
+
+## FO-GUI-046 — Custom Indicators Screen
+
+Builds on FO-EXE-022. Every popup row comes from the indicator file; the screen adds nothing of its own.
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-GUI-046.001 | FO-GUI-046 | Must | The trigger condition popup lists the active user's custom indicators after the built-in ones. | loaded plugins | indicator list | Refused plugins are not listed | Draft |
+| SRD-GUI-046.002 | FO-GUI-046 | Must | Picking a custom indicator builds one popup row per entry of its `parameters`, with the same order, label, limits and default. | `parameters` | popup rows | `Number` gives a number box with its limits; `Input` gives a dropdown of its options | Draft |
+| SRD-GUI-046.003 | FO-GUI-046 | Must | Settings gains an Indicators section that lists the active user's indicators with name, version and status. | plugin folder | list | Status is Loaded, or Refused with its reason | Draft |
+| SRD-GUI-046.004 | FO-GUI-046 | Must | Import picks a `.py` file, warns that it runs code on this PC, and adds it only when the plugin check passes. | file | added indicator, or reason | Uses the checks of SRD-EXE-022.005–.007 | Draft |
+| SRD-GUI-046.005 | FO-GUI-046 | Must | Export saves a copy of an indicator file, Reload re-reads all files, and Remove asks first and names the strategies that use it. | selected indicator | file copy, reloaded list, removed file | Remove of a used indicator also stops those strategies | Draft |
+| SRD-GUI-046.006 | FO-GUI-046 | Should | Check runs the indicator on a chosen stock and shows its last 20 values and debug values. | indicator, stock | values table | Same check as SRD-EXE-022.007 | Draft |
+| SRD-GUI-046.007 | FO-GUI-046 | Should | New indicator creates a project folder with an example indicator, a test file and VS Code settings, and opens it in VS Code when installed. | name | project folder | Shows the folder instead when VS Code is not found | Draft |
