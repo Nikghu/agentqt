@@ -14,7 +14,7 @@ import dataclasses
 from datetime import datetime
 from typing import Any
 
-from PyQt6.QtCore import QSettings, Qt, pyqtSignal
+from PyQt6.QtCore import QSettings, Qt, QTimer, pyqtSignal
 from PyQt6.QtWidgets import (
     QButtonGroup,
     QFrame,
@@ -63,6 +63,7 @@ from us_swing.gui.theme import C
 _MONO = '"IBM Plex Mono", Consolas, monospace'
 GROUPED, TABLE = "grouped", "table"
 _VIEW_KEY = "strategies_view"
+_REFUSED_WAIT_MS = 300
 
 
 def unique_copy_name(name: str, taken: set[str]) -> str:
@@ -128,6 +129,8 @@ class StrategiesPane(QWidget):
         self._model = StrategyTableModel(self)
         demo.strategy_status_changed.connect(self._on_engine_status)
         demo.strategies_changed.connect(self._on_strategies_changed)
+        self._refused: list[str] = []
+        demo.strategy_start_refused.connect(self._on_start_refused)
 
         self.tools = self._build_tools()
 
@@ -363,6 +366,16 @@ class StrategiesPane(QWidget):
     def _on_strategies_changed(self) -> None:
         self._configs = load_strategies()
         self._refresh_table(select=self._selected)
+
+    def _on_start_refused(self, _strategy_name: str, message: str) -> None:
+        """Collect refusals that arrive together (Start all) into one popup."""
+        self._refused.append(message)
+        if len(self._refused) == 1:
+            QTimer.singleShot(_REFUSED_WAIT_MS, self._show_refused)
+
+    def _show_refused(self) -> None:
+        messages, self._refused = self._refused, []
+        notify(self, "Strategy not started", "\n".join(messages), "warning")
 
     def _refresh_table(self, select: str | None = None, open_selected: bool = False) -> None:
         """Reload both views; keep (or move to) the selected strategy."""

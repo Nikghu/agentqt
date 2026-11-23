@@ -1,7 +1,7 @@
 # Traceability Matrix — Execution & Risk Management (EXE)
 
 **Document ID:** TRACE-EXE
-**Version:** 1.24.2
+**Version:** 1.24.5
 **Project:** US Swing Trading System
 **Last Updated:** 2026-11-23 (RN-EXE-1.41.2-20261123: SRD-EXE-011.027 Swing Lookback 1–500. Earlier: RN-EXE-1.41.1-20261122: SRD-EXE-011.001 status save keeps Disabled strategies, ISS-EXE-0015. Earlier: RN-GUI-2.7.0-20261122 filled for SRD-EXE-015.007–.008 and SRD-EXE-017.028. Earlier: SRD-EXE-015.007–.008 one app copy. Earlier: SRD-EXE-017.028 fixed share count. Earlier: SRD-EXE-011.027 BOSS_ST; SRD-EXE-006.015, .007.011 30m timeframe)
 
@@ -63,6 +63,13 @@
 | FO-EXE-017 | SRD-EXE-017.027 | DD-EXE-017.027.D01 | MD-EXE-017.016.M14 | UT-EXE-017.027.M14.T01–T03 | `gui/app_service.py` | Implemented | RN-EXE-1.37.0-20261024 |
 | FO-EXE-017 | SRD-EXE-017.028 | — (one-line rule) | MD-EXE-017.028.M03 | UT-GUI-045.008.M01.T02 (test in `tests/gui/test_chart_plan_strategy.py`) | `execution/strategy_engine/_router.py`, `gui/strategy_store.py` | Implemented | RN-GUI-2.7.0-20261122 |
 | FO-EXE-020 | SRD-EXE-020.001–008 | DD-EXE-020.001.D01 | MD-EXE-020.001.M01, .004.M02 | UT-EXE-020.001.M01.T01–T02, .002.M01.T01–T04, .003.M01.T01–T03, .005.M01.T01, .005.M02.T01, .004.M02.T01–T05, .006.M02.T01, .007.M01.T01–T02, .008.M02.T01–T04 | `execution/equity_snapshot.py`, `gui/app_service.py`, `db/schema.py` | Implemented | RN-EXE-1.35.0-20261024, RN-EXE-1.36.0-20261024 |
+| FO-EXE-022 | SRD-EXE-022.001–.004 | DD-EXE-022.001.D01 | MD-EXE-022.001.M01 | UT-EXE-022.001.M01.T01–T02, .002.M01.T01–T04, .003.M01.T01–T03, .004.M01.T01–T02 (11, Pass) | `sdk/usswing/__init__.py`, `_parameters.py`, `_indicator.py` | Implemented | RN-EXE-1.42.0-20261123 |
+| FO-EXE-022 | SRD-EXE-022.005–.007 | DD-EXE-022.005.D01 | MD-EXE-022.005.M02 | UT-EXE-022.005.M02.T01–T06, .006.M02.T01–T02, .007.M02.T01–T05 (13, Pass) | `core/indicator_plugins/_check.py` | Implemented | RN-EXE-1.42.0-20261123 |
+| FO-EXE-022 | SRD-EXE-022.008–.009 | DD-EXE-022.008.D01 | MD-EXE-022.008.M03 | UT-EXE-022.008.M03.T01–T03, .009.M03.T01–T03 (6, Pass) | `core/indicator_plugins/_registry.py`, `gui/app_service.py` | Implemented | RN-EXE-1.42.0-20261123 |
+| FO-EXE-022 | SRD-EXE-022.010–.011 | DD-EXE-022.010.D01 | MD-EXE-022.010.M04 | UT-EXE-022.010.M04.T01–T02, .011.M04.T01–T03 (5, Pass) | `core/indicator_plugins/_runner.py`, `strategy_engine/_evaluator.py`, `core/expr/series.py` | Implemented | RN-EXE-1.42.0-20261123 |
+| FO-EXE-022 | SRD-EXE-022.012–.014 | DD-EXE-022.012.D01 | MD-EXE-022.012.M05 | UT-EXE-022.012.M05.T01–T03, .013.M05.T01–T03, .014.M05.T01–T03 (9, Pass) | `core/indicator_plugins/_guard.py`, `strategy_engine/_engine.py`, `gui/app_service.py`, `gui/strategies_pane.py`, `core/notifications/_events.py`, `_formatters.py` | Implemented | RN-EXE-1.42.0-20261123 |
+| FO-EXE-022 | SRD-EXE-022.015–.016 | DD-EXE-022.015.D01 | MD-EXE-022.015.M06 | UT-EXE-022.015.M06.T01–T02, .016.M06.T01–T02 (4, Pass) | `sdk/usswing/testing.py`, `core/indicator_plugins/_cli.py`, `__main__.py` | Implemented (P3) | RN-EXE-1.42.0-20261123 |
+| FO-EXE-022 | SRD-EXE-022.017 | DD-EXE-022.017.D01 | MD-EXE-022.017.M07 | UT-EXE-022.017.M07.T01 (1, Pass) | `sdk/usswing/dev.py` | Implemented (P4) | RN-EXE-1.42.0-20261123 |
 
 ---
 

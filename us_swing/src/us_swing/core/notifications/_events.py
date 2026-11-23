@@ -47,6 +47,15 @@ class ScreenerApprovedEvent(NotificationEvent):
 
 
 @dataclass(frozen=True, slots=True)
+class IndicatorStoppedEvent(NotificationEvent):
+    """Strategies stopped because a custom indicator kept failing (SRD-EXE-022.013)."""
+
+    indicator: str = ""
+    strategies: tuple[str, ...] = ()
+    failures: int = 3
+
+
+@dataclass(frozen=True, slots=True)
 class MarketQuote:
     """Last price and move against the previous close (MD-INF-012.003.M02)."""
 

@@ -1,12 +1,13 @@
 # Design Document — Execution & Risk Management (EXE)
 
 **Document ID:** DD-EXE
-**Version:** 1.25.0
+**Version:** 1.26.0
 **Traces To:** SRD-EXE v1.24.0
 **Status:** Draft
-**Last Updated:** 2026-09-17
+**Last Updated:** 2026-11-23
 **Project:** US Swing Trading System
 
+> v1.26.0: DD-EXE-022.001/.005/.008/.010/.012/.015/.017.D01 added — Custom Indicator Plugins (FO-EXE-022).
 > v1.25.0: AI Desk and Market Floor removed (user, 2026-11-17; docs/audit/DESK_REMOVAL_2026-11-17.md): DD-EXE-021.001.D01 removed.
 > v1.24.0: DD-EXE-021.001.D01 added — AI Desk signal intake (MKT P7).
 > v1.23.0: DD-EXE-011.027.D01 added — BOSS_ST trigger indicator.
@@ -4160,4 +4161,147 @@ read logs `[Strategy] Could not load P&L history for %s` and returns `StrategyPn
 **Storage.** New `price_30m` table, same columns and key as `price_15m`; `create_schema()` (`create_all(checkfirst=True)`) adds it to existing `candles.db` files. The session cleanup list gains `price_30m`.
 
 Cross-tool note: touches `data/engine.py` (INF, `_TF_MINUTES`), `db/schema.py` (INF, new table), `analysis/candle_builder.py` (ANA, `_TF_SECONDS`).
+
+## DD-EXE-022.001.D01 — `usswing` Library
+
+**Traces:** SRD-EXE-022.001–.004
+
+**Package.** A new top-level package `sdk/usswing/`, outside `src/` so it stays apart from the app package `src/us_swing/`. It is the only code a plugin may import from the tool. Files: `__init__.py` (exports `USSwingIndicator`, `Number`, `Input`), `_parameters.py`, `_indicator.py`, `testing.py` (DD-EXE-022.015.D01), `dev.py` (DD-EXE-022.017.D01). It must not import `us_swing` internals, so the same files can ship as a wheel for VS Code.
+
+**Parameters.** Frozen dataclasses with checks in `__post_init__`; a failed check raises `ParameterError` whose text starts with the label.
+```python
+@dataclass(frozen=True)
+class Number:
+    label: str
+    default: float
+    minimum: float
+    maximum: float
+    whole_number: bool = False      # True → values are int; default, minimum, maximum must be whole
+
+@dataclass(frozen=True)
+class Input:
+    label: str
+    options: tuple[str, ...]        # a list is accepted and stored as a tuple; must be non-empty and unique
+    default: str                    # must be one of options
+```
+`Number.convert(raw)` turns an expression argument into int or float and raises `ParameterError("Candles must be 1 to 500, got 0")` when out of range. `Input.convert(raw)` needs an exact option (`"Price Swing must be one of High, Low, Range, got 'Mid'"`).
+
+**Base class.**
+```python
+class USSwingIndicator:
+    indicator_name: str = ""
+    description: str = ""
+    version: str = ""
+    output_type: str = "value"          # "value" | "signal"
+    parameters: list[Number | Input] = []
+
+    def __init__(self, candle_source, values): ...   # set by the tool or by usswing.testing
+    def candles(self, symbol_type, timeframe) -> pd.DataFrame
+    def parameter(self, label) -> int | float | str
+    def debug_value(self, name, series) -> None
+    def calculate(self):                             # user code
+        raise NotImplementedError
+```
+- `candle_source(symbol_type, timeframe)` is a callable given by the host (live engine, replay, check or testing). `candles()` returns a copy, so a plugin cannot change the tool's frames. The **first** timeframe asked for is the indicator's *main timeframe*; the result of `calculate()` is aligned to its candles.
+- Frames are the frames the engine already uses: columns `open`, `high`, `low`, `close`, `volume`, one row per closed candle, oldest first. The time column is always `datetime`: replay and Backtest Data frames name it `ts`, so `candles()` renames it.
+- `symbol_type` takes "Spot" or "RSP". Like every built-in indicator today, both give the stock's own candles (known limit, see below).
+- `parameter(label)` returns the converted value; an unknown label raises `ParameterError("Unknown parameter 'Lookback'")`.
+- `debug_value(name, series)` stores the series in `self._debug[name]`.
+
+**Running.** The library function `compute(indicator) -> Result(values: pd.Series, debug: dict[str, pd.Series], main_timeframe: str)` calls `calculate()` and normalises:
+- bool, numpy or list output becomes a float Series on the main candles' index; True/False become 1.0/0.0;
+- length must equal the main candle count, else `OutputError("calculate() returned 120 values, but there are 390 candles")`;
+- `+inf`/`-inf` raise `OutputError`; NaN is allowed (not enough candles yet).
+
+**Known limit.** "RSP" is read but not used, the same as the built-in indicators (their `_symbol_type` argument is ignored). A real RSP feed is a later change for all indicators together.
+
+## DD-EXE-022.005.D01 — Plugin Check
+
+**Traces:** SRD-EXE-022.005–.007. Module `us_swing/core/indicator_plugins/_check.py`.
+
+`check_file(path, *, taken_names, candle_probe) -> CheckReport(ok, reasons: list[str], spec: PluginSpec | None)`. All reasons are collected, not only the first.
+
+1. **Read the code** with `ast.parse` (no run yet):
+   - any `import usswing.dev` / `from usswing.dev import …` → "uses testing tools (usswing.dev); move plotting to a separate script";
+   - every `self.parameter("<text>")` call with a literal string is collected as *labels read*.
+2. **Load** with `importlib.util.spec_from_file_location("usswing_plugin_<user>_<stem>", path)`. An exception while loading becomes a reason with its message and line number.
+3. **Find the class:** classes in the module (`cls.__module__` equal to the module name) that subclass `USSwingIndicator`. None → "no USSwingIndicator class found"; more than one → "one indicator per file — found MyA, MyB".
+4. **Fields:**
+   - `indicator_name` matches `^[A-Z][A-Z0-9_]{1,31}$`, so it parses as a function name;
+   - `description` and `version` are not empty; `output_type` is "value" or "signal";
+   - `parameters` is a non-empty list of `Number` / `Input` with unique labels.
+   - A missing field gets a hint from `difflib.get_close_matches` over the class attributes: `"indicator_name" is not set (found "name" — did you mean "indicator_name"?)`.
+5. **Free name:** not a built-in (`ConditionEvaluator.FUNCTION_MAP` keys plus `Number`, `PNL`), and not in `taken_names` (the user's other plugins), compared without case.
+6. **Labels read** that are not in `parameters` → `calculate() reads parameter "Lookback", but it is not in parameters`.
+7. **Dry run** (only when 1–6 pass): `candle_probe` gives the frames of 3 stocks from the local candle store (the 3 symbols with the most 3m candles). For each stock, run `compute()` with default values:
+   - an exception → `failed on AAPL: <message> (line <n>)`;
+   - wrong length or infinite values → the `OutputError` text;
+   - more than 2 s (`time.perf_counter`) → `took 3.4 s on AAPL (limit 2 s)`;
+   - **future candles:** compute again on the frames without their last 5 candles; values on the shared candles must match (NaN equals NaN, tolerance 1e-9). Otherwise → `uses future candles (values change when newer candles arrive)`. This keeps live and replay equal (SRD-EXE-022.011).
+   - Literal labels the code reads are checked in step 6; other `ParameterError`s show up here.
+
+`PluginSpec` (frozen): `name`, `description`, `version`, `output_type`, `parameters`, `indicator_class`, `path`.
+
+## DD-EXE-022.008.D01 — Plugin Folder, Loader and Registry
+
+**Traces:** SRD-EXE-022.008–.009. Module `us_swing/core/indicator_plugins/_registry.py`.
+
+**Folder.** `plugin_dir() = ~/.usswing/plugins/indicators/`, shared by all users, created when missing. One indicator per `*.py` file; files starting with `_` are ignored. Projects made by "New indicator" live beside it in `~/.usswing/plugins/projects/` and are not loaded. `move_user_folders()` moves files from the old `plugins/<user_id>/indicators|projects/` folders once; a name that already exists, or an item Windows will not move (open in another program), stays and is tried again on the next start.
+
+**Registry.** A module-level `IndicatorRegistry` (lock protected):
+- `load(candle_probe)` moves old per-user folders, clears the registry, runs `check_file` on each file in name order (the names of files already passed count as taken), and keeps the passing specs. It records one `PluginStatus(file, name, version, ok, reasons)` per file for the Settings screen.
+- `get(name) -> PluginSpec | None` (case-sensitive, as written in expressions), `names()`, `statuses()`, `add_listener(fn)` (called after every load).
+- Logs: INFO `[Indicators] Loaded 2 custom indicators`; WARNING `[Indicators] my_st.py was not loaded: <first reason>` (the rest at DEBUG).
+
+**When it loads.** `AppService` calls `load()` after start (after the candle store is ready), when the active user changes, and on Reload / Import / Remove from Settings. The probe reads candles through the existing intraday candle loader, read-only. A file that fails never stops the app.
+
+## DD-EXE-022.010.D01 — Using a Plugin in Live and Replay
+
+**Traces:** SRD-EXE-022.010–.011. Module `us_swing/core/indicator_plugins/_runner.py`, plus small changes in `execution/strategy_engine/_evaluator.py` and `core/expr/series.py`.
+
+**Arguments.** An expression calls a plugin by name with one argument per parameter, in `parameters` order, for example `SWING_PLUS('Spot', 20, 'High', 'Previous', '3m')` (text in single quotes, as for built-ins). `values_from_args(spec, args)`: a wrong count raises `EvaluatorError("SWING_PLUS expects 5 arg(s), got 4")`; each value goes through `Number.convert` / `Input.convert`, and a `ParameterError` becomes `EvaluatorError("SWING_PLUS: Candles must be 1 to 500, got 0")`. This is the same style as the built-in checks.
+
+**One computation.** `run_plugin(spec, values, frames) -> Result` builds the instance with `candle_source = lambda st, tf: frames[tf]` (a missing timeframe raises `EvaluatorError("No candle data for timeframe '1d'")`) and calls `compute()` inside the guard (DD-EXE-022.012.D01).
+
+**Live.** In `ConditionEvaluator._eval`, a FUNC name that is not in `FUNCTION_MAP` is looked up in the registry. If found: `values_from_args` → `run_plugin(spec, values, candles)` → the **last** value as float. NaN goes through the existing "insufficient bars" path (`EvaluatorError`, so no signal). Built-in names are checked first, so built-ins never change.
+
+**Replay.** In `series._Walker._function`, a name not in `_ARITY` is looked up in the registry. If found: `values_from_args` → `run_plugin(spec, values, self.frames)` → the full series on the main timeframe → `_as_of(series, available_ns(frame(main_tf), main_tf), self.close_ns)`. That is the same as-of rule the built-ins use. The label stored in `self.values` is `NAME(arg2, …)`, as for built-ins.
+
+**Equal results.** Live gets the last value of the same `compute()` on candles up to now. Replay gets each candle's value from one `compute()` on all candles. They agree because the check refuses indicators that use future candles.
+
+## DD-EXE-022.012.D01 — Failure Guard and Start Check
+
+**Traces:** SRD-EXE-022.012–.014. Module `us_swing/core/indicator_plugins/_guard.py`, plus hooks in `execution/strategy_engine/_engine.py`.
+
+**One call.** `guarded(spec, fn)` runs `fn()`:
+- any exception (including `sys.exit()`), an `OutputError`, or a run longer than 2 s counts as a failure. User code runs in a daemon worker thread (`call_with_deadline`): after 2 s the engine stops waiting, marks the indicator *hung*, never calls it again, and stops its strategies at once. The thread cannot be killed, so a restart frees it. Loading a file has a 5 s wait and replay a 60 s wait. Failures are counted per indicator **and stock** (review fix 2026-11-23);
+- a failure raises `PluginFailure(EvaluatorError)` carrying `spec.name`, so the engine's existing "condition could not be evaluated" path gives **no signal**;
+- one WARNING per plugin per candle time: `[Indicators] MY_ST failed on AAPL: division by zero`.
+
+**Three in a row.** `PluginGuard` keeps one count per plugin name: a failure adds 1, a success sets it to 0. The count is shared by all stocks and strategies. At 3:
+- the engine sets every strategy whose entry or exit expression calls that name to STOPPED (`set_run_state`, saved);
+- it logs ERROR `[Strategy] WTrend_X stopped: indicator MY_ST failed 3 times in a row`;
+- it sends one alert through the notification service (Telegram when the user has it on);
+- open trades stay with the trade cycle watcher (stop, target, Exit button). The count goes back to 0.
+
+**Start check.** `plugin_names(cfg)` = FUNC names in the strategy's expressions that are neither built-ins nor `Number`/`PNL`. On a manual Start and on auto start at load, `missing = plugin_names(cfg) − registry.names()`. If anything is missing, the strategy stays STOPPED and the engine logs WARNING `[Strategy] WTrend_X cannot start: indicator MY_ST is not installed`. The refusal is passed back to the GUI so the Start button can show it.
+
+## DD-EXE-022.015.D01 — Testing Kit and Command Line
+
+**Traces:** SRD-EXE-022.015–.016.
+
+**`usswing.testing`** (no `us_swing` imports):
+- `load_candles(symbol, timeframes, days=30, *, start=None, end=None, db_path=None)` opens `~/.usswing/candles.db` (or `db_path`) read-only (`sqlite3` URI `mode=ro`). It reads `price_<tf>` rows for the symbol into the frame shape above, using the last `days` market days unless `start`/`end` are given.
+- `run(indicator_class, candles, values=None) -> Result` uses defaults for missing values, runs the same conversion and `compute()` as the tool, and returns the values, the debug series and the main timeframe.
+- `Result.table()` gives a DataFrame of time, value and one column per debug series.
+
+**Command line.** `__main__.py` gains `indicator check <file> [--symbols A,B] [--days N] [--trace out.csv]`. It runs `check_file` (with `--symbols` replacing the 3 probe stocks), prints one ✔ or ✘ line per check plus counts, writes `Result.table()` to `--trace`, and exits with 0 on pass or 1 on refusal. It uses the tool's bundled Python. The windowed exe has no console of its own, so the command attaches to the console it was started from. The installer also ships the `usswing` `.py` files as plain files (`<install>/_internal/sdk/`) so a "New indicator" project in VS Code gets code help from them.
+
+## DD-EXE-022.017.D01 — Chart Preview (Could)
+
+**Traces:** SRD-EXE-022.017. `usswing.dev.preview(indicator_class, candles, values=None, *, path=None)` writes one HTML file. It holds the candles, the indicator values (a line for "value", markers for "signal") and the debug series (lines), drawn with the same TradingView lightweight-charts script the tool's chart uses (embedded). It then opens the file in the default browser. Value and debug series are lines in a second pane under the candles; a "signal" indicator draws up arrows for values above 0 and down arrows below 0. Times are shown in New York time. The script is read from the tool's install (`us_swing/gui/resources`) and falls back to the web copy when not found. It is built last; an indicator file that imports it is refused (DD-EXE-022.005.D01).
+
+**Cross-tool notes.** `core/expr/series.py` belongs to BKT (MD-BKT-002.021.M10): only the registry lookup is added. GUI uses the registry for the trigger popup and the Settings Indicators section (FO-GUI-046, see `gui/MD.md`).
+
+**Phases.** P1: library, check, registry, live and replay use, guard and start check (SRD-EXE-022.001–.014). P2: GUI (FO-GUI-046 .001–.005). P3: testing kit, command line, Check button and New indicator (SRD-EXE-022.015–.016, SRD-GUI-046.006–.007). P4: preview (SRD-EXE-022.017).
 

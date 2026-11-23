@@ -21,6 +21,7 @@ from us_swing.core.notifications._dto import (
 )
 from us_swing.core.notifications._events import (
     DayEndPnLEvent,
+    IndicatorStoppedEvent,
     MarketQuote,
     MorningBriefEvent,
     NotificationEvent,
@@ -111,6 +112,7 @@ __all__ = [
     "ScreenerApprovedEvent",
     "DayEndPnLEvent",
     "MorningBriefEvent",
+    "IndicatorStoppedEvent",
     "MarketQuote",
     "TradeLine",
     # DTOs

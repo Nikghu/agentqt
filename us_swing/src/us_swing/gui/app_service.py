@@ -69,6 +69,7 @@ from typing import TYPE_CHECKING, Any
 
 import pandas as pd
 
+from us_swing.core.indicator_plugins import REGISTRY as INDICATOR_REGISTRY
 from us_swing.core.symbols import yahoo_symbol
 
 if TYPE_CHECKING:
@@ -146,6 +147,7 @@ from us_swing.core.monitoring_session import (
 from us_swing.core.notifications import (
     AiConfig,
     DayEndPnLEvent,
+    IndicatorStoppedEvent,
     MorningBriefEvent,
     NotificationConfig,
     ScreenerApprovedEvent,
@@ -1268,6 +1270,7 @@ class AppService(QObject):
     _arm_candle_feeds_requested = pyqtSignal(object)       # list[str] — cross-thread marshal (ISS-EXE-0009)
     _clear_pending_exits_requested = pyqtSignal(str, str)  # (strategy_id, symbol) — marshal (ISS-EXE-0010)
     strategies_changed = pyqtSignal()  # saved strategy list changed outside the Strategies tab
+    strategy_start_refused = pyqtSignal(str, str)  # (strategy_name, message) — SRD-EXE-022.014
 
     def __init__(self, parent: QObject | None = None) -> None:
         super().__init__(parent)
@@ -1596,6 +1599,7 @@ class AppService(QObject):
             warning_sink=lambda w: self._event_bus.publish(w),
         )
 
+        self.reload_indicators()
         self._strategy_engine = StrategyEngine(
             registry_loader=load_strategies,
             registry_saver=set_run_state,
@@ -1612,6 +1616,8 @@ class AppService(QObject):
             effective_capital_provider=self.effective_capital,
             parent=self,
         )
+        self._strategy_engine.plugin_stopped.connect(self._on_indicator_stopped)
+        self._strategy_engine.start_refused.connect(self._on_start_refused)
         self._strategy_engine.start()
         self.purge_old_chart_plans()
         self._event_bus.event_published.connect(self._on_strategy_event)
@@ -4263,6 +4269,63 @@ class AppService(QObject):
             _log.warning("[Sectors] Could not read sector candles from the local database")
             return {}
         return closes
+
+    def _on_indicator_stopped(self, indicator: str, strategies: list[str]) -> None:
+        """Alert the user that a failing custom indicator stopped strategies (SRD-EXE-022.013)."""
+        self.publish_notification(
+            IndicatorStoppedEvent(indicator=indicator, strategies=tuple(strategies)))
+
+    def _on_start_refused(self, strategy_name: str, message: str) -> None:
+        """The engine kept a strategy stopped: refresh the saved list and tell the user."""
+        self.strategies_changed.emit()
+        self.strategy_start_refused.emit(strategy_name, message)
+
+    def stop_strategies(self, names: list[str]) -> None:
+        """Stop the named strategies; open trades stay managed (SRD-GUI-046.005)."""
+        from us_swing.execution import ExecutionEnums
+        from us_swing.gui.strategy_store import set_run_state
+
+        for name in names:
+            set_run_state(name, "STOPPED")
+            self._strategy_engine.set_run_state(name, ExecutionEnums.StrategyRunState.STOPPED)
+        self.reload_strategy_registry()
+        self.strategies_changed.emit()
+
+    def reload_indicators(self) -> None:
+        """Load the active user's custom indicators again (SRD-EXE-022.008–.009)."""
+        try:
+            INDICATOR_REGISTRY.load(candle_probe=self.indicator_probe)
+        except Exception:
+            _log.warning("[Indicators] Could not load custom indicators", exc_info=True)
+
+    def backtest_frames(self, ibkr_symbol: str, intraday_days: int = 60,
+                        daily_days: int = 3 * 365) -> dict[str, pd.DataFrame]:
+        """Recent Backtest Data candles of one stock, per timeframe (SRD-GUI-046.006).
+
+        Intraday frames hold the last ``intraday_days`` days, 1d and 1w the last
+        ``daily_days``; timeframes with no saved candles are left out.
+        """
+        today = datetime.datetime.now(tz=datetime.timezone.utc).date()
+        frames: dict[str, pd.DataFrame] = {}
+        for tf in ("3m", "15m", "30m", "1d", "1w"):
+            days = daily_days if tf in ("1d", "1w") else intraday_days
+            frame = self._bkt_store.read(ibkr_symbol, tf,
+                                         start=today - datetime.timedelta(days=days))
+            if not frame.empty:
+                frames[tf] = frame
+        return frames
+
+    def indicator_probe(self) -> list[tuple[str, dict[str, pd.DataFrame]]]:
+        """Up to 3 stocks with 3m candles for the custom indicator dry run (SRD-EXE-022.007)."""
+        stocks: list[tuple[str, dict[str, pd.DataFrame]]] = []
+        for symbol in self.get_candle_symbols()[:20]:
+            frames = self._get_candles_df(symbol)
+            three_min = frames.get("3m")
+            if three_min is not None and not three_min.empty:
+                stocks.append((symbol, frames))
+            if len(stocks) == 3:
+                break
+        return stocks
 
     def get_candle_symbols(self) -> list[str]:
         """Return sorted list of all symbols that have data in price_1d."""

@@ -13,6 +13,16 @@ import numpy as np
 import pandas as pd
 import talib
 
+from us_swing.core.indicator_plugins import GUARD as PLUGIN_GUARD
+from us_swing.core.indicator_plugins import REGISTRY as INDICATOR_REGISTRY
+from us_swing.core.indicator_plugins import (
+    NoCandleData,
+    PluginArgError,
+    PluginCallError,
+    last_value,
+    run_plugin,
+    values_from_args,
+)
 from us_swing.core.market_structure import (
     TIMEFRAME_MINUTES,
     BossStParams,
@@ -23,6 +33,14 @@ from us_swing.core.market_structure import (
 
 class EvaluatorError(RuntimeError):
     """Raised on tokenizer / parser / arity / evaluation failures."""
+
+
+class PluginFailure(EvaluatorError):
+    """A custom indicator call failed; the condition gives no signal (SRD-EXE-022.012)."""
+
+    def __init__(self, plugin_name: str, message: str) -> None:
+        super().__init__(f"{plugin_name}: {message}")
+        self.plugin_name = plugin_name
 
 
 _IndicatorFn = Callable[[list[Any], dict[str, pd.DataFrame], str], float]
@@ -387,6 +405,45 @@ def _fn_macd(args: list[Any], c: dict[str, pd.DataFrame], _s: str) -> float:
 
 
 
+def _plugin_fn(name: str) -> _IndicatorFn | None:
+    """A loaded custom indicator as a live function: its newest value (SRD-EXE-022.010–.012)."""
+    spec = INDICATOR_REGISTRY.get(name)
+    if spec is None:
+        return None
+
+    def call(args: list[Any], candles: dict[str, pd.DataFrame], symbol: str) -> float:
+        try:
+            values = values_from_args(spec, args)
+            return last_value(run_plugin(spec, values, candles, symbol=symbol,
+                                         guard=PLUGIN_GUARD))
+        except (PluginArgError, NoCandleData) as exc:
+            raise EvaluatorError(str(exc)) from None
+        except PluginCallError as exc:
+            raise PluginFailure(spec.name, str(exc)) from None
+
+    return call
+
+
+def function_names(expr: str) -> set[str]:
+    """Every function name called in ``expr``; empty when it does not parse."""
+    try:
+        tree = _Parser(_tokenize(expr)).parse()
+    except EvaluatorError:
+        return set()
+    names: set[str] = set()
+    stack = [tree]
+    while stack:
+        node = stack.pop()
+        if node.get("type") == "FUNC":
+            names.add(str(node["name"]))
+            stack.extend(node.get("args", []))
+        for key in ("left", "right"):
+            child = node.get(key)
+            if isinstance(child, dict):
+                stack.append(child)
+    return names
+
+
 # ── Public class ──────────────────────────────────────────────────────────────
 
 class ConditionEvaluator:
@@ -430,7 +487,7 @@ class ConditionEvaluator:
         if kind == "STRING":
             return cast(float, node["value"])
         if kind == "FUNC":
-            fn = self.FUNCTION_MAP.get(node["name"])
+            fn = self.FUNCTION_MAP.get(node["name"]) or _plugin_fn(node["name"])
             if fn is None:
                 raise EvaluatorError(f"Unknown indicator {node['name']!r}")
             resolved_args = [self._eval(a, candles, symbol) for a in node["args"]]

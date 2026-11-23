@@ -1,12 +1,22 @@
 # Unit Test Case Document â€” GUI Module (GUI)
 
 **Document ID:** UTCD-GUI
-**Version:** 1.57.1
+**Version:** 1.58.9
 **Traces To:** MD-GUI v1.7.0
 **Status:** Draft
-**Last Updated:** 2026-11-17
+**Last Updated:** 2026-11-23
 **Project:** US Swing Trading System
 
+> v1.58.9: UT-GUI-046.003.M02.T03 added — icon-only buttons with name tooltips (user asked 2026-11-23).
+> v1.58.8: UT-GUI-046.006.M02.T02–T03 added — S&P 500 list, Backtest Data.
+> v1.58.7: UT-GUI-046.003.M02.T02 and .004.M02.T04 changed (user decision 2026-11-23: one shared folder, no user part).
+> v1.58.6: UT-GUI-046.004.M02.T04 added — Import opens in the latest project.
+> v1.58.5: UT-GUI-046.010.M03.T01 now checks the web page.
+> v1.58.4: UT-GUI-046.010–.013 (6 tests) added, Pass.
+> v1.58.3: UT-GUI-046.008.M03.T01 and UT-GUI-046.009.M02.T01 added, Pass.
+> v1.58.2: UT-GUI-046.006–.007 (3 tests) Pass (P3).
+> v1.58.1: UT-GUI-046.001–.005 (13 tests) Pass (P2).
+> v1.58.0: 16 test cases for FO-GUI-046 Custom Indicators screen (UT-GUI-046.*).
 > v1.57.1: UT-GUI-019.013.M02.T03–T04 added — price updates no longer clear the Positions selection.
 > v1.57.0: UT-GUI-019.012–.017 rows added (12) — Dashboard exit and stop through strategy trades.
 > v1.56.0: UT-GUI-045.007–.008 rows added; UT-GUI-026.006.M03.T01–T04 now use available capital; UT-GUI-045.001.M01.T02 Removed (SRD-GUI-045.007–.008).
@@ -1228,3 +1238,36 @@ Test files:
 | UT-GUI-045.008.M02.T01 | MD-GUI-045.001.M02 | Positive | Send passes edited shares | plan 100 / 95 / 110, shares 25 | `send_chart_plan("NVDA", 100, 95, 110, 25)` | Pass |
 | UT-GUI-045.008.M01.T01 | MD-GUI-045.001.M01 | Positive | Chart plan saves exact shares | VRSN plan with 25 shares and another strategy | plan fixed 25, capital 100, per trade 100; other strategy 0 | Pass |
 | UT-GUI-045.008.M01.T02 | MD-GUI-045.001.M01 | Positive | Engine buys the fixed shares | fixed 25 at 108; fixed 0, 10% of 50,000 | 25; 46 | Pass |
+
+## FO-GUI-046 — Custom Indicators Screen
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-GUI-046.001.M01.T01 | MD-GUI-046.001.M01 | Positive | Plugin listed after built-ins | registry with SWING_PLUS | indicator list ends with SWING_PLUS after BOSS_ST | Pass |
+| UT-GUI-046.001.M01.T02 | MD-GUI-046.001.M01 | Negative | Refused plugin not listed | registry status: BAD_ONE refused | BAD_ONE not in the list | Pass |
+| UT-GUI-046.002.M01.T01 | MD-GUI-046.001.M01 | Positive | Rows follow `parameters` | pick SWING_PLUS | rows Symbol Type, Candles, Price Swing, Window, Timeframe in order; Candles box 1–500 showing 20 | Pass |
+| UT-GUI-046.002.M01.T02 | MD-GUI-046.001.M01 | Positive | Dropdowns and expression | Price Swing options; Add with defaults | High, Low, Range with High chosen; `SWING_PLUS('Spot', 20, 'High', 'Previous', '3m')` | Pass |
+| UT-GUI-046.002.M01.T03 | MD-GUI-046.001.M01 | Negative | Number box keeps limits | type 0 and 900 in Candles | 1 and 500 | Pass |
+| UT-GUI-046.003.M02.T01 | MD-GUI-046.003.M02 | Positive | List shows status | one good file, one broken | SWING_PLUS 1.0 Loaded; broken file Refused with its reason | Pass |
+| UT-GUI-046.003.M02.T02 | MD-GUI-046.003.M02 | Positive | All users see the same indicators | one file; users 1 and 2 | both list SWING_PLUS 1.0 Loaded | Pass |
+| UT-GUI-046.003.M02.T03 | MD-GUI-046.003.M02 | Positive | Icon-only buttons | open the section | 8 buttons with an icon, no text; tooltip and accessible name = button name | Pass |
+| UT-GUI-046.004.M02.T01 | MD-GUI-046.003.M02 | Positive | Import a good file | pick file; warning Yes | copied to the user's folder; listed Loaded | Pass |
+| UT-GUI-046.004.M02.T02 | MD-GUI-046.003.M02 | Negative | Import a bad file | file with a missing field; warning Yes | reason shown; nothing copied | Pass |
+| UT-GUI-046.004.M02.T03 | MD-GUI-046.003.M02 | Negative | Warning answered No | pick file; warning No | nothing copied, no check run | Pass |
+| UT-GUI-046.004.M02.T04 | MD-GUI-046.003.M02 | Positive | Import opens in the projects folder | no folder yet; then a project | `plugins/projects` made and used both times | Pass |
+| UT-GUI-046.005.M02.T01 | MD-GUI-046.003.M02 | Positive | Export and Reload | export to a temp path; Reload | same file content; registry loaded again | Pass |
+| UT-GUI-046.005.M02.T02 | MD-GUI-046.003.M02 | Positive | Remove a used indicator | strategy WTrend_X uses it; confirm Yes | message names WTrend_X; it is STOPPED; file gone | Pass |
+| UT-GUI-046.005.M02.T03 | MD-GUI-046.003.M02 | Negative | Remove answered No | confirm No | file kept; strategy unchanged | Pass |
+| UT-GUI-046.006.M02.T01 | MD-GUI-046.003.M02 | Positive | Check shows the last 20 values | SWING_PLUS on AAPL test candles | 20 rows with time, value and debug columns | Pass |
+| UT-GUI-046.006.M02.T02 | MD-GUI-046.003.M02 | Positive | S&P 500 list and store symbol | stocks A and BRK.B; Run on BRK.B with no data | list shows A, BRK.B; reads "BRK B"; message says no Backtest Data and where to download it | Pass |
+| UT-GUI-046.006.M02.T03 | MD-GUI-046.003.M02 | Positive | Backtest Data frames | 3m candles 200 days and 3 days old | 3m, 15m, 30m with only the recent candle; unknown stock gives none | Pass |
+| UT-GUI-046.007.M03.T01 | MD-GUI-046.007.M03 | Positive | New project files | `create_project(1, "MY_ST")` | folder with `my_st.py`, `test_my_st.py`, `.vscode/settings.json`, `.vscode/launch.json`; example passes the check | Pass |
+| UT-GUI-046.007.M03.T02 | MD-GUI-046.007.M03 | Edge | VS Code not found | `code` not on PATH | folder opened instead | Pass |
+| UT-GUI-046.008.M03.T01 | MD-GUI-046.007.M03 | Positive | New project has an AI guide | `create_project(1, "VWAP_CROSS")` | CLAUDE.md names VWAP_CROSS, the check command, built-in names, no-future rule and the library folder | Pass |
+| UT-GUI-046.009.M02.T01 | MD-GUI-046.003.M02 | Positive | Open or create a project | project MY_ST exists; open it; then create MY_ST and new_one | MY_ST listed and opened; MY_ST refused as existing; NEW_ONE made | Pass |
+| UT-GUI-046.010.M03.T01 | MD-GUI-046.007.M03 | Positive | API guide and Help | `create_project(1, "MY_ST")`; Help | guide has sections 1-9 and the check command; web page has a Copy button per code box, menu links, signature headings and coloured code; Help writes and opens it; no long dash in code files | Pass |
+| UT-GUI-046.010.M03.T02 | MD-GUI-046.007.M03 | Positive | Guide recipes are valid | each of the 4 recipes in a file | every file passes the import check | Pass |
+| UT-GUI-046.011.M03.T01 | MD-GUI-046.007.M03 | Positive | Old project gets missing files | project with only code and own settings | guides, .env and VS Code files added; code and own setting kept; second call adds nothing | Pass |
+| UT-GUI-046.012.M03.T01 | MD-GUI-046.007.M03 | Positive | Extensions recommended | new project | extensions.json lists Python and Claude Code | Pass |
+| UT-GUI-046.013.M04.T01 | MD-GUI-046.013.M04 | Positive | Set up Python | Python 3.11 on PATH (stubbed runs) | venv, pip install pandas numpy pytest, project settings point at it | Pass |
+| UT-GUI-046.013.M04.T02 | MD-GUI-046.013.M04 | Negative | No Python on the PC | nothing found | message with python.org link; nothing run | Pass |

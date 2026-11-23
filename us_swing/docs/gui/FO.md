@@ -1,12 +1,16 @@
 # Functional Overview — GUI Module (GUI)
 
 **Document ID:** FO-GUI
-**Version:** 2.35.1
+**Version:** 2.38.1
 **Traces To:** requirements.md §21, §22, §23.3, §24, §25, §28.1, §29.1, §32
 **Status:** Draft
-**Last Updated:** 2026-11-20
+**Last Updated:** 2026-11-23
 **Project:** US Swing Trading System
 
+> v2.38.1: FO-GUI-046 indicators shared by all users (user decision 2026-11-23: one shared folder, no user part).
+> v2.38.0: FO-GUI-046 adds easy-setup statements (user, 2026-11-23).
+> v2.37.0: FO-GUI-046 adds the AI guide and open-or-create project statements (user, 2026-11-23).
+> v2.36.0: FO-GUI-046 Custom indicators screen added as Draft (user design, 2026-11-23).
 > v2.35.1: FO-GUI-045 approved by user 2026-11-20.
 > v2.35.0: FO-GUI-045 Chart plan strategy added as Draft (user answers, 2026-11-20).
 > v2.34.1: FO-GUI-044 approved by user 2026-11-19.
@@ -1076,3 +1080,31 @@ The system shall turn the Charts trade plan into a one-time auto strategy when t
 1. Send with a plan shows "Chart plan - SYM" in Strategies, running in Auto.
 2. A 3m close above Entry opens one trade with the plan's stop and target.
 3. The strategy is gone after its trade closes, or the next day if it never bought.
+
+---
+
+## FO-GUI-046: Custom Indicators Screen
+
+**Status:** Approved (user, 2026-11-23)
+**Priority:** Should
+**Depends on:** FO-EXE-022 (Custom Indicator Plugins), FO-GUI-013 (strategy builder trigger conditions), FO-GUI-027 (Settings dialog)
+**Source:** User design 2026-11-23 — every popup row comes from the indicator file's `parameters`; import and export from the tool; build and test in VS Code.
+
+The system shall let a user manage their own indicators in the tool and use them in strategy trigger conditions.
+
+- The system shall build the trigger condition popup rows of a custom indicator only from its `parameters`, in the same order, labels, limits and defaults.
+- The system shall show a Settings section listing the indicators of this PC (shared by all users) with name, version and status.
+- The system shall let the user import an indicator file after a warning that it runs code on their PC, and shall show the reason when the import is refused.
+- The system shall let the user export, remove and reload an indicator, and check it on one stock.
+- The system shall let the user start a new indicator from a ready project folder and open it in VS Code when it is installed.
+- The system shall put a guide in each new project so an AI helper in VS Code knows the indicator rules and the check command.
+- The system shall let the user open an existing indicator project or create a new one from the same New indicator button.
+- The system shall give a plain-language guide to the indicator API, in each project and in the tool.
+- The system shall set up the Python that indicator tests need with one click.
+
+### Acceptance Criteria
+
+1. Importing the SWING example lists it as Loaded, and the trigger popup shows Symbol Type, Candles, Price Swing, Window and Timeframe in that order.
+2. A refused file shows its reason and does not appear in the indicator list of the popup.
+3. Removing an indicator used by a strategy asks first and names the strategies.
+4. New indicator creates the project folder with an example file and a test file.

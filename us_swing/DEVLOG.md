@@ -2,6 +2,129 @@
 
 ---
 
+## [20261123] EXE, GUI — Custom indicator plugins done end to end; session close (two RNs)
+
+- Type: Feature (branch `feat/usswing-indicator-plugins`, being pushed and merged to main)
+- FO(s): FO-EXE-022, FO-GUI-046
+- RN: RN-EXE-1.42.0-20261123, RN-GUI-2.9.0-20261123
+- Artifacts updated: RN (2), TRACE (EXE and GUI), CONTEXT, DEVLOG
+- Decisions: indicator folders shared by all users; Check reads Backtest Data for S&P 500 stocks; candles always have a `datetime` column
+
+---
+
+## [20261123] GUI — Settings Indicators buttons are icon-only with name tooltips
+
+- Type: Small change (branch `feat/usswing-indicator-plugins`, unpushed); user asked from a screenshot
+- FO(s): FO-GUI-046 (SRD-GUI-046.003)
+- Artifacts: UTCD (UT-GUI-046.003.M02.T03), Code (`indicators_section._icon_button`), Tests, DEVLOG
+- Decisions: Set up Python = wrench icon, Help = scroll-text icon; name also set as accessible name
+
+---
+
+## [20261123] EXE, GUI — Check reads Backtest Data for S&P 500 stocks; candles always have datetime
+
+- Type: Change + fix (branch `feat/usswing-indicator-plugins`, unpushed); user's screenshot showed Check failing with no 3m data for stock A
+- FO(s): FO-GUI-046 (SRD-GUI-046.006), FO-EXE-022 (SRD-EXE-022.003/.011)
+- Artifacts: SRD, DD, MD, UTCD (UT-GUI-046.006.M02.T02–T03, UT-EXE-022.003.M01.T04), TRACE, Code (`app_service.backtest_frames`, `CheckDialog` S&P 500 list, `usswing._indicator.candles` renames ts), Tests, DEVLOG
+- Decisions: Check reads the last 60 days of 3m/15m/30m and 3 years of 1d/1w from Backtest Data (rule: analysis reads Backtest Data); stocks from the S&P 500 list, read by their IBKR symbol (BRK.B -> BRK B)
+- Fix found on the way: replay gave indicators a `ts` column while live gave `datetime`, so `candles["datetime"]` broke in backtests; `candles()` now always gives `datetime`
+- Checked for real: 503 stocks; AAPL and BRK B read in under 0.2 s and run SWING_PLUS
+- Open: the import check's dry run and `indicator check` still read candles.db (asked the user); T232–T236; Revision Notes; PR when the user says
+
+---
+
+## [20261123] EXE, GUI — One shared indicator folder (no user id); Import opens the projects folder
+
+- Type: Change (branch `feat/usswing-indicator-plugins`, unpushed); user asked why the path had `1` and chose one shared folder
+- FO(s): FO-EXE-022 (SRD-EXE-022.008 changed), FO-GUI-046 (SRD-GUI-046.001/.003 wording; .004 Import folder)
+- Artifacts: FO, SRD, DD, MD, UTCD (UT-EXE-022.008.M03.T01–T03, UT-GUI-046.003.M02.T02, .004.M02.T04), TRACE, Code (`_registry.py` `plugin_dir()`, `move_user_folders()`, `load()`; `indicator_project.py` and `indicators_section.py` without user ids; `app_service.reload_indicators`), Tests, TODO (T236), CONTEXT, DEVLOG
+- Decisions: folders `plugins/indicators` and `plugins/projects`; old `plugins/<id>/` moved on load; never overwrite; an item Windows will not move stays and is tried again next start
+- Open: T232–T236 user checks; Revision Notes; PR when the user says
+
+---
+
+## [20261123] GUI — Import opens in the latest indicator project
+
+- Type: Small change (branch `feat/usswing-indicator-plugins`, unpushed); user's screenshot showed Import opening in the home folder
+- FO(s): FO-GUI-046 (SRD-GUI-046.004)
+- Artifacts: MD, UTCD (UT-GUI-046.004.M02.T04 Pass), Code (`indicator_project.import_start_folder`, `indicators_section._pick_import_file`), Tests, DEVLOG
+- Decisions: open the project whose .py file changed last; else the projects folder; else home
+
+---
+
+## [20261123] GUI — Indicator API guide as a web page in the browser
+
+- Type: Feature change (branch `feat/usswing-indicator-plugins`, unpushed); user found the in-app guide hard to read and copy from
+- FO(s): FO-GUI-046 (SRD-GUI-046.010 wording updated)
+- Artifacts: SRD, MD, UTCD, TRACE, Code (`gui/guide_html.py` new; `indicator_guides.py` rewritten as an API reference; `indicator_project.py` writes `USSWING_API.html` and `open_api_page`; `indicators_section.py` HelpDialog removed), Tests, CONTEXT, DEVLOG
+- Decisions: one text source (Markdown for AI helpers) turned into the web page, so they cannot drift; no web fonts or scripts from the internet (works offline); Copy uses the classic copy command first, the clipboard API as backup
+- Checked for real: page screenshots (menu, signatures, tables, recipes, search); Copy with a real click in Chrome pasted the code
+- Open: T232–T235 user checks; Revision Notes; PR when the user says
+
+---
+
+## [20261123] GUI — Easy indicator setup: API guide + Help, missing files on Open, extension tips, one-click Python
+
+- Type: Feature (branch `feat/usswing-indicator-plugins`, unpushed)
+- FO(s): FO-GUI-046 (2 statements added; SRD-GUI-046.010–.013 added by user request in chat, Implemented)
+- Artifacts: FO, SRD, MD (MD-GUI-046.013.M04 new), UTCD (6 tests Pass), TRACE, Code (`gui/indicator_guides.py`, `gui/indicator_python.py` new; `indicator_project.py` rewritten around `ensure_project_files`; `indicators_section.py` Help + Set up Python), Tests, TODO (T235), CONTEXT, DEVLOG
+- Decisions: one shared Python env for all projects (not one per project); env from the PC's own Python (`py -3.11` first, Windows Store stub skipped); guides added only when missing; two-timeframe recipe lines up by candle close time (no future leak)
+- Checked for real: Set up Python on this PC (85 s) and the project test passed with it; Help, Set up Python and section screenshots
+- Open: T232–T235 user checks; Revision Notes; PR when the user says
+
+---
+
+## [20261123] GUI — AI guide in new indicator projects; New indicator opens or creates a project
+
+- Type: Feature (branch `feat/usswing-indicator-plugins`, unpushed)
+- FO(s): FO-GUI-046 (2 statements added; SRD-GUI-046.008–.009 added by user request in chat, Implemented)
+- Artifacts: FO, SRD, MD, UTCD (2 tests Pass), TRACE, Code (`gui/indicator_project.py` CLAUDE.md + `list_projects`, `gui/indicators_section.py` `ProjectDialog`), Tests, TODO (T234), CONTEXT, DEVLOG
+- Decisions: option A (guide file) chosen over B (Create with AI in the tool); built-in names in the guide come from the tool; checked for real: the check command written in the guide passes; dialog checked by screenshot
+- Open: T232–T234 user checks; Revision Notes; PR when the user says
+
+---
+
+## [20261123] EXE — Custom indicator plugins P4: chart preview; live warning-per-candle fix
+
+- Type: Feature + fix (branch `feat/usswing-indicator-plugins`, unpushed)
+- FO(s): FO-EXE-022 (SRD-EXE-022.017 Implemented — all FO-EXE-022 and FO-GUI-046 SRDs now built)
+- Artifacts: SRD, DD (preview layout), UTCD (UT-EXE-022.017.M07.T01 Pass; UT-EXE-022.012.M05.T04 added, Pass), TRACE, Code (`sdk/usswing/dev.py`, `core/indicator_plugins/_runner.py`, project template hint), Tests (`tests/execution/test_usswing_dev.py`, runtime test), TODO (T230), CONTEXT, DEVLOG
+- Decisions: lines go in a second pane (not over candles); signal arrows on candles; chart script read from the install, web copy only as fallback; title and data escaped
+- Fix: `_candle_key` now reads `datetime` (live) or `ts` (replay), so a failing indicator warns once per candle, not on every failure
+- Open: T232/T233 user checks; Revision Notes; PR when the user says
+
+---
+
+## [20261123] EXE, GUI — Custom indicator plugins P3: testing kit, indicator check command, Check button, New indicator project
+
+- Type: Feature (branch `feat/usswing-indicator-plugins`, unpushed)
+- FO(s): FO-EXE-022 (SRD-EXE-022.015–.016 Implemented), FO-GUI-046 (SRD-GUI-046.006–.007 Implemented)
+- Artifacts: SRD, DD (exe console + shipped sdk note), MD, UTCD (7 tests Pass), TRACE (EXE + GUI), Code (`sdk/usswing/testing.py`, `_indicator.py` time column, `core/indicator_plugins/_cli.py`, `__main__.py`, `gui/indicators_section.py` Check + New indicator, `gui/indicator_project.py`, `app_service.py` `candle_frames`, `USSwing.spec`), Tests (`tests/execution/test_usswing_testing.py`, `tests/gui/test_indicators_gui.py`), TODO (T230, T233), CONTEXT, DEVLOG
+- Decisions: user chose a VS Code project with a tool "Check indicator" task plus own-Python tests; trace CSV holds every stock with a symbol column; Check uses the engine's own candle frames, outside the live failure count
+- Found by a real run: the command crashed on the db ↔ data import cycle; fixed by importing `us_swing.data` first
+- Open: P4 preview (SRD-EXE-022.017); T232/T233 user checks; RN + PR when the user says; MCP config updated (restart Claude Code)
+
+---
+
+## [20261123] EXE, GUI — Custom indicator plugins P2: popup rows, Settings Indicators, refused-start popup; library moved to sdk/
+
+- Type: Feature (branch `feat/usswing-indicator-plugins`, unpushed)
+- FO(s): FO-GUI-046 (SRD-GUI-046.001–.005 Implemented), FO-EXE-022 (SRD-EXE-022.014 GUI side)
+- Artifacts: SRD, MD, UTCD (13 UT-GUI-046 Pass; UT-EXE-022.014.M05.T03 added, Pass), TRACE (GUI + EXE), DD/MD path fix for `sdk/usswing/`, Code (`gui/indicators_section.py` new, `strategy_builder_dialog.py`, `settings_panel.py`, `strategies_pane.py`, `app_service.py`), Tests (`tests/gui/test_indicators_gui.py`, `test_settings_sections.py` now 10 sections), TODO (T230 updated, T232 added), CONTEXT, DEVLOG; no RN yet (feature not finished)
+- Decisions: user chose to move the `usswing` library out of `src/` to `us_swing/sdk/` (import name kept); SRD-EXE-022.001 Notes path changed (Implemented row, path only, user told); Number rows use spin boxes so limits hold; refusals that arrive together show one popup
+- Open: T232 user app check; P3 kit/CLI/Check/New indicator; P4 preview; user's Claude MCP config needs `us_swing/sdk` on `PYTHONPATH`; push/PR only when user says
+
+---
+
+## [20261123] EXE, GUI — Custom indicator plugins: FO/SRD/DD/MD/UTCD + P1 code; also PR #173–#175 merged
+
+- Type: Feature (branch `feat/usswing-indicator-plugins`, unpushed) + GUI fix batch (PR #175 merged de7abafd) + SRD wording reopen (PR #174)
+- FO(s): FO-EXE-022 (SRD-EXE-022.001–.017 approved; .001–.014 Implemented), FO-GUI-046 (SRD-GUI-046.001–.007 approved, not built)
+- Artifacts: FO, SRD, DD (DD-EXE-022.*), MD (MD-EXE-022.M01–M07, MD-GUI-046.M01–M03), UTCD (47 EXE, 16 GUI; UT-EXE-022.001–.014 Pass), TRACE, Code (`src/usswing/`, `core/indicator_plugins/`, evaluator/series/engine hooks, IndicatorStoppedEvent), Tests (56 plugin tests), TODO (T230, T231), CONTEXT, DEVLOG; no RN yet (feature not finished)
+- Decisions: user-fixed API names (`parameters`, `Input` capital I, `self.parameter`); every popup row comes only from the file's `parameters`; plugins per user under `~/.usswing/plugins/<user_id>/indicators/`; plotting only in `usswing.dev` (refused in plugin files); review fixes: worker-thread deadline, sys.exit caught, per-stock failure count, fresh compile, probe errors give notes not refusals
+- Open: P2 GUI (see CONTEXT §0 handover), P3 kit/CLI, P4 preview; T231 old failing manual-picks tests; push/PR only when user says
+
+---
 ## [20261123] GUI, BKT, EXE — Bugfix batch part 3: date pickers, time left, Direction column, Swing Lookback 1–500, benchmark key
 
 - Type: Bugfix (branch `fix/bugfix-batch-20261122-2`; 6 commits: 7fdee873, b8ae904c, eb9fef3e, 14961e7a, 48188ccd, c2409af2; unpushed)

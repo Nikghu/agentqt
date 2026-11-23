@@ -1,10 +1,19 @@
 # Software Requirements Document — GUI Module (GUI)
 
 **Document ID:** SRD-GUI
-**Version:** 2.140.4
+**Version:** 2.143.3
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-11-23
+> v2.143.3: SRD-GUI-046.006 reads Backtest Data and lists S&P 500 stocks (user asked 2026-11-23).
+> v2.143.2: SRD-GUI-046.001/.003 wording: indicators shared by all users (user decision 2026-11-23: one shared folder, no user part).
+> v2.143.1: SRD-GUI-046.010 wording: the guide is a web page opened in the browser (user asked 2026-11-23).
+> v2.143.0: SRD-GUI-046.010–.013 added (user asked in chat 2026-11-23) and Implemented.
+> v2.142.0: SRD-GUI-046.008–.009 added (user asked in chat 2026-11-23) and Implemented.
+> v2.141.3: SRD-GUI-046.006–.007 Implemented (P3).
+> v2.141.2: SRD-GUI-046.001–.005 Implemented (P2).
+> v2.141.1: SRD-GUI-046.001–.007 approved by user 2026-11-23.
+> v2.141.0: SRD-GUI-046.001–.007 added as Draft — Custom Indicators screen (user design 2026-11-23).
 > v2.140.4: SRD-GUI-030.009/.011/.012 and SRD-GUI-031.073 reopened by user 2026-11-23 — wording updated to match the app (Partial button, partial Universe status, complete/partial top line, Direction column).
 > v2.140.3: SRD-GUI-002.005 (Reopen) — Trade History adds a Value column and drag-resizable columns (ISS-GUI-0023, user request 2026-11-21).
 > v2.140.2: SRD-GUI-019.012–.017 Implemented.
@@ -870,3 +879,23 @@ One phase. No engine change: uses the existing include scope, rex count and perc
 | SRD-GUI-045.006 | FO-GUI-045 | Must | Send without Entry, Stop and Target, or with Stop not below Entry and Target, shows a warning and sends nothing. | click | warning | "Set Entry, Stop and Target with Edit first" / "Stop must be below Entry and Target above Entry"; changes "no valid plan adds the pick only" in SRD-GUI-045.001 and SRD-GUI-026.010 | Implemented |
 | SRD-GUI-045.007 | FO-GUI-045 | Must | The Inspector Shares row shows the shares the available capital buys at Entry (Max Capital minus open trades) and their cost; Edit can change the shares. | plan, available capital | shares, cost | The shares box cannot go above the available size; replaces the 1% risk size of SRD-GUI-026.006 and SRD-GUI-045.003 | Implemented |
 | SRD-GUI-045.008 | FO-GUI-045 | Must | Send buys exactly the shown shares; with no capital available it shows "No capital available for this trade" and sends nothing. | shares | strategy with a fixed share count | Uses SRD-EXE-017.028; the engine still never buys more than the free capital | Implemented |
+
+## FO-GUI-046 — Custom Indicators Screen
+
+Builds on FO-EXE-022. Every popup row comes from the indicator file; the screen adds nothing of its own.
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-GUI-046.001 | FO-GUI-046 | Must | The trigger condition popup lists the custom indicators after the built-in ones. | loaded plugins | indicator list | Refused plugins are not listed | Implemented |
+| SRD-GUI-046.002 | FO-GUI-046 | Must | Picking a custom indicator builds one popup row per entry of its `parameters`, with the same order, label, limits and default. | `parameters` | popup rows | `Number` gives a number box with its limits; `Input` gives a dropdown of its options | Implemented |
+| SRD-GUI-046.003 | FO-GUI-046 | Must | Settings gains an Indicators section that lists the indicators (shared by all users) with name, version and status. | plugin folder | list | Status is Loaded, or Refused with its reason | Implemented |
+| SRD-GUI-046.004 | FO-GUI-046 | Must | Import picks a `.py` file, warns that it runs code on this PC, and adds it only when the plugin check passes. | file | added indicator, or reason | Uses the checks of SRD-EXE-022.005–.007 | Implemented |
+| SRD-GUI-046.005 | FO-GUI-046 | Must | Export saves a copy of an indicator file, Reload re-reads all files, and Remove asks first and names the strategies that use it. | selected indicator | file copy, reloaded list, removed file | Remove of a used indicator also stops those strategies | Implemented |
+| SRD-GUI-046.006 | FO-GUI-046 | Should | Check runs the indicator on a chosen S&P 500 stock's Backtest Data and shows its last 20 values and debug values. | indicator, stock | values table | Same check as SRD-EXE-022.007 | Implemented |
+| SRD-GUI-046.007 | FO-GUI-046 | Should | New indicator creates a project folder with an example indicator, a test file and VS Code settings, and opens it in VS Code when installed. | name | project folder | Shows the folder instead when VS Code is not found | Implemented |
+| SRD-GUI-046.008 | FO-GUI-046 | Should | A new project holds a `CLAUDE.md` guide with the indicator rules, the built-in names and the exact check command. | name | guide file | Lets an AI helper write and check the indicator | Implemented |
+| SRD-GUI-046.009 | FO-GUI-046 | Should | New indicator lists the user's projects to open, and also creates a new one. | user's projects | opened or new project | Opens in VS Code, or shows the folder | Implemented |
+| SRD-GUI-046.010 | FO-GUI-046 | Should | Each project holds the API guide as text (`USSWING_API.md`) and as a web page (`USSWING_API.html`); Help opens the page in the browser. | — | guide, web page | Recipes in it pass the import check | Implemented |
+| SRD-GUI-046.011 | FO-GUI-046 | Should | Opening a project adds any missing guide and VS Code files. | project folder | added files | Never changes the user's code or own settings | Implemented |
+| SRD-GUI-046.012 | FO-GUI-046 | Could | Each project recommends the Python and Claude Code VS Code extensions. | — | `.vscode/extensions.json` | VS Code offers to install them | Implemented |
+| SRD-GUI-046.013 | FO-GUI-046 | Should | Set up Python makes one shared Python environment with pandas, numpy and pytest and points every project at it. | Python 3.10+ on the PC | environment, project settings | Plain message with the download link when no Python is found | Implemented |

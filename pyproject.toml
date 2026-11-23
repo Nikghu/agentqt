@@ -54,6 +54,7 @@ line-length = 99
 [tool.mypy]
 strict = true
 python_version = "3.11"
+mypy_path = "$MYPY_CONFIG_FILE_DIR/us_swing/sdk"
 
 [[tool.mypy.overrides]]
 module = "keyring"

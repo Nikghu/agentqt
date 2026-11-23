@@ -1,12 +1,14 @@
 # Functional Objectives — Execution & Risk Management (EXE)
 
 **Document ID:** FO-EXE
-**Version:** 1.17.0
+**Version:** 1.18.1
 **Status:** Draft
-**Last Updated:** 2026-10-23
+**Last Updated:** 2026-11-23
 **Project:** US Swing Trading System
 
 > Traces to: `us_swing/requirements.md` §10, §11, §12, §13, §21.4, §22, §23, §25
+> v1.18.1: FO-EXE-022 indicators shared by all users (user decision 2026-11-23: one shared folder, no user part).
+> v1.18.0: FO-EXE-022 added as Draft — Custom Indicator Plugins (`usswing` library; user design 2026-11-23).
 > v1.17.0: AI Desk and Market Floor removed (user, 2026-11-17; docs/audit/DESK_REMOVAL_2026-11-17.md): FO-EXE-021 removed.
 > v1.9.0: FO-EXE-014 added — Broker Order State Machine (Final_Execution.md Phase 3 split of `PositionState` into `BuyOrderState` + `SellOrderState`; `trades.pnl` and `positions.state` removed).
 > v1.10.0: FO-EXE-015 added — Broker-Agnostic Order Ingestion & Adapter (Broker_fix.md Phases 2/5/6).
@@ -675,4 +677,34 @@ The system shall save each user's account equity every 5 minutes while the marke
 1. With the app open from 09:30 to 10:00 ET, each user has 7 rows (09:30 … 10:00).
 2. Saving twice in the same slot keeps one row with the latest values.
 3. Reading "all users" returns one point per slot with summed equity.
+
+---
+
+## FO-EXE-022: Custom Indicator Plugins
+
+**Status:** Approved (user, 2026-11-23)
+**Priority:** Should
+**Depends on:** FO-EXE-011 (strategy engine and trigger expressions)
+**Source:** User design 2026-11-23 — private indicators written in VS Code with a `usswing` library, kept on the user's PC, imported into the tool; names fixed by the user (`USSwingIndicator`, `parameters`, `Number`, `Input`, `calculate`, `self.candles`, `self.parameter`, `self.debug_value`).
+**Cross-tool impact (notes, not EXE IDs):** GUI — trigger condition popup built from `parameters`, Settings → Indicators screen (FO-GUI-046). BKT — strategy replay reads the same indicator. Strategy plugins (`USSwingStrategy`) are a later FO.
+
+The system shall let a user write their own indicator as a Python file with the public `usswing` library, keep it only on their PC, and use it in strategy trigger conditions like a built-in indicator.
+
+- The system shall provide a public `usswing` library with the base class `USSwingIndicator` and the parameter types `Number` and `Input`.
+- An indicator file shall declare `indicator_name`, `description`, `version`, `output_type` and the full `parameters` list, and shall compute its values in `calculate()`.
+- The system shall add no parameter of its own; the indicator file is the only source of its parameters.
+- The system shall keep the indicators in one local plugins folder on the PC, shared by all its users, never in the code repository or the installer.
+- The system shall check an indicator file and run it once on real candles before it can be used, and shall refuse it with a plain reason when a check fails.
+- The live engine and the strategy replay shall use the same `calculate()` result.
+- A failing indicator shall give no signal for that candle and be logged; three failures in a row shall stop the strategies that use it and alert the user.
+- A strategy that uses an indicator the user does not have shall not start.
+- The system shall give the user a way to check an indicator on their local candles outside the tool, with a table of `debug_value` outputs.
+
+### Acceptance Criteria
+
+1. The SWING example file imports, and picking it shows exactly its 5 parameters in the file's order and labels.
+2. A file whose `calculate()` reads a parameter not in `parameters` is refused with that parameter's name.
+3. A strategy with condition `Price(Spot, 3m) > SWING(Spot, 20, High, Previous, 3m)` written with the imported SWING gives the same value live and in replay for the same candle.
+4. An indicator that raises an error on every candle stops its strategy after three candles and the user gets an alert.
+5. Every user on the same PC sees the same indicators; files in the old per-user folders are moved to the shared folder once.
 

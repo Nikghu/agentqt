@@ -108,8 +108,8 @@ def test_summary_trades_compare(store: BacktestStore, tmp_path: Path) -> None:
 
 def test_stdio_session(tmp_path: Path) -> None:
     """UT-MCP-007.001.M01.T02: A real stdio session lists the tools and gets a plain error."""
-    env = {**os.environ, "PYTHONPATH": str(_SRC), "USERPROFILE": str(tmp_path),
-           "HOME": str(tmp_path)}
+    env = {**os.environ, "PYTHONPATH": os.pathsep.join([str(_SRC), str(_SRC.parent / "sdk")]),
+           "USERPROFILE": str(tmp_path), "HOME": str(tmp_path)}
     params = StdioServerParameters(command=sys.executable, args=["-m", "us_swing.mcp"],
                                    env=env)
 
