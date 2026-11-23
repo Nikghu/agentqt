@@ -139,16 +139,16 @@
 | FO-GUI-044 | SRD-GUI-044.001–.010 | DD-GUI-044.001.D01 | MD-GUI-044.001.M01, MD-GUI-044.001.M02, MD-GUI-044.004.M03 | UT-GUI-044.001.M02.T01–T02, .002.M02.T01–T04, .003.M02.T01–T02, .004.M03.T01, .004.M02.T01, .005.M02.T01–T03, .006.M02.T01, .007.M02.T01, .009.M02.T01, .010.M02.T01–T03 (19, Pass) | `gui/screener_tree.py`, `gui/screener_panel.py`, `gui/screener_views.py` | Implemented | RN-GUI-2.5.0-20261119 |
 | FO-GUI-045 | SRD-GUI-045.001–.006 | — (no DD, minimal GUI docs) | MD-GUI-045.001.M01, MD-GUI-045.001.M02 | UT-GUI-045.001.M01.T01–T08, UT-GUI-045.006.M02.T01 (9, Pass) | `gui/chart_plan.py`, `gui/app_service.py`, `gui/chart_workspace.py`, `gui/strategies_pane.py` | Implemented | RN-GUI-2.6.0-20261120 |
 | FO-GUI-045 | SRD-GUI-045.007–.008 | — (no DD, minimal GUI docs) | MD-GUI-045.007.M03, MD-GUI-045.001.M01, MD-GUI-045.001.M02 | UT-GUI-045.007.M03.T01, UT-GUI-045.008.M02.T01, UT-GUI-045.008.M01.T01–T02 (4, Pass) | `gui/chart_inspector.py`, `gui/chart_workspace.py`, `gui/chart_plan.py`, `gui/strategy_store.py` | Implemented | RN-GUI-2.7.0-20261122 |
-| FO-GUI-046 | SRD-GUI-046.001–.002 | — (minimal GUI docs; design in DD-EXE-022.*.D01) | MD-GUI-046.001.M01 | UT-GUI-046.001.M01.T01–T02, .002.M01.T01–T03 (5, Pass) | `gui/strategy_builder_dialog.py` | Implemented (P2) | — |
-| FO-GUI-046 | SRD-GUI-046.003–.005 | — (minimal GUI docs; design in DD-EXE-022.*.D01) | MD-GUI-046.003.M02 | UT-GUI-046.003.M02.T01–T02, .004.M02.T01–T03, .005.M02.T01–T03 (8, Pass) | `gui/indicators_section.py`, `gui/settings_panel.py`, `gui/app_service.py` | Implemented (P2) | — |
-| FO-GUI-046 | SRD-GUI-046.006 | — (minimal GUI docs; design in DD-EXE-022.*.D01) | MD-GUI-046.003.M02 | UT-GUI-046.006.M02.T01–T03 (3, Pass) | `gui/indicators_section.py` | Implemented (P3) | — |
-| FO-GUI-046 | SRD-GUI-046.007 | — (minimal GUI docs; design in DD-EXE-022.*.D01) | MD-GUI-046.007.M03 | UT-GUI-046.007.M03.T01–T02 (2, Pass) | `gui/indicator_project.py` | Implemented (P3) | — |
-| FO-GUI-046 | SRD-GUI-046.008 | — (minimal GUI docs) | MD-GUI-046.007.M03 | UT-GUI-046.008.M03.T01 (1, Pass) | `gui/indicator_project.py` | Implemented | — |
-| FO-GUI-046 | SRD-GUI-046.009 | — (minimal GUI docs) | MD-GUI-046.003.M02 | UT-GUI-046.009.M02.T01 (1, Pass) | `gui/indicators_section.py`, `gui/indicator_project.py` | Implemented | — |
-| FO-GUI-046 | SRD-GUI-046.010 | — (minimal GUI docs) | MD-GUI-046.007.M03 | UT-GUI-046.010.M03.T01–T02 (2, Pass) | `gui/indicator_guides.py`, `gui/guide_html.py`, `gui/indicators_section.py` | Implemented | — |
-| FO-GUI-046 | SRD-GUI-046.011 | — (minimal GUI docs) | MD-GUI-046.007.M03 | UT-GUI-046.011.M03.T01 (1, Pass) | `gui/indicator_project.py` | Implemented | — |
-| FO-GUI-046 | SRD-GUI-046.012 | — (minimal GUI docs) | MD-GUI-046.007.M03 | UT-GUI-046.012.M03.T01 (1, Pass) | `gui/indicator_project.py` | Implemented | — |
-| FO-GUI-046 | SRD-GUI-046.013 | — (minimal GUI docs) | MD-GUI-046.013.M04 | UT-GUI-046.013.M04.T01–T02 (2, Pass) | `gui/indicator_python.py`, `gui/indicators_section.py` | Implemented | — |
+| FO-GUI-046 | SRD-GUI-046.001–.002 | — (minimal GUI docs; design in DD-EXE-022.*.D01) | MD-GUI-046.001.M01 | UT-GUI-046.001.M01.T01–T02, .002.M01.T01–T03 (5, Pass) | `gui/strategy_builder_dialog.py` | Implemented (P2) | RN-GUI-2.9.0-20261123 |
+| FO-GUI-046 | SRD-GUI-046.003–.005 | — (minimal GUI docs; design in DD-EXE-022.*.D01) | MD-GUI-046.003.M02 | UT-GUI-046.003.M02.T01–T02, .004.M02.T01–T03, .005.M02.T01–T03 (8, Pass) | `gui/indicators_section.py`, `gui/settings_panel.py`, `gui/app_service.py` | Implemented (P2) | RN-GUI-2.9.0-20261123 |
+| FO-GUI-046 | SRD-GUI-046.006 | — (minimal GUI docs; design in DD-EXE-022.*.D01) | MD-GUI-046.003.M02 | UT-GUI-046.006.M02.T01–T03 (3, Pass) | `gui/indicators_section.py` | Implemented (P3) | RN-GUI-2.9.0-20261123 |
+| FO-GUI-046 | SRD-GUI-046.007 | — (minimal GUI docs; design in DD-EXE-022.*.D01) | MD-GUI-046.007.M03 | UT-GUI-046.007.M03.T01–T02 (2, Pass) | `gui/indicator_project.py` | Implemented (P3) | RN-GUI-2.9.0-20261123 |
+| FO-GUI-046 | SRD-GUI-046.008 | — (minimal GUI docs) | MD-GUI-046.007.M03 | UT-GUI-046.008.M03.T01 (1, Pass) | `gui/indicator_project.py` | Implemented | RN-GUI-2.9.0-20261123 |
+| FO-GUI-046 | SRD-GUI-046.009 | — (minimal GUI docs) | MD-GUI-046.003.M02 | UT-GUI-046.009.M02.T01 (1, Pass) | `gui/indicators_section.py`, `gui/indicator_project.py` | Implemented | RN-GUI-2.9.0-20261123 |
+| FO-GUI-046 | SRD-GUI-046.010 | — (minimal GUI docs) | MD-GUI-046.007.M03 | UT-GUI-046.010.M03.T01–T02 (2, Pass) | `gui/indicator_guides.py`, `gui/guide_html.py`, `gui/indicators_section.py` | Implemented | RN-GUI-2.9.0-20261123 |
+| FO-GUI-046 | SRD-GUI-046.011 | — (minimal GUI docs) | MD-GUI-046.007.M03 | UT-GUI-046.011.M03.T01 (1, Pass) | `gui/indicator_project.py` | Implemented | RN-GUI-2.9.0-20261123 |
+| FO-GUI-046 | SRD-GUI-046.012 | — (minimal GUI docs) | MD-GUI-046.007.M03 | UT-GUI-046.012.M03.T01 (1, Pass) | `gui/indicator_project.py` | Implemented | RN-GUI-2.9.0-20261123 |
+| FO-GUI-046 | SRD-GUI-046.013 | — (minimal GUI docs) | MD-GUI-046.013.M04 | UT-GUI-046.013.M04.T01–T02 (2, Pass) | `gui/indicator_python.py`, `gui/indicators_section.py` | Implemented | RN-GUI-2.9.0-20261123 |
 
 ---
 

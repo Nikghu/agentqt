@@ -2,6 +2,16 @@
 
 ---
 
+## [20261123] EXE, GUI — Custom indicator plugins done end to end; session close (two RNs)
+
+- Type: Feature (branch `feat/usswing-indicator-plugins`, being pushed and merged to main)
+- FO(s): FO-EXE-022, FO-GUI-046
+- RN: RN-EXE-1.42.0-20261123, RN-GUI-2.9.0-20261123
+- Artifacts updated: RN (2), TRACE (EXE and GUI), CONTEXT, DEVLOG
+- Decisions: indicator folders shared by all users; Check reads Backtest Data for S&P 500 stocks; candles always have a `datetime` column
+
+---
+
 ## [20261123] GUI — Settings Indicators buttons are icon-only with name tooltips
 
 - Type: Small change (branch `feat/usswing-indicator-plugins`, unpushed); user asked from a screenshot
