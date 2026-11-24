@@ -2,6 +2,16 @@
 
 ---
 
+## [20261124] EXE — Lost IBKR fill after restart fixed (ISS-EXE-0018) + Backtest data, Position and LTP GUI fixes; session close
+
+- Type: Bugfix (branch `fix/bugfix-batch-20261124`, 4 commits, unpushed)
+- FO(s): FO-EXE-015 (ISS-EXE-0018); GUI items on FO-GUI-030, FO-GUI-019, FO-GUI-025 (no new SRDs)
+- RN: RN-EXE-1.43.0-20261124 (no GUI RN written)
+- Artifacts updated: SRD (SRD-EXE-015.010–.011), DD (DD-EXE-015.010.D01), MD (MD-EXE-015.010.M01, MD-EXE-015.011.M01–M02), UTCD (UT-EXE-015.010.M01.T01–T02, UT-EXE-015.011.M01.T01–T02, UT-EXE-015.011.M02.T01–T04, UT-GUI-030.006.M01.T05, UT-GUI-019.003.M01.T03, UT-GUI-025.016.M04.T03), Code (broker/ibkr.py, execution/order_ingestion.py, db/manager.py, gui/app_service.py, gui/backtest_data_panel.py, gui/side_panels.py, gui/position_table_model.py, gui/dashboard_panel.py), Tests, Issue (ISS-EXE-0018), Data repair (trade cycle 46), TRACE, RN, CONTEXT, TODO (T221 Done; T241–T245 open), DEVLOG
+- Decisions: TWS order ids are not used as the app key; each order gets an app key sent as `orderRef` (never repeats); fills of earlier-session orders are caught up at connect, reconnect and on new executions; Market Value = qty × LTP; GUI fixes need no new SRD
+
+---
+
 ## [20261124] EXE — Installed app ships the usswing library (No module named 'usswing' fix); session close
 
 - Type: Bugfix (PR #180 open, commit a929314e)
