@@ -2,6 +2,16 @@
 
 ---
 
+## [20261124] EXE — Installed app ships the usswing library (No module named 'usswing' fix); session close
+
+- Type: Bugfix (PR #180 open, commit a929314e)
+- FO(s): FO-EXE-022
+- RN: RN-EXE-1.42.3-20261124
+- Artifacts updated: Config (usswing_installer.yaml), RN, TODO (T239, T240), CONTEXT, DEVLOG
+- Decisions: `usswing_installer.yaml` is the source of truth for PyInstaller options; spec-only edits are lost on the next build
+
+---
+
 ## [20261123] EXE — Rule exits saved with their real reason, not manual (ISS-EXE-0017)
 
 - Type: Bugfix (branch `fix/exe-stale-startup-eval`)
