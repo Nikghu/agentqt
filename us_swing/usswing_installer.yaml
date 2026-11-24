@@ -17,9 +17,10 @@ installer:
 package:
   enabled: true
   entry_script: run_gui.py
-  extra_paths: src
+  extra_paths: src;sdk
   pyinstaller_extra_args: --hidden-import talib.stream
     --add-data assets;assets --add-data src/us_swing/gui/resources;us_swing/gui/resources
+    --add-data sdk/usswing/*.py;sdk/usswing
   pyinstaller_onedir: true
   pyinstaller_windowed: true
 paths:
