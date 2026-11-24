@@ -252,3 +252,4 @@ Short, living task list. Keep each description ≤ 50 words; cite module + prior
 | T240 | EXE — After installing v1.14.1, start USSwing and run `USSwing.exe indicator check` from a Command Prompt (links to T233). | `usswing_installer.yaml`, `__main__.py` | Medium | Open |
 | T241 | GUI — Backtest data progress now shows "% done", time left uses the last 30 requests, "Done around" removed. Code done; user check: time left looks right during a 3m download. | `gui/backtest_data_panel.py` | Medium | Open |
 | T242 | GUI — Position card on the right now shows the Strategy name (dash for manual TWS positions). Code done; user check: select an open strategy trade and see its name. | `gui/side_panels.py` | Low | Open |
+| T243 | GUI — Open Positions: Current renamed LTP; new Market Value column (qty x LTP). Code done; user check: values and colours line up in the table, also in All users view. | `gui/position_table_model.py` | Low | Open |
