@@ -1567,6 +1567,7 @@ class AppService(QObject):
                 reject_sink=lambda rej: self._strategy_engine.on_order_reject(rej),
                 cycles=self._tc_command,
                 lifecycle=self._lifecycle_command,
+                cycle_query=self._tc_query,
             )
             self._broker_adapter = BrokerAdapter(
                 broker=self._broker,

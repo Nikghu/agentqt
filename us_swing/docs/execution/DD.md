@@ -3263,6 +3263,54 @@ its order. `trades.trade_id == broker_order_id` keeps the order ledger joined to
 
 ---
 
+## DD-EXE-015.010.D01 — Unique IBKR Order Key and Fill Catch-Up
+
+**Parent SRD:** SRD-EXE-015.010, SRD-EXE-015.011 (ISS-EXE-0018)
+
+TWS order ids are unique only within one connection; after a restart TWS may
+hand out `95` again. Because `trades.trade_id` is the primary key and the insert
+is `INSERT OR IGNORE`, a reused id silently dropped the new order's row.
+
+**Key.** `IBKRClientGateway` makes its own key, the way `SimBroker` does: a
+millisecond clock value that only goes up (`next = max(last + 1, now_ms)`).
+The key is set as `order.orderRef` and returned as `broker_order_id`. The
+gateway keeps `ib orderId → key` for status, error and cancel mapping inside
+the session. permId was not used: TWS assigns it only after the order is sent,
+so it is not known when the `trades` row is written.
+
+**Catch-up.** When `IBKRBroker` registers its status callback, the gateway
+schedules on the client loop: hook `ib.execDetailsEvent`, then scan `ib.fills()`
+(ib_insync loads today's executions on connect). For every fill whose
+`orderRef` is set and was not placed by this gateway, it sums shares and the
+share-weighted price over all fills with that ref and sends an
+`IbkrOrderUpdate("Submitted", cumulative, avg)`. `IBKRBroker` turns it into an
+`OrderEvent` with an empty `client_ref`.
+
+```python
+def on_order_event(ev):
+    ctx = context_for(ev.client_ref)
+    if ctx is None:
+        return _recover(ev)              # SRD-EXE-015.011
+    ...
+
+def _recover(ev):
+    row = ledger.trade_by_id(ev.broker_order_id)
+    if row is None or already_saved(row, ev):  # unknown, manual or repeat
+        return
+    status = FILLED if ev.filled >= row.quantity else PARTIAL_FILLED
+    cycle  = open cycle for (row.strategy_id, row.symbol) whose exit side == row.side
+    ledger.update_trade_fill(row.trade_id, ev.filled, state(status), exit or entry fields)
+    if cycle is None:
+        log "[Orders] ... filled while the app was away — check this trade in TWS"
+        return
+    cycles.on_exit_fill(exit_order_id=row.trade_id, ..., exit_reason="manual")
+```
+
+No `FillEvent` is sent to the engine for a caught-up fill: its in-flight state
+from the earlier session is gone, and the cycle close already frees the symbol.
+
+---
+
 # FO-EXE-016 — Retire `positions` Table; OrderIngestion-Driven Monitoring Lifecycle
 
 ## DD-EXE-016.001.D01 — Ingestion → Monitoring-Lifecycle Seam

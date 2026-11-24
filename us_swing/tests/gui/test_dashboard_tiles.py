@@ -616,6 +616,24 @@ def test_side_column_with_user_column(qtbot):
     assert row[-1] == "OPEN"
 
 
+def test_ltp_and_market_value_columns(qtbot):
+    """UT-GUI-025.016.M04.T03: LTP shows the last price; Market Value is quantity times LTP."""
+    from PyQt6.QtCore import Qt
+
+    from us_swing.gui.position_table_model import PositionTableModel
+    model = PositionTableModel()
+    model.refresh([_pos("AAPL", 200.0, 202.8, qty=2), _pos("APP", 374.78, 378.77, qty=2,
+                                                          side="SHORT")])
+    cols = model.COLUMNS
+    assert "Current" not in cols
+    assert cols[4:6] == ["LTP", "Market Value"]
+    assert model.data(model.index(0, 4)) == "$202.80"
+    assert model.data(model.index(0, 5)) == "$405.60"
+    assert model.data(model.index(1, 5)) == "$757.54"
+    align = model.data(model.index(0, 5), Qt.ItemDataRole.TextAlignmentRole)
+    assert align & Qt.AlignmentFlag.AlignRight
+
+
 def test_pnl_today_is_equity_change(qtbot, settings):
     """UT-GUI-025.018.M02.T01: P&L Today = equity − start-of-day equity, not the realised field."""
     svc = _service([])

@@ -343,3 +343,113 @@ class TestShortDirection:
 
         assert cycles.aborted == [("1001", "broker_reject")]
         assert not any("Short sale" in r.getMessage() for r in caplog.records)
+
+
+# ── Catch-up of fills from an earlier session (SRD-EXE-015.011, ISS-EXE-0018) ──
+
+class _ExitCaptureCycles(_StubCycles):
+    def __init__(self) -> None:
+        super().__init__()
+        self.exits: list[dict[str, object]] = []
+
+    def on_exit_fill(self, **k: object) -> None:
+        self.exits.append(k)
+
+
+class _CycleQuery:
+    def __init__(self, cycles: list[object]) -> None:
+        self._cycles = tuple(cycles)
+
+    def open_cycles(self) -> tuple[object, ...]:
+        return self._cycles
+
+
+def _closing_hrl() -> object:
+    from types import SimpleNamespace
+
+    from us_swing.execution.trade_cycle._dto import TradeCycleState
+
+    return SimpleNamespace(
+        strategy_id="Chart plan - HRL", symbol="HRL", direction="LONG",
+        exit_order_id=None, state=TradeCycleState.CLOSING,
+    )
+
+
+def _wire_catch_up(side: str, cycles_open: list[object]):  # type: ignore[no-untyped-def]
+    from datetime import datetime
+
+    from us_swing.data.models import TradeRecord
+
+    mgr = _make_db()
+    mgr.insert_trade(TradeRecord(
+        trade_id="1764000000000", user_id=1, symbol="HRL", side=side, quantity=5,
+        entry_price=21.41, mode="live", strategy_id="Chart plan - HRL",
+        entry_time=datetime(2026, 11, 24, 13, 50, 22),
+    ))
+    cycles = _ExitCaptureCycles()
+    fills: list[object] = []
+    ingestion = OrderIngestion(
+        ledger=mgr, fill_sink=fills.append, reject_sink=lambda _r: None,
+        cycles=cycles, cycle_query=_CycleQuery(cycles_open),  # type: ignore[arg-type]
+    )
+    return mgr, ingestion, cycles, fills
+
+
+def _caught_up(order_id: str = "1764000000000") -> OrderEvent:
+    return OrderEvent(
+        broker_order_id=order_id, client_ref="", status=OrderStatus.PARTIAL_FILLED,
+        filled_quantity=5, fill_price=23.10,
+    )
+
+
+class TestCatchUp:
+    def test_exit_fill_saves_row_and_closes_trade(self) -> None:
+        """UT-EXE-015.011.M02.T01: a caught-up exit fill saves the row and closes the trade."""
+        mgr, ingestion, cycles, fills = _wire_catch_up("SELL", [_closing_hrl()])
+
+        ingestion.on_order_event(_caught_up())
+
+        row = mgr.trade_by_id("1764000000000")
+        assert row is not None
+        assert (row.order_state, row.filled_quantity, row.exit_price) == ("FILLED", 5, 23.10)
+        assert len(cycles.exits) == 1
+        exit_call = cycles.exits[0]
+        assert (exit_call["exit_order_id"], exit_call["exit_qty"], exit_call["exit_price"]) == (
+            "1764000000000", 5, 23.10
+        )
+        assert exit_call["strategy_id"] == "Chart plan - HRL"
+        assert fills == []
+
+    def test_unknown_order_is_skipped(self) -> None:
+        """UT-EXE-015.011.M02.T02: a fill for an order the app never saved is skipped."""
+        mgr, ingestion, cycles, _fills = _wire_catch_up("SELL", [_closing_hrl()])
+
+        ingestion.on_order_event(_caught_up("999"))
+
+        assert mgr.trade_by_id("999") is None
+        assert cycles.exits == []
+
+    def test_repeat_closes_once(self) -> None:
+        """UT-EXE-015.011.M02.T03: the same caught-up fill twice closes the trade once."""
+        _mgr, ingestion, cycles, _fills = _wire_catch_up("SELL", [_closing_hrl()])
+
+        ingestion.on_order_event(_caught_up())
+        ingestion.on_order_event(_caught_up())
+
+        assert len(cycles.exits) == 1
+
+    def test_entry_fill_asks_user_to_check(self, caplog: pytest.LogCaptureFixture) -> None:
+        """UT-EXE-015.011.M02.T04: a caught-up entry fill saves the row, closes nothing, warns."""
+        mgr, ingestion, cycles, _fills = _wire_catch_up("BUY", [])
+
+        with caplog.at_level("WARNING"):
+            ingestion.on_order_event(_caught_up())
+
+        row = mgr.trade_by_id("1764000000000")
+        assert row is not None and (row.order_state, row.filled_quantity) == ("FILLED", 5)
+        assert cycles.exits == []
+        assert any(
+            r.getMessage() == "[Orders] HRL BUY 5 share(s) filled while the app was away "
+            "— check this trade in TWS"
+            for r in caplog.records
+        )

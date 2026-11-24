@@ -1,5 +1,5 @@
 """Module: MD-INF-009.005.M01 — broker/ibkr.py
-Parent SRD: SRD-INF-009.005
+Parent SRD: SRD-INF-009.005, SRD-EXE-015.010, SRD-EXE-015.011
 
 IBKR broker — implements the universal :class:`Broker` over Interactive
 Brokers (Broker_fix.md Phase 4).
@@ -19,6 +19,8 @@ from __future__ import annotations
 
 import asyncio
 import concurrent.futures
+import logging
+import time
 from collections import OrderedDict
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -67,6 +69,10 @@ class OrderGateway(Protocol):
 
     def on_status(self, callback: Callable[[IbkrOrderUpdate], None]) -> None: ...
 
+    def start_catch_up(self) -> None: ...
+
+
+_log = logging.getLogger(__name__)
 
 # IBKR statuses that finish an order.  The client reference is retired rather
 # than dropped: TWS can cancel an order and still fill it moments later, and a
@@ -158,6 +164,15 @@ class IBKRBroker(Broker):
         self._retired_ref: OrderedDict[str, str] = OrderedDict()
         gateway.on_status(self._on_update)
 
+    def on_event(self, callback: Callable[[OrderEvent], None]) -> None:
+        """Register a listener, then catch up on fills from earlier sessions.
+
+        Started only once someone listens, so a caught-up fill is never
+        emitted to nobody (SRD-EXE-015.011).
+        """
+        super().on_event(callback)
+        self._gateway.start_catch_up()
+
     def place_order(self, request: OrderRequest) -> str:
         broker_order_id = self._gateway.submit(
             request.symbol,
@@ -235,14 +250,64 @@ class IBKRClientGateway:
     def __init__(self, client: IBKRClient) -> None:
         self._client = client
         self._callbacks: list[Callable[[IbkrOrderUpdate], None]] = []
-        # Order ids this gateway placed.  errorEvent is account-wide, so an
-        # error for someone else's order — or a non-order error, which carries
-        # reqId -1 — must never be attributed to one of ours.
-        self._order_ids: set[str] = set()
+        # TWS order id → app order key, for orders this gateway placed.
+        # errorEvent is account-wide, so an error for someone else's order — or
+        # a non-order error, which carries reqId -1 — must never map to ours.
+        self._keys: dict[str, str] = {}
+        # TWS reuses order ids after a restart, so each order also gets an app
+        # key that only goes up, sent as its orderRef (SRD-EXE-015.010).
+        self._next_key = int(time.time() * 1000)
         self._error_hooked = False
+        self._catch_up_started = False
 
     def on_status(self, callback: Callable[[IbkrOrderUpdate], None]) -> None:
         self._callbacks.append(callback)
+
+    def start_catch_up(self) -> None:
+        """Pass on fills of app orders placed in an earlier session — SRD-EXE-015.011.
+
+        Runs on the client loop: hooks new executions, then scans the ones
+        ib_insync loaded at connect.  Safe to call more than once.
+        """
+        loop = self._client.loop
+        if self._catch_up_started or loop is None:
+            return
+        self._catch_up_started = True
+        loop.call_soon_threadsafe(self._catch_up)
+
+    def _catch_up(self) -> None:
+        ib = self._client.ib
+        ib.execDetailsEvent += self._on_exec_details
+        # A reconnect reloads today's fills without firing execDetailsEvent.
+        ib.connectedEvent += self._scan_fills
+        self._scan_fills()
+
+    def _scan_fills(self) -> None:
+        for ref in {fill.execution.orderRef for fill in self._client.ib.fills()}:
+            self._send_caught_up(ref)
+
+    def _on_exec_details(self, _trade: Any, fill: Any) -> None:
+        self._send_caught_up(fill.execution.orderRef)
+
+    def _send_caught_up(self, ref: str) -> None:
+        """Send the total fill so far for an earlier session's order *ref*."""
+        if not ref or not ref.isdigit() or ref in self._keys.values():
+            return
+        fills = [f.execution for f in self._client.ib.fills() if f.execution.orderRef == ref]
+        shares = sum(e.shares for e in fills)
+        if shares <= 0:
+            return
+        avg = sum(e.price * e.shares for e in fills) / shares
+        _log.info("[Orders] Found a fill from an earlier session — order %s", ref)
+        try:
+            self._dispatch(IbkrOrderUpdate(ref, "Submitted", int(shares), avg))
+        except Exception:
+            _log.exception("[Orders] Could not apply the earlier fill for order %s", ref)
+
+    def _new_key(self) -> str:
+        key = max(self._next_key, int(time.time() * 1000))
+        self._next_key = key + 1
+        return str(key)
 
     def _hook_errors(self) -> None:  # pragma: no cover - requires a live connection
         """Subscribe to ``errorEvent`` once, on the first placement.
@@ -261,10 +326,10 @@ class IBKRClientGateway:
         self, req_id: int, code: int, message: str, *_: Any
     ) -> None:
         """Turn an order-scoped IBKR error into an order update."""
-        order_id = str(req_id)
-        if order_id not in self._order_ids:
+        key = self._keys.get(str(req_id))
+        if key is None:
             return
-        update = _error_to_update(order_id, code, message)
+        update = _error_to_update(key, code, message)
         if update is not None:
             self._dispatch(update)
 
@@ -301,7 +366,7 @@ class IBKRClientGateway:
 
     # ── ib_insync calls — always run on the client's own loop ─────────────────
 
-    def _place(  # pragma: no cover
+    def _place(
         self,
         symbol: str,
         side: str,
@@ -314,15 +379,16 @@ class IBKRClientGateway:
         self._hook_errors()
         contract = Stock(symbol, "SMART", "USD")
         order = build_ib_order(side, quantity, order_type, limit_price)
+        key = self._new_key()
+        order.orderRef = key
         trade = self._client.ib.placeOrder(contract, order)
-        broker_order_id = str(trade.order.orderId)
-        self._order_ids.add(broker_order_id)
-        trade.statusEvent += self._make_handler(broker_order_id)
-        return broker_order_id
+        self._keys[str(trade.order.orderId)] = key
+        trade.statusEvent += self._make_handler(key)
+        return key
 
-    def _cancel(self, broker_order_id: str) -> None:  # pragma: no cover
+    def _cancel(self, broker_order_id: str) -> None:
         for trade in self._client.ib.trades():
-            if str(trade.order.orderId) == broker_order_id:
+            if trade.order.orderRef == broker_order_id:
                 self._client.ib.cancelOrder(trade.order)
                 return
 

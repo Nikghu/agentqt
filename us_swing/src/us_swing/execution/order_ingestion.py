@@ -1,5 +1,5 @@
 """Module: MD-EXE-015.001.M01 — execution/order_ingestion.py
-Parent SRD: SRD-EXE-015.002, SRD-EXE-015.003, SRD-EXE-015.005
+Parent SRD: SRD-EXE-015.002, SRD-EXE-015.003, SRD-EXE-015.005, SRD-EXE-015.011
 
 Broker-agnostic order ingestion (Broker_fix.md Phase 2).
 
@@ -25,7 +25,8 @@ from us_swing.broker.broker import OrderEvent, OrderSide, OrderStatus
 from us_swing.data.models import TradeRecord
 from us_swing.execution._enums import ExecutionEnums as E
 from us_swing.execution.strategy_engine._protocols import FillEvent, RejectEvent
-from us_swing.execution.trade_cycle._protocols import TradeCycleCommand
+from us_swing.execution.trade_cycle._dto import CycleSnapshot, TradeCycleState
+from us_swing.execution.trade_cycle._protocols import TradeCycleCommand, TradeCycleQuery
 
 log = logging.getLogger(__name__)
 
@@ -49,6 +50,8 @@ class TradeLedger(Protocol):
         entry_price: float | None = ...,
         entry_time: datetime | None = ...,
     ) -> None: ...
+
+    def trade_by_id(self, trade_id: str) -> TradeRecord | None: ...
 
 
 FillSink = Callable[[FillEvent], None]
@@ -107,12 +110,14 @@ class OrderIngestion:
         reject_sink: RejectSink,
         cycles: TradeCycleCommand,
         lifecycle: LifecycleSink | None = None,
+        cycle_query: TradeCycleQuery | None = None,
     ) -> None:
         self._ledger = ledger
         self._fill_sink = fill_sink
         self._reject_sink = reject_sink
         self._cycles = cycles
         self._lifecycle = lifecycle
+        self._cycle_query = cycle_query
         # Keyed by ``client_ref`` (signal_id), not ``broker_order_id``: the
         # context is registered before the order is placed, so the fill — which
         # may arrive on another thread before acceptance completes — always
@@ -158,23 +163,17 @@ class OrderIngestion:
     def on_order_event(self, event: OrderEvent) -> None:
         """Advance the `trades` ledger and drive the cycle — SRD-EXE-015.003."""
         client_ref = event.client_ref
-        if not client_ref or not event.broker_order_id:
-            log.warning(
-                "[Orders] Received an update with no order reference — skipping (%s)",
-                event.broker_order_id,
-            )
+        if not event.broker_order_id:
+            log.warning("[Orders] Received an update with no order number — skipping")
             return
         with self._lock:
-            ctx = self._context.get(client_ref)
-            if ctx is None:
-                log.warning(
-                    "[Orders] Received an update for an unknown order — skipping (%s)",
-                    event.broker_order_id,
-                )
-                return
-            if ctx.broker_order_id != event.broker_order_id:
+            ctx = self._context.get(client_ref) if client_ref else None
+            if ctx is not None and ctx.broker_order_id != event.broker_order_id:
                 ctx = replace(ctx, broker_order_id=event.broker_order_id)
                 self._context[client_ref] = ctx
+        if ctx is None:
+            self._recover(event)
+            return
 
         # Guarantee the NEW row exists even if this fill beat the acceptance
         # insert across threads; insert_trade is idempotent (INSERT OR IGNORE).
@@ -250,6 +249,77 @@ class OrderIngestion:
 
         if event.status is OrderStatus.FILLED:
             self._forget(client_ref)
+
+    def _recover(self, event: OrderEvent) -> None:
+        """Apply a fill whose order context is gone, e.g. placed before a restart.
+
+        SRD-EXE-015.011 — the saved `trades` row stands in for the lost context.
+        An exit fill closes its open cycle; an entry fill cannot rebuild the
+        cycle's stop and target, so the user is asked to check it.
+        """
+        row = self._ledger.trade_by_id(event.broker_order_id)
+        if row is None or event.status not in (OrderStatus.FILLED, OrderStatus.PARTIAL_FILLED):
+            log.warning(
+                "[Orders] Received an update for an order this app has no record of — skipping (%s)",
+                event.broker_order_id,
+            )
+            return
+        status = (
+            OrderStatus.FILLED if event.filled_quantity >= row.quantity
+            else OrderStatus.PARTIAL_FILLED
+        )
+        cycle = self._cycle_to_exit(row)
+        state = self._order_state(cycle is None, status)
+        if row.filled_quantity >= event.filled_quantity and row.order_state == state:
+            return
+        now = datetime.now()
+        is_exit = cycle is not None
+        self._ledger.update_trade_fill(
+            row.trade_id,
+            event.filled_quantity,
+            state,
+            exit_time=now if is_exit else None,
+            exit_price=event.fill_price if is_exit else None,
+        )
+        if cycle is None:
+            log.warning(
+                "[Orders] %s %s %d share(s) filled while the app was away — check this trade in TWS",
+                row.symbol, row.side, event.filled_quantity,
+            )
+            return
+        log.info(
+            "[Orders] %s %s %d share(s) filled while the app was away — trade updated",
+            row.symbol, row.side, event.filled_quantity,
+        )
+        ctx = OrderContext(
+            broker_order_id=row.trade_id,
+            signal_id="",
+            strategy_id=row.strategy_id,
+            user_id=row.user_id,
+            symbol=row.symbol,
+            side=OrderSide(row.side),
+            is_entry=False,
+            quantity=row.quantity,
+            intended_price=row.entry_price,
+            direction=cycle.direction,
+        )
+        self._close_cycle(ctx, replace(event, status=status), now)
+        if self._lifecycle is not None and status is OrderStatus.FILLED:
+            self._lifecycle.mark_exited(row.symbol, _iso(now))
+
+    def _cycle_to_exit(self, row: TradeRecord) -> CycleSnapshot | None:
+        """The open cycle that *row*'s side would close, or None."""
+        if self._cycle_query is None:
+            return None
+        for cycle in self._cycle_query.open_cycles():
+            exit_side = "BUY" if cycle.direction == E.TradeDirection.SHORT else "SELL"
+            if (cycle.strategy_id, cycle.symbol, exit_side) == (
+                row.strategy_id, row.symbol, row.side
+            ) and cycle.exit_order_id in (None, row.trade_id) and cycle.state in (
+                TradeCycleState.OPEN, TradeCycleState.CLOSING
+            ):
+                return cycle
+        return None
 
     def _forget(self, client_ref: str) -> None:
         with self._lock:

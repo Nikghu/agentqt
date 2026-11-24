@@ -1456,7 +1456,7 @@ class DashboardPanel(QWidget):
         self._pos_view.setEditTriggers(QTableView.EditTrigger.NoEditTriggers)
         self._pos_view.horizontalHeader().setStretchLastSection(True)
         self._pos_view.verticalHeader().setVisible(False)
-        _resize_columns(self._pos_view, {0: 80, 1: 60, 2: 55, 9: 120})
+        _resize_columns(self._pos_view, {0: 80, 1: 60, 2: 55, 10: 120})
 
         # ── Position action toolbar ────────────────────────────────────────────
         self._sq_all_btn = QPushButton("Square Off All")
@@ -1756,7 +1756,7 @@ class DashboardPanel(QWidget):
         _resize_columns(self._pos_view, {0: 70 if all_view else 80,
                                           shift + 1: 60,
                                           shift + 2: 55,
-                                          shift + 9: 120})
+                                          shift + 10: 120})
         _size_hist_columns(self._hist_view, show_user=all_view)
 
     # ── Slots ─────────────────────────────────────────────────────────────────

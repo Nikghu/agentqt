@@ -3,7 +3,7 @@
 **Document ID:** TRACE-EXE
 **Version:** 1.24.5
 **Project:** US Swing Trading System
-**Last Updated:** 2026-11-23 (RN-EXE-1.41.2-20261123: SRD-EXE-011.027 Swing Lookback 1–500. Earlier: RN-EXE-1.41.1-20261122: SRD-EXE-011.001 status save keeps Disabled strategies, ISS-EXE-0015. Earlier: RN-GUI-2.7.0-20261122 filled for SRD-EXE-015.007–.008 and SRD-EXE-017.028. Earlier: SRD-EXE-015.007–.008 one app copy. Earlier: SRD-EXE-017.028 fixed share count. Earlier: SRD-EXE-011.027 BOSS_ST; SRD-EXE-006.015, .007.011 30m timeframe)
+**Last Updated:** 2026-11-24 (RN-EXE-1.43.0-20261124: SRD-EXE-015.010–.011 unique IBKR order key and fill catch-up, ISS-EXE-0018. Earlier: RN-EXE-1.41.2-20261123: SRD-EXE-011.027 Swing Lookback 1–500. Earlier: RN-EXE-1.41.1-20261122: SRD-EXE-011.001 status save keeps Disabled strategies, ISS-EXE-0015. Earlier: RN-GUI-2.7.0-20261122 filled for SRD-EXE-015.007–.008 and SRD-EXE-017.028. Earlier: SRD-EXE-015.007–.008 one app copy. Earlier: SRD-EXE-017.028 fixed share count. Earlier: SRD-EXE-011.027 BOSS_ST; SRD-EXE-006.015, .007.011 30m timeframe)
 
 ---
 
@@ -56,6 +56,8 @@
 | FO-EXE-015 | SRD-EXE-015.004 | — | MD-EXE-015.003.M02, MD-EXE-015.004.M01 | UT-EXE-015.004.M01.T20–T36 | `broker/ibkr.py`, `execution/ibkr_order_connection.py`, `gui/app_service.py` | Implemented | RN-EXE-1.32.1-20260828 |
 | FO-EXE-015 | SRD-EXE-015.007–.008 | — | MD-EXE-015.007.M01 | UT-EXE-015.007.M01.T01–T02, UT-EXE-015.008.M01.T01–T03 | `execution/app_lock.py`, `execution/broker_adapter.py`, `__main__.py` | Implemented | RN-GUI-2.7.0-20261122 |
 | FO-EXE-015 | SRD-EXE-015.009 | — | MD-EXE-015.002.M01 | UT-EXE-015.002.M01.T25–T26, UT-EXE-014.007.M01.T05 | `execution/broker_adapter.py`, `gui/app_service.py` | Implemented | RN-EXE-1.42.2-20261123 |
+| FO-EXE-015 | SRD-EXE-015.010 | DD-EXE-015.010.D01 | MD-EXE-015.010.M01 | UT-EXE-015.010.M01.T01–T02 | `broker/ibkr.py` | Implemented | RN-EXE-1.43.0-20261124 |
+| FO-EXE-015 | SRD-EXE-015.011 | DD-EXE-015.010.D01 | MD-EXE-015.011.M01, MD-EXE-015.011.M02 | UT-EXE-015.011.M01.T01–T02, UT-EXE-015.011.M02.T01–T04 | `broker/ibkr.py`, `execution/order_ingestion.py`, `db/manager.py`, `gui/app_service.py` | Implemented | RN-EXE-1.43.0-20261124 |
 | FO-EXE-014 | SRD-EXE-014.007 | — | MD-EXE-014.007.M01 | UT-EXE-014.007.M01.T04–T17 | `gui/app_service.py` | Implemented | RN-EXE-1.32.0-20260827 |
 | FO-INF-009 | SRD-INF-009.005 | — | MD-INF-009.005.M01 | UT-INF-009.005.M01.T10–T19 | `broker/ibkr.py` | Implemented | RN-EXE-1.32.0-20260827 |
 | FO-EXE-005 | SRD-EXE-005.001–003 (Reopen) | DD-EXE-005.001.D01 | MD-EXE-002.001.M01 | UT-EXE-005.001.M01.T01–T05 | `execution/position_tracker.py` | Reopen | RN-EXE-1.14.0-20260528 |

@@ -48,6 +48,25 @@ def _str_to_dt(s: str) -> datetime:
     return datetime.strptime(s, _DT_FORMAT).replace(tzinfo=timezone.utc)
 
 
+def _trade_record(r: Any) -> TradeRecord:
+    """Build a `TradeRecord` from a `trades` row; times stay local wall-clock."""
+    return TradeRecord(
+        trade_id=r["trade_id"],
+        user_id=r["user_id"],
+        symbol=r["symbol"],
+        side=r["side"] or "",
+        quantity=r["quantity"] or 0,
+        entry_price=r["entry_price"] or 0.0,
+        mode=r["mode"],
+        strategy_id=r["strategy_id"] or "",
+        entry_time=datetime.strptime(r["entry_time"], _DT_FORMAT),
+        exit_price=r["exit_price"],
+        exit_time=datetime.strptime(r["exit_time"], _DT_FORMAT) if r["exit_time"] else None,
+        order_state=r["order_state"],
+        filled_quantity=r["filled_quantity"],
+    )
+
+
 class DatabaseManager:
     """Single entry-point for all database operations.
 
@@ -282,24 +301,14 @@ class DatabaseManager:
         stmt = sa.select(trades).where(trades.c.entry_time >= _dt_to_str(since))
         with self._engine.connect() as conn:
             rows = conn.execute(stmt).mappings().all()
-        return [
-            TradeRecord(
-                trade_id=r["trade_id"],
-                user_id=r["user_id"],
-                symbol=r["symbol"],
-                side=r["side"] or "",
-                quantity=r["quantity"] or 0,
-                entry_price=r["entry_price"] or 0.0,
-                mode=r["mode"],
-                strategy_id=r["strategy_id"] or "",
-                entry_time=datetime.strptime(r["entry_time"], _DT_FORMAT),
-                exit_price=r["exit_price"],
-                exit_time=datetime.strptime(r["exit_time"], _DT_FORMAT) if r["exit_time"] else None,
-                order_state=r["order_state"],
-                filled_quantity=r["filled_quantity"],
-            )
-            for r in rows
-        ]
+        return [_trade_record(r) for r in rows]
+
+    def trade_by_id(self, trade_id: str) -> TradeRecord | None:
+        """Return the `trades` row for *trade_id*, or None (SRD-EXE-015.011)."""
+        stmt = sa.select(trades).where(trades.c.trade_id == trade_id)
+        with self._engine.connect() as conn:
+            row = conn.execute(stmt).mappings().first()
+        return _trade_record(row) if row is not None else None
 
 
     # ── Users ─────────────────────────────────────────────────────────────────

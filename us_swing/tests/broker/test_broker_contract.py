@@ -66,6 +66,9 @@ class _FakeGateway:
     def on_status(self, callback: Callable[[IbkrOrderUpdate], None]) -> None:
         self._callback = callback
 
+    def start_catch_up(self) -> None:
+        return None
+
     def submit(self, symbol, side, quantity, order_type, limit_price) -> str:  # type: ignore[no-untyped-def]
         order_id = str(self._next)
         self._next += 1

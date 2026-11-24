@@ -20,14 +20,14 @@ from us_swing.gui.theme import C
 
 class PositionTableModel(QAbstractTableModel):
     """
-    Model: [User] | Symbol | Side | Qty | Avg Entry | Current | P&L ($) | P&L % | Stop | Target
-           | State
+    Model: [User] | Symbol | Side | Qty | Avg Entry | LTP | Market Value | P&L ($) | P&L % | Stop
+           | Target | State
     The User column is optional — shown only in admin All-Users scope.
     SRD-GUI-002.001, SRD-GUI-002.002
     """
 
-    _BASE_COLS = ["Symbol", "Side", "Qty", "Avg Entry", "Current", "P&L ($)", "P&L %", "Stop",
-                  "Target", "State"]
+    _BASE_COLS = ["Symbol", "Side", "Qty", "Avg Entry", "LTP", "Market Value", "P&L ($)",
+                  "P&L %", "Stop", "Target", "State"]
     _USER_COL  = ["User"]
 
     def __init__(self, parent: Any = None) -> None:
@@ -127,7 +127,7 @@ class PositionTableModel(QAbstractTableModel):
         if role == Qt.ItemDataRole.TextAlignmentRole:
             # right-align numeric columns (shift by 1 when user col visible)
             shift = 1 if self._show_user else 0
-            if col in [shift + c for c in (2, 3, 4, 5, 6, 7, 8)]:
+            if col in [shift + c for c in (2, 3, 4, 5, 6, 7, 8, 9)]:
                 return Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
             return Qt.AlignmentFlag.AlignCenter
 
@@ -146,22 +146,23 @@ class PositionTableModel(QAbstractTableModel):
             case 2: return str(pos.quantity)
             case 3: return f"${pos.average_price:,.2f}"
             case 4: return f"${pos.current_price:,.2f}"
-            case 5:
+            case 5: return f"${abs(pos.quantity) * pos.current_price:,.2f}"
+            case 6:
                 pnl = pos.unrealised_pnl
                 return f"+${pnl:,.2f}" if pnl >= 0 else f"-${abs(pnl):,.2f}"
-            case 6:
+            case 7:
                 pct = pos.pnl_pct
                 return f"{pct:+.2f}%"
-            case 7: return f"${pos.stop_loss:,.2f}" if pos.stop_loss else "No stop"
-            case 8: return f"${pos.target_price:,.2f}" if pos.target_price else "—"
-            case 9: return "OPEN" if pos.quantity > 0 else "CLOSED"
+            case 8: return f"${pos.stop_loss:,.2f}" if pos.stop_loss else "No stop"
+            case 9: return f"${pos.target_price:,.2f}" if pos.target_price else "—"
+            case 10: return "OPEN" if pos.quantity > 0 else "CLOSED"
         return ""
 
     def _background(self, pos: OpenPosition, col: int) -> QColor | None:
         base_col = (col - 1) if self._show_user else col
-        if base_col == 5:
+        if base_col == 6:
             return QColor(C.PNL_POS_BG) if pos.unrealised_pnl >= 0 else QColor(C.PNL_NEG_BG)
-        if base_col == 9:
+        if base_col == 10:
             return QColor("#1a3326" if pos.quantity > 0 else "#1a1a1a")
         return None
 
@@ -169,15 +170,15 @@ class PositionTableModel(QAbstractTableModel):
         base_col = (col - 1) if self._show_user else col
         if base_col == 1:
             return QColor(C.ORANGE if pos.direction == "SHORT" else C.BLUE)
-        if base_col == 5:
-            return QColor(C.GREEN) if pos.unrealised_pnl >= 0 else QColor(C.RED)
         if base_col == 6:
+            return QColor(C.GREEN) if pos.unrealised_pnl >= 0 else QColor(C.RED)
+        if base_col == 7:
             return QColor(C.GREEN) if pos.pnl_pct >= 0 else QColor(C.RED)
-        if base_col == 7 and not pos.stop_loss:
+        if base_col == 8 and not pos.stop_loss:
             return QColor(C.YELLOW)
-        if base_col == 8 and not pos.target_price:
+        if base_col == 9 and not pos.target_price:
             return QColor(C.MUTED)
-        if base_col == 9:
+        if base_col == 10:
             return QColor(C.STATE_OPEN if pos.quantity > 0 else C.STATE_CLOSED)
         return None
 

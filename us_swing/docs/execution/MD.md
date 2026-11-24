@@ -338,6 +338,9 @@ the Qt slot instead.
 | Module ID | File | Change Required | SRD |
 |---|---|---|---|
 | MD-EXE-015.004.M01 | `src/us_swing/gui/app_service.py` | Guard both GUI submit paths (`execute_signal`, `_submit_cycle_exit`) with try/except: log a `[Orders]` message, re-add the popped signal to the pending store, return -1. | SRD-EXE-015.004 |
+| MD-EXE-015.010.M01 | `src/us_swing/broker/ibkr.py` | `IBKRClientGateway` makes a rising millisecond key per order, sets it as `orderRef`, returns it as the order id and maps the TWS order id back to it for status, errors and cancel. | SRD-EXE-015.010 |
+| MD-EXE-015.011.M01 | `src/us_swing/broker/ibkr.py` | On callback registration the gateway hooks `execDetailsEvent` and scans `ib.fills()`; fills with an app `orderRef` not placed this session are sent on as cumulative updates. | SRD-EXE-015.011 |
+| MD-EXE-015.011.M02 | `src/us_swing/execution/order_ingestion.py` | An update with no live context is matched to its `trades` row via `TradeLedger.trade_by_id`; the row is updated and an exit fill closes the open cycle; `DatabaseManager.trade_by_id` added; `app_service` passes the cycle query. | SRD-EXE-015.011 |
 
 ## Module Modifications for FO-EXE-018
 
