@@ -1,12 +1,13 @@
 # Software Requirement Document — Execution & Risk Management (EXE)
 
 **Document ID:** SRD-EXE
-**Version:** 1.41.0
+**Version:** 1.42.0
 **Traces To:** FO-EXE v1.14.0
 **Status:** Draft
-**Last Updated:** 2026-11-23
+**Last Updated:** 2026-11-24
 **Project:** US Swing Trading System
 
+> v1.42.0: SRD-EXE-015.010–.011 added (approved by user 2026-11-24, Implemented, ISS-EXE-0018) — IBKR order numbers never repeat; fills that land while the app is away are caught up.
 > v1.39.5: SRD-EXE-022.008 changed: one shared indicator folder (user decision 2026-11-23: one shared folder, no user part).
 > v1.39.4: SRD-EXE-022.017 Implemented (P4).
 > v1.39.3: SRD-EXE-022.015–.016 Implemented (P3).
@@ -314,6 +315,8 @@
 | SRD-EXE-015.007 | FO-EXE-015 | Must | At start the app takes a one-copy lock; if another copy already holds it, the new copy shows "USSwing is already running" and closes before any broker, feed or strategy starts. | app start | lock held, or app closes | Check under 1 ms; Windows frees the lock when the app closes or crashes; tests that build the app service do not take it | Implemented |
 | SRD-EXE-015.008 | FO-EXE-015 | Must | Before sending each order, the broker adapter checks that this copy still holds the one-copy lock; if not, the order is not sent and an `[Orders]` error is logged. | order submit | order sent, or blocked | In-memory check, no added wait; a blocked order is handled like a failed submit, so the signal returns to pending | Implemented |
 | SRD-EXE-015.009 | FO-EXE-015 | Must | Each exit order saves the exit reason carried by its own signal (strategy, hard_sl, target, manual, end of day and so on), never a shared value (ISS-EXE-0017). | exit signal | exit fill with its own reason | An unknown reason is saved as manual | Implemented |
+| SRD-EXE-015.010 | FO-EXE-015 | Must | Each live IBKR order gets an app order number that never repeats across sessions and is sent with the order as its reference; the `trades` row and trade cycle use this number (ISS-EXE-0018). | order submit | unique `broker_order_id` | A TWS order id reused after a restart can no longer drop or overwrite another order's row | Implemented |
+| SRD-EXE-015.011 | FO-EXE-015 | Must | At connect and while connected, a fill carrying an app reference that this session did not place is applied to its saved `trades` row; an exit fill also closes its open trade cycle (ISS-EXE-0018). | TWS fills | `trades` row and cycle updated | Manual or unknown orders are left alone; an entry fill with no live context is logged for the user to check | Implemented |
 
 ---
 

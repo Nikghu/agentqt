@@ -793,6 +793,14 @@
 | UT-EXE-015.008.M01.T01 | MD-EXE-015.007.M01 | Positive | Orders pass with no lock in use or with the lock held | no claim; then claimed | no error | Pass |
 | UT-EXE-015.008.M01.T02 | MD-EXE-015.007.M01 | Negative | Order stopped once the claimed lock is lost | claimed, then released | `OrderBlockedError`; `[Orders] Another USSwing is running — order not sent` | Pass |
 | UT-EXE-015.008.M01.T03 | MD-EXE-015.002.M01 | Negative | Blocked order never reaches the broker | lock lost; entry submit | raises; no broker request, no order context | Pass |
+| UT-EXE-015.010.M01.T01 | MD-EXE-015.010.M01 | Positive | Two sessions given the same TWS order id still get different order numbers, sent as the order reference (ISS-EXE-0018) | two gateways, TWS id 95 each | two different numeric keys; `orderRef` = key | Pass |
+| UT-EXE-015.010.M01.T02 | MD-EXE-015.010.M01 | Positive | Status, error and cancel for TWS id 95 use the app number | status update, error 201, cancel by key | updates carry the key; cancel sent for order 95 | Pass |
+| UT-EXE-015.011.M01.T01 | MD-EXE-015.011.M01 | Positive | A fill of an earlier session's order is passed on with total shares and average price | fills 2 @ 23.00 and 3 @ 23.20, same app ref | one update: 5 shares @ 23.12 under that ref | Pass |
+| UT-EXE-015.011.M01.T02 | MD-EXE-015.011.M01 | Negative | Fills with no reference or from this session's own orders are not passed on | manual fill; fill of an order placed here | no catch-up update | Pass |
+| UT-EXE-015.011.M02.T01 | MD-EXE-015.011.M02 | Positive | A caught-up exit fill saves the row and closes the open trade (ISS-EXE-0018) | saved SELL 5 row, LONG cycle open, update 5 @ 23.10 | row FILLED, exit 23.10; `on_exit_fill` with that order and 5 shares | Pass |
+| UT-EXE-015.011.M02.T02 | MD-EXE-015.011.M02 | Negative | A fill for an order the app never saved is skipped | update for unknown order | no row, no cycle call | Pass |
+| UT-EXE-015.011.M02.T03 | MD-EXE-015.011.M02 | Edge | The same caught-up fill twice closes the trade once | update repeated | one `on_exit_fill` call | Pass |
+| UT-EXE-015.011.M02.T04 | MD-EXE-015.011.M02 | Negative | A caught-up entry fill saves the row but closes nothing and asks the user to check | saved BUY row, no open cycle | row FILLED; no cycle call; `[Orders]` warning | Pass |
 
 ---
 
