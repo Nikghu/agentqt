@@ -117,9 +117,8 @@ def test_progress_lines_update(make: Any) -> None:
 
     assert panel.state == "running"
     assert panel._headline.text() == "Getting 3-minute candles"
-    assert panel._bar.value() == 38
-    assert panel._info.text() == "191 of 503 · AAPL · about 2 h 10 min left"
-    assert panel._eta.text().startswith("Done around ")
+    assert panel._bar.value() == 37
+    assert panel._info.text() == "37% done · AAPL · about 2 h 10 min left"
     assert panel._start_btn.text() == "Pause"
 
 
@@ -288,7 +287,22 @@ def test_time_left_uses_measured_speed(make: Any, monkeypatch: pytest.MonkeyPatc
     clock[0] += 40.0
     svc.backtest_progress.emit("3m", 120, 200, "MSFT")
 
-    assert panel._info.text() == "120 of 200 · MSFT · about 3 min left"
+    assert panel._info.text() == "60% done · MSFT · about 3 min left"
+
+
+def test_time_left_follows_recent_speed(make: Any, monkeypatch: pytest.MonkeyPatch) -> None:
+    """UT-GUI-030.006.M01.T05: A slow start drops out; time left follows the last requests."""
+    clock = [1000.0]
+    monkeypatch.setattr(mod.time, "monotonic", lambda: clock[0])
+    panel, svc = make()
+    for done in range(0, 10):
+        svc.backtest_progress.emit("3m", done, 200, "AAPL")
+        clock[0] += 600.0
+    for done in range(10, 50):
+        svc.backtest_progress.emit("3m", done, 200, "MSFT")
+        clock[0] += 1.0
+
+    assert panel._info.text() == "24% done · MSFT · about 3 min left"
 
 
 def test_changed_range_saved_on_download(make: Any, tmp_path: Path) -> None:

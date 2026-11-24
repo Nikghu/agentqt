@@ -11,6 +11,7 @@ from __future__ import annotations
 import datetime
 import math
 import time
+from collections import deque
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -50,6 +51,7 @@ _SECONDS_1D = 1.0   # measured on TWS: one 1d request per stock
 _SECONDS_3M = 25.0  # measured on TWS: one 3-month 3m request (parallel requests time out)
 _SECONDS = {"1d": _SECONDS_1D, "3m": _SECONDS_3M}
 _PACE_MIN_REQUESTS = 5  # requests done in this run before the measured speed is used
+_PACE_WINDOW = 30  # speed is measured over the last 30 requests, so old slow spells drop out
 _EMPTY = BacktestStats(0, 0, 0, None, None, 0, None)
 _BUILT_NOTE = "15-minute, 30-minute and weekly candles are built from these"
 
@@ -152,7 +154,7 @@ class BacktestDataPanel(QWidget):
         self._running = svc.is_backtest_running()
         self._stats_asked = 0.0
         self._progress: dict[str, tuple[int, int]] = {}
-        self._pace_from: dict[str, tuple[float, int]] = {}
+        self._pace_from: dict[str, deque[tuple[float, int]]] = {}
         self._tf_now = ""
         self._symbol = ""
         self.state = "empty"
@@ -203,9 +205,7 @@ class BacktestDataPanel(QWidget):
         info = QHBoxLayout(self._info_row)
         info.setContentsMargins(0, 0, 0, 0)
         self._info = _key_label("")
-        self._eta = _key_label("")
         info.addWidget(self._info, 1)
-        info.addWidget(self._eta)
         self._start_btn = QPushButton("Download")
         self._start_btn.setObjectName("run_btn")
         self._start_btn.clicked.connect(self._on_start_clicked)
@@ -374,7 +374,7 @@ class BacktestDataPanel(QWidget):
             return
         self._running = True
         self._progress[tf] = (done, total)
-        self._pace_from.setdefault(tf, (time.monotonic(), done))
+        self._pace_from.setdefault(tf, deque(maxlen=_PACE_WINDOW)).append((time.monotonic(), done))
         self._tf_now = tf
         self._symbol = symbol
         if time.monotonic() - self._stats_asked >= _STATS_REFRESH_S:
@@ -466,28 +466,25 @@ class BacktestDataPanel(QWidget):
         return f"{' and '.join(names)} candles missing for {_stocks(stats.short_stocks)}"
 
     def _seconds_each(self, tf: str, done: int) -> float:
-        """Measured seconds per request in this run; the fixed guess until a few are done."""
-        start = self._pace_from.get(tf)
+        """Measured seconds per recent request; the fixed guess until a few are done."""
+        samples = self._pace_from.get(tf)
+        start = samples[0] if samples else None
         if start is None or done - start[1] < _PACE_MIN_REQUESTS:
             return _SECONDS[tf]
         return (time.monotonic() - start[0]) / (done - start[1])
 
     def _render_progress(self, missing: int) -> None:
         self._bar.setVisible(self._running)
-        self._eta.setText("")
         if self._running:
             done = sum(d for d, _t in self._progress.values())
             total = sum(t for _d, t in self._progress.values())
             left = sum((t - d) * self._seconds_each(tf, d) for tf, (d, t) in self._progress.items())
-            self._bar.setValue(round(done * 100 / total) if total else 0)
-            parts = [f"{done:,} of {total:,}"] if total else []
+            percent = done * 100 // total if total else 0
+            self._bar.setValue(percent)
+            parts = [f"{percent}% done"] if total else []
             parts += [self._symbol] if self._symbol else []
             parts += [f"about {_duration(left)} left"] if total else []
             self._info.setText(" · ".join(parts))
-            if total:
-                finish = datetime.datetime.now() + datetime.timedelta(seconds=left)
-                fmt = "%b %d %H:%M" if left >= 20 * 3600 else "%H:%M"
-                self._eta.setText(f"Done around {finish:{fmt}}")
         elif self._range_changed():
             self._info.setText("Range changed · not saved yet")
         elif self.state == "empty":
