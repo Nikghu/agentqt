@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import datetime
+from dataclasses import replace
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
@@ -80,6 +81,16 @@ def test_details_shows_position(qtbot):
     assert details._values["Avg entry"].text() == "$138.20"
     assert "+399.50" in details._values["Unrealised P&L"].text()
     assert details._exit_btn.isEnabled()
+
+
+def test_details_shows_strategy_name(qtbot):
+    """UT-GUI-019.003.M01.T03: Details shows the strategy name; a manual position shows a dash."""
+    details = PositionDetails(_StubService())  # type: ignore[arg-type]
+    qtbot.addWidget(details)
+    details.show_position(replace(_pos(), strategy_id="WTrend_DTrigger"), "trader")
+    assert details._values["Strategy"].text() == "WTrend_DTrigger"
+    details.show_position(replace(_pos(), strategy_id="IBKR"), "trader")
+    assert details._values["Strategy"].text() == "—"
 
 
 def test_details_without_selection(qtbot):

@@ -122,7 +122,7 @@ class PositionDetails(QWidget):
         grid.setHorizontalSpacing(10)
         grid.setVerticalSpacing(6)
         self._values: dict[str, QLabel] = {}
-        for row, key in enumerate(("User", "Quantity", "Avg entry", "Unrealised P&L",
+        for row, key in enumerate(("User", "Strategy", "Quantity", "Avg entry", "Unrealised P&L",
                                    "Stop", "Target", "State")):
             name = QLabel(key)
             name.setObjectName("details_key")
@@ -191,6 +191,8 @@ class PositionDetails(QWidget):
             f"  <span style='color:{clr}'>{pct:+.2f}%</span>"
         )
         self._values["User"].setText(self._user_name or "—")
+        manual = pos.strategy_id in ("", "IBKR")
+        self._values["Strategy"].setText("—" if manual else pos.strategy_id)
         self._values["Quantity"].setText(str(pos.quantity))
         self._values["Avg entry"].setText(f"${pos.average_price:,.2f}")
         self._values["Unrealised P&L"].setText(f"<span style='color:{clr}'>{pnl:+,.2f}</span>")
