@@ -63,10 +63,10 @@ class _FakeTracker:
 
 def _rm(effective: float, positions: list[Any] | None = None) -> RiskManager:
     return RiskManager(
-        config=RiskConfig(max_capital_value=effective),
+        config_provider=lambda: RiskConfig(max_capital_value=effective),
         account_provider=lambda: AccountState(1, effective, effective, 0.0),
         cb_state_provider=lambda: False,
-        user_id=1,
+        user_id_provider=lambda: 1,
         tracker=_FakeTracker(positions),
         effective_capital_provider=lambda: effective,
     )
@@ -127,10 +127,10 @@ def test_validate_advisory_max_position_warns_not_blocks() -> None:
     """UT-EXE-017.006.M01.T07: max-position breach warns but does not block."""
     warnings: list[RiskWarning] = []
     rm = RiskManager(
-        config=RiskConfig(max_position_value=100.0),
+        config_provider=lambda: RiskConfig(max_position_value=100.0),
         account_provider=lambda: AccountState(1, 10_000.0, 10_000.0, 0.0),
         cb_state_provider=lambda: False,
-        user_id=1,
+        user_id_provider=lambda: 1,
         warning_sink=warnings.append,
     )
     sig = TradeSignal(action=Action.ENTRY, symbol="AAPL", strategy_id="s1",
@@ -144,16 +144,36 @@ def test_validate_advisory_max_position_warns_not_blocks() -> None:
 def test_validate_circuit_breaker_blocks() -> None:
     """UT-EXE-017.006.M01.T08: circuit breaker still blocks."""
     rm = RiskManager(
-        config=RiskConfig(),
+        config_provider=lambda: RiskConfig(),
         account_provider=lambda: AccountState(1, 10_000.0, 10_000.0, 0.0),
         cb_state_provider=lambda: True,
-        user_id=1,
+        user_id_provider=lambda: 1,
     )
     sig = TradeSignal(action=Action.ENTRY, symbol="AAPL", strategy_id="s1",
                       entry_price=50.0, qty_recommended=1)
     result = rm.validate(sig)
     assert result.ok is False
     assert "circuit breaker" in result.reason
+
+
+def test_validate_reads_saved_limits_each_time() -> None:
+    """UT-EXE-017.006.M01.T09: a saved limit change applies to the next order, no restart."""
+    warnings: list[RiskWarning] = []
+    limits = {"cfg": RiskConfig(max_position_value=1_000.0)}
+    rm = RiskManager(
+        config_provider=lambda: limits["cfg"],
+        account_provider=lambda: AccountState(1, 10_000.0, 10_000.0, 0.0),
+        cb_state_provider=lambda: False,
+        user_id_provider=lambda: 1,
+        warning_sink=warnings.append,
+    )
+    sig = TradeSignal(action=Action.ENTRY, symbol="AAPL", strategy_id="s1",
+                      entry_price=50.0, qty_recommended=10)  # $500
+    rm.validate(sig)
+    assert warnings == []
+    limits["cfg"] = RiskConfig(max_position_value=100.0)
+    rm.validate(sig)
+    assert [w.kind for w in warnings] == ["max_position"]
 
 
 # ── router sizing / capital-insufficient drop ─────────────────────────────────

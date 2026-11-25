@@ -1589,10 +1589,10 @@ class AppService(QObject):
             self._tc_query, lambda: self.get_active_user().mode
         )
         self._risk_manager = RiskManager(
-            config=self.get_active_user().risk_config,
+            config_provider=lambda: self.get_active_user().risk_config,
             account_provider=lambda: self.get_account_state(self._active_uid),
             cb_state_provider=lambda: self._circuit_breaker_active,
-            user_id=self._active_uid,
+            user_id_provider=lambda: self._active_uid,
             tracker=self._cycle_position_source,
             effective_capital_provider=self.effective_capital,
             warning_sink=lambda w: self._event_bus.publish(w),

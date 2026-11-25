@@ -93,10 +93,10 @@ def _manager(
     cfg = config or _config()
     account = _account(equity=equity, deployed=deployed)
     return RiskManager(
-        config=cfg,
+        config_provider=lambda: cfg,
         account_provider=lambda: account,
         cb_state_provider=lambda: cb,
-        user_id=1,
+        user_id_provider=lambda: 1,
         tracker=tracker,
         effective_capital_provider=(
             (lambda: effective_capital) if effective_capital is not None else None
@@ -218,10 +218,10 @@ def test_margin_available_scoped_per_user(db: DatabaseManager):
     tracker.open(pos)
     rm1 = _manager(tracker=tracker, equity=100_000.0)  # user_id=1
     rm2 = RiskManager(
-        config=_config(),
+        config_provider=_config,
         account_provider=lambda: _account(equity=100_000.0),
         cb_state_provider=lambda: False,
-        user_id=2,
+        user_id_provider=lambda: 2,
         tracker=tracker,
     )
     assert rm1.margin_available() == 60_000.0    # 100k − 40k (user 1 position)

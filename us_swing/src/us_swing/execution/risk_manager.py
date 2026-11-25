@@ -33,18 +33,19 @@ class RiskManager:
 
     def __init__(
         self,
-        config: RiskConfig,
+        config_provider: Callable[[], RiskConfig],
         account_provider: Callable[[], AccountState],
         cb_state_provider: Callable[[], bool],
-        user_id: int,
+        user_id_provider: Callable[[], int],
         tracker: _PositionSource | None = None,
         effective_capital_provider: Callable[[], float] | None = None,
         warning_sink: Callable[[RiskWarning], None] | None = None,
     ) -> None:
-        self._config = config
+        """Limits and user are read on every check, so saved changes apply at once."""
+        self._config_provider = config_provider
         self._account_provider = account_provider
         self._cb_state_provider = cb_state_provider
-        self._user_id = user_id
+        self._user_id_provider = user_id_provider
         self._tracker = tracker
         self._effective_capital_provider = effective_capital_provider
         self._warning_sink = warning_sink
@@ -100,7 +101,7 @@ class RiskManager:
         if self._tracker is not None:
             deployed = sum(
                 p.average_price * p.quantity
-                for p in self._tracker.get_all(self._user_id)
+                for p in self._tracker.get_all(self._user_id_provider())
             )
         reserved = sum(self._reservations.values())
         return max(0.0, self._effective_capital() - deployed - reserved)
@@ -120,7 +121,7 @@ class RiskManager:
         limit = self._effective_capital() * capital_max_pct / 100.0
         deployed = sum(
             p.average_price * p.quantity
-            for p in self._tracker.get_all(self._user_id)
+            for p in self._tracker.get_all(self._user_id_provider())
             if p.strategy_id == strategy_id
         )
         if deployed >= limit:
@@ -142,27 +143,28 @@ class RiskManager:
         if cb_active:
             return ValidationResult(ok=False, reason="circuit breaker active")
 
+        config = self._config_provider()
         entry = signal.entry_price or 0.0
         qty = signal.qty_recommended or 0
         proposed = entry * qty
 
-        if proposed > self._config.max_position_value:
+        if proposed > config.max_position_value:
             self._emit_warning(
                 "max_position",
                 signal.symbol,
                 f"[Risk] {signal.symbol} position ${proposed:.0f} exceeds max position "
-                f"${self._config.max_position_value:.0f}",
+                f"${config.max_position_value:.0f}",
             )
 
         stop = signal.stop_loss or 0.0
         if entry > 0 and stop > 0 and account_state.equity > 0:
             risk_pct = abs(entry - stop) * qty / account_state.equity * 100.0
-            if risk_pct > self._config.risk_per_trade_pct:
+            if risk_pct > config.risk_per_trade_pct:
                 self._emit_warning(
                     "risk_per_trade",
                     signal.symbol,
                     f"[Risk] {signal.symbol} trade risk {risk_pct:.1f}% exceeds limit "
-                    f"{self._config.risk_per_trade_pct:.1f}%",
+                    f"{config.risk_per_trade_pct:.1f}%",
                 )
 
         return ValidationResult(ok=True)
@@ -177,9 +179,10 @@ class RiskManager:
         stop = signal.stop_loss or 0.0
         if entry <= 0 or stop <= 0 or entry == stop:
             return 0
+        config = self._config_provider()
         risk_per_share = abs(entry - stop)
-        risk_dollars = account_state.equity * self._config.risk_per_trade_pct / 100
+        risk_dollars = account_state.equity * config.risk_per_trade_pct / 100
         formula_qty = math.floor(risk_dollars / risk_per_share)
-        cap = math.floor(self._config.max_position_value / entry)
+        cap = math.floor(config.max_position_value / entry)
         return min(formula_qty, cap)
 
