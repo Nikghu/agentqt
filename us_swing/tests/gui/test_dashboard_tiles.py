@@ -192,11 +192,11 @@ def test_density_and_maximised_remembered(qtbot, settings):
     """UT-GUI-025.006.M02.T01: Density and maximised tile come back after a restart."""
     panel = _panel(qtbot, _service([]), settings)
     panel._density_chips.buttons[0].click()          # Comfort
-    panel._strategy_tile.max_btn.click()
+    panel._watch_tile.max_btn.click()
     again = _panel(qtbot, _service([]), settings)
     assert again._density_chips.value == "comfort"
     assert again._pos_view.verticalHeader().defaultSectionSize() == ROW_H["comfort"]
-    assert again._grid.maximised == "strategy"
+    assert again._grid.maximised == "watch"
 
 
 def test_defaults_without_saved_settings(qtbot, settings):
@@ -666,3 +666,19 @@ def test_sector_rotation_tab(qtbot, settings):
     panel._watch_tabs.buttons[0].click()
     assert panel._sector_range.isHidden()
     assert not any(tool.isHidden() for tool in panel._watch_tools)
+
+
+def test_strategy_pnl_tab(qtbot, settings):
+    """UT-GUI-025.021.M02.T02: Strategy P&L tab shows today's P&L list and hides watch tools."""
+    panel = _panel(qtbot, _service([]), settings)
+
+    panel._watch_tabs.buttons[2].click()
+
+    assert panel._watch_stack.currentWidget() is panel._strategy_list
+    assert panel._sector_range.isHidden()
+    assert all(tool.isHidden() for tool in panel._watch_tools)
+    assert panel._watch_tile.count_lbl.text() == "Today"
+    panel._refresh_watch_count()
+    assert panel._watch_tile.count_lbl.text() == "Today"
+    panel._watch_tabs.buttons[0].click()
+    assert panel._watch_tile.count_lbl.text() == str(panel._watch_list.symbol_count)

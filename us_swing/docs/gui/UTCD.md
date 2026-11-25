@@ -837,6 +837,7 @@ Test files:
 | UT-GUI-025.020.M02.T02 | MD-GUI-025.001.M02 | Positive | Tile accepts any stock | type pltr on tile | added to tile list, not watchlist | Pass |
 | UT-GUI-025.020.M02.T03 | MD-GUI-025.001.M02 | Positive | Screener add goes to watchlist | Screener add AAPL | watchlist add; tile list unchanged | Pass |
 | UT-GUI-025.021.M02.T01 | MD-GUI-025.001.M02 | Positive | Sector Rotation tab swaps view and tools | click Sector Rotation, then 1W, then Market Watch | sector view shown; range chips shown, watch tools hidden; reads 26 then 10 closes; back restores tools | Pass |
+| UT-GUI-025.021.M02.T02 | MD-GUI-025.001.M02 | Positive | Strategy P&L tab shows today's P&L list | click Strategy P&L, then Market Watch | P&L list shown; watch tools and range chips hidden; count reads "Today" until back on Market Watch | Pass |
 | UT-GUI-025.022.M06.T01 | MD-GUI-025.022.M06 | Positive | Moves ranked against RSP | RSP +2%, XLK +5%, XLE −1% | XLK +3.00, XLE −3.00; end date returned | Pass |
 | UT-GUI-025.022.M06.T02 | MD-GUI-025.022.M06 | Negative | Too few RSP closes | 3 closes, range 3; no data | no moves, empty date | Pass |
 | UT-GUI-025.022.M06.T03 | MD-GUI-025.022.M06 | Edge | Sector missing the start day | XLF without start close | XLF left out | Pass |

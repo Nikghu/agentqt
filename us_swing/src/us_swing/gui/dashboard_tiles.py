@@ -26,9 +26,9 @@ from us_swing.gui.icons import icon_button, set_icon
 from us_swing.gui.strategy_pnl_chart import money
 from us_swing.gui.theme import C
 
-TILES = ("positions", "watch", "history", "strategy")
+TILES = ("positions", "watch", "history")
 ROW_H = {"compact": 24, "comfort": 32}
-_CELLS = {"positions": (0, 0), "watch": (0, 1), "history": (1, 0), "strategy": (1, 1)}
+_CELLS = {"positions": (0, 0, 1, 1), "watch": (0, 1, 2, 1), "history": (1, 0, 1, 1)}
 _MONO = '"IBM Plex Mono", Consolas, monospace'
 
 
@@ -92,7 +92,7 @@ class Tile(QWidget):
 
 
 class TileGrid(QWidget):
-    """2 × 2 grid of tile cards; one tile can be maximised over the others (SRD-GUI-025.004)."""
+    """Grid of tile cards (right tile spans both rows); one can be maximised (SRD-GUI-025.004)."""
 
     changed = pyqtSignal(str)   # maximised tile name, "" when restored
 

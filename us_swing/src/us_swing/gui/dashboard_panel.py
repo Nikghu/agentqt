@@ -1544,12 +1544,15 @@ class DashboardPanel(QWidget):
         # ── Market Watch tile: its own saved list (SRD-GUI-025.020) ───────────
         self._watch_list = _WatchlistTab(demo, market_watch=True)
 
-        # ── Market Watch | Sector Rotation tabs (SRD-GUI-025.021/.022) ────────
+        # ── Market Watch | Sector Rotation | Strategy P&L tabs (SRD-GUI-025.021/.022) ─
         self._sectors = SectorRotationView()
+        self._strategy_list = StrategyPnlList()
         self._watch_stack = QStackedWidget()
         self._watch_stack.addWidget(self._watch_list)
         self._watch_stack.addWidget(self._sectors)
-        self._watch_tabs = ChipGroup([("Market Watch", "watch"), ("Sector Rotation", "sectors")])
+        self._watch_stack.addWidget(self._strategy_list)
+        self._watch_tabs = ChipGroup([("Market Watch", "watch"), ("Sector Rotation", "sectors"),
+                                      ("Strategy P&&L", "pnl")])
         self._watch_tabs.changed.connect(self._on_watch_tab)
         self._sector_range = ChipGroup([(key, key) for key in RANGE_DAYS])
         self._sector_range.buttons[1].setChecked(True)
@@ -1564,15 +1567,9 @@ class DashboardPanel(QWidget):
         demo.market_list_updated.connect(self._refresh_watch_count)
         demo.candle_db_status_changed.connect(lambda _info: self._refresh_sectors())
 
-        # ── P&L by Strategy tile (SRD-GUI-025.005) ────────────────────────────
-        self._strategy_list = StrategyPnlList()
-        self._strategy_tile = Tile("P&L by Strategy", self._strategy_list)
-        self._strategy_tile.set_count("Today")
-
         # ── Tile grid (SRD-GUI-025.003/.004) ──────────────────────────────────
         self._grid = TileGrid({
-            "positions": self._pos_tile, "watch": self._watch_tile,
-            "history": self._hist_tile, "strategy": self._strategy_tile,
+            "positions": self._pos_tile, "watch": self._watch_tile, "history": self._hist_tile,
         })
         self._grid.changed.connect(lambda name: self._settings.setValue("maximised", name))
 
@@ -1698,12 +1695,16 @@ class DashboardPanel(QWidget):
     # ── Sector Rotation tab (SRD-GUI-025.021/.022) ────────────────────────────────
 
     def _on_watch_tab(self) -> None:
-        sectors = self._watch_tabs.value == "sectors"
-        self._watch_stack.setCurrentIndex(1 if sectors else 0)
-        self._sector_range.setVisible(sectors)
-        self._watch_tile.count_lbl.setVisible(not sectors)
+        tab = self._watch_tabs.value or "watch"
+        self._watch_stack.setCurrentIndex({"sectors": 1, "pnl": 2}.get(tab, 0))
+        self._sector_range.setVisible(tab == "sectors")
+        self._watch_tile.count_lbl.setVisible(tab != "sectors")
         for tool in self._watch_tools:
-            tool.setVisible(not sectors)
+            tool.setVisible(tab not in ("sectors", "pnl"))
+        if tab == "pnl":
+            self._watch_tile.set_count("Today")
+        else:
+            self._refresh_watch_count()
         self._refresh_sectors()
 
     def _refresh_sectors(self) -> None:
@@ -2043,6 +2044,8 @@ class DashboardPanel(QWidget):
         self._refresh_exposure()
 
     def _refresh_watch_count(self) -> None:
+        if self._watch_tabs.value == "pnl":
+            return
         self._watch_tile.set_count(str(self._watch_list.symbol_count))
 
     def _refresh_strategies(self) -> None:
