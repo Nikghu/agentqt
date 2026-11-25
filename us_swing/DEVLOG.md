@@ -2,6 +2,14 @@
 
 ---
 
+## [20261125] GUI — Update popup matches the app theme
+
+- Type: Bugfix (branch `fix/bugfix-batch-20261125`, unpushed)
+- FO(s): none (styling only, no new SRD)
+- Artifacts updated: Code (src/update_dialog.py), TODO (T246), DEVLOG
+- Decisions: popup reads the active theme colours (`C` tokens) since the theme is loaded before the update check
+---
+
 ## [20261124] EXE — Lost IBKR fill after restart fixed (ISS-EXE-0018) + Backtest data, Position and LTP GUI fixes; session close
 
 - Type: Bugfix (branch `fix/bugfix-batch-20261124`, 4 commits, unpushed)
