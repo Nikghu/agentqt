@@ -807,9 +807,9 @@ Test files:
 | UT-GUI-025.010.M02.T02 | MD-GUI-025.001.M02 | Edge | Choices remembered; bad value falls back | 30 days + Cancelled; then "bogus" | texts restored, 1 row; then "Today" | Pass |
 | UT-GUI-025.011.M02.T01 | MD-GUI-025.001.M02 | Positive | Export writes shown rows | Today view | header User, Date & Time, Symbol; rows A, B | Pass |
 | UT-GUI-025.011.M02.T02 | MD-GUI-025.001.M02 | Negative | Unwritable path | folder path | error logged with reason; warning box shown | Pass |
-| UT-GUI-025.012.M01.T01 | MD-GUI-002.001.M01 | Positive | ✕ removes that symbol | click ✕ on MSFT row | `remove_from_watchlist("MSFT")` | Pass |
-| UT-GUI-025.012.M01.T02 | MD-GUI-002.001.M01 | Negative | Other cell removes nothing | click Symbol cell | not called; right-panel model has no ✕ | Pass |
-| UT-GUI-025.012.M01.T03 | MD-GUI-002.001.M01 | Edge | Tile watchlist keeps hidden columns after new quotes | reload | Open column hidden; ✕ shown | Pass |
+| UT-GUI-025.012.M01.T01 | MD-GUI-002.001.M01 | Positive | Right-click Delete removes that symbol | right-click MSFT row, pick Delete MSFT | `remove_from_market_list("MSFT")` | Pass |
+| UT-GUI-025.012.M01.T02 | MD-GUI-002.001.M01 | Negative | No Volume or ✕ column on the tile | open tile | shown: Symbol, LTP, Chg ($), Chg %; no ✕ | Pass |
+| UT-GUI-025.012.M01.T03 | MD-GUI-002.001.M01 | Edge | Tile watchlist keeps hidden columns after new quotes | reload | Open and Volume hidden; Chg % shown | Pass |
 | UT-GUI-025.013.M03.T01 | MD-GUI-025.013.M03 | Positive | Change text for the range | 25,000 → 25,041.75, 1D; reversed, 1W | "+$41.75 (+0.17%) today"; "−$41.75 (−0.17%) this week" | Pass |
 | UT-GUI-025.013.M03.T02 | MD-GUI-025.013.M03 | Edge | One point gives no change | one point | "", 0 | Pass |
 | UT-GUI-025.013.M03.T03 | MD-GUI-025.013.M03 | Positive | Band shows value, change and chart | 3M, two points | "$25,041.75"; text ends "in 3 months"; chart has 2 points | Pass |
