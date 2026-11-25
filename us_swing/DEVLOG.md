@@ -2,12 +2,12 @@
 
 ---
 
-## [20261125] GUI — Update popups: theme colours + centred; Strategy P&L moved into the Market Watch tabs; Execution header stats centred; Risk settings cleanup; sector ETF daily data
+## [20261125] GUI — Update popups: theme colours + centred; Strategy P&L moved into the Market Watch tabs; Execution header stats centred; Risk settings cleanup; sector ETF daily data; backtest trade list days + capital columns
 
 - Type: Bugfix (branch `fix/bugfix-batch-20261125`, unpushed)
-- FO(s): FO-GUI-027, FO-GUI-025, FO-GUI-024, FO-EXE-017, FO-BKT-001 (SRD-BKT-001.018 new, approved by user in chat; SRD-GUI-027.002 reworded)
-- RN: RN-BKT-1.15.0-20261125 (no GUI/EXE RN)
-- Artifacts updated: Code (backtest/planner.py, src/update_dialog.py, gui/update_popup.py, gui/sidebar.py, gui/dashboard_panel.py, gui/dashboard_tiles.py, gui/execution_header.py, gui/settings_panel.py, execution/risk_manager.py, gui/app_service.py), SRD (SRD-GUI-027.002 reopened by user and reworded), Tests (test_sidebar_shell.py rename; new UT-GUI-025.021.M02.T02, UT-GUI-024.001.M01.T03, UT-EXE-017.006.M01.T09, UT-GUI-006.001.M01.T28, UT-BKT-001.018.M03.T01-T02; settings tests moved from Risk to Connection; UT-GUI-021.002.M01.T01-T02 retired), UTCD, BKT SRD/MD/TRACE, TODO (T246-T252), DEVLOG
+- FO(s): FO-GUI-027, FO-GUI-025, FO-GUI-024, FO-EXE-017, FO-BKT-001, FO-BKT-002, FO-GUI-031 (SRD-BKT-001.018, SRD-BKT-002.053, SRD-GUI-031.088 new, approved by user in chat; SRD-GUI-027.002 reworded)
+- RN: RN-BKT-1.15.0-20261125, RN-BKT-1.16.0-20261125 (no GUI/EXE RN)
+- Artifacts updated: Code (backtest/planner.py, src/update_dialog.py, gui/update_popup.py, gui/sidebar.py, gui/dashboard_panel.py, gui/dashboard_tiles.py, gui/execution_header.py, gui/settings_panel.py, execution/risk_manager.py, gui/app_service.py), SRD (SRD-GUI-027.002 reopened by user and reworded), Tests (test_sidebar_shell.py rename; new UT-GUI-025.021.M02.T02, UT-GUI-024.001.M01.T03, UT-EXE-017.006.M01.T09, UT-GUI-006.001.M01.T28, UT-BKT-001.018.M03.T01-T02, UT-BKT-002.053.M12/M04/M15.T01, UT-GUI-031.088.M07.T01-T02; settings tests moved from Risk to Connection; UT-GUI-021.002.M01.T01-T02 retired), UTCD, BKT SRD/MD/TRACE, TODO (T246-T254), DEVLOG
 - Decisions: popup reads the active theme colours (`C` tokens) since the theme is loaded before the update check; Dashboard grid is now 3 tiles, the tabs tile spans the right column; a saved maximised "strategy" tile falls back to the full grid; risk check reads the active user's limits on every order (was fixed at app start); unused order type / confirm fields hidden but kept in users.json
 ---
 

@@ -126,6 +126,21 @@ def test_best_and_worst_with_few_trades() -> None:
     assert worst.count("<tr>") == 2 and worst.count("-$20.00") == 2
 
 
+def test_all_trades_capital_columns() -> None:
+    """UT-BKT-002.053.M15.T01: All trades shows Allocated (price x shares) and Available."""
+    trades = _trades()
+    first = trades.iloc[0]
+    alloc = float(first["entry_px"]) * int(first["qty"])
+
+    saved = _section(_page(trades.assign(avail=777.0)), "All trades")
+    old = _section(_page(trades), "All trades")
+
+    assert "Allocated" in saved and "Available" in saved
+    assert f'<td class="n">${alloc:,.0f}</td>' in saved
+    assert '<td class="n">$777</td>' in saved
+    assert '<td class="n">—</td>' in old
+
+
 def test_dates_day_first() -> None:
     """UT-BKT-002.083.M15.T09: Trade dates show as DD-MM-YYYY and short dates as DD-MM."""
     page = _page()

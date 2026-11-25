@@ -7,6 +7,7 @@
 **Last Updated:** 2026-11-23
 **Project:** US Swing Trading System
 
+> UT-GUI-031.088.M07.T01–T02 added — trade list days and capital columns.
 > v1.58.9: UT-GUI-046.003.M02.T03 added — icon-only buttons with name tooltips (user asked 2026-11-23).
 > v1.58.8: UT-GUI-046.006.M02.T02–T03 added — S&P 500 list, Backtest Data.
 > v1.58.7: UT-GUI-046.003.M02.T02 and .004.M02.T04 changed (user decision 2026-11-23: one shared folder, no user part).
@@ -1081,6 +1082,8 @@ Test files:
 | UT-GUI-031.053.M07.T02 | MD-GUI-031.053.M07 | Edge | Filters | wins, losses (0 P&L), LONG, SHORT | right rows; 0 P&L is a loss | Pass |
 | UT-GUI-031.053.M07.T03 | MD-GUI-031.053.M07 | Positive | Table and click | 3 trades; SHORT chip; click row | screenshot columns; 1 row; trade sent | Pass |
 | UT-GUI-031.053.M07.T04 | MD-GUI-031.053.M07 | Negative | No trades | empty frame | empty table; zero summary | Pass |
+| UT-GUI-031.088.M07.T01 | MD-GUI-031.053.M07 | Positive | Days and capital columns | 3 trades with saved avail | headers Allocated, Available, Duration (days); NVDA $100.00, $870.00, 0.1 | Pass |
+| UT-GUI-031.088.M07.T02 | MD-GUI-031.053.M07 | Negative | Old run without Available | trades without avail | Available shows a dash; Allocated still shown | Pass |
 | UT-GUI-031.053.M03.T01 | MD-GUI-031.003.M03 | Positive | Trade list opens day | click trade #2 | Inspector tab; day 2026-03-03; chart on MSFT | Pass |
 | UT-GUI-031.054.M08.T01 | MD-GUI-031.054.M08 | Positive | Screener use | 3 sessions, one with no picks | traded / not traded per day; facts line | Pass |
 | UT-GUI-031.054.M08.T02 | MD-GUI-031.054.M08 | Edge | Margin use | 2 days; then no days | peak = capital minus lowest margin; paints; empty safe | Pass |

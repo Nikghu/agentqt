@@ -153,6 +153,20 @@ def test_margin_across_two_strategies(tmp_path: Path) -> None:
     assert dict(zip(res.trades["symbol"], res.trades["qty"])) == {"AAPL": 6, "MSFT": 4}
 
 
+def test_available_capital_saved_per_trade(tmp_path: Path) -> None:
+    """UT-BKT-002.053.M12.T01: Each trade saves the capital free just before it opened."""
+    res = _run(tmp_path, {"AAPL": [_bars(D2)], "MSFT": [_bars(D2)]},
+               [_sig("S1", "AAPL", "entry", D2, "10:00", "10:00"),
+                _sig("S2", "MSFT", "entry", D2, "10:00", "10:00")],
+               _daily([(D2, "AAPL", 0.9), (D2, "MSFT", 0.5)]),
+               [(_strategy("S1"), 60, 100), (_strategy("S2"), 60, 100)])
+
+    by_symbol = res.trades.set_index("symbol")
+    aapl_cost = float(by_symbol.loc["AAPL", "entry_px"]) * int(by_symbol.loc["AAPL", "qty"])
+    assert float(by_symbol.loc["AAPL", "avail"]) == 1000.0
+    assert float(by_symbol.loc["MSFT", "avail"]) == pytest.approx(1000.0 - aapl_cost)
+
+
 def test_next_open_fill_with_costs(tmp_path: Path) -> None:
     """UT-BKT-002.033.M12.T01: Fills at the next open with slippage; two commissions."""
     bars = _bars(D2, {"10:00": (101, 101, 101, 101), "10:30": (102, 102, 102, 102)})

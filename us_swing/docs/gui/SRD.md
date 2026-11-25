@@ -5,6 +5,7 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-11-23
+> SRD-GUI-031.088 added and approved by user 2026-11-25 (chat) — trade list Duration (days), Allocated capital, Available capital.
 > v2.143.3: SRD-GUI-046.006 reads Backtest Data and lists S&P 500 stocks (user asked 2026-11-23).
 > v2.143.2: SRD-GUI-046.001/.003 wording: indicators shared by all users (user decision 2026-11-23: one shared folder, no user part).
 > v2.143.1: SRD-GUI-046.010 wording: the guide is a web page opened in the browser (user asked 2026-11-23).
@@ -791,6 +792,7 @@
 | SRD-GUI-031.085 | FO-GUI-031 | Should | The Screener page Source offers No screener; it disables Preset, Stocks per day and AI ranking, and the data check warns above 50 stocks. | Source choice | plan, data check line | Warning text: Step 2 will be slow | Implemented |
 | SRD-GUI-031.086 | FO-GUI-031 | Should | A new backtest plan starts with Daily loss stop 10 % and Commission $0 per order; only Capital comes from the active user. | new plan | start values | Replaces the user loss default of .030; saved plans keep their values, and old plan files without a commission still read $1 | Implemented |
 | SRD-GUI-031.087 | FO-GUI-031 | Should | From and To only allow days inside the run range (SRD-BKT-002.088, reopened 2026-11-22); until the user picks a date, To is the last saved day and From one year before it. | data check | date limits and values | Picked or loaded dates are kept, or moved to the nearest edge; no saved data allows 2000 to today | Implemented |
+| SRD-GUI-031.088 | FO-GUI-031 | Should | The Trade list shows Duration in days (one decimal) instead of hours, plus Allocated capital (entry price × qty) and Available capital (free capital at entry). | saved trades | three columns | Approved by user 2026-11-25 (chat); old runs show a dash for Available; replaces the hours column of SRD-GUI-031.053 | Implemented |
 
 ## FO-GUI-032 — Strategies Views
 

@@ -7,6 +7,7 @@
 **Last Updated:** 2026-11-02
 **Project:** US Swing Trading System
 
+> v1.19.0: SRD-BKT-002.053 added and approved by user 2026-11-25 (chat) — each trade saves the capital free at entry; HTML All trades shows Allocated and Available.
 > v1.18.0: SRD-BKT-001.018 added and approved by user 2026-11-25 (chat) — daily candles for RSP and the 11 sector ETFs, 100 days before the start date.
 > v1.17.0: SRD-BKT-001.005 reopened by user 2026-11-04 (chat) — download one stock fully before the next.
 > v1.16.0: SRD-BKT-001.017 added and approved by user 2026-11-04 (chat) — no floor from an empty 3m answer (ISS-BKT-0002).
@@ -114,6 +115,7 @@
 | SRD-BKT-002.050 | FO-BKT-002 | Must | Strategy PRICE reads only closed bars on every timeframe; "current" is the last closed bar. | bars | prices | User 2026-10-29: replaces SRD-BKT-002.023; live matches via SRD-EXE-006.014 | Implemented |
 | SRD-BKT-002.051 | FO-BKT-002 | Must | Step 1 keys each list by session date, built from the previous trading day's close, for every session from From to To. | 1d bars | daily list | User 2026-10-29: matches the pre-market screener run | Implemented |
 | SRD-BKT-002.052 | FO-BKT-002 | Must | When the screener uses RS and SPY daily candles are missing, the data check counts SPY as missing 1d and asks to download it. | preset, store | missing list, message | Approved by user 2026-10-30; replaces the "S&P 500 only" text of SRD-BKT-002.018 | Implemented |
+| SRD-BKT-002.053 | FO-BKT-002 | Must | Each trade saves the capital free just before it opened (account capital minus open trades), and the HTML All trades table shows Allocated and Available. | entry fill | `avail` per trade | Approved by user 2026-11-25 (chat); exits give money back; older results files get the column on next save | Implemented |
 
 ## FO-BKT-002 — Backtest Engine (Phase 4a · Step 4 Report)
 

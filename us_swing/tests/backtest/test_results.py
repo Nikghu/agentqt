@@ -25,6 +25,27 @@ def test_run_row_life(tmp_path: Path) -> None:
     assert [r.run_id for r in results.list_runs()] == [run_id]
 
 
+def test_new_trade_column_saves_into_old_file(tmp_path: Path) -> None:
+    """UT-BKT-002.053.M04.T01: A results file made before 'avail' existed still saves new runs."""
+    import sqlite3
+
+    import pandas as pd
+
+    from us_swing.backtest.spec import Variant
+
+    path = tmp_path / "results.db"
+    with sqlite3.connect(path) as conn:
+        pd.DataFrame({"symbol": ["OLD"], "variant_id": ["v0"]}).to_sql("trades", conn, index=False)
+    store = ResultsStore(path)
+    empty = pd.DataFrame()
+
+    vid = store.save_variant("r1", 0, Variant(capital=1000.0, strategies=()),
+                             pd.DataFrame({"symbol": ["NEW"], "avail": [750.0]}), empty, empty)
+
+    assert store.read_table("trades", vid)["avail"].tolist() == [750.0]
+    assert store.read_table("trades", "v0")["avail"].isna().all()
+
+
 def test_unknown_run(tmp_path: Path) -> None:
     """UT-BKT-002.007.M04.T02: An unknown run id returns None."""
     assert ResultsStore(tmp_path / "results.db").get_run("x") is None

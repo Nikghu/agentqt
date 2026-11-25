@@ -7,6 +7,7 @@
 **Last Updated:** 2026-11-02
 **Project:** US Swing Trading System
 
+> v1.11.0: UT-BKT-002.053.M12.T01, .M04.T01, .M15.T01 added — available capital per trade (SRD-BKT-002.053).
 > v1.10.0: UT-BKT-001.015.M03.T02 input moved 100 days earlier; UT-BKT-001.018.M03.T01–T02 added — sector ETF daily data (SRD-BKT-001.018).
 > v1.9.0: UT-BKT-001.005.M03.T01 changed and T05 added — one stock at a time (SRD-BKT-001.005 reopened by user 2026-11-04).
 > v1.8.0: UT-BKT-001.006.M04.T03 changed, UT-BKT-001.017.M02.T01 and .M04.T01 added — ISS-BKT-0002.
@@ -91,6 +92,7 @@
 | UT-BKT-002.006.M03.T01 | MD-BKT-002.005.M03 | Positive | Cleanup by age and size | one old file, three new files over the limit | old file gone, then oldest new file gone; bytes freed returned | Pass |
 | UT-BKT-002.007.M04.T01 | MD-BKT-002.007.M04 | Positive | Run row life | start, finish done | row has plan, status done, both times | Pass |
 | UT-BKT-002.007.M04.T02 | MD-BKT-002.007.M04 | Negative | Unknown run | `get_run("x")` | `None` | Pass |
+| UT-BKT-002.053.M04.T01 | MD-BKT-002.007.M04 | Negative | Old results file gets the new column | trades table without avail; save a run with avail | new row keeps 750; old row reads empty | Pass |
 | UT-BKT-002.008.M05.T01 | MD-BKT-002.008.M05 | Positive | Estimate on a fake store | 3 stocks, one with no 3m, SPY saved | symbols 3; missing_3m 1; benchmark ok; days counted | Pass |
 | UT-BKT-002.008.M05.T02 | MD-BKT-002.008.M05 | Negative | Estimate with errors | plan with start after end | errors listed; day counts 0 | Pass |
 | UT-BKT-002.009.M06.T01 | MD-BKT-002.009.M06 | Positive | CLI estimate | plan file, fake service | exit 0; stock count printed | Pass |
@@ -143,6 +145,7 @@
 | UT-BKT-002.083.M15.T07 | MD-BKT-002.083.M15 | Edge | No trades, no benchmark | empty trades, NaN benchmark | "No trades"; no benchmark line or legend | Pass |
 | UT-BKT-002.083.M15.T08 | MD-BKT-002.083.M15 | Edge | Fewer than 5 winners | 2 wins, 2 losses | best lists 2 winners, worst lists 2 losers | Pass |
 | UT-BKT-002.083.M15.T09 | MD-BKT-002.083.M15 | Positive | Day-first dates | 4 trades in March 2025 | trade dates DD-MM-YYYY, best and worst DD-MM; no ISO date left (SRD-GUI-031.083) | Pass |
+| UT-BKT-002.053.M15.T01 | MD-BKT-002.083.M15 | Positive | All trades capital columns | trades with and without avail | Allocated = price × shares; Available $777 or a dash | Pass |
 | UT-BKT-002.019.M07.T01 | MD-BKT-002.010.M07 | Negative | Worker error is plain | screener raises an error that formats its argument | `RuntimeError("2025-03-03: Data for 'SPY' is missing")`; same text after pickling | Pass |
 | UT-BKT-002.017.M05.T01 | MD-BKT-002.008.M05 | Positive | Service run recorded | fake store, preset loader | daily list returned; run row done | Pass |
 | UT-BKT-002.017.M05.T02 | MD-BKT-002.008.M05 | Negative | Service cancel recorded | cancel at once | run row cancelled | Pass |
@@ -188,6 +191,7 @@
 | UT-BKT-002.031.M12.T02 | MD-BKT-002.030.M12 | Negative | Too expensive | per-trade $50, fill 100 | no trade; day log too_expensive | Pass |
 | UT-BKT-002.032.M12.T01 | MD-BKT-002.030.M12 | Negative | Strategy limit | alloc 50 %, per-trade 100 %, 2 stocks signal | 1 trade; strategy_limit for the second | Pass |
 | UT-BKT-002.032.M12.T02 | MD-BKT-002.030.M12 | Negative | Margin across 2 strategies | 2 strategies 60 % each, per-trade 100 % | second cut to the margin left | Pass |
+| UT-BKT-002.053.M12.T01 | MD-BKT-002.030.M12 | Positive | Available capital saved per trade | capital 1000; S1 buys AAPL then S2 buys MSFT | AAPL avail 1000; MSFT avail 1000 minus AAPL cost | Pass |
 | UT-BKT-002.033.M12.T01 | MD-BKT-002.030.M12 | Positive | Next-open fill with costs | signal at 10:00 close, slippage 10 bps, commission 1 | entry at 10:00 bar's next open × 1.001; 2 commissions in net P&L | Pass |
 | UT-BKT-002.034.M12.T01 | MD-BKT-002.030.M12 | Negative | Already held and Rex per day | 2 entry windows same day, Rex 0; then next day | 1 trade day 1 (rex_limit logged); a new trade day 2 | Pass |
 | UT-BKT-002.035.M12.T01 | MD-BKT-002.030.M12 | Negative | Stop and target in one bar | bar low under stop and high over target | exit reason stop at stop price | Pass |
