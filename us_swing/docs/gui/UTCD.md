@@ -763,6 +763,7 @@ Test files:
 |---|---|---|---|---|---|---|
 | UT-GUI-024.001.M01.T01 | MD-GUI-024.001.M01 | Positive | Chips show running count and unrealised P&L | 3 strategies, 1 RUNNING + 1 with open cycle; open cycles P&L +10 and −4 | "2 of 3"; "+$6.00" | Pass |
 | UT-GUI-024.001.M01.T02 | MD-GUI-024.001.M01 | Positive | Broker value follows user mode and status | paper; live connected; live not connected | "Paper" + green "ready"; "IBKR" + green "live"; "IBKR" + red "offline"; no dot | Pass |
+| UT-GUI-024.001.M01.T03 | MD-GUI-024.001.M01 | Positive | Stats group sits in the header centre | header 1800 px wide, long last-run text | stats centre within 4 px of header centre | Pass |
 | UT-GUI-024.002.M02.T01 | MD-GUI-024.002.M02 | Positive | Groups: Manual first, screeners A→Z, score order, counts | 1 pick, 2 "Price Action", 2 "Momentum" | groups Manual, Momentum, Price Action; counts 1, 2, 2; higher score first | Pass |
 | UT-GUI-024.002.M02.T02 | MD-GUI-024.002.M02 | Positive | ✕ on a pick removes it | click Score cell of pick row | `remove_manual_pick("DELL")` called once | Pass |
 | UT-GUI-024.002.M02.T03 | MD-GUI-024.002.M02 | Negative | Not-ready symbol is tinted | readiness {"NVDA": False} | NVDA row has a background brush; others none | Pass |

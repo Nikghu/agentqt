@@ -120,3 +120,18 @@ def test_breaker_button_trips_and_resets(qtbot: QtBot) -> None:
 
     assert svc.breaker_calls == [True, False]
     assert header.breaker_btn.text() == "Trip breaker"
+
+def test_stats_centred_in_header(qtbot: QtBot) -> None:
+    """UT-GUI-024.001.M01.T03: The P&L / Strategies / Broker group sits in the header centre."""
+    from PyQt6.QtWidgets import QFrame
+
+    header = eh.ExecutionHeader(_Svc())  # type: ignore[arg-type]
+    qtbot.addWidget(header)
+    header._last_run.setText("Last screener run 24 Nov 2026 · 20:24 · 7 stocks")
+    header.resize(1800, 80)
+    header.show()
+    qtbot.waitExposed(header)
+
+    stats = header.findChild(QFrame, "exec_stats")
+    assert stats is not None
+    assert abs(stats.geometry().center().x() - header.rect().center().x()) <= 4

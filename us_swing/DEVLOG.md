@@ -2,11 +2,11 @@
 
 ---
 
-## [20261125] GUI — Update popups: theme colours + centred; Strategy P&L moved into the Market Watch tabs
+## [20261125] GUI — Update popups: theme colours + centred; Strategy P&L moved into the Market Watch tabs; Execution header stats centred
 
 - Type: Bugfix (branch `fix/bugfix-batch-20261125`, unpushed)
 - FO(s): none (styling only, no new SRD)
-- Artifacts updated: Code (src/update_dialog.py, gui/update_popup.py, gui/sidebar.py, gui/dashboard_panel.py, gui/dashboard_tiles.py), Tests (test_sidebar_shell.py rename; test_dashboard_tiles.py new UT-GUI-025.021.M02.T02), TODO (T246-T248), DEVLOG
+- Artifacts updated: Code (src/update_dialog.py, gui/update_popup.py, gui/sidebar.py, gui/dashboard_panel.py, gui/dashboard_tiles.py, gui/execution_header.py), Tests (test_sidebar_shell.py rename; new UT-GUI-025.021.M02.T02, UT-GUI-024.001.M01.T03), UTCD, TODO (T246-T249), DEVLOG
 - Decisions: popup reads the active theme colours (`C` tokens) since the theme is loaded before the update check; Dashboard grid is now 3 tiles, the tabs tile spans the right column; a saved maximised "strategy" tile falls back to the full grid
 ---
 

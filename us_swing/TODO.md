@@ -258,3 +258,4 @@ Short, living task list. Keep each description ≤ 50 words; cite module + prior
 | T246 | GUI — Update popup (startup download) used fixed navy colours; now uses the active theme colours. User check: popup matches the app on the next update. | `src/update_dialog.py` | Low | Open |
 | T247 | GUI — Sidebar Updates popup now opens in the centre of the window (was beside the button), wider, bigger text. User check: click Updates in the real app. | `gui/update_popup.py` | Low | Open |
 | T248 | GUI — Dashboard: P&L by Strategy moved into the Market Watch / Sector Rotation tile as a 3rd tab (Strategy P&L); that tile now fills the full right column. User check in the real app. | `gui/dashboard_panel.py`, `gui/dashboard_tiles.py` | Low | Open |
+| T249 | GUI — Execution header: Unrealised P&L / Strategies / Broker group now centred in the header (was next to Execute for). User check in the real app. | `gui/execution_header.py` | Low | Open |
