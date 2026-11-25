@@ -123,7 +123,7 @@ def test_settings_data_badge_hidden_when_idle(sidebar):
 def test_updates_item_popup_and_dot(sidebar, monkeypatch):
     """UT-GUI-027.005.M02.T01: Updates opens its popup, shows a dot on found, hides in mini."""
     shown = []
-    monkeypatch.setattr(sidebar._update_popup, "show_beside", shown.append)
+    monkeypatch.setattr(sidebar._update_popup, "show_centred", shown.append)
 
     sidebar._update_btn.click()
     sidebar._update_popup.update_found.emit()

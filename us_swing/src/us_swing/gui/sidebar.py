@@ -465,7 +465,7 @@ class Sidebar(QFrame):
         # popup → update_found → amber dot on the Updates item (SRD-GUI-027.005)
         self._update_popup.update_found.connect(self._on_update_found)
         self._update_btn.clicked.connect(
-            lambda: self._update_popup.show_beside(self._update_btn))
+            lambda: self._update_popup.show_centred(self._update_btn))
         sep3 = QFrame()
         sep3.setObjectName("side_sep")
         sep3.setFixedHeight(1)

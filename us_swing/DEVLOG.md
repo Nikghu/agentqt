@@ -2,11 +2,11 @@
 
 ---
 
-## [20261125] GUI — Update popup matches the app theme
+## [20261125] GUI — Update popups: theme colours + Updates popup centred on the window
 
 - Type: Bugfix (branch `fix/bugfix-batch-20261125`, unpushed)
 - FO(s): none (styling only, no new SRD)
-- Artifacts updated: Code (src/update_dialog.py), TODO (T246), DEVLOG
+- Artifacts updated: Code (src/update_dialog.py, gui/update_popup.py, gui/sidebar.py), Tests (test_sidebar_shell.py rename), TODO (T246, T247), DEVLOG
 - Decisions: popup reads the active theme colours (`C` tokens) since the theme is loaded before the update check
 ---
 

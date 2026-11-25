@@ -2,7 +2,7 @@
 Module: MD-GUI-027.005.M07 — Update popup
 Parent SRD: SRD-GUI-027.005
 
-Small popup from the sidebar Updates item: installed version, last check time and a
+Popup centred on the main window, opened from the sidebar Updates item: installed version, last check time and a
 Check for Updates button.
 """
 from __future__ import annotations
@@ -35,10 +35,10 @@ class UpdatePopup(QFrame):
         self._worker: QThread | None = None
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(14, 12, 14, 12)
-        layout.setSpacing(8)
+        layout.setContentsMargins(20, 16, 20, 16)
+        layout.setSpacing(10)
         title = QLabel("Updates")
-        title.setObjectName("view_head")
+        title.setStyleSheet(f"color: {C.TEXT}; font-size: 12pt; font-weight: bold;")
         self._version = QLabel()
         self._version.setObjectName("details_key")
         self._check_btn = QPushButton("Check for Updates")
@@ -54,7 +54,7 @@ class UpdatePopup(QFrame):
         layout.addWidget(self._version)
         layout.addLayout(btn_row)
         layout.addWidget(self._note)
-        self.setFixedWidth(280)
+        self.setFixedWidth(360)
         app = QCoreApplication.instance()
         if app is not None:
             app.aboutToQuit.connect(self._wait_for_check)
@@ -69,16 +69,17 @@ class UpdatePopup(QFrame):
 
         self._version.setText(f"Installed v{__version__} · {checked_text(last_check_time())}")
 
-    def show_beside(self, anchor: QWidget) -> None:
-        """Show the popup to the right of ``anchor``, bottom-aligned with it."""
+    def show_centred(self, anchor: QWidget) -> None:
+        """Show the popup in the centre of the window that holds ``anchor``."""
         self.refresh()
         self.adjustSize()
-        corner = anchor.mapToGlobal(anchor.rect().bottomRight())
-        self.move(corner.x() + 8, corner.y() - self.height())
+        window = anchor.window() or anchor
+        centre = window.frameGeometry().center()
+        self.move(centre.x() - self.width() // 2, centre.y() - self.height() // 2)
         self.show()
 
     def _set_note(self, text: str, colour: str) -> None:
-        self._note.setStyleSheet(f"color: {colour}; font-size: 9pt;")
+        self._note.setStyleSheet(f"color: {colour}; font-size: 10.5pt;")
         self._note.setText(text)
         self._note.setVisible(bool(text))
         self.adjustSize()
