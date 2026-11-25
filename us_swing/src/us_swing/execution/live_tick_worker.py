@@ -35,6 +35,7 @@ class LiveTickWorker(QThread):
     """
 
     tick_price          = pyqtSignal(str, float)  # (tag, price)
+    prev_close          = pyqtSignal(str, float)  # (tag, IBKR previous-day close)
     subscription_failed = pyqtSignal(str, int)    # (tag, ibkr_error_code)
 
     def __init__(
@@ -57,6 +58,7 @@ class LiveTickWorker(QThread):
         self._tickers:      dict[str, Any] = {}  # tag → Ticker
         self._tag_by_conid: dict[int, str] = {}  # conId → tag
         self._reqid_to_tag: dict[int, str] = {}  # reqId → tag
+        self._sent_close:   dict[str, float] = {}  # tag → last prev_close sent (loop thread)
 
     # ── QThread entry point ───────────────────────────────────────────────────
 
@@ -251,6 +253,11 @@ class LiveTickWorker(QThread):
             if con_id:
                 with self._lock:
                     self._tag_by_conid.setdefault(con_id, tag)
+
+            close: float = getattr(ticker, "close", float("nan"))
+            if not math.isnan(close) and close > 0 and self._sent_close.get(tag) != close:
+                self._sent_close[tag] = close
+                self.prev_close.emit(tag, close)
 
             # last → bid (IBKR reports index level as bid for IND contracts) → close
             price: float = getattr(ticker, "last", float("nan"))
