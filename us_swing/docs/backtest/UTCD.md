@@ -7,6 +7,7 @@
 **Last Updated:** 2026-11-02
 **Project:** US Swing Trading System
 
+> v1.10.0: UT-BKT-001.015.M03.T02 input moved 100 days earlier; UT-BKT-001.018.M03.T01–T02 added — sector ETF daily data (SRD-BKT-001.018).
 > v1.9.0: UT-BKT-001.005.M03.T01 changed and T05 added — one stock at a time (SRD-BKT-001.005 reopened by user 2026-11-04).
 > v1.8.0: UT-BKT-001.006.M04.T03 changed, UT-BKT-001.017.M02.T01 and .M04.T01 added — ISS-BKT-0002.
 > v1.7.0: UT-BKT-002.088.M05.T01–T02 added — common saved range.
@@ -54,7 +55,9 @@
 | UT-BKT-001.005.M03.T05 | MD-BKT-001.005.M03 | Edge | Stock with new and old 3m gaps finishes first | AAPL 3m saved Jul–Oct, MSFT full | only AAPL jobs, newest end first, last reaches start | Pass |
 | UT-BKT-001.005.M03.T06 | MD-BKT-001.005.M03 | Positive | Missing 3m days asked again | gaps 2024-12-05, Mar 6, 7, 10, Jul 2 2025; start 2025-01-01 | Jul 2 "1 D"; Mar 6–10 "3 D"; none before start; none in delta (ISS-BKT-0003) | Pass |
 | UT-BKT-001.015.M03.T01 | MD-BKT-001.005.M03 | Positive | SPY gets daily jobs | empty store, daily_only SPY | SPY 1d job; no SPY 3m job | Pass |
-| UT-BKT-001.015.M03.T02 | MD-BKT-001.005.M03 | Negative | Saved SPY | SPY 1d saved for range | no jobs | Pass |
+| UT-BKT-001.015.M03.T02 | MD-BKT-001.005.M03 | Negative | Saved SPY | SPY 1d saved from 100 days before start to end | no jobs | Pass |
+| UT-BKT-001.018.M03.T01 | MD-BKT-001.005.M03 | Positive | Daily-only symbols start 100 days early | start 2025-01-01; SPY, XLK daily only | SPY and XLK from 2024-09-23; AAPL from 2025-01-01 | Pass |
+| UT-BKT-001.018.M03.T02 | MD-BKT-001.005.M03 | Positive | RSP and 11 sector ETFs daily only | SPY + 12 sector symbols | each gets 1d jobs, no 3m | Pass |
 | UT-BKT-001.008.M03.T01 | MD-BKT-001.005.M03 | Positive | Delta asks days since last bar | last saved 3 trading days ago, `delta_only` | one job per stock and tf, duration "4 D" | Pass |
 | UT-BKT-001.008.M03.T02 | MD-BKT-001.005.M03 | Edge | Delta skips up-to-date stock | AAPL saved to last session, MSFT one day behind | no AAPL job; MSFT "2 D" for 1d and 3m | Pass |
 | UT-BKT-001.008.M03.T03 | MD-BKT-001.005.M03 | Negative | No delta with fixed end date | end date 2025-12-31, `delta_only` | empty plan | Pass |

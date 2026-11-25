@@ -7,6 +7,7 @@
 **Last Updated:** 2026-11-02
 **Project:** US Swing Trading System
 
+> v1.9.0: MD-BKT-001.005.M03 `plan()` starts daily-only symbols `DAILY_ONLY_LEAD` (100 days) early; app adds RSP and sector ETFs (SRD-BKT-001.018).
 > v1.8.0: MD-BKT-001.017.M02/.M04 — floors from listed-late daily data only (SRD-BKT-001.017, ISS-BKT-0002).
 > v1.7.0: `service.py` (MD-BKT-002.008.M05) `_data_check()`, `_common_span()`, `Estimate.data_span` (SRD-BKT-002.088).
 > v1.6.0: `core/expr/series.py` (MD-BKT-002.021.M10) reads BOSS_ST from `core.market_structure` on the LTF frame (SRD-BKT-002.087).

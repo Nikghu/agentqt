@@ -7,6 +7,7 @@
 **Last Updated:** 2026-11-02
 **Project:** US Swing Trading System
 
+> v1.18.0: SRD-BKT-001.018 added and approved by user 2026-11-25 (chat) — daily candles for RSP and the 11 sector ETFs, 100 days before the start date.
 > v1.17.0: SRD-BKT-001.005 reopened by user 2026-11-04 (chat) — download one stock fully before the next.
 > v1.16.0: SRD-BKT-001.017 added and approved by user 2026-11-04 (chat) — no floor from an empty 3m answer (ISS-BKT-0002).
 > v1.15.0: SRD-BKT-002.088 added and approved by user 2026-11-03 — data check gives the common saved range.
@@ -45,6 +46,7 @@
 | SRD-BKT-001.015 | FO-BKT-001 | Must | Download and delta also fetch SPY daily candles with the S&P 500 stocks. | S&P 500 list | SPY 1d in the store | Approved by user 2026-10-30 (RS rule needs SPY); no 3m for SPY | Implemented |
 | SRD-BKT-001.016 | FO-BKT-001 | Must | The store keeps 30m candles built from the saved 3m candles, one file per stock and year, like 15m. | 3m year files | 30m year files, 13 bars a day from 09:30 ET | Built on save and by build_missing for data already saved; clear and stats include them | Implemented |
 | SRD-BKT-001.017 | FO-BKT-001 | Must | A stock's floor is set only when its daily data starts after the start date; an empty 3m answer sets no floor and is asked again next run. | 1d and 3m answers | floor per listed-late stock | Approved by user 2026-11-04 (ISS-BKT-0002); old 3m floors dropped on load | Implemented |
+| SRD-BKT-001.018 | FO-BKT-001 | Must | Download and delta also fetch daily candles for RSP and the 11 sector ETFs, and all daily-only symbols start 100 days before the start date. | S&P 500 list | RSP, sector ETF and SPY 1d in the store | Approved by user 2026-11-25 (chat); data for leading-sector ranking; no 3m | Implemented |
 
 ## FO-BKT-002 — Backtest Engine (Phase 0 · Foundation)
 

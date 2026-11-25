@@ -5016,7 +5016,8 @@ class AppService(QObject):
             gaps = None if delta else store.refresh_gaps(symbols)  # ISS-BKT-0003
             return plan(symbols, settings, store.coverage, floors,
                         _compute_last_trading_day(), delta,
-                        daily_only=(BENCHMARK,), gaps=gaps)  # SRD-BKT-001.015
+                        daily_only=(BENCHMARK, *SECTOR_SYMBOLS),
+                        gaps=gaps)  # SRD-BKT-001.015, SRD-BKT-001.018
 
         return build_plan
 

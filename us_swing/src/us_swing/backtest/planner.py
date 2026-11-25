@@ -1,6 +1,6 @@
 """
 Module: MD-BKT-001.005.M03 — backtest/planner.py
-Parent SRD: SRD-BKT-001.005, SRD-BKT-001.015
+Parent SRD: SRD-BKT-001.005, SRD-BKT-001.015, SRD-BKT-001.018
 
 Builds the IBKR request list from the settings and what is already saved. Pure — no I/O.
 Trading days are counted as weekdays; a holiday only makes a delta request one day longer.
@@ -25,6 +25,7 @@ _MIN_DELTA_DAYS = 2
 _MAX_3M_DAYS = 60
 _MAX_1D_DAYS = 250
 _TIMEFRAMES: tuple[Timeframe, ...] = ("1d", "3m")
+DAILY_ONLY_LEAD = timedelta(days=100)
 
 
 @dataclass(frozen=True, slots=True)
@@ -65,7 +66,8 @@ def plan(
         floors: Per stock, the date before which IBKR has no data.
         last_session: Latest finished trading day.
         delta_only: Only ask for days since each stock's last saved bar.
-        daily_only: Extra symbols that get 1d jobs only (SPY for the RS rule).
+        daily_only: Extra symbols that get 1d jobs only, starting ``DAILY_ONLY_LEAD``
+            before the start date (SPY, RSP and the sector ETFs).
         gaps: Per stock, days with a daily bar but no 3m bar; each run of days is asked again.
 
     Returns:
@@ -76,7 +78,8 @@ def plan(
     end = min(settings.end_date or last_session, last_session)
     out: list[Job] = []
     for symbol in [*symbols, *daily_only]:
-        start = max(settings.start_date, floors.get(symbol, settings.start_date))
+        first_day = settings.start_date - (DAILY_ONLY_LEAD if symbol in daily_only else timedelta())
+        start = max(first_day, floors.get(symbol, first_day))
         for tf in ("1d",) if symbol in daily_only else _TIMEFRAMES:
             saved = coverage(symbol, tf)
             if delta_only:

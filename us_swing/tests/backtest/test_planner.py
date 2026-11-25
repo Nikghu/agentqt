@@ -136,12 +136,35 @@ def test_spy_gets_daily_jobs_only() -> None:
 
 def test_saved_spy_has_no_jobs() -> None:
     """UT-BKT-001.015.M03.T02: SPY already saved for the range gives no SPY job."""
-    cov: Coverage = {("SPY", "1d"): (date(2025, 1, 1), date(2025, 12, 31))}
+    cov: Coverage = {("SPY", "1d"): (date(2024, 9, 23), date(2025, 12, 31))}
 
     jobs = plan([], _RANGE_2025, lambda s, tf: cov.get((s, tf)), {}, date(2025, 12, 31),
                 daily_only=("SPY",))
 
     assert jobs == []
+
+
+def test_daily_only_starts_100_days_early() -> None:
+    """UT-BKT-001.018.M03.T01: Daily-only symbols reach 100 days before the start date."""
+    jobs = plan(["AAPL"], _RANGE_2025, lambda _s, _tf: None, {}, date(2025, 12, 31),
+                daily_only=("SPY", "XLK"))
+
+    for symbol in ("SPY", "XLK"):
+        daily = [j for j in jobs if j.symbol == symbol]
+        assert min(j.start for j in daily) == date(2024, 9, 23)
+    assert min(j.start for j in jobs if j.symbol == "AAPL") == date(2025, 1, 1)
+
+
+def test_sector_etfs_get_daily_jobs_only() -> None:
+    """UT-BKT-001.018.M03.T02: RSP and all 11 sector ETFs get 1d jobs and no 3m jobs."""
+    from us_swing.core.stock_context import SECTOR_SYMBOLS
+
+    jobs = plan(["AAPL"], _RANGE_2025, lambda _s, _tf: None, {}, date(2025, 12, 31),
+                daily_only=("SPY", *SECTOR_SYMBOLS))
+
+    assert len(SECTOR_SYMBOLS) == 12
+    for symbol in ("SPY", *SECTOR_SYMBOLS):
+        assert {j.tf for j in jobs if j.symbol == symbol} == {"1d"}
 
 
 def test_gap_days_asked_again() -> None:
