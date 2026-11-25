@@ -251,6 +251,7 @@
 | UT-GUI-006.001.M01.T25 | MD-GUI-006.001.M01 | Positive | Update now picks only stocks behind the last trading day (SRD-GUI-006.023) | AAA, BBB at 11-04; HLT at 11-03; NEW no candles | `["HLT", "NEW"]` | Pass |
 | UT-GUI-006.001.M01.T26 | MD-GUI-006.001.M01 | Negative | No stock picked when all have the last trading day | AAA, BBB at 11-04 | `[]` | Pass |
 | UT-GUI-006.001.M01.T27 | MD-GUI-006.001.M01 | Positive | Update now starts the day after the oldest stock behind | AAA 11-04, HLT 11-03 | `(["HLT"], 2026-11-03)` | Pass |
+| UT-GUI-006.001.M01.T28 | MD-GUI-006.001.M01 | Negative | Edit user hides order type and confirm but keeps their values | user with LMT, confirm off; set risk 2.5 | no order-type or confirm field; LMT and confirm off kept | Pass |
 
 ---
 
@@ -694,8 +695,8 @@ Test files:
 |---|---|---|---|---|---|---|
 | UT-GUI-021.001.M01.T01 | MD-GUI-021.001.M01 | Positive | System tab is split into three sections | build `_SystemSections` | Connection, Scheduler, Telegram | Pass |
 | UT-GUI-021.001.M01.T02 | MD-GUI-021.001.M01 | Positive | Section click shows one section | click Telegram | stack shows Telegram; Users unchecked; 6 sections, no Theme, Diagnostics or Database | Pass |
-| UT-GUI-021.002.M01.T01 | MD-GUI-021.001.M01 | Positive | Risk save persists values | set 2.5 % and LMT, Save | `update_user` called with new risk config | Pass |
-| UT-GUI-021.002.M01.T02 | MD-GUI-021.001.M01 | Negative | Risk save keeps other user fields | chat ID set, Save | chat ID and username unchanged | Pass |
+| UT-GUI-021.002.M01.T01 | MD-GUI-021.001.M01 | Positive | Risk save persists values | set 2.5 % and LMT, Save | `update_user` called with new risk config | Retired (Risk page removed 2026-11-25) |
+| UT-GUI-021.002.M01.T02 | MD-GUI-021.001.M01 | Negative | Risk save keeps other user fields | chat ID set, Save | chat ID and username unchanged | Retired (Risk page removed 2026-11-25) |
 | UT-GUI-021.003.M01.T01 | MD-GUI-021.001.M01 | Positive | System panel holds Theme, Updates, Diagnostics | build `_SystemSections` | theme, update and circuit breaker buttons inside `panel`; groups THEME, UPDATES, ORDERS | Pass |
 | UT-GUI-021.003.M02.T01 | MD-GUI-019.001.M01 | Positive | Strip has a System button | click System | `panel_toggled("system", True)` | Pass |
 | UT-GUI-021.004.M01.T01 | MD-GUI-021.001.M01 | Positive | Progress shows percent | progress MSFT 312 of 503 | "62%", "312 / 503 stocks", "Now: MSFT"; state downloading 62 | Superseded (UT-GUI-028.*) |
@@ -927,7 +928,7 @@ Test files:
 | UT-GUI-027.001.M01.T02 | MD-GUI-027.001.M01 | Positive | Open at a section | `open_at("Telegram")` | dialog visible; Telegram section shown | Pass |
 | UT-GUI-027.001.M01.T03 | MD-GUI-027.001.M01 | Edge | Each section scrolls on its own | one section taller than the 600 px dialog | tall section shows a scroll bar; Candle data shows none; dialog stays 600 px | Pass |
 | UT-GUI-027.003.M01.T01 | MD-GUI-027.001.M01 | Positive | Footer buttons | open; click Cancel; open; click OK | Apply disabled at start; rejected; accepted | Pass |
-| UT-GUI-027.003.M01.T02 | MD-GUI-027.001.M01 | Positive | Footer follows the panel | panel dirty; Risk section shown; click Restore defaults | Apply and Restore defaults enabled; panel asked to restore | Pass |
+| UT-GUI-027.003.M01.T02 | MD-GUI-027.001.M01 | Positive | Footer follows the panel | panel dirty; Connection section shown; click Restore defaults | Apply and Restore defaults enabled; panel asked to restore | Pass |
 | UT-GUI-027.004.M02.T01 | MD-GUI-027.004.M02 | Positive | Settings item opens, screen stays | click Settings with Execution checked | `settings_requested` once; Execution still checked | Pass |
 | UT-GUI-027.004.M03.T01 | MD-GUI-027.004.M03 | Positive | Four screens | `_NAV_ITEMS` | Dashboard, Screener, Execution, Charts | Pass |
 | UT-GUI-027.002.M04.T01 | MD-GUI-027.005.M04 | Positive | Eight sections in order | build panel | Users … Appearance, eight stack pages; no Updates | Pass |
@@ -941,10 +942,10 @@ Test files:
 | UT-GUI-027.008.M02.T01 | MD-GUI-027.004.M02 | Positive | Settings badge per state | downloading 62, complete, partial | "62"; check icon; "!" | Pass |
 | UT-GUI-027.008.M02.T02 | MD-GUI-027.004.M02 | Negative | Idle hides the badge | complete then idle | badge hidden | Pass |
 | UT-GUI-027.009.M05.T01 | MD-GUI-027.009.M05 | Positive | Header breaker trips and resets | click; breaker active; click | `set_circuit_breaker(True)`; label "Reset breaker"; `set_circuit_breaker(False)` | Pass |
-| UT-GUI-027.010.M04.T01 | MD-GUI-027.005.M04 | Positive | Edit then Apply saves once | change risk to 2.5; Apply | Apply enabled after edit; `update_user` once; Apply disabled | Pass |
-| UT-GUI-027.010.M04.T02 | MD-GUI-027.005.M04 | Negative | Cancel drops edits | change risk to 2.5; Cancel | no save; field back to saved value | Pass |
-| UT-GUI-027.011.M04.T01 | MD-GUI-027.005.M04 | Positive | Restore defaults after yes | Risk shown, risk 2.5, confirm yes | default risk value; section dirty | Pass |
-| UT-GUI-027.011.M04.T02 | MD-GUI-027.005.M04 | Negative | No keeps values | confirm no | risk still 2.5; nothing dirty | Pass |
+| UT-GUI-027.010.M04.T01 | MD-GUI-027.005.M04 | Positive | Edit then Apply saves once | change IBKR port to 4002; Apply | Apply enabled after edit; `save_system_config` once; Apply disabled | Pass |
+| UT-GUI-027.010.M04.T02 | MD-GUI-027.005.M04 | Negative | Cancel drops edits | change IBKR port to 4002; Cancel | no save; field back to saved value | Pass |
+| UT-GUI-027.011.M04.T01 | MD-GUI-027.005.M04 | Positive | Restore defaults after yes | Connection shown, port 4002, confirm yes | default port; section dirty | Pass |
+| UT-GUI-027.011.M04.T02 | MD-GUI-027.005.M04 | Negative | No keeps values | confirm no | port still 4002; nothing dirty | Pass |
 | UT-GUI-027.012.M04.T01 | MD-GUI-027.005.M04 | Positive | Dot states | `set_section_state` ok, warn, off, none | green, amber, grey; hidden | Pass |
 | UT-GUI-027.012.M04.T02 | MD-GUI-027.005.M04 | Edge | Telegram dot rule | enabled + token + chat; enabled, no chat; disabled | ok; warn; off | Pass |
 | UT-GUI-027.013.M04.T01 | MD-GUI-027.005.M04 | Positive | Theme waits for Apply | click Mocha; then Apply | not applied after click; applied once and saved after Apply | Pass |

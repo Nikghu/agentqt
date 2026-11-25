@@ -665,7 +665,7 @@
 | ID | Parent | P | Description | In | Out | Constraints | Status |
 |---|---|---|---|---|---|---|---|
 | SRD-GUI-027.001 | FO-GUI-027 | Must | `SettingsDialog` is a frameless modal dialog with a custom title bar (Settings, minimise, maximise, close) and drag-to-move. | open request | dialog | Same title bar pattern as `scheduler_dialog.py` | Implemented |
-| SRD-GUI-027.002 | FO-GUI-027 | Must | A left list holds Users, Risk, Connection, Scheduler, Telegram, Universe, Candle data and Appearance; clicking one shows only that section. | section click | one section shown | Section bodies reuse the existing settings widgets | Implemented |
+| SRD-GUI-027.002 | FO-GUI-027 | Must | A left list holds Users, Connection, Scheduler, Telegram, Universe, Candle data and Appearance; clicking one shows only that section; risk is edited per user in Users. | section click | one section shown | Section bodies reuse the existing settings widgets | Implemented |
 | SRD-GUI-027.003 | FO-GUI-027 | Must | The footer has Restore defaults on the left and Cancel, Apply and OK on the right; Esc acts as Cancel. | click, Esc | close or save | Apply disabled until a value changes | Implemented |
 | SRD-GUI-027.004 | FO-GUI-027 | Must | A Settings item pinned to the sidebar bottom opens the dialog; the sidebar lists four screens and Settings is no longer a stacked page. | click | dialog | Current screen and checked item do not change | Implemented |
 | SRD-GUI-027.005 | FO-GUI-027 | Must | Appearance (theme) is a dialog section; a sidebar Updates item below the Connections panel opens a popup with the installed version, last check time and Check for Updates. | click | popup, dot | Theme and update logic unchanged; dot on the item when an update is found | Implemented |

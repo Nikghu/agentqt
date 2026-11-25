@@ -37,6 +37,7 @@ class _StubService:
             mode="paper", risk_config=RiskConfig(), strategy_config={}, screener_config={},
         )
         self.updated: list[UserProfile] = []
+        self.saved_sys: list[SystemConfig] = []
         self.circuit_breaker_active = False
         self.circuit_breaker_changed = _Signal()
 
@@ -48,6 +49,9 @@ class _StubService:
 
     def update_user(self, user: UserProfile) -> None:
         self.updated.append(user)
+
+    def save_system_config(self, cfg: SystemConfig) -> None:
+        self.saved_sys.append(cfg)
 
 
 @pytest.fixture()
@@ -149,9 +153,9 @@ def test_sections_in_order(
 
     names = [b.text() for b in panel._nav_group.buttons()]
 
-    assert names == ["Users", "Risk", "Connection", "Scheduler", "Telegram", "Universe",
+    assert names == ["Users", "Connection", "Scheduler", "Telegram", "Universe",
                      "Candle data", "Backtest data", "Indicators", "Appearance"]
-    assert panel._stack.count() == 10
+    assert panel._stack.count() == 9
 
 
 @pytest.fixture()
@@ -162,33 +166,29 @@ def panel(svc: _StubService, monkeypatch: pytest.MonkeyPatch) -> settings_panel.
     return settings_panel.SettingsPanel(svc)  # type: ignore[arg-type]
 
 
-def _risk_tab(panel: settings_panel.SettingsPanel) -> Any:
-    return next(w for w in panel.findChildren(settings_panel._RiskTab))
-
-
 def test_edit_then_apply_saves_once(qapp: Any, panel: Any, svc: _StubService) -> None:
     """UT-GUI-027.010.M04.T01: an edit marks the panel dirty; Apply saves once and clears it."""
     seen: list[bool] = []
     panel.dirty_changed.connect(seen.append)
 
-    _risk_tab(panel)._risk.setValue(2.5)
+    panel._sys._port.setValue(4002)
     panel.apply()
 
     assert seen == [True, False]
-    assert len(svc.updated) == 1
-    assert svc.updated[0].risk_config.risk_per_trade_pct == 2.5
+    assert len(svc.saved_sys) == 1
+    assert svc.saved_sys[0].ibkr_port == 4002
     assert not panel.is_dirty
 
 
 def test_cancel_drops_edits(qapp: Any, panel: Any, svc: _StubService) -> None:
     """UT-GUI-027.010.M04.T02: revert reloads the saved value and saves nothing."""
-    saved = svc.user.risk_config.risk_per_trade_pct
-    _risk_tab(panel)._risk.setValue(2.5)
+    saved = svc.get_system_config().ibkr_port
+    panel._sys._port.setValue(4002)
 
     panel.revert()
 
-    assert svc.updated == []
-    assert _risk_tab(panel)._risk.value() == saved
+    assert svc.saved_sys == []
+    assert panel._sys._port.value() == saved
     assert not panel.is_dirty
 
 
@@ -198,15 +198,14 @@ def test_restore_defaults_asks_first(
 ) -> None:
     """UT-GUI-027.011.M04.T01–T02: Restore defaults fills defaults only after yes."""
     monkeypatch.setattr(settings_panel, "confirm", lambda *_a, **_k: answer == "Yes")
-    panel.show_section("Risk")
-    tab = _risk_tab(panel)
-    tab._risk.setValue(2.5)
+    panel.show_section("Connection")
+    panel._sys._port.setValue(4002)
     panel._set_clean()
 
     panel.restore_defaults()
 
-    expected = RiskConfig().risk_per_trade_pct if dirty else 2.5
-    assert tab._risk.value() == expected
+    expected = SystemConfig().ibkr_port if dirty else 4002
+    assert panel._sys._port.value() == expected
     assert panel.is_dirty is dirty
 
 
@@ -246,30 +245,6 @@ def test_theme_waits_for_apply(
     panel.apply()
 
     assert applied == ["mocha"]
-
-
-def test_risk_save_persists(qapp: Any, svc: _StubService) -> None:
-    """UT-GUI-021.002.M01.T01: Save Risk Settings writes the values to the active user."""
-    tab = settings_panel._RiskTab(svc)  # type: ignore[arg-type]
-    tab._risk.setValue(2.5)
-    tab._ord_type.setCurrentText("LMT")
-
-    tab._on_save()
-
-    assert len(svc.updated) == 1
-    saved = svc.updated[0].risk_config
-    assert (saved.risk_per_trade_pct, saved.default_order_type) == (2.5, "LMT")
-
-
-def test_risk_save_keeps_other_fields(qapp: Any, svc: _StubService) -> None:
-    """UT-GUI-021.002.M01.T02: Risk save does not touch Telegram or other user fields."""
-    svc.user.telegram_chat_id = "12345"
-    tab = settings_panel._RiskTab(svc)  # type: ignore[arg-type]
-
-    tab._on_save()
-
-    assert svc.updated[0].telegram_chat_id == "12345"
-    assert svc.updated[0].username == "trader"
 
 
 def test_universe_html_has_backtest_columns() -> None:

@@ -45,6 +45,20 @@ def test_edit_keeps_hidden_fields(qapp: Any) -> None:
     assert profile.user_id == 1
 
 
+def test_edit_keeps_unused_order_fields(qapp: Any) -> None:
+    """UT-GUI-006.001.M01.T28: the dialog hides order type and confirm, and keeps their values."""
+    user = _user()
+    user.risk_config = RiskConfig(default_order_type="LMT", confirm_orders=False)
+    dlg = _UserDialog(user)
+    dlg._risk.setValue(2.5)
+
+    rc = dlg.get_profile().risk_config
+
+    assert not hasattr(dlg, "_order_type") and not hasattr(dlg, "_confirm")
+    assert rc.risk_per_trade_pct == 2.5
+    assert (rc.default_order_type, rc.confirm_orders) == ("LMT", False)
+
+
 def test_new_user_gets_defaults(qapp: Any) -> None:
     """UT-GUI-006.001.M01.T18: a new user starts with Telegram off and id -1."""
     dlg = _UserDialog(None)
