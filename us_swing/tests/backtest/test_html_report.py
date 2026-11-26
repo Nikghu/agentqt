@@ -46,7 +46,7 @@ def test_export_saved_run(store: BacktestStore, tmp_path: Path) -> None:
     for title in ("Edge per trade", "Luck check", "Trade quality", "Every trade, in exit order",
                   "Best trades", "Worst trades", "All trades", "All measures"):
         assert f"<h3>{title}</h3>" in page
-    assert _section(page, "All trades").count("<tr>") == len(_trades()) + 1
+    assert _section(page, "All trades").count("<tr>") == 2 * len(_trades()) + 1
 
 
 def test_export_unknown_run(store: BacktestStore, tmp_path: Path) -> None:
@@ -126,25 +126,55 @@ def test_best_and_worst_with_few_trades() -> None:
     assert worst.count("<tr>") == 2 and worst.count("-$20.00") == 2
 
 
-def test_all_trades_capital_columns() -> None:
-    """UT-BKT-002.053.M15.T01: All trades shows Allocated (price x shares) and Available."""
-    trades = _trades()
-    first = trades.iloc[0]
-    alloc = float(first["entry_px"]) * int(first["qty"])
+def _rows(section: str) -> list[str]:
+    return section.split("<tbody>")[1].split("<tr>")[1:]
 
-    saved = _section(_page(trades.assign(avail=777.0)), "All trades")
-    old = _section(_page(trades), "All trades")
 
-    assert "Allocated" in saved and "Available" in saved
-    assert f'<td class="n">${alloc:,.0f}</td>' in saved
-    assert '<td class="n">$777</td>' in saved
-    assert '<td class="n">—</td>' in old
+def test_all_trades_entry_exit_rows() -> None:
+    """UT-BKT-002.089.M15.T01: Entry and Exit rows in time order; Available after each row."""
+    rows = _rows(_section(_page(), "All trades"))
+
+    assert len(rows) == 8
+    assert [r.split("</td>")[1][4:] for r in rows[:2]] == ["Entry", "Exit"]
+    assert [r.split("</td>")[8] for r in rows[:2]] == ['<td class="n idle">$900',
+                                                    '<td class="n idle">$1,000']
+    assert '<td class="n">03-03-2025 10:00</td>' in rows[0]
+    assert '<td class="n">03-03-2025 15:00</td>' in rows[1]
+    assert rows[0].count("<td></td>") == 4
+    assert "Exit rule" in rows[1] and "+$10.00" in rows[1]
+    assert "Allocated" in _section(_page(), "All trades")
+
+
+def test_exit_before_entry_at_same_time() -> None:
+    """UT-BKT-002.089.M15.T02: An exit at the same time as an entry frees its money first."""
+    trades = _trades().iloc[0:2].copy()
+    trades.loc[1, "entry_ts"] = trades.loc[0, "exit_ts"]
+
+    rows = _rows(_section(_page(trades), "All trades"))
+
+    assert [r.split("</td>")[1][4:] for r in rows] == ["Entry", "Exit", "Entry", "Exit"]
+    assert [r.split("</td>")[8] for r in rows] == [
+        f'<td class="n idle">{v}' for v in ("$900", "$1,000", "$900", "$1,000")]
+
+
+def test_idle_capital_shaded_red() -> None:
+    """UT-BKT-002.090.M15.T01: Available above 80% of start capital is shaded; 80% or less is not."""
+    trades = _trades().iloc[0:2].copy()
+    trades.loc[0, "qty"] = 5     # $500 in use → $500 available (50%)
+    trades.loc[1, "qty"] = 2     # $200 in use → $800 available (exactly 80%)
+
+    section = _section(_page(trades), "All trades")
+    cells = [r.split("</td>")[8] for r in _rows(section)]
+
+    assert cells == ['<td class="n">$500', '<td class="n idle">$1,000',
+                     '<td class="n">$800', '<td class="n idle">$1,000']
+    assert "td.idle" in _page(trades)
 
 
 def test_dates_day_first() -> None:
     """UT-BKT-002.083.M15.T09: Trade dates show as DD-MM-YYYY and short dates as DD-MM."""
     page = _page()
 
-    assert '<td class="n">06-03-2025</td>' in _section(page, "All trades")
+    assert '<td class="n">06-03-2025 10:00</td>' in _section(page, "All trades")
     assert "03-03 → 03-03" in _section(page, "Best trades")
     assert "2025-03-06" not in page

@@ -63,10 +63,7 @@ class _Bar:
 
 
 def trading_days(store: BacktestStore, period: Period, symbols: list[str]) -> list[date]:
-    """Return SPY's 1d dates in the period, or all stocks' dates when SPY is missing."""
-    spy = store.read(BENCHMARK, "1d", period.start, period.end)
-    if not spy.empty:
-        return sorted({ts.date() for ts in spy["ts"]})
+    """Return the run stocks' 1d dates in the period (SRD-BKT-002.091); SPY is not used."""
     days: set[date] = set()
     for sym in symbols:
         frame = store.read(sym, "1d", period.start, period.end)

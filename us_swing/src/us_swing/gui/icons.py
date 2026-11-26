@@ -100,9 +100,12 @@ def icon_button(name: str, role: str, tip: str, parent: QWidget | None = None) -
     return button
 
 
-def mark_danger(button: QAbstractButton) -> None:
-    """Style ``button`` as a risky action (red text, border and icon) in every theme."""
-    button.setProperty("role", "danger")
+def mark_danger(button: QAbstractButton, role: str = "danger") -> None:
+    """Style ``button`` as a risky action in every theme.
+
+    ``danger`` gives red text and border; ``stop`` gives red text with the theme border.
+    """
+    button.setProperty("role", role)
     style = button.style()
     if style is not None:
         style.unpolish(button)

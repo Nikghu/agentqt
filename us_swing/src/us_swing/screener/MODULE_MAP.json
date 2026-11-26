@@ -1,7 +1,7 @@
 {
-  "generated": "2026-11-17T15:43:53",
+  "generated": "2026-11-26T08:25:51",
   "subfolder": "screener",
-  "root": "F:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\screener",
+  "root": "f:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\screener",
   "tool_code": "SCR",
   "files": {
     "__init__.py": {},
@@ -97,73 +97,103 @@
           "methods": [
             {
               "name": "__init__",
-              "signature": "def __init__(\r\n        self,\r\n        db: Any = None,\r\n        app_service: Any = None,\r\n        preset_manager: Any = None,\r\n        storage: ScreenerResultsStorage | None = None,\r\n        registry: ScreenerRegistry | None = None,\r\n        max_workers: int = 4,\r\n        notify: Callable[[str, str], None] | None = None,\r\n    ) -> None",
-              "line_start": 50,
-              "line_end": 67
+              "signature": "def __init__(\r\n        self,\r\n        db: Any = None,\r\n        app_service: Any = None,\r\n        preset_manager: Any = None,\r\n        storage: ScreenerResultsStorage | None = None,\r\n        registry: ScreenerRegistry | None = None,\r\n        max_workers: int = 4,\r\n        notify: Callable[[str, str], None] | None = None,\r\n        earnings_lookup: Callable[[list[str], date], Mapping[str, date | None]] | None = None,\r\n        news_lookup: Callable[[list[str], datetime], Mapping[str, Sequence[Headline]]]\r\n        | None = None,\r\n        research_runner: Callable[[list[str], str, date], Mapping[str, Research]] | None = None,\r\n        company_lookup: Callable[[list[str], list[str], date], Mapping[str, CompanyFacts]]\r\n        | None = None,\r\n        review_runner: Callable[[Mapping[str, str], str], Mapping[str, ReviewRun]]\r\n        | None = None,\r\n    ) -> None",
+              "line_start": 69,
+              "line_end": 99
             },
             {
               "name": "run_preset",
-              "signature": "def run_preset(\r\n        self,\r\n        preset_id: str,\r\n        user_id: str,\r\n        manual: bool = True,\r\n        *,\r\n        symbols: list[str] | None = None,\r\n        bars: dict[str, list[Any]] | None = None,\r\n        preset: Preset | None = None,\r\n        market_caps: dict[str, float] | None = None,\r\n        candle_date: str | None = None,\r\n    ) -> ScreenerRunResult",
+              "signature": "def run_preset(\r\n        self,\r\n        preset_id: str,\r\n        user_id: str,\r\n        manual: bool = True,\r\n        *,\r\n        symbols: list[str] | None = None,\r\n        bars: dict[str, list[Any]] | None = None,\r\n        preset: Preset | None = None,\r\n        market_caps: dict[str, float] | None = None,\r\n        candle_date: str | None = None,\r\n        sectors: Mapping[str, str] | None = None,\r\n        context_closes: Mapping[str, Mapping[str, float]] | None = None,\r\n    ) -> ScreenerRunResult",
               "docstring": "Execute a preset and persist the result.",
-              "line_start": 73,
-              "line_end": 180
+              "line_start": 105,
+              "line_end": 217
             },
             {
               "name": "screen",
               "signature": "def screen(\r\n        self,\r\n        preset: Preset,\r\n        symbols: list[str],\r\n        bars: dict[str, list[Any]],\r\n        market_caps: dict[str, float] | None = None,\r\n    ) -> dict[str, dict[str, Any]]",
               "docstring": "Run the rule stages only: pre-filter, screeners and group/weight logic.",
-              "line_start": 182,
-              "line_end": 207
+              "line_start": 219,
+              "line_end": 244
             },
             {
               "name": "_run_stage2",
               "signature": "def _run_stage2(\r\n        self,\r\n        preset: Preset,\r\n        symbols: list[str],\r\n        bars: dict[str, list[Any]],\r\n        market_caps: dict[str, float] | None = None,\r\n    ) -> dict[str, dict[str, tuple[bool, float]]]",
               "docstring": "Call every enabled screener and collect per-symbol (passed, score).",
-              "line_start": 213,
-              "line_end": 267
+              "line_start": 250,
+              "line_end": 304
             },
             {
               "name": "_combine_results",
               "signature": "def _combine_results(\r\n        self,\r\n        preset: Preset,\r\n        stage2: dict[str, dict[str, tuple[bool, float]]],\r\n        symbols: list[str],\r\n    ) -> dict[str, dict[str, Any]]",
-              "line_start": 273,
-              "line_end": 281
+              "line_start": 310,
+              "line_end": 318
             },
             {
               "name": "_composite_logic",
               "signature": "def _composite_logic(\r\n        self,\r\n        preset: Preset,\r\n        stage2: dict[str, dict[str, tuple[bool, float]]],\r\n        symbols: list[str],\r\n    ) -> dict[str, dict[str, Any]]",
               "docstring": "Symbol passes if ANY group passes (groups are OR-ed together).",
-              "line_start": 283,
-              "line_end": 321
+              "line_start": 320,
+              "line_end": 358
             },
             {
               "name": "_weighted_logic",
               "signature": "def _weighted_logic(\r\n        self,\r\n        preset: Preset,\r\n        stage2: dict[str, dict[str, tuple[bool, float]]],\r\n        symbols: list[str],\r\n    ) -> dict[str, dict[str, Any]]",
               "docstring": "Score = \u03a3(score_i \u00d7 weight_i) / \u03a3(weights) for enabled screeners.",
-              "line_start": 323,
-              "line_end": 346
+              "line_start": 360,
+              "line_end": 383
             },
             {
               "name": "_run_stage3",
-              "signature": "def _run_stage3(\r\n        self,\r\n        preset: Preset,\r\n        combined: dict[str, dict[str, Any]],\r\n        bars: dict[str, list[Any]],\r\n        market_caps: dict[str, float] | None = None,\r\n    ) -> tuple[dict[str, dict[str, Any]], list[AITranscriptTurn]]",
+              "signature": "def _run_stage3(\r\n        self,\r\n        preset: Preset,\r\n        combined: dict[str, dict[str, Any]],\r\n        bars: dict[str, list[Any]],\r\n        market_caps: dict[str, float] | None = None,\r\n        sectors: Mapping[str, str] | None = None,\r\n        context_closes: Mapping[str, Mapping[str, float]] | None = None,\r\n    ) -> tuple[dict[str, dict[str, Any]], list[AITranscriptTurn]]",
               "docstring": "Re-rank Stage 2 passing symbols with CloudAIScreener.",
-              "line_start": 352,
-              "line_end": 443
+              "line_start": 389,
+              "line_end": 506
+            },
+            {
+              "name": "_stock_context",
+              "signature": "def _stock_context(\r\n        self,\r\n        preset: Preset,\r\n        passing: list[str],\r\n        sectors: Mapping[str, str],\r\n        closes: Mapping[str, Mapping[str, float]],\r\n    ) -> tuple[dict[str, Any], str]",
+              "docstring": "Earnings, sector and market context for the Stage 3 stocks (SRD-SCR-018.002\u2013.007",
+              "line_start": 512,
+              "line_end": 535
+            },
+            {
+              "name": "_add_research",
+              "signature": "def _add_research(\r\n        self,\r\n        preset: Preset,\r\n        picks: list[str],\r\n        result: dict[str, dict[str, Any]],\r\n        transcript: list[AITranscriptTurn],\r\n    ) -> Mapping[str, Research]",
+              "docstring": "Web research for the final picks; a major risk adds a flag (SRD-SCR-019.005\u2013.007",
+              "line_start": 537,
+              "line_end": 559
+            },
+            {
+              "name": "_add_review",
+              "signature": "def _add_review(\r\n        self,\r\n        preset: Preset,\r\n        facts: Mapping[str, str],\r\n        result: dict[str, dict[str, Any]],\r\n        transcript: list[AITranscriptTurn],\r\n    ) -> None",
+              "docstring": "Blind bull vs bear review; Wait or Avoid adds a flag (SRD-SCR-020.007\u2013.009).",
+              "line_start": 561,
+              "line_end": 585
             },
             {
               "name": "_get_registry",
               "signature": "def _get_registry(self) -> ScreenerRegistry",
-              "line_start": 449,
-              "line_end": 450
+              "line_start": 587,
+              "line_end": 588
             },
             {
               "name": "_get_storage",
               "signature": "def _get_storage(self) -> ScreenerResultsStorage",
-              "line_start": 452,
-              "line_end": 453
+              "line_start": 590,
+              "line_end": 591
             }
           ],
-          "line_start": 32,
-          "line_end": 453
+          "line_start": 51,
+          "line_end": 591
+        }
+      ],
+      "top_level_functions": [
+        {
+          "name": "_price_text",
+          "signature": "def _price_text(bars: Sequence[Any]) -> str",
+          "docstring": "Price line for the review from Stage 3 daily bars.",
+          "line_start": 594,
+          "line_end": 596
         }
       ],
       "constants": [
@@ -329,14 +359,14 @@
         {
           "name": "PresetType",
           "docstring": "Discriminates composite (AND/OR groups) vs weighted (scored) presets.",
-          "line_start": 32,
-          "line_end": 36
+          "line_start": 37,
+          "line_end": 41
         },
         {
           "name": "GroupLogic",
           "docstring": "Logical operator applied to screeners within a ScreenerGroup.",
-          "line_start": 39,
-          "line_end": 43
+          "line_start": 44,
+          "line_end": 48
         },
         {
           "name": "ScreenerRef",
@@ -347,8 +377,8 @@
             "weight: float | None",
             "config: dict[str, Any]"
           ],
-          "line_start": 47,
-          "line_end": 53
+          "line_start": 52,
+          "line_end": 58
         },
         {
           "name": "ScreenerGroup",
@@ -362,12 +392,12 @@
             {
               "name": "__post_init__",
               "signature": "def __post_init__(self) -> None",
-              "line_start": 64,
-              "line_end": 71
+              "line_start": 69,
+              "line_end": 76
             }
           ],
-          "line_start": 57,
-          "line_end": 71
+          "line_start": 62,
+          "line_end": 76
         },
         {
           "name": "Preset",
@@ -390,15 +420,17 @@
             "enable_llm_ranking: bool",
             "top_n: int",
             "ai_query: str",
-            "ai_model: str"
+            "ai_model: str",
+            "ai_provider: str",
+            "ai_context: list[str]"
           ],
           "methods": [
             {
               "name": "to_dict",
               "signature": "def to_dict(self) -> dict[str, Any]",
               "docstring": "Serialize to a JSON-compatible dict with ISO-8601 UTC datetimes.",
-              "line_start": 110,
-              "line_end": 131
+              "line_start": 120,
+              "line_end": 143
             },
             {
               "name": "from_dict",
@@ -407,105 +439,126 @@
               "decorators": [
                 "@classmethod"
               ],
-              "line_start": 134,
-              "line_end": 155
+              "line_start": 146,
+              "line_end": 169
             },
             {
               "name": "validate",
               "signature": "def validate(self) -> None",
               "docstring": "Validate preset structure.",
-              "line_start": 161,
-              "line_end": 178
+              "line_start": 175,
+              "line_end": 201
             }
           ],
-          "line_start": 75,
-          "line_end": 178
+          "line_start": 80,
+          "line_end": 201
         }
       ],
       "top_level_functions": [
         {
           "name": "_ref_to_dict",
           "signature": "def _ref_to_dict(r: ScreenerRef) -> dict[str, Any]",
-          "line_start": 185,
-          "line_end": 191
+          "line_start": 208,
+          "line_end": 214
         },
         {
           "name": "_group_to_dict",
           "signature": "def _group_to_dict(g: ScreenerGroup) -> dict[str, Any]",
-          "line_start": 194,
-          "line_end": 199
+          "line_start": 217,
+          "line_end": 222
         },
         {
           "name": "_ref_from_dict",
           "signature": "def _ref_from_dict(r: dict[str, Any]) -> ScreenerRef",
-          "line_start": 202,
-          "line_end": 208
+          "line_start": 225,
+          "line_end": 231
         },
         {
           "name": "_group_from_dict",
           "signature": "def _group_from_dict(g: dict[str, Any]) -> ScreenerGroup",
-          "line_start": 211,
-          "line_end": 216
+          "line_start": 234,
+          "line_end": 239
         },
         {
           "name": "_to_iso",
           "signature": "def _to_iso(dt: datetime) -> str",
           "docstring": "Serialize datetime to ISO-8601.  UTC datetimes use 'Z' suffix.",
-          "line_start": 219,
-          "line_end": 224
+          "line_start": 242,
+          "line_end": 247
         },
         {
           "name": "_from_iso",
           "signature": "def _from_iso(s: str | None) -> datetime",
           "docstring": "Deserialize ISO-8601 string to a timezone-aware datetime.",
-          "line_start": 227,
-          "line_end": 231
+          "line_start": 250,
+          "line_end": 254
         },
         {
           "name": "_validate_ai_query",
           "signature": "def _validate_ai_query(query: str) -> None",
           "docstring": "Empty query keeps the legacy ranking path; non-empty must be \u2264 500 chars.",
-          "line_start": 238,
-          "line_end": 243
+          "line_start": 261,
+          "line_end": 266
         },
         {
           "name": "_validate_ai_model",
           "signature": "def _validate_ai_model(model: str) -> None",
           "docstring": "OpenRouter model IDs use the form 'provider/model-name'.",
-          "line_start": 246,
-          "line_end": 251
+          "line_start": 269,
+          "line_end": 274
+        },
+        {
+          "name": "_validate_ai_provider",
+          "signature": "def _validate_ai_provider(provider: str) -> None",
+          "line_start": 277,
+          "line_end": 281
+        },
+        {
+          "name": "_validate_ai_context",
+          "signature": "def _validate_ai_context(kinds: list[str]) -> None",
+          "line_start": 284,
+          "line_end": 290
+        },
+        {
+          "name": "_load_ai_model",
+          "signature": "def _load_ai_model(data: dict[str, Any]) -> str",
+          "docstring": "Saved model; OpenRouter presets get old Anthropic-native IDs rewritten.",
+          "line_start": 293,
+          "line_end": 298
         },
         {
           "name": "_migrate_ai_model",
           "signature": "def _migrate_ai_model(raw: str) -> str",
           "docstring": "Rewrite Anthropic-native model IDs to the OpenRouter equivalent.",
-          "line_start": 254,
-          "line_end": 256
+          "line_start": 301,
+          "line_end": 303
         },
         {
           "name": "_validate_trading_styles",
           "signature": "def _validate_trading_styles(styles: list[str]) -> None",
-          "line_start": 259,
-          "line_end": 265
+          "line_start": 306,
+          "line_end": 312
         },
         {
           "name": "_validate_composite",
           "signature": "def _validate_composite(preset: Preset) -> None",
-          "line_start": 268,
-          "line_end": 280
+          "line_start": 315,
+          "line_end": 327
         },
         {
           "name": "_validate_weighted",
           "signature": "def _validate_weighted(preset: Preset) -> None",
-          "line_start": 283,
-          "line_end": 301
+          "line_start": 330,
+          "line_end": 348
         }
       ],
       "constants": [
         "_VALID_STYLES:     frozenset[str] = frozenset({\"swing\", \"day\", \"position\"})",
         "_VALID_TIMEFRAMES: frozenset[str] = frozenset({\"1d\", \"1w\"})",
         "_AI_QUERY_MAX_LEN: int = 500",
-        "_MODEL_RE = re.compile(r\"^[a-z0-9_.\\-]+/[a-z0-9_.\\-]+$\")"
+        "_MODEL_RE = re.compile(r\"^[a-z0-9_.\\-]+/[a-z0-9_.\\-]+$\")",
+        "_AI_PROVIDERS: frozenset[str] = frozenset({\"openrouter\", \"claude\"})",
+        "_AI_CONTEXT_KINDS: frozenset[str] = frozenset({"
       ]
     },
     "registry.py": {
@@ -699,8 +752,8 @@
           "name": "supports_tool_use",
           "signature": "def supports_tool_use(model_id: str) -> bool",
           "docstring": "Return True if the model is in the curated list AND supports tool use.",
-          "line_start": 53,
-          "line_end": 62
+          "line_start": 54,
+          "line_end": 63
         }
       ],
       "constants": [
@@ -772,6 +825,17 @@
       "srd_id": "SRD-SCR-017.001",
       "classes": [
         {
+          "name": "Strictness",
+          "docstring": "How strict a config is overall: 0 (wide) to 1 (very strict).",
+          "class_vars": [
+            "level: str",
+            "value: float",
+            "tightest: tuple[str, ...]"
+          ],
+          "line_start": 116,
+          "line_end": 121
+        },
+        {
           "name": "_Result",
           "class_vars": [
             "passed: bool",
@@ -780,8 +844,8 @@
             "drop_vol: float",
             "ud_ratio: float"
           ],
-          "line_start": 78,
-          "line_end": 83
+          "line_start": 156,
+          "line_end": 161
         },
         {
           "name": "AccDistScreener",
@@ -795,32 +859,32 @@
             {
               "name": "_run",
               "signature": "def _run(\r\n        self, symbols: list[str], bars: dict[str, list[Any]], config: dict[str, Any]\r\n    ) -> dict[str, _Result]",
-              "line_start": 147,
-              "line_end": 158
+              "line_start": 243,
+              "line_end": 254
             },
             {
               "name": "apply",
               "signature": "def apply(\r\n        self,\r\n        symbols: list[str],\r\n        bars: dict[str, list[Any]],\r\n        config: dict[str, Any],\r\n    ) -> dict[str, tuple[bool, float]]",
               "docstring": "Screen symbols for accumulation or distribution.",
-              "line_start": 160,
-              "line_end": 184
+              "line_start": 256,
+              "line_end": 280
             },
             {
               "name": "screen_detailed",
               "signature": "def screen_detailed(\r\n        self,\r\n        symbols: list[str],\r\n        bars: dict[str, list[Any]],\r\n        config: dict[str, Any],\r\n    ) -> dict[str, dict[str, Any]]",
               "docstring": "Return rally volume \u00d7, drop volume \u00d7 and up/down ratio per symbol.",
-              "line_start": 186,
-              "line_end": 196
+              "line_start": 282,
+              "line_end": 292
             },
             {
               "name": "batch_features",
               "signature": "def batch_features(\r\n        self,\r\n        symbols: list[str],\r\n        bars: dict[str, list[Any]],\r\n    ) -> dict[str, dict[str, Any]]",
-              "line_start": 198,
-              "line_end": 203
+              "line_start": 294,
+              "line_end": 299
             }
           ],
-          "line_start": 140,
-          "line_end": 203
+          "line_start": 236,
+          "line_end": 299
         }
       ],
       "top_level_functions": [
@@ -828,40 +892,59 @@
           "name": "default_config",
           "signature": "def default_config() -> dict[str, Any]",
           "docstring": "Return a config dict with every setting at its default.",
-          "line_start": 49,
-          "line_end": 51
+          "line_start": 56,
+          "line_end": 62
         },
         {
           "name": "read_config",
           "signature": "def read_config(config: dict[str, Any]) -> dict[str, Any]",
           "docstring": "Merge ``config`` over the defaults and check every value.",
-          "line_start": 54,
-          "line_end": 74
+          "line_start": 65,
+          "line_end": 94
+        },
+        {
+          "name": "strictness",
+          "signature": "def strictness(config: dict[str, Any]) -> Strictness",
+          "docstring": "Rate how strict the settings are, from the settings in use for the mode and move",
+          "line_start": 124,
+          "line_end": 152
         },
         {
           "name": "_close_in_zone",
           "signature": "def _close_in_zone(a: BarArrays, n: int, zone: float, top: bool) -> npt.NDArray[np.bool_]",
-          "line_start": 86,
-          "line_end": 90
+          "line_start": 164,
+          "line_end": 168
         },
         {
           "name": "_near_range_edge",
           "signature": "def _near_range_edge(a: BarArrays, cfg: dict[str, Any], bottom: bool) -> bool",
-          "line_start": 93,
-          "line_end": 100
+          "line_start": 171,
+          "line_end": 178
+        },
+        {
+          "name": "_move_threshold",
+          "signature": "def _move_threshold(\r\n    change: npt.NDArray[np.float64], n: int, cfg: dict[str, Any]\r\n) -> float | npt.NDArray[np.float64]",
+          "docstring": "Minimum move % for each of the last ``n`` days.",
+          "line_start": 181,
+          "line_end": 194
         },
         {
           "name": "_evaluate",
           "signature": "def _evaluate(a: BarArrays, cfg: dict[str, Any]) -> _Result",
-          "line_start": 103,
-          "line_end": 137
+          "line_start": 197,
+          "line_end": 233
         }
       ],
       "constants": [
         "ACCUMULATION = \"accumulation\"",
         "DISTRIBUTION = \"distribution\"",
         "MODES = (ACCUMULATION, DISTRIBUTION)",
-        "SETTINGS: dict[str, tuple[Any, float, float]] = {"
+        "OWN_MOVE = \"own\"",
+        "FIXED_MOVE = \"fixed\"",
+        "MOVE_RULES = (OWN_MOVE, FIXED_MOVE)",
+        "SETTINGS: dict[str, tuple[Any, float, float]] = {",
+        "STRICTNESS_LEVELS = ((0.25, \"Wide\"), (0.55, \"Balanced\"), (0.75, \"Strict\"), (1.01, \"Very strict\"))",
+        "_STRICT_SCALE: dict[str, tuple[float, float]] = {"
       ]
     },
     "cloud_ai.py": {
@@ -876,8 +959,8 @@
             "high: float",
             "low: float"
           ],
-          "line_start": 94,
-          "line_end": 98
+          "line_start": 108,
+          "line_end": 112
         },
         {
           "name": "_WkBar",
@@ -887,8 +970,8 @@
             "high: float",
             "low: float"
           ],
-          "line_start": 101,
-          "line_end": 105
+          "line_start": 115,
+          "line_end": 119
         },
         {
           "name": "_UsageTracker",
@@ -897,18 +980,18 @@
             {
               "name": "log_usage",
               "signature": "def log_usage(self, *, tokens_in: int, tokens_out: int) -> None",
-              "line_start": 336,
-              "line_end": 336
+              "line_start": 350,
+              "line_end": 350
             },
             {
               "name": "get_monthly_cost",
               "signature": "def get_monthly_cost(self) -> float",
-              "line_start": 337,
-              "line_end": 337
+              "line_start": 351,
+              "line_end": 351
             }
           ],
-          "line_start": 334,
-          "line_end": 337
+          "line_start": 348,
+          "line_end": 351
         },
         {
           "name": "CloudAIScreener",
@@ -917,45 +1000,52 @@
             {
               "name": "__init__",
               "signature": "def __init__(self, usage_tracker: _UsageTracker | None = None) -> None",
-              "line_start": 356,
-              "line_end": 360
+              "line_start": 370,
+              "line_end": 375
             },
             {
               "name": "batch_features",
               "signature": "def batch_features(\r\n        self,\r\n        symbols: list[str],\r\n        bars: dict[str, list[OHLCVBar]],\r\n    ) -> dict[str, dict[str, Any]]",
-              "line_start": 362,
-              "line_end": 372
+              "line_start": 377,
+              "line_end": 387
             },
             {
               "name": "apply",
               "signature": "def apply(\r\n        self,\r\n        symbols: list[str],\r\n        bars: dict[str, list[OHLCVBar]],\r\n        config: dict[str, Any],\r\n    ) -> dict[str, tuple[bool, float]]",
-              "line_start": 378,
-              "line_end": 390
+              "line_start": 393,
+              "line_end": 408
             },
             {
               "name": "_make_client",
               "signature": "def _make_client(self) -> Any",
-              "line_start": 396,
-              "line_end": 413
+              "line_start": 414,
+              "line_end": 431
             },
             {
               "name": "_call_with_retry",
               "signature": "def _call_with_retry(self, client: Any, **kwargs: Any) -> Any",
               "docstring": "Bounded exponential backoff for transient errors (429/5xx).",
-              "line_start": 415,
-              "line_end": 437
+              "line_start": 433,
+              "line_end": 455
             },
             {
               "name": "_apply_legacy",
               "signature": "def _apply_legacy(\r\n        self,\r\n        symbols: list[str],\r\n        bars: dict[str, list[OHLCVBar]],\r\n        config: dict[str, Any],\r\n    ) -> dict[str, tuple[bool, float]]",
-              "line_start": 443,
-              "line_end": 542
+              "line_start": 461,
+              "line_end": 564
+            },
+            {
+              "name": "_apply_claude",
+              "signature": "def _apply_claude(\r\n        self,\r\n        symbols: list[str],\r\n        bars: dict[str, list[OHLCVBar]],\r\n        config: dict[str, Any],\r\n        ai_query: str,\r\n    ) -> dict[str, tuple[bool, float]]",
+              "docstring": "Rank in one Claude Code CLI request; the CLI has no tool loop (SRD-SCR-013.011).",
+              "line_start": 570,
+              "line_end": 618
             },
             {
               "name": "_apply_with_tools",
               "signature": "def _apply_with_tools(\r\n        self,\r\n        symbols: list[str],\r\n        bars: dict[str, list[OHLCVBar]],\r\n        config: dict[str, Any],\r\n        ai_query: str,\r\n    ) -> dict[str, tuple[bool, float]]",
-              "line_start": 548,
-              "line_end": 680
+              "line_start": 624,
+              "line_end": 757
             },
             {
               "name": "_tool_display",
@@ -963,105 +1053,133 @@
               "decorators": [
                 "@staticmethod"
               ],
-              "line_start": 687,
-              "line_end": 695
+              "line_start": 764,
+              "line_end": 772
             },
             {
               "name": "_append_tool_round",
               "signature": "def _append_tool_round(\r\n        self,\r\n        messages: list[dict[str, Any]],\r\n        choice: Any,\r\n        tool_executor: CandleToolExecutor,\r\n    ) -> list[tuple[str, str, dict[str, Any]]]",
               "docstring": "Append the assistant's tool-call message + each tool's result.",
-              "line_start": 697,
-              "line_end": 728
+              "line_start": 774,
+              "line_end": 805
             },
             {
               "name": "_parse_ranking",
               "signature": "def _parse_ranking(\r\n        self,\r\n        text: str,\r\n        symbols: list[str],\r\n        fallback: dict[str, tuple[bool, float]],\r\n    ) -> dict[str, tuple[bool, float]]",
-              "line_start": 734,
-              "line_end": 764
+              "line_start": 811,
+              "line_end": 844
             },
             {
               "name": "_track_usage",
               "signature": "def _track_usage(self, response: Any) -> None",
-              "line_start": 766,
-              "line_end": 787
+              "line_start": 846,
+              "line_end": 867
             }
           ],
-          "line_start": 340,
-          "line_end": 787
+          "line_start": 354,
+          "line_end": 867
         }
       ],
       "top_level_functions": [
         {
           "name": "_compute_rsi",
           "signature": "def _compute_rsi(closes: list[float], period: int = 14) -> float",
-          "line_start": 108,
-          "line_end": 122
+          "line_start": 122,
+          "line_end": 136
         },
         {
           "name": "_compute_atr",
           "signature": "def _compute_atr(bars: list[_BarProto], period: int = 14) -> float",
-          "line_start": 125,
-          "line_end": 127
+          "line_start": 139,
+          "line_end": 141
         },
         {
           "name": "_to_weekly",
           "signature": "def _to_weekly(bars: list[OHLCVBar]) -> list[_WkBar]",
           "docstring": "Aggregate daily bars into weekly bars keyed by ISO year-week.",
-          "line_start": 130,
-          "line_end": 144
+          "line_start": 144,
+          "line_end": 158
         },
         {
           "name": "_find_swings",
           "signature": "def _find_swings(\r\n    bars: list[_BarProto],\r\n    *,\r\n    use_high:   bool,\r\n    neighbors:  int   = _SWING_N,\r\n    max_pts:    int   = _SWING_MAX,\r\n    atr_filter: float = 0.0,\r\n) -> list[dict[str, Any]]",
           "docstring": "Return the ``max_pts`` most-recent swing pivot points.",
-          "line_start": 147,
-          "line_end": 180
+          "line_start": 161,
+          "line_end": 194
         },
         {
           "name": "_extract_features",
           "signature": "def _extract_features(sym: str, bars: list[OHLCVBar]) -> dict[str, Any]",
-          "line_start": 187,
-          "line_end": 262
+          "line_start": 201,
+          "line_end": 276
         },
         {
           "name": "_features_to_table",
           "signature": "def _features_to_table(features: dict[str, dict[str, Any]]) -> str",
           "docstring": "Serialise batch_features output as a compact table + swing-pivot block.",
-          "line_start": 269,
-          "line_end": 327
+          "line_start": 283,
+          "line_end": 341
         },
         {
           "name": "_tool_system_prompt",
           "signature": "def _tool_system_prompt(ai_query: str) -> str",
           "docstring": "Return the system prompt for the tool-augmented ranking loop.",
-          "line_start": 794,
-          "line_end": 807
+          "line_start": 874,
+          "line_end": 882
+        },
+        {
+          "name": "_with_context",
+          "signature": "def _with_context(text: str, config: dict[str, Any]) -> str",
+          "docstring": "``text`` followed by the STOCK CONTEXT block when the run has one (SRD-SCR-018.0",
+          "line_start": 885,
+          "line_end": 888
+        },
+        {
+          "name": "_context_rule",
+          "signature": "def _context_rule(config: dict[str, Any], lead: str = \"\") -> str",
+          "docstring": "The flag-weighing rule, only when the run has a STOCK CONTEXT block.",
+          "line_start": 891,
+          "line_end": 893
+        },
+        {
+          "name": "_claude_instruction",
+          "signature": "def _claude_instruction(ai_query: str) -> str",
+          "docstring": "Return the one-request ranking prompt for Claude Code CLI (no tools).",
+          "line_start": 896,
+          "line_end": 905
+        },
+        {
+          "name": "_news_tone",
+          "signature": "def _news_tone(entry: dict[str, Any]) -> float | None",
+          "docstring": "The ranking record's ``news_tone`` clamped to [-1, 1], or None (SRD-SCR-019.003)",
+          "line_start": 918,
+          "line_end": 923
         },
         {
           "name": "_plan_from_entry",
           "signature": "def _plan_from_entry(entry: dict[str, Any]) -> dict[str, float]",
           "docstring": "Return ``{entry, stop, target}`` from one ranking record, or ``{}`` if any is in",
-          "line_start": 810,
-          "line_end": 821
+          "line_start": 926,
+          "line_end": 937
         },
         {
           "name": "_scores_to_results",
           "signature": "def _scores_to_results(\r\n    symbols: list[str], raw_scores: dict[str, float],\r\n) -> dict[str, tuple[bool, float]]",
-          "line_start": 824,
-          "line_end": 834
+          "line_start": 940,
+          "line_end": 950
         },
         {
           "name": "_strip_codefence",
           "signature": "def _strip_codefence(text: str) -> str",
           "docstring": "Strip ``` fences and any leading prose before the JSON value.",
-          "line_start": 837,
-          "line_end": 856
+          "line_start": 953,
+          "line_end": 972
         },
         {
           "name": "_truncate_words",
           "signature": "def _truncate_words(text: str, max_words: int) -> str",
-          "line_start": 859,
-          "line_end": 863
+          "line_start": 975,
+          "line_end": 979
         }
       ],
       "constants": [
@@ -1072,6 +1190,9 @@
         "_REQUEST_TIMEOUT_S: Final[float] = 60.0",
         "_RETRY_DELAYS_S: Final[tuple[float, ...]] = (1.0, 3.0, 7.0)",
         "_RETRY_STATUSES: Final[frozenset[int]] = frozenset({429, 502, 503, 504})",
+        "_CLAUDE_TIMEOUT_S: Final[float] = 180.0",
+        "_CONTEXT_RULE: Final[str] = (",
+        "_LEGACY_FORMAT: Final[str] = (",
         "_RSLP_ENC: Final[dict[str, str]] = {\"rising\": \"R\", \"falling\": \"F\", \"flat\": \"=\"}",
         "_VOL_ENC: Final[dict[str, str]] = {\"expanding\": \"EXP\", \"contracting\": \"CON\", \"neutral\": \"NEU\"}",
         "_DAILY_6M: Final[int] = 126",
@@ -1079,7 +1200,8 @@
         "_SWING_N: Final[int] = 5",
         "_SWING_MAX: Final[int] = 10",
         "_SWING_ATR_MULT: Final[float] = 1.0",
-        "_GET_CANDLE_DATA_TOOL: Final[dict[str, Any]] = {"
+        "_GET_CANDLE_DATA_TOOL: Final[dict[str, Any]] = {",
+        "_RANKING_FORMAT: Final[str] = ("
       ]
     },
     "indicator.py": {

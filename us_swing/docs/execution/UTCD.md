@@ -320,6 +320,7 @@
 |---|---|---|---|---|---|---|
 | UT-EXE-008.001.M01.T12 | MD-EXE-008.001.M01 | Positive | `request_stop()` sets `_stop_event` and calls `cancelMktData` for every active subscription | Two symbols subscribed; call `request_stop()` | `worker._stop_event.is_set() is True`; `mock_ib.cancelMktData.call_count == 2` | Pass |
 | UT-EXE-008.001.M01.T13 | MD-EXE-008.001.M01 | Positive | Thread exits within 3 s after `request_stop()` | Start worker (mocked IBKR); call `request_stop()`; join with 3 s timeout | `worker.isFinished() is True` within 3 s | Pass |
+| UT-EXE-008.007.M01.T01 | MD-EXE-008.001.M01 | Positive | Frozen market data asked after connect | mocked `ib` that connects | `_connect_with_retry` True; `reqMarketDataType(2)` called once | Pass |
 
 ### ClientId collision retry (SRD-EXE-008.006)
 
@@ -1012,9 +1013,11 @@
 | UT-EXE-022.007.M02.T03 | MD-EXE-022.005.M02 | Negative | Uses future candles | `close.shift(-1)` | "uses future candles" | Pass |
 | UT-EXE-022.007.M02.T04 | MD-EXE-022.005.M02 | Edge | Empty values at the start are fine | 20-candle rolling max (NaN for first 19) | ok | Pass |
 | UT-EXE-022.007.M02.T05 | MD-EXE-022.005.M02 | Positive | Dry run passes on 3 stocks | SWING_PLUS example; 3 probe stocks | ok; one value per candle on each; each under 2 s | Pass |
+| UT-EXE-022.007.M02.T06 | MD-EXE-022.005.M02 | Edge | Higher timeframe cut by time | 1d + 1w frames with a datetime column; weekly filter lined up by close time | ok; not refused for future candles (bug fix 2026-11-26) | Pass |
 | UT-EXE-022.008.M03.T01 | MD-EXE-022.008.M03 | Positive | Shared folder loads | two files in `plugins/indicators` | both loaded | Pass |
 | UT-EXE-022.008.M03.T02 | MD-EXE-022.008.M03 | Positive | Old per-user folders moved once | files in `plugins/1/` and a clash in `plugins/2/` | moved to the shared folders; old folder removed; clash left in place | Pass |
 | UT-EXE-022.008.M03.T03 | MD-EXE-022.008.M03 | Negative | Item that cannot be moved | move raises a permission error | item stays; warning; indicators still load | Pass |
+| UT-EXE-022.008.M03.T04 | MD-EXE-022.008.M03 | Edge | Empty old folder with a taken name | empty `1/projects/test`; shared `projects/test` with a file | old folder removed; shared file kept; no warning | Pass |
 | UT-EXE-022.009.M03.T01 | MD-EXE-022.008.M03 | Positive | Good loaded, broken skipped and logged | one good file, one with a syntax error | good in `names()`; broken in `statuses()` with reason; one WARNING "[Indicators] … was not loaded" | Pass |
 | UT-EXE-022.009.M03.T02 | MD-EXE-022.008.M03 | Edge | Reload after a file is removed | load, delete file, load again | name gone; listener called twice | Pass |
 | UT-EXE-022.009.M03.T03 | MD-EXE-022.008.M03 | Negative | A file that exits while loading does not stop the app | file calls `sys.exit()` at import | skipped with a reason; load returns; other files loaded | Pass |

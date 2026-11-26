@@ -704,6 +704,7 @@ class ChipGroup(QWidget):
         super().__init__(parent)
         self.setObjectName("seg_group")
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground)
+        self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
         row = QHBoxLayout(self)
         row.setContentsMargins(2, 2, 2, 2)
         row.setSpacing(2)

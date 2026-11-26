@@ -575,7 +575,7 @@ def test_detail_panels_filled(workspace: BacktestWorkspace, qtbot: Any) -> None:
 
     assert set(workspace.detail.panels) == {"report", "breakdown", "tradelist", "screener_use",
                                             "margin_use", "risk"}
-    assert workspace.trade_list.table.rowCount() == 2
+    assert workspace.trade_list.table.rowCount() == 4  # an Entry and an Exit row per trade
     assert workspace.screener_use.chart.use.days == ["02-03-2026", "03-03-2026"]
     assert workspace.margin_use.facts.text().startswith("Money deployed on 2 of 2 days")
 
@@ -606,7 +606,7 @@ def test_open_saved_run(workspace: BacktestWorkspace, qtbot: Any) -> None:
 
     assert [p.property("state") for p in workspace.pills] == ["complete"] * 4
     assert workspace.tabs.currentWidget() is workspace.detail
-    assert workspace.trade_list.table.rowCount() == 2
+    assert workspace.trade_list.table.rowCount() == 4  # an Entry and an Exit row per trade
     assert workspace.days_table.item(0, 2).text() == "3"  # type: ignore[union-attr]
 
 

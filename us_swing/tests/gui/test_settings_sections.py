@@ -290,6 +290,27 @@ def test_universe_html_lists_missing_days() -> None:
     assert "day(s) of 3-minute candles" in html
 
 
+def test_universe_html_etf_rows() -> None:
+    """UT-GUI-030.013.M03.T01: ETF rows come after the stocks with sector ETF and no tick box."""
+    import json as _json
+
+    from us_swing.universe.store import Sp500Record
+
+    html = settings_panel._build_universe_html(
+        [Sp500Record("AAPL", "AAPL", "Apple", "Tech")], {"SPY": "2026-11-25"}, "2026-11-25",
+        {"AAPL": ("2020-01-02", "2026-11-25", "ok")}, ("2020-01-01", "2026-11-25"), {},
+        [("SPY", "S&P 500 (SPY)", "2019-09-23", "2026-11-25", "ok"),
+         ("XLK", "Technology sector", None, None, "none")],
+    )
+    data = _json.loads(html.split("const D=", 1)[1].split(";", 1)[0])
+
+    assert [r[1] for r in data] == ["AAPL", "SPY", "XLK"]
+    assert data[1] == [2, "SPY", "SPY", "ETF", None, "S&P 500 (SPY)", "2026-11-25", "current",
+                       "2019-09-23", "2026-11-25", "ok"]
+    assert data[2][3] == "ETF" and data[2][10] == "none"
+    assert "r[3]==='ETF')?" in html
+
+
 def test_fill_selected_maps_to_ibkr_symbols() -> None:
     """UT-GUI-030.008.M03.T03: Ticked rows are sent as IBKR symbols; nothing ticked asks to tick."""
     from types import SimpleNamespace

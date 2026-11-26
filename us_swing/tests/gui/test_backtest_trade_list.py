@@ -8,12 +8,13 @@ from typing import Any
 
 import pandas as pd
 import pytest
+from PyQt6.QtCore import Qt
 
 _web_stub = types.ModuleType("PyQt6.QtWebEngineWidgets")
 _web_stub.QWebEngineView = object  # type: ignore[attr-defined]
 sys.modules.setdefault("PyQt6.QtWebEngineWidgets", _web_stub)
 
-from us_swing.gui.backtest_trade_list import TradeList, keep, numbered  # noqa: E402
+from us_swing.gui.backtest_trade_list import TradeList, events, keep, numbered  # noqa: E402
 from us_swing.gui.backtest_use_charts import UsePanel, margin_use, screener_use  # noqa: E402
 
 
@@ -52,51 +53,88 @@ def test_filters() -> None:
     assert len(keep(out, "all")) == 3
 
 
+def _text(view: TradeList, row: int, col: int) -> str:
+    return view.table.item(row, col).text()  # type: ignore[union-attr]
+
+
 def test_table_and_click(qtbot: Any) -> None:
-    """UT-GUI-031.053.M07.T03: Table shows the screenshot columns; a click sends the trade."""
+    """UT-GUI-031.053.M07.T03: Table shows the columns; a click sends that row's trade."""
     view = TradeList()
     qtbot.addWidget(view)
-    view.set_trades(_trades())
+    view.set_trades(_trades(), 1000.0)
     seen: list[pd.Series] = []
     view.trade_clicked.connect(seen.append)
 
-    assert view.table.rowCount() == 3
-    assert view.table.item(0, 1).text() == "LONG"  # type: ignore[union-attr]
-    assert view.table.item(0, 4).text() == "03-03-2026 10:00:00"  # type: ignore[union-attr]
-    assert view.table.item(0, 9).text() == "+100.00%"  # type: ignore[union-attr]
+    assert view.table.rowCount() == 6
+    assert _text(view, 0, 2) == "LONG"
+    assert _text(view, 0, 5) == "03-03-2026 10:00:00"
     view.chips.buttons[4].click()  # SHORT
-    assert view.table.rowCount() == 1
+    assert view.table.rowCount() == 2
     assert view.summary.text() == "1 of 3 trades · net P&L -$2.00"
-    view.table.cellClicked.emit(0, 0)
+    view.table.cellClicked.emit(1, 0)
     assert seen[0]["symbol"] == "MSFT"
+    assert seen[0]["number"] == 2
 
 
-def test_days_and_capital_columns(qtbot: Any) -> None:
-    """UT-GUI-031.088.M07.T01: Duration shows days; Allocated = price x qty; Available is saved."""
-    trades = _trades().assign(avail=[900.0, 1000.0, 870.0])
+def test_entry_exit_rows_in_time_order(qtbot: Any) -> None:
+    """UT-GUI-031.089.M07.T01: Entry and Exit rows in time order; Available after each row."""
     view = TradeList()
     qtbot.addWidget(view)
-    view.set_trades(trades)
+    view.set_trades(_trades(), 1000.0)
     headers = [view.table.horizontalHeaderItem(c).text()  # type: ignore[union-attr]
                for c in range(view.table.columnCount())]
 
-    assert headers[11:14] == ["Allocated capital", "Available capital", "Duration (days)"]
-    assert "Duration (hrs)" not in headers
-    nvda = 2  # entry order: AAPL, MSFT, NVDA
-    assert view.table.item(nvda, 11).text() == "$100.00"  # type: ignore[union-attr]
-    assert view.table.item(nvda, 12).text() == "$870.00"  # type: ignore[union-attr]
-    assert view.table.item(nvda, 13).text() == "0.1"  # type: ignore[union-attr]
-    assert numbered(trades)["days"].iloc[0] == pytest.approx(1.5 / 24)
+    assert headers[:7] == ["Trade #", "Trade", "Type", "Symbol", "Strategy", "Time", "Price"]
+    assert [(_text(view, r, 3), _text(view, r, 1)) for r in range(6)] == [
+        ("AAPL", "Entry"), ("MSFT", "Entry"), ("AAPL", "Exit"), ("MSFT", "Exit"),
+        ("NVDA", "Entry"), ("NVDA", "Exit")]
+    assert [_text(view, r, 11) for r in range(6)] == [
+        "$970.00", "$950.00", "$980.00", "$1,000.00", "$900.00", "$1,000.00"]
+    assert _text(view, 0, 6) == "10.00"
+    assert _text(view, 2, 6) == "20.00"
+    assert [_text(view, 0, c) for c in (8, 9, 12, 13)] == ["", "", "", ""]
+    assert [_text(view, 2, c) for c in (8, 9, 12, 13)] == ["$30.00", "+100.00%", "0.1",
+                                                          "strategy"]
+    assert _text(view, 0, 10) == "$30.00"
+    assert numbered(_trades())["days"].iloc[0] == pytest.approx(1.5 / 24)
 
 
-def test_old_run_without_available(qtbot: Any) -> None:
-    """UT-GUI-031.088.M07.T02: A run saved before Available existed shows a dash there."""
+def test_idle_capital_shaded_red(qtbot: Any) -> None:
+    """UT-GUI-031.090.M07.T01: Available above 80% of start capital is shaded red; others not."""
+    view = TradeList()
+    qtbot.addWidget(view)
+    view.set_trades(_trades(), 100.0)
+
+    shown = [_text(view, r, 11) for r in range(6)]
+    red = [view.table.item(r, 11).background().style()  # type: ignore[union-attr]
+           != Qt.BrushStyle.NoBrush for r in range(6)]
+
+    assert shown == ["$70.00", "$50.00", "$80.00", "$100.00", "$0.00", "$100.00"]
+    assert red == [False, False, False, True, False, True]
+    view.set_trades(_trades())
+    assert view.table.item(0, 11).background().style() == Qt.BrushStyle.NoBrush  # type: ignore[union-attr]
+
+
+def test_exit_before_entry_at_same_time() -> None:
+    """UT-GUI-031.089.M07.T02: An exit at the same time as an entry frees its money first."""
+    trades = numbered(_trades().iloc[1:2])
+    later = trades.assign(entry_ts=trades["exit_ts"], exit_ts=trades["exit_ts"]
+                          + pd.Timedelta(hours=1), number=2)
+
+    out = events(pd.concat([trades, later], ignore_index=True), 100.0)
+
+    assert list(out["event"]) == ["Entry", "Exit", "Entry", "Exit"]
+    assert list(out["avail"]) == [70.0, 100.0, 70.0, 100.0]
+
+
+def test_available_unknown_without_capital(qtbot: Any) -> None:
+    """UT-GUI-031.089.M07.T03: With no start capital, Available shows a dash."""
     view = TradeList()
     qtbot.addWidget(view)
     view.set_trades(_trades())
 
-    assert view.table.item(0, 12).text() == "—"  # type: ignore[union-attr]
-    assert view.table.item(0, 11).text() == "$30.00"  # type: ignore[union-attr]
+    assert _text(view, 0, 11) == "—"
+    assert _text(view, 0, 10) == "$30.00"
 
 
 def test_empty_trade_list(qtbot: Any) -> None:

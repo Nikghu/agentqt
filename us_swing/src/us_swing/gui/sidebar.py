@@ -277,15 +277,10 @@ class _ConnectionsPanel(QWidget):
         self._mkt_sub.setText(mkt_detail)
 
         tip = "Disconnect" if connected else ("Try now" if self._retry else "Connect")
-        set_icon(self._power, "power", "neutral" if connected else "go", 14)
+        set_icon(self._power, "power", "neutral", 14)
         self._power.setToolTip(tip)
         self._power.setAccessibleName(tip)
         self._power.setEnabled(not probing)
-        self._power.setProperty("armed", not connected)
-        style = self._power.style()
-        if style is not None:
-            style.unpolish(self._power)
-            style.polish(self._power)
 
         self._badge.set_colour(_T.RED if not online else feed_clr)
         self._plug.setEnabled(not probing)

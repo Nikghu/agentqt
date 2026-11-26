@@ -368,6 +368,22 @@ async def test_connect_with_retry_fails_after_all_attempts(caplog: Any):
     assert any("Cannot connect" in r.message for r in caplog.records)
 
 
+@pytest.mark.asyncio
+async def test_connect_asks_for_frozen_data() -> None:
+    """UT-EXE-008.007.M01.T01: After connecting, the worker asks IBKR for frozen market data."""
+    w = _make_worker(cid=14)
+    mock_ib = MagicMock()
+
+    async def fake_connect(*args: Any, **kwargs: Any) -> None:
+        pass
+
+    mock_ib.connectAsync = fake_connect
+    mock_ib.isConnected.return_value = True
+
+    assert await w._connect_with_retry(mock_ib) is True
+    mock_ib.reqMarketDataType.assert_called_once_with(2)
+
+
 def test_on_pending_tickers_falls_back_to_bid(qapp: Any):
     """UT-EXE-008.003.M01.T10: an index reports its level as bid, not last."""
     w = _make_worker()

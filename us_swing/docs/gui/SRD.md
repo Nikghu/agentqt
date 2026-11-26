@@ -5,6 +5,12 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-11-23
+> SRD-GUI-030.013 added and approved by user 2026-11-27 (chat) — SPY, RSP and sector ETFs shown in the Universe table.
+> SRD-GUI-022.022 added and approved by user 2026-11-27 (chat) — chip groups keep an even gap on all sides in taller rows.
+> SRD-GUI-017.006 added and approved by user 2026-11-27 (chat) — Stop and Trip breaker buttons: red text and icon, theme border (reworded 2026-11-27).
+> SRD-GUI-032.009 added and approved by user 2026-11-26 (chat) — status pills use theme text on a light tint, no border.
+> SRD-GUI-031.090 added and approved by user 2026-11-26 (chat) — trade list shades Available capital light red above 80% of start capital.
+> SRD-GUI-031.089 added and approved by user 2026-11-26 (chat) — trade list Entry and Exit rows in time order, Available capital after each row.
 > SRD-GUI-031.088 added and approved by user 2026-11-25 (chat) — trade list Duration (days), Allocated capital, Available capital.
 > v2.143.3: SRD-GUI-046.006 reads Backtest Data and lists S&P 500 stocks (user asked 2026-11-23).
 > v2.143.2: SRD-GUI-046.001/.003 wording: indicators shared by all users (user decision 2026-11-23: one shared folder, no user part).
@@ -509,6 +515,7 @@
 | SRD-GUI-017.003 | FO-GUI-017 | Must | `icons.py` returns a cached `QIcon` for a bundled SVG coloured by role (neutral, add, go, danger, info) from the active theme. | icon name, role | `QIcon` | Unknown name returns an empty icon; cache clears on theme change | Implemented |
 | SRD-GUI-017.004 | FO-GUI-017 | Must | Emoji on buttons, tabs and title bar navigation are replaced by an icon plus label; icon-only buttons get a tooltip and accessible name. | — | — | Log text, status dots and window controls unchanged | Implemented |
 | SRD-GUI-017.005 | FO-GUI-017 | Must | Risky buttons carry the property `role="danger"`, styled in every theme with red text, red border and a red icon. | — | — | Uses `C.BTN_H`; no `setFixedHeight`; `outline: none` | Implemented |
+| SRD-GUI-017.006 | FO-GUI-017 | Should | Strategy Stop and Trip breaker buttons carry `role="stop"`: red text and icon with the theme border and a red hover tint; Start icons are neutral. | — | — | Approved by user 2026-11-27 (chat); other risky buttons keep `role="danger"` | Implemented |
 
 ## FO-GUI-018 — Sidebar Workspace Shell
 
@@ -593,6 +600,7 @@
 | SRD-GUI-022.019 | FO-GUI-022 | Should | The detail shows a news chip, a "News, last 5 days" list with each title's source and age, and a Web research box with the summary and source links. | `ai_context`, `ai_research` | chips, lists | Sections hidden when empty; links open in the browser | Implemented |
 | SRD-GUI-022.020 | FO-GUI-022 | Should | The context ticks sit in two groups: Stock data (Earnings date, Earnings surprise, Sector strength, News tone, Fundamentals, Short interest, Analyst changes) and Top picks only (Web research for top picks, Bull vs bear review). | ticks, provider | `Preset.ai_context` | Bull vs bear is enabled only for Claude Code CLI, like Web research | Implemented |
 | SRD-GUI-022.021 | FO-GUI-022 | Should | The detail shows tags for surprise, fundamentals, short interest and analysts, a Fundamentals line, an Analyst changes list and a Bull vs bear box with bull and bear points, verdict and confidence. | `ai_context`, `ai_review` | tags, sections | Sections hidden when empty; Wait or Avoid notes it differs from the ranking | Implemented |
+| SRD-GUI-022.022 | FO-GUI-022 | Should | A chip group keeps its own height in a taller row, so the gap round the chips is the same on all four sides. | row height | group height | Approved by user 2026-11-27 (chat); seen in the Charts header 1D / 1W | Implemented |
 ## FO-GUI-023 — Card Layout
 
 | ID | Parent | Priority | Description | Input | Output | Constraints | Status |
@@ -718,6 +726,7 @@
 | SRD-GUI-030.010 | FO-GUI-030 | Should | Under the coverage line, one short line says 15-minute and weekly candles are built from these. | stats | note line | Approved by user 2026-10-29 | Implemented |
 | SRD-GUI-030.011 | FO-GUI-030 | Must | The Universe table marks a stock as partial, with a warning icon and amber BT dates, when its 3m candles start more than 7 days after the Backtest Data start, end before the range end, or have missing days. | backtest store, Backtest Data range, gap days | `partial` status | Approved by user 2026-11-04 (ISS-BKT-0002); reopened 2026-11-23: `late` became `partial` with gap days (ISS-BKT-0003) | Implemented |
 | SRD-GUI-030.012 | FO-GUI-030 | Should | During a backtest download, each stock's Universe row updates when that stock is done, and the top line shows how many stocks are complete, partial and not downloaded. | progress symbol, one stock's coverage | updated row, "N complete · N partial · N not downloaded" | Approved by user 2026-11-04; only that row changes, no full reload; full reload at the end; reopened 2026-11-23: top line text | Implemented |
+| SRD-GUI-030.013 | FO-GUI-030 | Should | The Universe table also lists SPY, RSP and the 11 sector ETFs after the stocks, with sector "ETF" and a daily-candle backtest status. | daily-only coverage | ETF rows | Approved by user 2026-11-27 (chat); no fill tick box; not in the stock counts | Implemented |
 
 ## FO-GUI-031 — Backtest Workspace
 
@@ -793,6 +802,8 @@
 | SRD-GUI-031.086 | FO-GUI-031 | Should | A new backtest plan starts with Daily loss stop 10 % and Commission $0 per order; only Capital comes from the active user. | new plan | start values | Replaces the user loss default of .030; saved plans keep their values, and old plan files without a commission still read $1 | Implemented |
 | SRD-GUI-031.087 | FO-GUI-031 | Should | From and To only allow days inside the run range (SRD-BKT-002.088, reopened 2026-11-22); until the user picks a date, To is the last saved day and From one year before it. | data check | date limits and values | Picked or loaded dates are kept, or moved to the nearest edge; no saved data allows 2000 to today | Implemented |
 | SRD-GUI-031.088 | FO-GUI-031 | Should | The Trade list shows Duration in days (one decimal) instead of hours, plus Allocated capital (entry price × qty) and Available capital (free capital at entry). | saved trades | three columns | Approved by user 2026-11-25 (chat); old runs show a dash for Available; replaces the hours column of SRD-GUI-031.053 | Implemented |
+| SRD-GUI-031.089 | FO-GUI-031 | Should | The Trade list shows an Entry row and an Exit row per trade in time order, with Trade and Time columns, and Available capital as start capital less open trades after each row. | saved trades, start capital | event rows | Approved by user 2026-11-26 (chat); first trade of $4,000 at $982.58 shows $3,017.42; P&L, Duration and Exit reason on Exit rows only; replaces the time and price columns of SRD-GUI-031.053 and Available of SRD-GUI-031.088 | Implemented |
+| SRD-GUI-031.090 | FO-GUI-031 | Should | The Trade list shades the Available capital cell light red when it is above 80% of the start capital (money mostly idle). | event rows, start capital | cell shade | Approved by user 2026-11-26 (chat); exactly 80% stays plain; no shade when start capital is unknown | Implemented |
 
 ## FO-GUI-032 — Strategies Views
 
@@ -806,6 +817,7 @@
 | SRD-GUI-032.006 | FO-GUI-032 | Should | Table rows have check boxes; a bar shows "N selected" with Start, Stop and Reset count for the checked strategies. | checked rows | bulk action | Bar hidden when nothing is checked | Implemented |
 | SRD-GUI-032.007 | FO-GUI-032 | Should | Switching views keeps the picked strategy, and the last view is restored on the next start. | view icon | view | Kept in QSettings | Implemented |
 | SRD-GUI-032.008 | FO-GUI-032 | Should | Status pills show the status word only, with no dot. | status | pill | — | Implemented |
+| SRD-GUI-032.009 | FO-GUI-032 | Should | Status pills use the theme text colour on a light tint of the status colour, with no border. | status | pill | Approved by user 2026-11-26 (chat); list row and detail header | Implemented |
 
 ## FO-GUI-033 — AI Notes Settings
 

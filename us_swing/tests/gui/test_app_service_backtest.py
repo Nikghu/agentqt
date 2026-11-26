@@ -96,6 +96,26 @@ def test_universe_backtest_coverage(svc: Any) -> None:
     assert cov["NVDA"] == (None, None, "none")
 
 
+def test_universe_etf_rows(svc: Any) -> None:
+    """UT-GUI-030.013.M02.T01: SPY, RSP and the 11 sector ETFs get rows; daily candles that
+    cover the range are ok, short ones partial, none missing."""
+    from us_swing.gui.app_service import _compute_last_trading_day
+
+    last = _compute_last_trading_day()
+    store = svc._bkt_store
+    BacktestDataSettings(start_date=date(2024, 1, 2)).save(store.root)
+    now = datetime(2030, 1, 1, tzinfo=timezone.utc)
+    store.save("SPY", "1d", pd.concat([_bars("2023-09-25"), _bars(last.isoformat())]), now)
+    store.save("XLK", "1d", pd.concat([_bars("2025-01-02"), _bars(last.isoformat())]), now)
+
+    rows = {r[0]: r for r in svc.get_backtest_etf_rows()}
+
+    assert len(rows) == 13 and list(rows)[:2] == ["SPY", "RSP"]
+    assert rows["SPY"] == ("SPY", "S&P 500 (SPY)", "2023-09-25", last.isoformat(), "ok")
+    assert rows["XLK"][1:] == ("Technology sector", "2025-01-02", last.isoformat(), "partial")
+    assert rows["RSP"][2:] == (None, None, "none")
+
+
 def _bars(day: str) -> pd.DataFrame:
     return pd.DataFrame({"ts": [pd.Timestamp(day, tz="UTC")], "open": [1.0], "high": [1.0],
                          "low": [1.0], "close": [1.0], "volume": [1.0]})
@@ -152,7 +172,9 @@ def test_fill_selected_clears_floor_and_downloads_only_those(svc: Any) -> None:
 
     assert DownloadState.load(root).floors == {"V": date(2024, 1, 2)}
     jobs = fake_cls.call_args.args[0]()
-    assert {j.symbol for j in jobs} - {"SPY"} == {"UNP", "UPS"}
+    from us_swing.gui.sector_rotation import SECTOR_SYMBOLS
+
+    assert {j.symbol for j in jobs} - {"SPY", *SECTOR_SYMBOLS} == {"UNP", "UPS"}
 
 
 def test_fill_selected_refused_while_running(svc: Any) -> None:

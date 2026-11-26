@@ -29,13 +29,13 @@ def _run(store: BacktestStore, cache: StepCache, end: date = _END,
                              {}, workers=0, **kw)
 
 
-def test_days_from_spy(store: BacktestStore) -> None:
-    """UT-BKT-002.010.M07.T01: Days are SPY's dates inside the period."""
-    store.save("SPY", "1d", daily_bars("2025-03-04", 3, 9), LATE)
+def test_short_spy_does_not_cut_days(store: BacktestStore) -> None:
+    """UT-BKT-002.091.M07.T01: Days are the stocks' dates even when SPY covers fewer days."""
+    store.save("SPY", "1d", daily_bars("2025-03-05", 2, 9), LATE)
 
     days = stocks.trading_days(store, Period(_START, _END), list(_NAMES))
 
-    assert days == [date(2025, 3, 4), date(2025, 3, 5), date(2025, 3, 6)]
+    assert days == [date(2025, 3, d) for d in range(3, 8)]
 
 
 def test_days_without_spy(store: BacktestStore) -> None:

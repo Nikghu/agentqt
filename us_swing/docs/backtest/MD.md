@@ -56,7 +56,7 @@ Cross-tool note: `screener/executor.py` gets a public `PresetExecutor.screen()` 
 | MD-BKT-002.026.M11 | SRD-BKT-002.026 | `us_swing/src/us_swing/backtest/steps/signals.py` | Step 2 periods per strategy and stock, cache, pool | `load_frames()`, `schedule_mask()`, `periods()`, `signal_key()`, `stocks_for()`, `run_signals()` | `core.expr.series`, `cache`, `store` | Process pool |
 
 | MD-BKT-002.080.M14 | SRD-BKT-002.080 | `us_swing/src/us_swing/backtest/steps/recorded.py` | Step 1 from the screener lists the app saved | `load_lists()`, `saved_days()`, `trade_day()` | `pandas`, `json` | No |
-| MD-BKT-002.083.M15 | SRD-BKT-002.083, .084 | `us_swing/src/us_swing/backtest/html_report.py` | One offline HTML page of a saved run in the trade analysis layout; called by `BacktestService.export_html()` with `run_facts()` | `render()`, `equity_svg()`, `trade_bars_svg()`, `fmt()` | `steps.report`, `pandas`, `html` | No |
+| MD-BKT-002.083.M15 | SRD-BKT-002.083, .084, .089, .090 | `us_swing/src/us_swing/backtest/html_report.py` | One offline HTML page of a saved run in the trade analysis layout; called by `BacktestService.export_html()` with `run_facts()` | `render()`, `equity_svg()`, `trade_bars_svg()`, `fmt()` | `steps.report`, `pandas`, `html` | No |
 
 Also changed (SRD-BKT-002.080–.081, Phase 5): `spec.ScreenerSpec.recorded`; `service.py` `Estimate.recorded`, `_estimate_recorded()`, `saved_days()`, `_saved_lists()`, `screener_results` argument.
 

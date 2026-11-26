@@ -151,10 +151,10 @@ def test_row_click_filters_trade_list(view: BreakdownView, qtbot: Any) -> None:
     view._on_clicked(0, 0)
     first = view._shown[0]
     assert first is not None
-    assert trades.table.rowCount() == first.trades
+    assert trades.table.rowCount() == 2 * first.trades  # an Entry and an Exit row each
     assert trades.summary.text().startswith(f"Exit reason: {first.label} · ")
     view._on_clicked(0, 0)
-    assert trades.table.rowCount() == 24
+    assert trades.table.rowCount() == 48
     view._on_clicked(0, 0)
     view._on_clicked(view.table.rowCount() - 1, 0)
-    assert trades.table.rowCount() == 24
+    assert trades.table.rowCount() == 48

@@ -203,6 +203,7 @@ class LiveTickWorker(QThread):
                     timeout=_CONNECT_TIMEOUT,
                 )
                 if ib.isConnected():
+                    ib.reqMarketDataType(2)  # frozen: last close-time values when market shut
                     return True
                 # Not connected after return — error 326 (clientId in use)
                 if attempt < 3:

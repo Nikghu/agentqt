@@ -1,7 +1,7 @@
 {
-  "generated": "2026-11-17T15:43:53",
+  "generated": "2026-11-26T08:25:51",
   "subfolder": "db",
-  "root": "F:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\db",
+  "root": "f:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\db",
   "tool_code": "INF",
   "files": {
     "__init__.py": {},
@@ -16,8 +16,8 @@
             {
               "name": "__init__",
               "signature": "def __init__(self, database_url: str) -> None",
-              "line_start": 60,
-              "line_end": 77
+              "line_start": 79,
+              "line_end": 96
             },
             {
               "name": "engine",
@@ -26,107 +26,121 @@
               "decorators": [
                 "@property"
               ],
-              "line_start": 80,
-              "line_end": 87
+              "line_start": 99,
+              "line_end": 106
             },
             {
               "name": "create_schema",
               "signature": "def create_schema(self) -> None",
-              "line_start": 91,
-              "line_end": 93
+              "line_start": 110,
+              "line_end": 112
             },
             {
               "name": "drop_schema",
               "signature": "def drop_schema(self) -> None",
               "docstring": "Drop all tables.  Test use only \u2014 irreversible.",
-              "line_start": 95,
-              "line_end": 97
+              "line_start": 114,
+              "line_end": 116
             },
             {
               "name": "insert_bars",
               "signature": "def insert_bars(self, symbol: str, timeframe: str, bars: list[OHLCVBar]) -> int",
               "docstring": "Bulk-insert bars in batches; silently skips duplicates.",
-              "line_start": 105,
-              "line_end": 139
+              "line_start": 124,
+              "line_end": 158
             },
             {
               "name": "fetch_bars",
               "signature": "def fetch_bars(\r\n        self,\r\n        symbol: str,\r\n        timeframe: str,\r\n        start: datetime,\r\n        end: datetime,\r\n    ) -> list[OHLCVBar]",
               "docstring": "Return bars in [start, end] inclusive, ordered by datetime.",
-              "line_start": 141,
-              "line_end": 173
+              "line_start": 160,
+              "line_end": 192
             },
             {
               "name": "get_last_timestamp",
               "signature": "def get_last_timestamp(self, symbol: str, timeframe: str) -> datetime | None",
               "docstring": "Return the latest stored datetime for (symbol, timeframe), or None.",
-              "line_start": 175,
-              "line_end": 181
+              "line_start": 194,
+              "line_end": 200
             },
             {
               "name": "get_first_timestamp",
               "signature": "def get_first_timestamp(self, symbol: str, timeframe: str) -> datetime | None",
               "docstring": "Return the earliest stored datetime for (symbol, timeframe), or None.",
-              "line_start": 183,
-              "line_end": 189
+              "line_start": 202,
+              "line_end": 208
             },
             {
               "name": "upsert_universe",
               "signature": "def upsert_universe(self, records: list[UniverseRecord]) -> None",
               "docstring": "Insert-or-update universe records by symbol.",
-              "line_start": 193,
-              "line_end": 205
+              "line_start": 212,
+              "line_end": 224
             },
             {
               "name": "fetch_universe",
               "signature": "def fetch_universe(self) -> list[UniverseRecord]",
-              "line_start": 207,
-              "line_end": 210
+              "line_start": 226,
+              "line_end": 229
             },
             {
               "name": "insert_trade",
               "signature": "def insert_trade(self, trade: TradeRecord) -> None",
               "docstring": "Insert the `trades` row for an accepted order.",
-              "line_start": 214,
-              "line_end": 238
+              "line_start": 233,
+              "line_end": 257
             },
             {
               "name": "update_trade_fill",
               "signature": "def update_trade_fill(\r\n        self,\r\n        trade_id: str,\r\n        filled_quantity: int,\r\n        order_state: str,\r\n        exit_time: datetime | None = None,\r\n        exit_price: float | None = None,\r\n        entry_price: float | None = None,\r\n        entry_time: datetime | None = None,\r\n    ) -> None",
               "docstring": "Record a broker fill on a `trades` row (SRD-EXE-014.004).",
-              "line_start": 240,
-              "line_end": 274
+              "line_start": 259,
+              "line_end": 293
+            },
+            {
+              "name": "fetch_trades",
+              "signature": "def fetch_trades(self, since: datetime) -> list[TradeRecord]",
+              "docstring": "Return `trades` rows placed on or after *since*, with their order state.",
+              "line_start": 295,
+              "line_end": 304
+            },
+            {
+              "name": "trade_by_id",
+              "signature": "def trade_by_id(self, trade_id: str) -> TradeRecord | None",
+              "docstring": "Return the `trades` row for *trade_id*, or None (SRD-EXE-015.011).",
+              "line_start": 306,
+              "line_end": 311
             },
             {
               "name": "insert_user",
               "signature": "def insert_user(self, user: UserRecord) -> int",
               "docstring": "Insert a new user row and return the auto-generated user_id.",
-              "line_start": 279,
-              "line_end": 290
+              "line_start": 316,
+              "line_end": 327
             },
             {
               "name": "fetch_user",
               "signature": "def fetch_user(self, user_id: int) -> UserRecord | None",
-              "line_start": 292,
-              "line_end": 298
+              "line_start": 329,
+              "line_end": 335
             },
             {
               "name": "update_user",
               "signature": "def update_user(self, user_id: int, **fields: Any) -> None",
-              "line_start": 300,
-              "line_end": 310
+              "line_start": 337,
+              "line_end": 347
             },
             {
               "name": "delete_user",
               "signature": "def delete_user(self, user_id: int) -> None",
-              "line_start": 312,
-              "line_end": 315
+              "line_start": 349,
+              "line_end": 352
             },
             {
               "name": "fetch_all_users",
               "signature": "def fetch_all_users(self) -> list[UserRecord]",
-              "line_start": 317,
-              "line_end": 320
+              "line_start": 354,
+              "line_end": 357
             },
             {
               "name": "_price_table",
@@ -134,8 +148,8 @@
               "decorators": [
                 "@staticmethod"
               ],
-              "line_start": 325,
-              "line_end": 332
+              "line_start": 362,
+              "line_end": 369
             },
             {
               "name": "_row_to_user_record",
@@ -143,12 +157,12 @@
               "decorators": [
                 "@staticmethod"
               ],
-              "line_start": 335,
-              "line_end": 343
+              "line_start": 372,
+              "line_end": 380
             }
           ],
-          "line_start": 51,
-          "line_end": 343
+          "line_start": 70,
+          "line_end": 380
         }
       ],
       "top_level_functions": [
@@ -163,6 +177,13 @@
           "signature": "def _str_to_dt(s: str) -> datetime",
           "line_start": 47,
           "line_end": 48
+        },
+        {
+          "name": "_trade_record",
+          "signature": "def _trade_record(r: Any) -> TradeRecord",
+          "docstring": "Build a `TradeRecord` from a `trades` row; times stay local wall-clock.",
+          "line_start": 51,
+          "line_end": 67
         }
       ],
       "constants": [

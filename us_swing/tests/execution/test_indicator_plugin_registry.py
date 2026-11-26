@@ -53,6 +53,22 @@ def test_old_user_folders_moved_once(tmp_path: Path) -> None:
     assert (tmp_path / "2" / "indicators" / "swing_plus.py").exists()
 
 
+def test_empty_old_folder_removed_without_warning(
+        tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
+    """UT-EXE-022.008.M03.T04: An empty old folder whose name is taken is removed quietly."""
+    (tmp_path / "1" / "projects" / "test").mkdir(parents=True)
+    (tmp_path / "projects" / "test").mkdir(parents=True)
+    (tmp_path / "projects" / "test" / "keep.py").write_text("# kept\n", encoding="utf-8")
+    registry = IndicatorRegistry(tmp_path)
+
+    with caplog.at_level(logging.WARNING):
+        registry.load(builtins=_BUILTINS)
+
+    assert not (tmp_path / "1").exists()
+    assert (tmp_path / "projects" / "test" / "keep.py").exists()
+    assert "was not moved" not in caplog.text
+
+
 def test_locked_old_folder_does_not_stop_load(
         tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
         caplog: pytest.LogCaptureFixture) -> None:

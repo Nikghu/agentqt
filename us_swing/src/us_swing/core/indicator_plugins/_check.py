@@ -320,9 +320,10 @@ def _future_problem(cls: type[USSwingIndicator], path: Path,
     main = frames[full.main_timeframe]
     if len(main) <= 2 * FUTURE_CANDLES:
         return FEW_CANDLES_NOTE
-    if "ts" in main:
-        cutoff = main["ts"].iloc[-FUTURE_CANDLES]
-        trimmed = {tf: (f[f["ts"] < cutoff] if "ts" in f else f.iloc[:-FUTURE_CANDLES])
+    time_col = next((c for c in ("ts", "datetime") if c in main), None)
+    if time_col is not None:
+        cutoff = main[time_col].iloc[-FUTURE_CANDLES]
+        trimmed = {tf: (f[f[time_col] < cutoff] if time_col in f else f.iloc[:-FUTURE_CANDLES])
                    for tf, f in frames.items()}
     else:
         trimmed = {tf: f.iloc[:-FUTURE_CANDLES] for tf, f in frames.items()}

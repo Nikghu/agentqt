@@ -115,6 +115,16 @@ def test_pill_without_dot() -> None:
     assert "●" not in sv.pill_text("RUNNING")
 
 
+def test_pill_tint_without_text_colour() -> None:
+    """UT-GUI-032.009.M02.T01: Status pill uses theme text on a light tint, with no border."""
+    running, stopped = sv.pill_style("RUNNING"), sv.pill_style("STOPPED")
+
+    assert f"color:{sv.C.TEXT};" in running and f"color:{sv.C.TEXT};" in stopped
+    assert "border:none" in running
+    assert f"color:{sv.C.GREEN}" not in running
+    assert ",45);" in running and running != stopped
+
+
 # ── Pane ─────────────────────────────────────────────────────────────────────
 
 def test_running_label_and_find(qtbot: QtBot, settings: QSettings) -> None:

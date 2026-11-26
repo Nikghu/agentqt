@@ -53,8 +53,8 @@ from us_swing.gui.strategies_views import (
     GroupedList,
     StrategyRow,
     StrategyTable,
+    pill_style,
     pill_text,
-    status_colour,
     strategy_rows,
 )
 from us_swing.gui.popups import confirm, notify
@@ -450,19 +450,15 @@ class StrategiesPane(QWidget):
             return
         cfg = self._configs[row]
         status = self._status(cfg)
-        colour = status_colour(status)
         self.title_lbl.setText(cfg.name)
         self.status_lbl.setText(pill_text(status))
-        self.status_lbl.setStyleSheet(
-            f"color:{colour}; border:1px solid {colour}; border-radius:8px;"
-            f" padding:1px 8px; font-size:7.5pt; font-weight:bold;"
-        )
+        self.status_lbl.setStyleSheet(pill_style(status))
         self.since_lbl.setText(f"{cfg.mode.capitalize()} · since {_date(cfg.start_date)}")
         live = status in LIVE
         self.run_btn.setText("Stop" if live else "Start")
-        set_icon(self.run_btn, "square-x" if live else "play", "danger" if live else "go")
+        set_icon(self.run_btn, "square-x" if live else "play", "danger" if live else "neutral")
         if live:
-            mark_danger(self.run_btn)
+            mark_danger(self.run_btn, "stop")
         else:
             self.run_btn.setProperty("role", "")
             style = self.run_btn.style()

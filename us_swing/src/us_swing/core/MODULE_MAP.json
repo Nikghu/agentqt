@@ -1,12 +1,12 @@
 {
-  "generated": "2026-11-17T15:43:53",
+  "generated": "2026-11-26T08:25:51",
   "subfolder": "core",
-  "root": "F:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\core",
+  "root": "f:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\core",
   "tool_code": "BKT",
   "files": {
     "__init__.py": {
-      "module_id": "MD-SCR-016.001.M27",
-      "srd_id": "SRD-SCR-016.001"
+      "module_id": "MD-SCR-018.003.M37",
+      "srd_id": "SRD-SCR-018.002"
     },
     "backtest_bridge.py": {
       "module_id": "MD-BKT-002.011.M08",
@@ -101,8 +101,8 @@
             "values: dict[str, FloatArray]",
             "uses_pnl: bool"
           ],
-          "line_start": 44,
-          "line_end": 49
+          "line_start": 52,
+          "line_end": 57
         },
         {
           "name": "_Walker",
@@ -111,39 +111,46 @@
             {
               "name": "__init__",
               "signature": "def __init__(self, frames: Mapping[str, pd.DataFrame]) -> None",
-              "line_start": 164,
-              "line_end": 169
+              "line_start": 172,
+              "line_end": 177
             },
             {
               "name": "_frame",
               "signature": "def _frame(self, tf: str) -> pd.DataFrame",
-              "line_start": 171,
-              "line_end": 175
+              "line_start": 179,
+              "line_end": 183
             },
             {
               "name": "_full",
               "signature": "def _full(self, value: float) -> FloatArray",
-              "line_start": 177,
-              "line_end": 178
+              "line_start": 185,
+              "line_end": 186
             },
             {
               "name": "number",
               "signature": "def number(self, node: dict[str, Any]) -> FloatArray | BoolArray",
-              "line_start": 180,
-              "line_end": 188
+              "line_start": 188,
+              "line_end": 196
             },
             {
               "name": "_function",
               "signature": "def _function(self, node: dict[str, Any]) -> FloatArray",
-              "line_start": 190,
-              "line_end": 211
+              "line_start": 198,
+              "line_end": 222
+            },
+            {
+              "name": "_plugin",
+              "signature": "def _plugin(self, spec: PluginSpec, node: dict[str, Any]) -> FloatArray",
+              "docstring": "A custom indicator's full series, as of each 3m close (SRD-EXE-022.011).",
+              "line_start": 224,
+              "line_end": 237
             },
             {
               "name": "_boss_st",
               "signature": "def _boss_st(self, args: list[Any]) -> tuple[str, FloatArray]",
               "docstring": "BOSS_ST on its LTF bars (SRD-BKT-002.087); the timeframe is the LTF arg.",
-              "line_start": 213,
-              "line_end": 218
+              "line_start": 239,
+              "line_end": 244
             },
             {
               "name": "_constant",
@@ -151,90 +158,90 @@
               "decorators": [
                 "@staticmethod"
               ],
-              "line_start": 221,
-              "line_end": 224
+              "line_start": 247,
+              "line_end": 250
             },
             {
               "name": "_bin_op",
               "signature": "def _bin_op(self, node: dict[str, Any]) -> BoolArray",
-              "line_start": 226,
-              "line_end": 238
+              "line_start": 252,
+              "line_end": 264
             }
           ],
-          "line_start": 161,
-          "line_end": 238
+          "line_start": 169,
+          "line_end": 264
         }
       ],
       "top_level_functions": [
         {
           "name": "_col",
           "signature": "def _col(frame: pd.DataFrame, name: str) -> FloatArray",
-          "line_start": 52,
-          "line_end": 55
+          "line_start": 60,
+          "line_end": 63
         },
         {
           "name": "_ns",
           "signature": "def _ns(stamps: pd.DatetimeIndex) -> IntArray",
-          "line_start": 58,
-          "line_end": 60
+          "line_start": 66,
+          "line_end": 68
         },
         {
           "name": "_utc_ns",
           "signature": "def _utc_ns(frame: pd.DataFrame) -> IntArray",
-          "line_start": 63,
-          "line_end": 65
+          "line_start": 71,
+          "line_end": 73
         },
         {
           "name": "available_ns",
           "signature": "def available_ns(frame: pd.DataFrame, tf: str) -> IntArray",
           "docstring": "When each bar becomes visible: intraday at its close, 1d next day, 1w next week.",
-          "line_start": 68,
-          "line_end": 74
+          "line_start": 76,
+          "line_end": 82
         },
         {
           "name": "_as_of",
           "signature": "def _as_of(values: FloatArray, avail: IntArray, at: IntArray, back: int = 0) -> FloatArray",
-          "line_start": 77,
-          "line_end": 82
+          "line_start": 85,
+          "line_end": 90
         },
         {
           "name": "_vwap",
           "signature": "def _vwap(frame: pd.DataFrame, tf: str) -> FloatArray",
-          "line_start": 85,
-          "line_end": 93
+          "line_start": 93,
+          "line_end": 101
         },
         {
           "name": "_supertrend",
           "signature": "def _supertrend(frame: pd.DataFrame, length: int, factor: float) -> FloatArray",
-          "line_start": 96,
-          "line_end": 118
+          "line_start": 104,
+          "line_end": 126
         },
         {
           "name": "_swing",
           "signature": "def _swing(frame: pd.DataFrame, args: list[Any]) -> FloatArray",
-          "line_start": 121,
-          "line_end": 126
+          "line_start": 129,
+          "line_end": 134
         },
         {
           "name": "function_series",
           "signature": "def function_series(name: str, args: list[Any], frame: pd.DataFrame, tf: str) -> FloatArray",
           "docstring": "Value per bar equal to the live function on ``frame`` up to that bar.",
-          "line_start": 129,
-          "line_end": 158
+          "line_start": 137,
+          "line_end": 166
         },
         {
           "name": "truth",
           "signature": "def truth(values: FloatArray | BoolArray) -> BoolArray",
           "docstring": "True where a value is a true comparison or a non-zero, known number.",
-          "line_start": 241,
-          "line_end": 245
+          "line_start": 267,
+          "line_end": 271
         },
         {
           "name": "evaluate",
           "signature": "def evaluate(expr: str, frames: Mapping[str, pd.DataFrame]) -> Evaluation",
           "docstring": "Evaluate ``expr`` on every bar of ``frames[\"3m\"]`` (SRD-BKT-002.021\u2013.025, .027).",
-          "line_start": 248,
-          "line_end": 256
+          "line_start": 274,
+          "line_end": 282
         }
       ],
       "constants": [
@@ -244,6 +251,481 @@
         "_ARITY = {\"Number\": 1, \"PNL\": 1, \"VWAP\": 2, \"Price\": 4, \"RSI\": 3, \"ADX\": 3, \"EMA\": 3,",
         "_LEGACY_ARITY = {\"SWING\": 6}",
         "_COMPARE: dict[str, Callable[[FloatArray, FloatArray], BoolArray]] = {"
+      ]
+    },
+    "_check.py": {
+      "module_id": "MD-EXE-022.005.M02",
+      "srd_id": "SRD-EXE-022.005",
+      "classes": [
+        {
+          "name": "PluginSpec",
+          "docstring": "A custom indicator that passed the check.",
+          "class_vars": [
+            "name: str",
+            "description: str",
+            "version: str",
+            "output_type: str",
+            "parameters: tuple[Parameter, ...]",
+            "indicator_class: type[USSwingIndicator]",
+            "path: Path"
+          ],
+          "line_start": 52,
+          "line_end": 61
+        },
+        {
+          "name": "CheckReport",
+          "docstring": "Result of checking one file: the spec when it passed, else the reasons.",
+          "class_vars": [
+            "reasons: tuple[str, ...]",
+            "spec: PluginSpec | None",
+            "notes: tuple[str, ...]"
+          ],
+          "methods": [
+            {
+              "name": "ok",
+              "signature": "def ok(self) -> bool",
+              "decorators": [
+                "@property"
+              ],
+              "line_start": 77,
+              "line_end": 78
+            }
+          ],
+          "line_start": 65,
+          "line_end": 78
+        }
+      ],
+      "top_level_functions": [
+        {
+          "name": "check_file",
+          "signature": "def check_file(\r\n    path: Path,\r\n    *,\r\n    builtin_names: Iterable[str] = (),\r\n    taken_names: Iterable[str] = (),\r\n    candle_probe: CandleProbe | None = None,\r\n    clock: Clock = time.perf_counter,\r\n) -> CheckReport",
+          "docstring": "Check one indicator file (SRD-EXE-022.005\u2013.007).",
+          "line_start": 81,
+          "line_end": 137
+        },
+        {
+          "name": "_imports_dev",
+          "signature": "def _imports_dev(tree: ast.Module) -> bool",
+          "line_start": 142,
+          "line_end": 154
+        },
+        {
+          "name": "_labels_read",
+          "signature": "def _labels_read(tree: ast.Module) -> list[str]",
+          "docstring": "Literal labels in ``self.parameter(\"...\")`` calls, in order, without repeats.",
+          "line_start": 157,
+          "line_end": 170
+        },
+        {
+          "name": "_load",
+          "signature": "def _load(path: Path, source: str) -> tuple[ModuleType | None, str]",
+          "docstring": "Run the file's code as a fresh module (no cached bytecode), with a time limit.",
+          "line_start": 175,
+          "line_end": 194
+        },
+        {
+          "name": "_indicator_classes",
+          "signature": "def _indicator_classes(module: ModuleType) -> list[type[USSwingIndicator]]",
+          "line_start": 197,
+          "line_end": 200
+        },
+        {
+          "name": "_line_of",
+          "signature": "def _line_of(exc: BaseException, path: Path) -> str",
+          "line_start": 203,
+          "line_end": 207
+        },
+        {
+          "name": "_declared",
+          "signature": "def _declared(cls: type[USSwingIndicator], field: str) -> bool",
+          "line_start": 212,
+          "line_end": 214
+        },
+        {
+          "name": "_field_problems",
+          "signature": "def _field_problems(cls: type[USSwingIndicator]) -> list[str]",
+          "line_start": 217,
+          "line_end": 238
+        },
+        {
+          "name": "_missing",
+          "signature": "def _missing(field: str, own: list[str]) -> str",
+          "line_start": 241,
+          "line_end": 245
+        },
+        {
+          "name": "_parameter_problems",
+          "signature": "def _parameter_problems(parameters: Any) -> list[str]",
+          "line_start": 248,
+          "line_end": 260
+        },
+        {
+          "name": "_name_problems",
+          "signature": "def _name_problems(name: str, builtin_names: Iterable[str],\r\n                   taken_names: Iterable[str]) -> list[str]",
+          "line_start": 263,
+          "line_end": 269
+        },
+        {
+          "name": "_label_problems",
+          "signature": "def _label_problems(labels_read: list[str], parameters: Sequence[Parameter]) -> list[str]",
+          "line_start": 272,
+          "line_end": 275
+        },
+        {
+          "name": "frame_source",
+          "signature": "def frame_source(frames: Mapping[str, pd.DataFrame]) -> Callable[[str, str], pd.DataFrame]",
+          "docstring": "Candle source over fixed frames; a missing timeframe raises a plain error.",
+          "line_start": 280,
+          "line_end": 287
+        },
+        {
+          "name": "_run_once",
+          "signature": "def _run_once(cls: type[USSwingIndicator], frames: Mapping[str, pd.DataFrame]) -> Result",
+          "line_start": 290,
+          "line_end": 291
+        },
+        {
+          "name": "_dry_run",
+          "signature": "def _dry_run(cls: type[USSwingIndicator], path: Path, stocks: Sequence[StockFrames],\r\n             clock: Clock) -> tuple[list[str], list[str]]",
+          "docstring": "Reasons to refuse, and notes about checks that could not run.",
+          "line_start": 294,
+          "line_end": 314
+        },
+        {
+          "name": "_future_problem",
+          "signature": "def _future_problem(cls: type[USSwingIndicator], path: Path,\r\n                    frames: Mapping[str, pd.DataFrame], full: Result) -> str",
+          "docstring": "A reason when dropping the newest candles changes older values; \"\" when fine.",
+          "line_start": 317,
+          "line_end": 337
+        }
+      ],
+      "constants": [
+        "NAME_PATTERN = re.compile(r\"^[A-Z][A-Z0-9_]{1,31}$\")",
+        "TIME_LIMIT_S = 2.0",
+        "FUTURE_CANDLES = 5",
+        "OUTPUT_TYPES = (\"value\", \"signal\")",
+        "REQUIRED_FIELDS = (\"indicator_name\", \"description\", \"version\", \"output_type\", \"parameters\")",
+        "LOAD_LIMIT_S = 5.0",
+        "DEV_REASON = \"uses testing tools (usswing.dev); move plotting to a separate script\"",
+        "FUTURE_REASON = \"uses future candles (values change when newer candles arrive)\"",
+        "NOT_CHECKED_NOTE = \"not checked on candles (no candle data yet)\"",
+        "FEW_CANDLES_NOTE = \"future-candle check skipped (too few candles)\""
+      ]
+    },
+    "_cli.py": {
+      "module_id": "MD-EXE-022.015.M06",
+      "srd_id": "SRD-EXE-022.016",
+      "top_level_functions": [
+        {
+          "name": "_parser",
+          "signature": "def _parser() -> argparse.ArgumentParser",
+          "line_start": 29,
+          "line_end": 41
+        },
+        {
+          "name": "run_indicator_command",
+          "signature": "def run_indicator_command(argv: Sequence[str], out: TextIO) -> int",
+          "docstring": "Run ``indicator <command>``; returns the process exit code.",
+          "line_start": 44,
+          "line_end": 47
+        },
+        {
+          "name": "top_symbols",
+          "signature": "def top_symbols(db_path: Path | None, count: int = PROBE_STOCKS) -> list[str]",
+          "docstring": "The stocks with the most 3m candles.",
+          "line_start": 50,
+          "line_end": 55
+        },
+        {
+          "name": "_stocks",
+          "signature": "def _stocks(symbols: list[str], days: int, db_path: Path | None) -> list[StockFrames]",
+          "line_start": 58,
+          "line_end": 65
+        },
+        {
+          "name": "_check",
+          "signature": "def _check(file: Path, symbols_text: str, days: int, trace: Path | None,\r\n           db_path: Path | None, out: TextIO) -> int",
+          "line_start": 68,
+          "line_end": 109
+        }
+      ],
+      "constants": [
+        "PROBE_STOCKS = 3",
+        "_OK, _BAD, _NOTE = \"\u2714\", \"\u2718\", \"!\""
+      ]
+    },
+    "_guard.py": {
+      "module_id": "MD-EXE-022.012.M05",
+      "srd_id": "SRD-EXE-022.012",
+      "classes": [
+        {
+          "name": "PluginCallError",
+          "docstring": "One custom indicator call failed (error, bad output or too slow).",
+          "methods": [
+            {
+              "name": "__init__",
+              "signature": "def __init__(self, plugin_name: str, message: str) -> None",
+              "line_start": 30,
+              "line_end": 32
+            }
+          ],
+          "line_start": 27,
+          "line_end": 32
+        },
+        {
+          "name": "DeadlineExceeded",
+          "docstring": "User code did not finish in time; its thread is left running in the background.",
+          "line_start": 35,
+          "line_end": 36
+        },
+        {
+          "name": "PluginExit",
+          "docstring": "User code called ``sys.exit()``; turned into a normal error so the app keeps run",
+          "line_start": 39,
+          "line_end": 40
+        },
+        {
+          "name": "PluginGuard",
+          "docstring": "Times each call, counts failures in a row per indicator and stock, calls back at",
+          "methods": [
+            {
+              "name": "__init__",
+              "signature": "def __init__(self, clock: Callable[[], float] = time.perf_counter,\r\n                 limit_s: float = TIME_LIMIT_S, failures_to_stop: int = FAILURES_TO_STOP) -> None",
+              "line_start": 77,
+              "line_end": 86
+            },
+            {
+              "name": "run",
+              "signature": "def run(self, name: str, call: Callable[[], T], *, symbol: str = \"\", candle: str = \"\",\r\n            passthrough: tuple[type[Exception], ...] = ()) -> T",
+              "docstring": "Run ``call`` for indicator ``name`` on ``symbol``.",
+              "line_start": 88,
+              "line_end": 118
+            },
+            {
+              "name": "failures",
+              "signature": "def failures(self, name: str, symbol: str = \"\") -> int",
+              "line_start": 120,
+              "line_end": 122
+            },
+            {
+              "name": "is_hung",
+              "signature": "def is_hung(self, name: str) -> bool",
+              "line_start": 124,
+              "line_end": 126
+            },
+            {
+              "name": "add_limit_listener",
+              "signature": "def add_limit_listener(self, listener: Callable[[str], None]) -> None",
+              "line_start": 128,
+              "line_end": 130
+            },
+            {
+              "name": "remove_limit_listener",
+              "signature": "def remove_limit_listener(self, listener: Callable[[str], None]) -> None",
+              "line_start": 132,
+              "line_end": 135
+            },
+            {
+              "name": "forget",
+              "signature": "def forget(self, name: str) -> None",
+              "docstring": "Clear counts and the hung mark, e.g. after the user reloads the indicator.",
+              "line_start": 137,
+              "line_end": 142
+            },
+            {
+              "name": "_hang",
+              "signature": "def _hang(self, name: str, symbol: str, message: str) -> None",
+              "line_start": 144,
+              "line_end": 151
+            },
+            {
+              "name": "_fail",
+              "signature": "def _fail(self, name: str, symbol: str, candle: str, message: str) -> None",
+              "line_start": 153,
+              "line_end": 165
+            }
+          ],
+          "line_start": 74,
+          "line_end": 165
+        }
+      ],
+      "top_level_functions": [
+        {
+          "name": "call_with_deadline",
+          "signature": "def call_with_deadline(call: Callable[[], T], seconds: float) -> T",
+          "docstring": "Run ``call`` in a daemon thread and wait at most ``seconds``.",
+          "line_start": 43,
+          "line_end": 71
+        }
+      ],
+      "constants": [
+        "TIME_LIMIT_S = 2.0",
+        "FAILURES_TO_STOP = 3",
+        "T = TypeVar(\"T\")",
+        "GUARD = PluginGuard()"
+      ]
+    },
+    "_registry.py": {
+      "module_id": "MD-EXE-022.008.M03",
+      "srd_id": "SRD-EXE-022.008",
+      "classes": [
+        {
+          "name": "PluginStatus",
+          "docstring": "One file in the user's folder and whether it loaded.",
+          "class_vars": [
+            "file: str",
+            "name: str",
+            "version: str",
+            "ok: bool",
+            "reasons: tuple[str, ...]",
+            "notes: tuple[str, ...]"
+          ],
+          "line_start": 89,
+          "line_end": 97
+        },
+        {
+          "name": "IndicatorRegistry",
+          "docstring": "The custom indicators of this PC (shared by all users), by ``indicator_name``.",
+          "methods": [
+            {
+              "name": "__init__",
+              "signature": "def __init__(self, root: Path | None = None) -> None",
+              "line_start": 103,
+              "line_end": 108
+            },
+            {
+              "name": "load",
+              "signature": "def load(self, *, candle_probe: CandleProbe | None = None,\r\n             builtins: Iterable[str] | None = None) -> None",
+              "docstring": "Check every ``*.py`` file of the indicator folder and keep the ones that pass.",
+              "line_start": 110,
+              "line_end": 143
+            },
+            {
+              "name": "get",
+              "signature": "def get(self, name: str) -> PluginSpec | None",
+              "line_start": 145,
+              "line_end": 147
+            },
+            {
+              "name": "names",
+              "signature": "def names(self) -> frozenset[str]",
+              "line_start": 149,
+              "line_end": 151
+            },
+            {
+              "name": "statuses",
+              "signature": "def statuses(self) -> tuple[PluginStatus, ...]",
+              "line_start": 153,
+              "line_end": 155
+            },
+            {
+              "name": "add_listener",
+              "signature": "def add_listener(self, listener: Callable[[], None]) -> None",
+              "docstring": "Call ``listener`` after every load.",
+              "line_start": 157,
+              "line_end": 160
+            },
+            {
+              "name": "clear",
+              "signature": "def clear(self) -> None",
+              "line_start": 162,
+              "line_end": 165
+            }
+          ],
+          "line_start": 100,
+          "line_end": 165
+        }
+      ],
+      "top_level_functions": [
+        {
+          "name": "plugin_dir",
+          "signature": "def plugin_dir(root: Path | None = None) -> Path",
+          "docstring": "Folder of the indicator files, shared by all users (not created here).",
+          "line_start": 30,
+          "line_end": 32
+        },
+        {
+          "name": "move_user_folders",
+          "signature": "def move_user_folders(root: Path | None = None) -> list[str]",
+          "docstring": "Move files from the old per-user folders (``<root>/<user id>/``) to the shared o",
+          "line_start": 35,
+          "line_end": 71
+        },
+        {
+          "name": "_remove_if_empty",
+          "signature": "def _remove_if_empty(folder: Path) -> None",
+          "line_start": 74,
+          "line_end": 78
+        },
+        {
+          "name": "builtin_names",
+          "signature": "def builtin_names() -> frozenset[str]",
+          "docstring": "Names of the tool's own indicators, which a custom indicator may not reuse.",
+          "line_start": 81,
+          "line_end": 85
+        },
+        {
+          "name": "_cached",
+          "signature": "def _cached(probe: CandleProbe) -> CandleProbe",
+          "docstring": "Read the probe stocks once per load, not once per file.",
+          "line_start": 168,
+          "line_end": 182
+        }
+      ],
+      "constants": [
+        "PLUGINS_ROOT = Path.home() / \".usswing\" / \"plugins\"",
+        "REGISTRY = IndicatorRegistry()"
+      ]
+    },
+    "_runner.py": {
+      "module_id": "MD-EXE-022.010.M04",
+      "srd_id": "SRD-EXE-022.010",
+      "classes": [
+        {
+          "name": "PluginArgError",
+          "docstring": "Wrong number or value of arguments for a custom indicator.",
+          "line_start": 26,
+          "line_end": 27
+        },
+        {
+          "name": "NoCandleData",
+          "docstring": "The indicator asked for a timeframe the engine has no candles for.",
+          "line_start": 30,
+          "line_end": 31
+        }
+      ],
+      "top_level_functions": [
+        {
+          "name": "values_from_args",
+          "signature": "def values_from_args(spec: PluginSpec, args: Sequence[Any]) -> dict[str, Any]",
+          "docstring": "Map expression arguments to labels, in ``parameters`` order, with checks.",
+          "line_start": 34,
+          "line_end": 45
+        },
+        {
+          "name": "run_plugin",
+          "signature": "def run_plugin(spec: PluginSpec, values: Mapping[str, Any], frames: Mapping[str, pd.DataFrame],\r\n               *, symbol: str = \"\", guard: PluginGuard | None = None) -> Result",
+          "docstring": "Run the indicator on ``frames``; through ``guard`` when given (live), else direc",
+          "line_start": 48,
+          "line_end": 68
+        },
+        {
+          "name": "last_value",
+          "signature": "def last_value(result: Result) -> float",
+          "docstring": "The newest value, or NaN when there is none.",
+          "line_start": 71,
+          "line_end": 75
+        },
+        {
+          "name": "_candle_key",
+          "signature": "def _candle_key(frames: Mapping[str, pd.DataFrame]) -> str",
+          "docstring": "Time of the newest 3m candle (``datetime`` in live frames, ``ts`` in replay).",
+          "line_start": 78,
+          "line_end": 86
+        }
+      ],
+      "constants": [
+        "REPLAY_LIMIT_S = 60.0"
       ]
     },
     "_catalogue.py": {
@@ -659,6 +1141,17 @@
           "line_end": 46
         },
         {
+          "name": "IndicatorStoppedEvent",
+          "docstring": "Strategies stopped because a custom indicator kept failing (SRD-EXE-022.013).",
+          "class_vars": [
+            "indicator: str",
+            "strategies: tuple[str, ...]",
+            "failures: int"
+          ],
+          "line_start": 50,
+          "line_end": 55
+        },
+        {
           "name": "MarketQuote",
           "docstring": "Last price and move against the previous close (MD-INF-012.003.M02).",
           "class_vars": [
@@ -667,8 +1160,8 @@
             "change_pct: float",
             "as_of: str"
           ],
-          "line_start": 50,
-          "line_end": 56
+          "line_start": 59,
+          "line_end": 65
         },
         {
           "name": "TradeLine",
@@ -678,8 +1171,8 @@
             "pnl: float",
             "pnl_pct: float | None"
           ],
-          "line_start": 60,
-          "line_end": 65
+          "line_start": 69,
+          "line_end": 74
         },
         {
           "name": "DayEndPnLEvent",
@@ -690,8 +1183,8 @@
             "session_date: str",
             "trades: tuple[TradeLine, ...]"
           ],
-          "line_start": 69,
-          "line_end": 74
+          "line_start": 78,
+          "line_end": 83
         },
         {
           "name": "MorningBriefEvent",
@@ -708,8 +1201,8 @@
             "screener_top: tuple[str, ...]",
             "ai_comment: str"
           ],
-          "line_start": 78,
-          "line_end": 90
+          "line_start": 87,
+          "line_end": 99
         },
         {
           "name": "_InProcessBus",
@@ -718,24 +1211,24 @@
             {
               "name": "__init__",
               "signature": "def __init__(self) -> None",
-              "line_start": 105,
-              "line_end": 107
+              "line_start": 114,
+              "line_end": 116
             },
             {
               "name": "subscribe",
               "signature": "def subscribe(self, handler: Callable[[Any], None]) -> None",
-              "line_start": 109,
-              "line_end": 111
+              "line_start": 118,
+              "line_end": 120
             },
             {
               "name": "publish",
               "signature": "def publish(self, event: Any) -> None",
-              "line_start": 113,
-              "line_end": 125
+              "line_start": 122,
+              "line_end": 134
             }
           ],
-          "line_start": 100,
-          "line_end": 125
+          "line_start": 109,
+          "line_end": 134
         }
       ],
       "top_level_functions": [
@@ -1131,10 +1624,11 @@
             "openrouter_model: str",
             "openrouter_key: str",
             "default: str",
-            "fallback: bool"
+            "fallback: bool",
+            "claude_tools: tuple[str, ...]"
           ],
-          "line_start": 31,
-          "line_end": 40
+          "line_start": 33,
+          "line_end": 43
         },
         {
           "name": "AiAnswer",
@@ -1145,8 +1639,8 @@
             "seconds: float",
             "error: str"
           ],
-          "line_start": 44,
-          "line_end": 50
+          "line_start": 47,
+          "line_end": 53
         }
       ],
       "top_level_functions": [
@@ -1154,47 +1648,48 @@
           "name": "provider_name",
           "signature": "def provider_name(provider: str) -> str",
           "docstring": "The user-facing name of a provider id.",
-          "line_start": 53,
-          "line_end": 55
+          "line_start": 56,
+          "line_end": 58
         },
         {
           "name": "ask_ai",
           "signature": "def ask_ai(\r\n    config: AiConfig, instruction: str, facts: str, timeout_s: float = 90.0\r\n) -> AiAnswer",
           "docstring": "Ask the default AI, then the other one when fallback is on (SRD-INF-011.003).",
-          "line_start": 58,
-          "line_end": 95
+          "line_start": 61,
+          "line_end": 98
         },
         {
           "name": "_ask_claude",
           "signature": "def _ask_claude(config: AiConfig, instruction: str, facts: str, timeout_s: float) -> str",
           "docstring": "Run the Claude Code CLI headless with no tools and no saved session (SRD-INF-011",
-          "line_start": 98,
-          "line_end": 123
+          "line_start": 101,
+          "line_end": 129
         },
         {
           "name": "_run_with_timeout",
           "signature": "def _run_with_timeout(\r\n    command: list[str], stdin: str, cwd: str, env: dict[str, str], timeout_s: float\r\n) -> tuple[str, str, int]",
           "docstring": "Run ``command``; on timeout kill it and its child processes.",
-          "line_start": 126,
-          "line_end": 140
+          "line_start": 132,
+          "line_end": 146
         },
         {
           "name": "_kill_tree",
           "signature": "def _kill_tree(process: subprocess.Popen[str]) -> None",
-          "line_start": 143,
-          "line_end": 150
+          "line_start": 149,
+          "line_end": 156
         },
         {
           "name": "_ask_openrouter",
           "signature": "def _ask_openrouter(config: AiConfig, instruction: str, facts: str, timeout_s: float) -> str",
           "docstring": "Call OpenRouter chat completions with the user's key and model (SRD-INF-011.002)",
-          "line_start": 153,
-          "line_end": 182
+          "line_start": 159,
+          "line_end": 188
         }
       ],
       "constants": [
         "OPENROUTER_URL = \"https://openrouter.ai/api/v1/chat/completions\"",
-        "_NAMES = {\"claude\": \"Claude Code CLI\", \"openrouter\": \"OpenRouter\"}"
+        "_NAMES = {\"claude\": \"Claude Code CLI\", \"openrouter\": \"OpenRouter\"}",
+        "_ALLOWED_TOOLS = frozenset({\"WebSearch\"})"
       ]
     },
     "_briefs.py": {
@@ -1378,90 +1873,96 @@
             {
               "name": "__init__",
               "signature": "def __init__(self) -> None",
-              "line_start": 34,
-              "line_end": 35
+              "line_start": 35,
+              "line_end": 36
             },
             {
               "name": "register",
               "signature": "def register(self, event_type: type, formatter: Formatter) -> None",
               "docstring": "Register the formatter used to render ``event_type``.",
-              "line_start": 37,
-              "line_end": 39
+              "line_start": 38,
+              "line_end": 40
             },
             {
               "name": "render",
               "signature": "def render(self, event: NotificationEvent) -> NotificationMessage",
               "docstring": "Render ``event`` into a channel-ready message.",
-              "line_start": 41,
-              "line_end": 53
+              "line_start": 42,
+              "line_end": 54
             }
           ],
-          "line_start": 31,
-          "line_end": 53
+          "line_start": 32,
+          "line_end": 54
         }
       ],
       "top_level_functions": [
         {
           "name": "_fmt_tool_started",
           "signature": "def _fmt_tool_started(event: NotificationEvent) -> NotificationMessage",
-          "line_start": 56,
-          "line_end": 62
+          "line_start": 57,
+          "line_end": 63
         },
         {
           "name": "_fmt_screener_approved",
           "signature": "def _fmt_screener_approved(event: NotificationEvent) -> NotificationMessage",
-          "line_start": 65,
-          "line_end": 71
+          "line_start": 66,
+          "line_end": 72
+        },
+        {
+          "name": "_fmt_indicator_stopped",
+          "signature": "def _fmt_indicator_stopped(event: NotificationEvent) -> NotificationMessage",
+          "line_start": 75,
+          "line_end": 82
         },
         {
           "name": "money",
           "signature": "def money(value: float) -> str",
           "docstring": "Signed whole dollars: ``+$412``, ``\u2212$40``.",
-          "line_start": 74,
-          "line_end": 77
+          "line_start": 85,
+          "line_end": 88
         },
         {
           "name": "_pct",
           "signature": "def _pct(value: float) -> str",
-          "line_start": 80,
-          "line_end": 82
+          "line_start": 91,
+          "line_end": 93
         },
         {
           "name": "_trade_line",
           "signature": "def _trade_line(trade: TradeLine) -> str",
-          "line_start": 85,
-          "line_end": 87
+          "line_start": 96,
+          "line_end": 98
         },
         {
           "name": "_quote_line",
           "signature": "def _quote_line(quote: MarketQuote) -> str",
-          "line_start": 90,
-          "line_end": 92
+          "line_start": 101,
+          "line_end": 103
         },
         {
           "name": "_title",
           "signature": "def _title(name: str, session_date: str) -> str",
-          "line_start": 95,
-          "line_end": 96
+          "line_start": 106,
+          "line_end": 107
         },
         {
           "name": "_fmt_day_end_pnl",
           "signature": "def _fmt_day_end_pnl(event: NotificationEvent) -> NotificationMessage",
-          "line_start": 99,
-          "line_end": 120
+          "line_start": 110,
+          "line_end": 131
         },
         {
           "name": "_fmt_morning_brief",
           "signature": "def _fmt_morning_brief(event: NotificationEvent) -> NotificationMessage",
-          "line_start": 123,
-          "line_end": 146
+          "line_start": 134,
+          "line_end": 157
         },
         {
           "name": "default_registry",
           "signature": "def default_registry() -> FormatterRegistry",
           "docstring": "Build a registry pre-populated with the built-in event formatters.",
-          "line_start": 149,
-          "line_end": 156
+          "line_start": 160,
+          "line_end": 168
         }
       ],
       "constants": [
@@ -1509,37 +2010,37 @@
               "signature": "def run(self) -> None",
               "docstring": "Poll forever, handling each batch of updates. Runs until cancelled.",
               "line_start": 111,
-              "line_end": 129
+              "line_end": 137
             },
             {
               "name": "_process",
               "signature": "def _process(self, updates: list[dict[str, Any]], offset: int) -> int",
               "docstring": "Handle a batch of updates and return the next offset to request.",
-              "line_start": 131,
-              "line_end": 147
+              "line_start": 139,
+              "line_end": 155
             },
             {
               "name": "_register_commands",
               "signature": "def _register_commands(self) -> None",
               "docstring": "Publish the command list to Telegram so the chat shows a command menu.",
-              "line_start": 149,
-              "line_end": 162
+              "line_start": 157,
+              "line_end": 170
             },
             {
               "name": "_get_updates",
               "signature": "def _get_updates(self, offset: int) -> list[dict[str, Any]]",
-              "line_start": 164,
-              "line_end": 174
+              "line_start": 172,
+              "line_end": 182
             },
             {
               "name": "_send",
               "signature": "def _send(self, text: str) -> None",
-              "line_start": 176,
-              "line_end": 182
+              "line_start": 184,
+              "line_end": 190
             }
           ],
           "line_start": 93,
-          "line_end": 182
+          "line_end": 190
         }
       ],
       "top_level_functions": [
@@ -1866,6 +2367,623 @@
           "line_start": 45,
           "line_end": 58
         }
+      ]
+    },
+    "_cache.py": {
+      "module_id": "MD-SCR-019.002.M40",
+      "srd_id": "SRD-SCR-018.002",
+      "classes": [
+        {
+          "name": "DailyCache",
+          "docstring": "Symbol \u2192 value checked on a given day, kept in one JSON file.",
+          "methods": [
+            {
+              "name": "__init__",
+              "signature": "def __init__(self, path: Path) -> None",
+              "line_start": 21,
+              "line_end": 23
+            },
+            {
+              "name": "get",
+              "signature": "def get(self, symbol: str, day: str) -> tuple[bool, Any]",
+              "docstring": "``(True, value)`` when ``symbol`` was checked on ``day``, else ``(False, None)``",
+              "line_start": 25,
+              "line_end": 30
+            },
+            {
+              "name": "put",
+              "signature": "def put(self, symbol: str, day: str, value: Any) -> None",
+              "line_start": 32,
+              "line_end": 33
+            },
+            {
+              "name": "save",
+              "signature": "def save(self) -> None",
+              "line_start": 35,
+              "line_end": 42
+            },
+            {
+              "name": "_load",
+              "signature": "def _load(self) -> dict[str, Any]",
+              "line_start": 44,
+              "line_end": 49
+            }
+          ],
+          "line_start": 18,
+          "line_end": 49
+        }
+      ]
+    },
+    "_company.py": {
+      "module_id": "MD-SCR-020.002.M41",
+      "srd_id": "SRD-SCR-020.002",
+      "classes": [
+        {
+          "name": "AnalystChange",
+          "docstring": "One analyst rating or target change.",
+          "class_vars": [
+            "day: str",
+            "firm: str",
+            "action: str",
+            "grade: str",
+            "target: float | None"
+          ],
+          "line_start": 38,
+          "line_end": 45
+        },
+        {
+          "name": "CompanyFacts",
+          "docstring": "Company numbers for one stock; any value may be missing.",
+          "class_vars": [
+            "eps_surprise_pct: float | None",
+            "revenue_growth_pct: float | None",
+            "margin_pct: float | None",
+            "pe: float | None",
+            "debt_to_equity: float | None",
+            "short_pct: float | None",
+            "days_to_cover: float | None",
+            "target_mean: float | None",
+            "price: float | None",
+            "changes: tuple[AnalystChange, ...]"
+          ],
+          "line_start": 49,
+          "line_end": 61
+        },
+        {
+          "name": "CompanyLookup",
+          "docstring": "Company facts per stock, each Yahoo part fetched once per stock per day.",
+          "methods": [
+            {
+              "name": "__init__",
+              "signature": "def __init__(self, cache_path: Path | None = None, fetch: Fetch | None = None) -> None",
+              "line_start": 132,
+              "line_end": 134
+            },
+            {
+              "name": "facts",
+              "signature": "def facts(\r\n        self, symbols: Iterable[str], kinds: Iterable[str], today: date\r\n    ) -> dict[str, CompanyFacts]",
+              "docstring": "Return the facts the ticked ``kinds`` need for each symbol (SRD-SCR-020.002).",
+              "line_start": 136,
+              "line_end": 174
+            }
+          ],
+          "line_start": 129,
+          "line_end": 174
+        }
+      ],
+      "top_level_functions": [
+        {
+          "name": "_number",
+          "signature": "def _number(value: Any) -> float | None",
+          "line_start": 64,
+          "line_end": 69
+        },
+        {
+          "name": "_positive",
+          "signature": "def _positive(value: Any) -> float | None",
+          "line_start": 72,
+          "line_end": 74
+        },
+        {
+          "name": "_pct",
+          "signature": "def _pct(value: Any) -> float | None",
+          "line_start": 77,
+          "line_end": 79
+        },
+        {
+          "name": "_yahoo_part",
+          "signature": "def _yahoo_part(symbol: str, part: str) -> Any",
+          "docstring": "One cached part for ``symbol``: \"info\" dict, \"eps\" fraction or \"changes\" rows.",
+          "line_start": 82,
+          "line_end": 104
+        },
+        {
+          "name": "_facts",
+          "signature": "def _facts(parts: Mapping[str, Any]) -> CompanyFacts",
+          "line_start": 107,
+          "line_end": 126
+        }
+      ],
+      "constants": [
+        "DEFAULT_CACHE_PATH = Path.home() / \".usswing\" / \"company_cache.json\"",
+        "_PARTS_BY_KIND: dict[str, tuple[str, ...]] = {",
+        "COMPANY_KINDS: frozenset[str] = frozenset(_PARTS_BY_KIND)",
+        "_INFO_KEYS = (\"revenueGrowth\", \"profitMargins\", \"trailingPE\", \"debtToEquity\",",
+        "_MAX_CHANGES = 10"
+      ]
+    },
+    "_context.py": {
+      "module_id": "MD-SCR-018.003.M37",
+      "srd_id": "SRD-SCR-018.003",
+      "classes": [
+        {
+          "name": "StockContext",
+          "docstring": "What the AI and the result views know about one stock beyond its price.",
+          "class_vars": [
+            "earnings_date: str",
+            "earnings_days: int | None",
+            "earnings_level: str",
+            "sector: str",
+            "sector_rank: int | None",
+            "sector_count: int",
+            "sector_move_pct: float | None",
+            "sector_level: str",
+            "market: str",
+            "news: tuple[Headline, ...]",
+            "news_tone: float | None",
+            "news_level: str",
+            "eps_surprise_pct: float | None",
+            "surprise_level: str",
+            "revenue_growth_pct: float | None",
+            "margin_pct: float | None",
+            "pe: float | None",
+            "debt_to_equity: float | None",
+            "short_pct: float | None",
+            "days_to_cover: float | None",
+            "short_level: str",
+            "analyst_changes: tuple[AnalystChange, ...]",
+            "analyst_target_pct: float | None",
+            "analyst_level: str",
+            "flags: tuple[str, ...]"
+          ],
+          "methods": [
+            {
+              "name": "to_dict",
+              "signature": "def to_dict(self) -> dict[str, Any]",
+              "docstring": "Fields to save with a result row; flags are saved separately.",
+              "line_start": 76,
+              "line_end": 80
+            }
+          ],
+          "line_start": 47,
+          "line_end": 80
+        }
+      ],
+      "top_level_functions": [
+        {
+          "name": "earnings_level",
+          "signature": "def earnings_level(days: int | None) -> str",
+          "docstring": "Red at 0\u20135 days to the report, yellow at 6\u201310, green beyond; \"\" without a date.",
+          "line_start": 83,
+          "line_end": 91
+        },
+        {
+          "name": "news_level",
+          "signature": "def news_level(tone: float | None) -> str",
+          "docstring": "Red at tone \u2264 -0.3, yellow below 0, green at \u2265 0.3, else neutral; \"\" without a t",
+          "line_start": 94,
+          "line_end": 104
+        },
+        {
+          "name": "apply_news_tone",
+          "signature": "def apply_news_tone(ctx: StockContext, tone: float | None) -> StockContext",
+          "docstring": "``ctx`` with the AI's news tone, its level and the \"Negative news\" flag (SRD-SCR",
+          "line_start": 107,
+          "line_end": 113
+        },
+        {
+          "name": "surprise_level",
+          "signature": "def surprise_level(pct: float | None) -> str",
+          "docstring": "Green above +1%, red below -1%, else neutral; \"\" without a surprise (SRD-SCR-020",
+          "line_start": 116,
+          "line_end": 124
+        },
+        {
+          "name": "_surprise_fields",
+          "signature": "def _surprise_fields(facts: CompanyFacts) -> tuple[dict[str, Any], tuple[str, ...]]",
+          "line_start": 127,
+          "line_end": 133
+        },
+        {
+          "name": "_fundamental_fields",
+          "signature": "def _fundamental_fields(facts: CompanyFacts) -> tuple[dict[str, Any], tuple[str, ...]]",
+          "line_start": 136,
+          "line_end": 139
+        },
+        {
+          "name": "_short_fields",
+          "signature": "def _short_fields(facts: CompanyFacts) -> tuple[dict[str, Any], tuple[str, ...]]",
+          "line_start": 142,
+          "line_end": 150
+        },
+        {
+          "name": "_analyst_fields",
+          "signature": "def _analyst_fields(\r\n    facts: CompanyFacts, today: date\r\n) -> tuple[dict[str, Any], tuple[str, ...]]",
+          "line_start": 153,
+          "line_end": 171
+        },
+        {
+          "name": "_company_fields",
+          "signature": "def _company_fields(\r\n    facts: CompanyFacts, wanted: set[str], today: date\r\n) -> tuple[dict[str, Any], tuple[str, ...]]",
+          "line_start": 174,
+          "line_end": 190
+        },
+        {
+          "name": "earnings_when",
+          "signature": "def earnings_when(days: int) -> str",
+          "docstring": "today\", \"in 1 day\" or \"in N days\".",
+          "line_start": 193,
+          "line_end": 197
+        },
+        {
+          "name": "market_regime",
+          "signature": "def market_regime(spy_closes: Mapping[str, float]) -> str",
+          "docstring": "risk-on / risk-off / mixed from SPY's last close vs its 50- and 200-day averages",
+          "line_start": 200,
+          "line_end": 211
+        },
+        {
+          "name": "_sector_fields",
+          "signature": "def _sector_fields(\r\n    gics: str, moves: list[SectorMove]\r\n) -> tuple[dict[str, Any], tuple[str, ...]]",
+          "line_start": 214,
+          "line_end": 228
+        },
+        {
+          "name": "build_context",
+          "signature": "def build_context(\r\n    symbols: Iterable[str],\r\n    kinds: Iterable[str],\r\n    sectors: Mapping[str, str],\r\n    closes: Mapping[str, Mapping[str, float]],\r\n    earnings: Mapping[str, date | None],\r\n    today: date,\r\n    headlines: Mapping[str, Sequence[Headline]] | None = None,\r\n    company: Mapping[str, CompanyFacts] | None = None,\r\n) -> tuple[dict[str, StockContext], str]",
+          "docstring": "Context and flags per stock, plus the market regime (SRD-SCR-018.003\u2013.005).",
+          "line_start": 231,
+          "line_end": 283
+        },
+        {
+          "name": "surprise_text",
+          "signature": "def surprise_text(pct: float) -> str",
+          "docstring": "beat +6.2%\", \"miss -3.5%\" or \"in line +0.4%\".",
+          "line_start": 286,
+          "line_end": 289
+        },
+        {
+          "name": "fundamentals_text",
+          "signature": "def fundamentals_text(ctx: StockContext) -> str",
+          "docstring": "revenue growth +62%, margin 55%, P/E 48.0, debt/equity 0.40\" (missing parts left",
+          "line_start": 292,
+          "line_end": 303
+        },
+        {
+          "name": "short_text",
+          "signature": "def short_text(ctx: StockContext) -> str",
+          "docstring": "short 1.1% of float, 2.7 days to cover\"; \"\" without short data.",
+          "line_start": 306,
+          "line_end": 311
+        },
+        {
+          "name": "analysts_text",
+          "signature": "def analysts_text(ctx: StockContext) -> str",
+          "docstring": "analysts 30d: 1 up, 2 down; average target +14%\"; \"\" without analyst data.",
+          "line_start": 314,
+          "line_end": 322
+        },
+        {
+          "name": "_line",
+          "signature": "def _line(symbol: str, ctx: StockContext) -> str",
+          "line_start": 325,
+          "line_end": 342
+        },
+        {
+          "name": "context_text",
+          "signature": "def context_text(contexts: Mapping[str, StockContext], regime: str) -> str",
+          "docstring": "The STOCK CONTEXT block for the AI prompt (SRD-SCR-018.006).",
+          "line_start": 345,
+          "line_end": 348
+        }
+      ],
+      "constants": [
+        "CONTEXT_KINDS: frozenset[str] = frozenset({",
+        "REGIME_SYMBOL = \"SPY\"",
+        "SECTOR_DAYS = 21",
+        "_EARNINGS_RED_DAYS = 5",
+        "_EARNINGS_YELLOW_DAYS = 10",
+        "_EDGE_RANKS = 3",
+        "_NEWS_RED_TONE = -0.3",
+        "_NEWS_GREEN_TONE = 0.3",
+        "NEGATIVE_NEWS_FLAG = \"Negative news\"",
+        "_SURPRISE_EDGE_PCT = 1.0",
+        "_SHORT_RED_PCT = 20.0",
+        "_ANALYST_DAYS = 30",
+        "_ANALYST_FLAG_DAYS = 7",
+        "_ANALYST_KEEP = 5",
+        "_REGIME_TEXT = {"
+      ]
+    },
+    "_earnings.py": {
+      "module_id": "MD-SCR-018.002.M36",
+      "srd_id": "SRD-SCR-018.002",
+      "classes": [
+        {
+          "name": "EarningsLookup",
+          "docstring": "Next earnings date per stock, fetched once per stock per day (SRD-SCR-018.002).",
+          "methods": [
+            {
+              "name": "__init__",
+              "signature": "def __init__(self, cache_path: Path | None = None, fetch: Fetch | None = None) -> None",
+              "line_start": 37,
+              "line_end": 39
+            },
+            {
+              "name": "next_dates",
+              "signature": "def next_dates(self, symbols: Iterable[str], today: date) -> dict[str, date | None]",
+              "docstring": "Return each symbol's first earnings date on or after ``today``, or None.",
+              "line_start": 41,
+              "line_end": 72
+            }
+          ],
+          "line_start": 34,
+          "line_end": 72
+        }
+      ],
+      "top_level_functions": [
+        {
+          "name": "_yahoo_dates",
+          "signature": "def _yahoo_dates(symbol: str) -> list[date]",
+          "docstring": "Earnings dates Yahoo Finance lists for ``symbol`` (usually one, sometimes a rang",
+          "line_start": 25,
+          "line_end": 31
+        }
+      ],
+      "constants": [
+        "DEFAULT_CACHE_PATH = Path.home() / \".usswing\" / \"earnings_cache.json\""
+      ]
+    },
+    "_news.py": {
+      "module_id": "MD-SCR-019.002.M38",
+      "srd_id": "SRD-SCR-019.002",
+      "classes": [
+        {
+          "name": "Headline",
+          "docstring": "One news headline; ``published`` is ISO UTC (``YYYY-MM-DDTHH:MM:SSZ``).",
+          "class_vars": [
+            "title: str",
+            "source: str",
+            "published: str",
+            "url: str"
+          ],
+          "line_start": 28,
+          "line_end": 34
+        },
+        {
+          "name": "NewsLookup",
+          "docstring": "Recent headlines per stock, fetched once per stock per day (SRD-SCR-019.002).",
+          "methods": [
+            {
+              "name": "__init__",
+              "signature": "def __init__(self, cache_path: Path | None = None, fetch: Fetch | None = None) -> None",
+              "line_start": 81,
+              "line_end": 83
+            },
+            {
+              "name": "headlines",
+              "signature": "def headlines(self, symbols: Iterable[str], now: datetime) -> dict[str, list[Headline]]",
+              "docstring": "Return the newest ``NEWS_MAX`` headlines from the last ``NEWS_DAYS`` days.",
+              "line_start": 85,
+              "line_end": 119
+            }
+          ],
+          "line_start": 78,
+          "line_end": 119
+        }
+      ],
+      "top_level_functions": [
+        {
+          "name": "_parse_yahoo_item",
+          "signature": "def _parse_yahoo_item(item: Any) -> Headline | None",
+          "docstring": "One Yahoo news item in the current (``content``) or older flat format.",
+          "line_start": 40,
+          "line_end": 60
+        },
+        {
+          "name": "_yahoo_headlines",
+          "signature": "def _yahoo_headlines(symbol: str) -> list[Headline]",
+          "line_start": 63,
+          "line_end": 68
+        },
+        {
+          "name": "_when",
+          "signature": "def _when(headline: Headline) -> datetime | None",
+          "line_start": 71,
+          "line_end": 75
+        }
+      ],
+      "constants": [
+        "DEFAULT_CACHE_PATH = Path.home() / \".usswing\" / \"news_cache.json\"",
+        "NEWS_DAYS = 5",
+        "NEWS_MAX = 8",
+        "_ISO = \"%Y-%m-%dT%H:%M:%SZ\""
+      ]
+    },
+    "_research.py": {
+      "module_id": "MD-SCR-019.005.M39",
+      "srd_id": "SRD-SCR-019.005",
+      "classes": [
+        {
+          "name": "Research",
+          "docstring": "What web research found for one stock.",
+          "class_vars": [
+            "summary: str",
+            "sources: tuple[str, ...]",
+            "risk: str"
+          ],
+          "methods": [
+            {
+              "name": "to_dict",
+              "signature": "def to_dict(self) -> dict[str, Any]",
+              "line_start": 45,
+              "line_end": 46
+            }
+          ],
+          "line_start": 38,
+          "line_end": 46
+        }
+      ],
+      "top_level_functions": [
+        {
+          "name": "_parse",
+          "signature": "def _parse(text: str) -> Research | None",
+          "line_start": 49,
+          "line_end": 61
+        },
+        {
+          "name": "research_picks",
+          "signature": "def research_picks(\r\n    symbols: Sequence[str],\r\n    model: str,\r\n    today: date,\r\n    ask: Ask = ask_ai,\r\n    workers: int = RESEARCH_WORKERS,\r\n) -> dict[str, Research]",
+          "docstring": "Research each symbol on the web (SRD-SCR-019.005).",
+          "line_start": 64,
+          "line_end": 96
+        }
+      ],
+      "constants": [
+        "RESEARCH_WORKERS = 3",
+        "RESEARCH_TIMEOUT_S = 180.0",
+        "_SUMMARY_WORDS = 60",
+        "_MAX_SOURCES = 3",
+        "_INSTRUCTION = ("
+      ]
+    },
+    "_review.py": {
+      "module_id": "MD-SCR-020.007.M42",
+      "srd_id": "SRD-SCR-020.007",
+      "classes": [
+        {
+          "name": "Review",
+          "docstring": "The reviewer's bull and bear points, verdict and confidence for one stock.",
+          "class_vars": [
+            "bull: tuple[str, ...]",
+            "bear: tuple[str, ...]",
+            "verdict: str",
+            "confidence: str",
+            "summary: str"
+          ],
+          "methods": [
+            {
+              "name": "to_dict",
+              "signature": "def to_dict(self) -> dict[str, Any]",
+              "line_start": 83,
+              "line_end": 85
+            }
+          ],
+          "line_start": 74,
+          "line_end": 85
+        },
+        {
+          "name": "ReviewRun",
+          "docstring": "One review request and reply, for the AI transcript.",
+          "class_vars": [
+            "facts: str",
+            "reply: str",
+            "review: Review | None",
+            "seconds: float"
+          ],
+          "line_start": 89,
+          "line_end": 95
+        }
+      ],
+      "top_level_functions": [
+        {
+          "name": "price_line",
+          "signature": "def price_line(closes: Sequence[float], highs: Sequence[float], lows: Sequence[float]) -> str",
+          "docstring": "close 151.20; above 50-day (+3.1%); ...; 20-day range 138.50-158.90\"; \"\" without",
+          "line_start": 98,
+          "line_end": 111
+        },
+        {
+          "name": "_analyst_line",
+          "signature": "def _analyst_line(ctx: StockContext) -> str",
+          "line_start": 114,
+          "line_end": 122
+        },
+        {
+          "name": "review_facts",
+          "signature": "def review_facts(\r\n    symbol: str,\r\n    today: date,\r\n    price: str,\r\n    ctx: StockContext | None,\r\n    research: Research | None,\r\n) -> str",
+          "docstring": "The facts sent to the reviewer (SRD-SCR-020.007); lines for missing parts left o",
+          "line_start": 125,
+          "line_end": 146
+        },
+        {
+          "name": "_context_lines",
+          "signature": "def _context_lines(ctx: StockContext) -> list[str]",
+          "line_start": 149,
+          "line_end": 169
+        },
+        {
+          "name": "_points",
+          "signature": "def _points(value: Any) -> tuple[str, ...]",
+          "line_start": 172,
+          "line_end": 174
+        },
+        {
+          "name": "parse_review",
+          "signature": "def parse_review(text: str) -> Review | None",
+          "docstring": "The review in ``text``, or None when it has no readable JSON or verdict.",
+          "line_start": 177,
+          "line_end": 198
+        },
+        {
+          "name": "review_picks",
+          "signature": "def review_picks(\r\n    facts: Mapping[str, str],\r\n    model: str,\r\n    ask: Ask = ask_ai,\r\n    workers: int = REVIEW_WORKERS,\r\n) -> dict[str, ReviewRun]",
+          "docstring": "Review each stock from its facts alone (SRD-SCR-020.007\u2013.008).",
+          "line_start": 201,
+          "line_end": 233
+        }
+      ],
+      "constants": [
+        "REVIEW_WORKERS = 3",
+        "REVIEW_TIMEOUT_S = 180.0",
+        "VERDICTS = (\"Long\", \"Short\", \"Wait\", \"Avoid\")",
+        "_CONFIDENCE = (\"low\", \"medium\", \"high\")",
+        "_MAX_POINTS = 3",
+        "_ACTION_WORDS = {\"up\": \"upgrade to\", \"down\": \"downgrade to\", \"main\": \"kept at\",",
+        "REVIEW_INSTRUCTION = ("
+      ]
+    },
+    "_sector.py": {
+      "module_id": "MD-SCR-018.004.M35",
+      "srd_id": "SRD-SCR-018.004",
+      "classes": [
+        {
+          "name": "SectorMove",
+          "docstring": "One sector's move over the range, minus the RSP move, in percent.",
+          "class_vars": [
+            "symbol: str",
+            "name: str",
+            "relative_pct: float"
+          ],
+          "line_start": 46,
+          "line_end": 51
+        }
+      ],
+      "top_level_functions": [
+        {
+          "name": "sector_moves",
+          "signature": "def sector_moves(\r\n    closes: Mapping[str, Mapping[str, float]], days: int\r\n) -> tuple[list[SectorMove], str]",
+          "docstring": "Sector moves against RSP over the last ``days`` RSP trading days, strongest firs",
+          "line_start": 54,
+          "line_end": 80
+        }
+      ],
+      "constants": [
+        "SECTOR_BENCHMARK = \"RSP\"",
+        "SECTOR_ETFS: tuple[tuple[str, str], ...] = (",
+        "SECTOR_SYMBOLS: tuple[str, ...] = (SECTOR_BENCHMARK, *(sym for sym, _name in SECTOR_ETFS))",
+        "RANGE_DAYS: dict[str, int] = {\"1W\": 5, \"1M\": 21, \"3M\": 63}",
+        "GICS_TO_ETF: dict[str, str] = {"
       ]
     },
     "symbols.py": {

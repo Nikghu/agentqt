@@ -140,3 +140,16 @@ def test_risky_buttons_marked_danger(qapp):
         assert 'QPushButton[role="danger"]' in qss
     for name in ("dashboard_panel.py", "settings_panel.py"):
         assert "mark_danger(" in (_GUI_DIR / name).read_text(encoding="utf-8")
+
+
+def test_stop_role_has_theme_text(qapp):
+    """UT-GUI-017.006.M01.T01: Stop role has red text with the theme border in every theme."""
+    button = QPushButton("Stop")
+    icons.mark_danger(button, "stop")
+    assert button.property("role") == "stop"
+    for qss in theme.THEMES.values():
+        danger = qss.split('QPushButton[role="danger"] {', 1)[1].split("}", 1)[0]
+        red = danger.split("color: ", 1)[1].split(";", 1)[0]
+        rule = qss.split('QPushButton[role="stop"] {', 1)[1].split("}", 1)[0]
+        assert f"color: {red};" in rule
+        assert f"solid {red}" not in rule

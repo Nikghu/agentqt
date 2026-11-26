@@ -234,6 +234,32 @@ def test_run_stepper_without_runs(qtbot):
     assert not stepper.date_btn.isEnabled() and stepper.latest_lbl.isHidden()
 
 
+def test_chip_group_even_gap_in_tall_row(qtbot):
+    """UT-GUI-022.022.M01.T01: Chips keep the same gap on all four sides in a taller row."""
+    from PyQt6.QtWidgets import QHBoxLayout, QWidget
+
+    from us_swing.gui import theme
+    from us_swing.gui.screener_views import ChipGroup
+
+    host = QWidget()
+    host.setStyleSheet(theme.THEMES["carbon"])
+    row = QHBoxLayout(host)
+    row.setContentsMargins(0, 0, 0, 0)
+    chips = ChipGroup([("1D", "1d"), ("1W", "1w")])
+    row.addWidget(chips)
+    qtbot.addWidget(host)
+    host.resize(300, 80)
+    host.show()
+    qtbot.waitExposed(host)
+
+    first, last = chips.buttons[0].geometry(), chips.buttons[-1].geometry()
+    gaps = {first.left(), first.top(), chips.width() - last.right() - 1,
+            chips.height() - first.bottom() - 1}
+
+    assert chips.height() < 80
+    assert gaps == {2}
+
+
 def test_transcript_pill_text():
     """UT-GUI-022.010.M01.T01: Pill shows steps and cost."""
     turns = [SimpleNamespace(tokens_input=1000, tokens_output=0),

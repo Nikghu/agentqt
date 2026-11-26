@@ -35,7 +35,8 @@ def plugin_dir(root: Path | None = None) -> Path:
 def move_user_folders(root: Path | None = None) -> list[str]:
     """Move files from the old per-user folders (``<root>/<user id>/``) to the shared ones.
 
-    A file or project whose name already exists in the shared folder is left where it is.
+    A file or project whose name already exists in the shared folder is left where it is,
+    unless it is an empty folder, which is removed.
 
     Returns:
         The names that were moved.
@@ -53,6 +54,9 @@ def move_user_folders(root: Path | None = None) -> list[str]:
             target.mkdir(parents=True, exist_ok=True)
             for item in sorted(source.iterdir()):
                 if (target / item.name).exists():
+                    if item.is_dir() and not any(item.iterdir()):
+                        _remove_if_empty(item)
+                        continue
                     _log.warning("[Indicators] %s was not moved to %s: a file with that name "
                                  "is already there", item, target)
                     continue

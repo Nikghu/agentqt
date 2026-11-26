@@ -79,7 +79,7 @@ def fmt(value: float, kind: str) -> str:
     if kind == "days":
         return f"{value:.0f} days"
     if kind == "hours":
-        return f"{value:.1f} h"
+        return f"{value / 24:.1f} days"
     return f"{value:,.0f}"
 
 

@@ -127,7 +127,7 @@ from us_swing.backtest.planner import Job, plan
 from us_swing.backtest.schedule import delta_due
 from us_swing.backtest.settings import BacktestDataSettings, DownloadState
 from us_swing.backtest.steps.stocks import BENCHMARK
-from us_swing.gui.sector_rotation import SECTOR_SYMBOLS
+from us_swing.gui.sector_rotation import SECTOR_ETFS, SECTOR_SYMBOLS
 from us_swing.backtest.store import BacktestStore
 from us_swing.gui.manual_picks_store import load_manual_picks, save_manual_picks
 from us_swing.gui.user_store import load_users, next_user_id, save_users
@@ -4951,6 +4951,28 @@ class AppService(QObject):
         """
         cov = self._backtest_coverage_fn(self._bkt_store.cached_gaps())
         return {rec.symbol: cov(rec.ibkr_symbol) for rec in self._sp500}
+
+    def get_backtest_etf_rows(self) -> list[tuple[str, str, str | None, str | None, str]]:
+        """SPY, RSP and the sector ETFs as (symbol, name, first, last, status) (SRD-GUI-030.013).
+
+        They have daily candles only, so status is ``ok`` when the daily candles cover the
+        Backtest Data range, ``partial`` when not, else ``none``.
+        """
+        settings = BacktestDataSettings.load(self._bkt_store.root)
+        last_day = _compute_last_trading_day()
+        end = min(settings.end_date or last_day, last_day)
+        names = {BENCHMARK: "S&P 500 (SPY)", "RSP": "S&P 500 Equal Weight (RSP)",
+                 **{sym: f"{name} sector" for sym, name in SECTOR_ETFS}}
+        rows: list[tuple[str, str, str | None, str | None, str]] = []
+        for symbol in (BENCHMARK, *SECTOR_SYMBOLS):
+            cov = self._bkt_store.coverage(symbol, "1d")
+            if cov is None:
+                rows.append((symbol, names[symbol], None, None, "none"))
+                continue
+            full = cov[0] <= settings.start_date + _BKT_START_SLACK and cov[1] >= end
+            rows.append((symbol, names[symbol], cov[0].isoformat(), cov[1].isoformat(),
+                         "ok" if full else "partial"))
+        return rows
 
     def get_backtest_gaps(self) -> dict[str, list[str]]:
         """Per S&P 500 symbol, the cached days that have daily but no 3m candles (in range)."""

@@ -81,6 +81,14 @@ def status_colour(status: str) -> str:
     return colours.get(status, str(C.MUTED))
 
 
+def pill_style(status: str) -> str:
+    """Status pill: theme text on a light tint of the status colour, no border."""
+    tint = QColor(status_colour(status))
+    return (f"color:{C.TEXT}; background:rgba({tint.red()},{tint.green()},{tint.blue()},45);"
+            f" border:none; border-radius:8px; padding:1px 8px; font-size:7.5pt;"
+            f" font-weight:bold;")
+
+
 def strategy_rows(
     configs: Sequence[Any],
     status_of: Callable[[Any], str],
@@ -277,11 +285,7 @@ class StrategyTable(QTreeWidget):
         self._checks[row.name] = check
 
         pill = QLabel(pill_text(row.status))
-        colour = status_colour(row.status)
-        pill.setStyleSheet(
-            f"color:{colour}; border:1px solid {colour}; border-radius:8px;"
-            f" padding:1px 8px; font-size:7.5pt; font-weight:bold;"
-        )
+        pill.setStyleSheet(pill_style(row.status))
         self.setItemWidget(item, COL_STATUS, _centred(
             pill, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter))
         self.setItemWidget(item, COL_BUTTON, _centred(self._run_button(row)))
@@ -291,13 +295,13 @@ class StrategyTable(QTreeWidget):
         if row.status in LIVE:
             btn = QPushButton("Stop")
             set_icon(btn, "square-x", "danger")
-            mark_danger(btn)
+            mark_danger(btn, "stop")
         elif row.group == DISABLED:
             btn = QPushButton("Enable")
             btn.setToolTip("Open the strategy to change its mode")
         else:
             btn = QPushButton("Start")
-            set_icon(btn, "play", "go")
+            set_icon(btn, "play", "neutral")
         name = row.name
         btn.clicked.connect(lambda: self.run_clicked.emit(name))
         return btn

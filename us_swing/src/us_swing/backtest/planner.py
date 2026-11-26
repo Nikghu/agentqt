@@ -59,6 +59,8 @@ def plan(
 ) -> list[Job]:
     """Return the jobs still needed, one stock at a time: its 1d, then its 3m newest end first.
 
+    The daily-only symbols (SPY, RSP, sector ETFs) come before the stocks (SRD-BKT-001.019).
+
     Args:
         symbols: Stocks to download.
         settings: Range and auto delta settings.
@@ -77,7 +79,7 @@ def plan(
         return []
     end = min(settings.end_date or last_session, last_session)
     out: list[Job] = []
-    for symbol in [*symbols, *daily_only]:
+    for symbol in [*daily_only, *(s for s in symbols if s not in daily_only)]:
         first_day = settings.start_date - (DAILY_ONLY_LEAD if symbol in daily_only else timedelta())
         start = max(first_day, floors.get(symbol, first_day))
         for tf in ("1d",) if symbol in daily_only else _TIMEFRAMES:

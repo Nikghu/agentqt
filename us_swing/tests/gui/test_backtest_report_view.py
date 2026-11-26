@@ -201,7 +201,9 @@ def test_risk_facts(qtbot: Any) -> None:
     qtbot.addWidget(facts)
     facts.set_report(_report())
 
-    assert facts.values["Median hold"].text() == "1.0 h"
+    assert facts.values["Median hold"].text() == "0.0 days"
+    assert fmt(600.0, "hours") == "25.0 days"
+    assert fmt(4440.0, "hours") == "185.0 days"
     assert facts.values["P&L without top 5 trades"].text() == "$0.00"
     facts.set_report(None)
     assert facts.values["Average MFE"].text() == "—"

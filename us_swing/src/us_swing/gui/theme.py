@@ -1285,6 +1285,12 @@ QPushButton[role="danger"] {{
 QPushButton[role="danger"]:hover {{ background: rgba({r}, {g}, {b}, 0.15); }}
 QPushButton[role="danger"]:focus {{ outline: none; }}
 QPushButton[role="danger"]:disabled {{ color: {muted}; border-color: {line}; }}
+QPushButton[role="stop"] {{
+    background: transparent; color: {red}; border: 1px solid {line}; outline: none;
+}}
+QPushButton[role="stop"]:hover {{ background: rgba({r}, {g}, {b}, 0.15); }}
+QPushButton[role="stop"]:focus {{ outline: none; }}
+QPushButton[role="stop"]:disabled {{ color: {muted}; border-color: {line}; }}
 """
 
 
@@ -1313,7 +1319,6 @@ QPushButton#side_power {{
     outline: none;
 }}
 QPushButton#side_power:hover {{ background: {hover}; }}
-QPushButton#side_power[armed="true"] {{ background: {active_bg}; border-color: {accent}; }}
 QPushButton#side_power:disabled {{ background: transparent; border-color: {line}; }}
 QPushButton#side_power:focus {{ outline: none; }}
 QFrame#update_popup {{ background: {bg}; border: 1px solid {line}; border-radius: 6px; }}
