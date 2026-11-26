@@ -863,7 +863,7 @@ class BacktestWorkspace(QWidget):
         self._variant = index
         self._render_days()
         res = self._results[index]
-        self.trade_list.set_trades(res.trades)
+        self.trade_list.set_trades(res.trades, res.variant.capital)
         days = [] if self._daily is None else list(self._daily.days)
         self.screener_use.set_use(screener_use(days, self._shown(), res.trades))
         self.margin_use.set_use(margin_use(res.money))

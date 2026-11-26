@@ -7,6 +7,7 @@
 **Last Updated:** 2026-11-23
 **Project:** US Swing Trading System
 
+> UT-GUI-031.089.M07.T01–T03 added; UT-GUI-031.088.M07.T01–T02 replaced by them — trade list Entry and Exit rows.
 > UT-GUI-031.088.M07.T01–T02 added — trade list days and capital columns.
 > v1.58.9: UT-GUI-046.003.M02.T03 added — icon-only buttons with name tooltips (user asked 2026-11-23).
 > v1.58.8: UT-GUI-046.006.M02.T02–T03 added — S&P 500 list, Backtest Data.
@@ -614,6 +615,7 @@ Test files:
 | UT-GUI-017.003.M01.T04 | MD-GUI-017.003.M01 | Positive | Icon-only button has tooltip and accessible name | `icon_button("refresh", "info", "Refresh")` | tooltip and accessible name "Refresh" | Pass |
 | UT-GUI-017.004.M01.T01 | MD-GUI-017.003.M01 | Positive | No emoji on buttons and tabs | GUI panel source files | no emoji in button, tab, action or `setText` text | Pass |
 | UT-GUI-017.005.M01.T01 | MD-GUI-017.003.M01 | Positive | Risky buttons are marked danger in every theme | Square Off All, Delete, Trip Circuit Breaker; all 3 QSS | `role` property "danger"; each QSS has the danger selector | Pass |
+| UT-GUI-017.006.M01.T01 | MD-GUI-017.003.M01 | Positive | Stop role has theme text | Stop button; all 3 QSS | `role` property "stop"; each stop rule has the theme red text and no red border | Pass |
 
 ## FO-GUI-018 — Sidebar Workspace Shell
 
@@ -752,6 +754,7 @@ Test files:
 | UT-GUI-022.020.M01.T01 | MD-GUI-022.001.M01 | Positive | Two tick groups; review only with Claude | tick surprise, short, review on Claude; switch to OpenRouter | saved in order; review unticked and disabled on OpenRouter | Pass |
 | UT-GUI-022.021.M01.T01 | MD-GUI-022.001.M01 | Positive | Company tags and sections | surprise -3.5, short 24, 2 changes, review Wait | tags "EPS miss -3.5%", "Short 24% of float"; Fundamentals line; 2 analyst lines; bull/bear points and verdict with differs note | Pass |
 | UT-GUI-022.021.M01.T02 | MD-GUI-022.001.M01 | Negative | Nothing to show | no company facts, no review | Fundamentals, Analyst changes and Bull vs bear hidden | Pass |
+| UT-GUI-022.022.M01.T01 | MD-GUI-022.001.M01 | Edge | Even gap in a tall row | 1D / 1W chip group in an 80 px row | group shorter than the row; 2 px gap on all four sides | Pass |
 ## FO-GUI-023 — Card Layout
 
 | ID | Module | Type | Description | Input | Expected | Status |
@@ -1025,6 +1028,8 @@ Test files:
 | UT-GUI-030.011.M02.T01 | MD-GUI-030.011.M02 | Positive | Partial ignores listing date | start 2024-01-01; AAPL 3m from 2024-04-05; NEWCO floor 2025-03-03, 3m from then | both `partial` (changed by ISS-BKT-0003) | Pass |
 | UT-GUI-030.011.M02.T02 | MD-GUI-030.011.M02 | Negative | Missing 3m day is partial | META range covered, 3m missing 2024-01-04 | ok before the gap check; partial after; gaps list 2024-01-04 (ISS-BKT-0003) | Pass |
 | UT-GUI-030.012.M02.T01 | MD-GUI-030.012.M02 | Positive | One stock's coverage | IBKR symbol "BRK B" listed as "BRK.B"; unknown "ZZZZ" | ("BRK.B", dates, status); None | Pass |
+| UT-GUI-030.013.M02.T01 | MD-GUI-030.012.M02 | Positive | ETF rows and status | SPY full, XLK short, RSP none | 13 rows SPY first; ok, partial, none | Pass |
+| UT-GUI-030.013.M03.T01 | MD-GUI-030.008.M06 | Positive | ETF rows in the page | AAPL + SPY, XLK | ETF rows after the stock, sector ETF, no tick box | Pass |
 | UT-GUI-030.012.M06.T01 | MD-GUI-030.012.M06 | Positive | Row updates when stock done | progress BRK B, BRK B, MSFT | one `updateBt("BRK.B", …)` call; "503 stocks · 2 complete · 1 partial · 1 not downloaded" | Pass |
 
 ## FO-GUI-031 — Backtest Workspace
@@ -1063,7 +1068,7 @@ Test files:
 | UT-GUI-031.044.M03.T01 | MD-GUI-031.003.M03 | Positive | Picker drives tabs | pick 2nd variant | Trades tab and KPIs show variant 2 | Pass |
 | UT-GUI-031.045.M04.T01 | MD-GUI-031.040.M04 | Positive | CSV export | export to folder | stats and trades CSV written | Pass |
 | UT-GUI-031.045.M04.T02 | MD-GUI-031.040.M04 | Negative | Failed export | folder that does not exist | warning logged; app keeps running | Pass |
-| UT-GUI-031.046.M04.T01 | MD-GUI-031.040.M04 | Positive | Risk panel | report; then none | hold 1.0 h, without top 5 $0.00; dashes | Pass |
+| UT-GUI-031.046.M04.T01 | MD-GUI-031.040.M04 | Positive | Risk panel | report; then none | hold 0.0 days (600 h = 25.0 days), without top 5 $0.00; dashes | Pass |
 | UT-GUI-031.047.M04.T01 | MD-GUI-031.040.M04 | Positive | New groups | pick Hold time | 3 new names; 1–3 h row | Replaced by UT-GUI-031.062.M04.T02 |
 | UT-GUI-031.048.M04.T01 | MD-GUI-031.040.M04 | Edge | Heat map | 2 × 2 variants; then 2 same | shown with 2 rows; then hidden | Pass |
 | UT-GUI-031.050.M05.T01 | MD-GUI-031.050.M05 | Positive | ✕ hides and is kept | click ✕ on panel A, build again | A hidden, button off, still hidden next time | Pass |
@@ -1080,10 +1085,14 @@ Test files:
 | UT-GUI-031.052.M06.T05 | MD-GUI-031.052.M06 | Positive | Result badge and held span | long win, short loss, no P&L; trade with no exit | "+$18.94 · +1.06% · 15 sessions" etc.; span runs to chart end | Pass |
 | UT-GUI-031.053.M07.T01 | MD-GUI-031.053.M07 | Positive | Numbered trades | 3 trades out of order | entry order; #, P&L %, hours, ET day | Pass |
 | UT-GUI-031.053.M07.T02 | MD-GUI-031.053.M07 | Edge | Filters | wins, losses (0 P&L), LONG, SHORT | right rows; 0 P&L is a loss | Pass |
-| UT-GUI-031.053.M07.T03 | MD-GUI-031.053.M07 | Positive | Table and click | 3 trades; SHORT chip; click row | screenshot columns; 1 row; trade sent | Pass |
+| UT-GUI-031.053.M07.T03 | MD-GUI-031.053.M07 | Positive | Table and click | 3 trades; SHORT chip; click Exit row | 6 rows; 2 rows; that trade sent | Pass |
 | UT-GUI-031.053.M07.T04 | MD-GUI-031.053.M07 | Negative | No trades | empty frame | empty table; zero summary | Pass |
-| UT-GUI-031.088.M07.T01 | MD-GUI-031.053.M07 | Positive | Days and capital columns | 3 trades with saved avail | headers Allocated, Available, Duration (days); NVDA $100.00, $870.00, 0.1 | Pass |
-| UT-GUI-031.088.M07.T02 | MD-GUI-031.053.M07 | Negative | Old run without Available | trades without avail | Available shows a dash; Allocated still shown | Pass |
+| UT-GUI-031.088.M07.T01 | MD-GUI-031.053.M07 | Positive | Days and capital columns | 3 trades with saved avail | replaced by UT-GUI-031.089.M07.T01 | Replaced |
+| UT-GUI-031.088.M07.T02 | MD-GUI-031.053.M07 | Negative | Old run without Available | trades without avail | replaced by UT-GUI-031.089.M07.T03 | Replaced |
+| UT-GUI-031.089.M07.T01 | MD-GUI-031.053.M07 | Positive | Entry and Exit rows | 3 trades, $1,000 start | 6 rows in time order; Available $970 → $1,000; P&L only on Exit | Pass |
+| UT-GUI-031.089.M07.T02 | MD-GUI-031.053.M07 | Edge | Exit and entry at same time | exit time = next entry time | Exit row first; money freed before entry | Pass |
+| UT-GUI-031.089.M07.T03 | MD-GUI-031.053.M07 | Negative | No start capital | trades only | Available shows a dash; Allocated still shown | Pass |
+| UT-GUI-031.090.M07.T01 | MD-GUI-031.053.M07 | Positive | Idle capital shaded red | 3 trades, $100 start; then no start | only the two $100 rows red ($80 = 80% plain); no shade without start | Pass |
 | UT-GUI-031.053.M03.T01 | MD-GUI-031.003.M03 | Positive | Trade list opens day | click trade #2 | Inspector tab; day 2026-03-03; chart on MSFT | Pass |
 | UT-GUI-031.054.M08.T01 | MD-GUI-031.054.M08 | Positive | Screener use | 3 sessions, one with no picks | traded / not traded per day; facts line | Pass |
 | UT-GUI-031.054.M08.T02 | MD-GUI-031.054.M08 | Edge | Margin use | 2 days; then no days | peak = capital minus lowest margin; paints; empty safe | Pass |
@@ -1146,6 +1155,7 @@ Test files:
 | UT-GUI-032.003.M02.T01 | MD-GUI-032.002.M02 | Positive | Group of a strategy | RUNNING auto; STOPPED disabled; STOPPED manual; SQUARING_OFF disabled | Running, Disabled, Stopped, Running | Pass |
 | UT-GUI-032.004.M02.T01 | MD-GUI-032.002.M02 | Positive | Table rows and order | 3 strategies, one running, one disabled | 3 rows, running first, disabled last; Total P&L text +$412.60 | Pass |
 | UT-GUI-032.008.M02.T01 | MD-GUI-032.002.M02 | Positive | Pill without dot | status SQUARING_OFF | text "SQUARING OFF", no "●" | Pass |
+| UT-GUI-032.009.M02.T01 | MD-GUI-032.002.M02 | Positive | Pill tint without text colour | RUNNING, STOPPED | theme text colour; no border; tinted background differs by status | Pass |
 | UT-GUI-032.002.M03.T01 | MD-GUI-032.003.M03 | Positive | Running label and Find | 3 strategies, 1 running; Find "brk" | "1 of 3 running"; only Breakout rows shown | Pass |
 | UT-GUI-032.002.M03.T02 | MD-GUI-032.003.M03 | Negative | Find with no match | Find "zzz" | no strategy rows; picked strategy unchanged | Pass |
 | UT-GUI-032.003.M03.T01 | MD-GUI-032.003.M03 | Positive | Grouped view | 3 strategies | headers Running 1, Stopped 1, Disabled 1; click row fills detail | Pass |

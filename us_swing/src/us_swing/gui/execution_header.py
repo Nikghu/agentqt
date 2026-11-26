@@ -179,7 +179,7 @@ class ExecutionHeader(QFrame):
         """Label the breaker button: Trip when off, Reset when tripped (SRD-GUI-027.009)."""
         self.breaker_btn.setText("Reset breaker" if active else "Trip breaker")
         set_icon(self.breaker_btn, "power", "neutral" if active else "danger", 13)
-        self.breaker_btn.setProperty("role", "" if active else "danger")
+        self.breaker_btn.setProperty("role", "" if active else "stop")
         style = self.breaker_btn.style()
         if style is not None:
             style.unpolish(self.breaker_btn)

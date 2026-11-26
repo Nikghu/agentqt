@@ -2,7 +2,7 @@
 
 **Document:** TODO.md
 **Project:** us_swing
-**Last Updated:** 2026-11-24 (Session 166)
+**Last Updated:** 2026-11-27 (Session 170)
 
 ---
 
@@ -266,3 +266,10 @@ Short, living task list. Keep each description ≤ 50 words; cite module + prior
 | T254 | BKT/GUI — Backtest trade list: Duration (days) replaces hours; Allocated capital and Available capital columns (app + HTML). User check: re-run a backtest, open Report → Trade list and HTML report; old runs show a dash for Available. | `gui/backtest_trade_list.py`, `backtest/steps/portfolio.py` | Medium | Open |
 | T255 | GUI — CHG $/% now from daily candle (if up to date) → IBKR close → Yahoo (ISS-GUI-0024). User check: restart, connect IBKR; Market Watch, Watchlist and index strip match IBKR Desktop. | `gui/app_service.py`, `execution/live_tick_worker.py` | High | Open |
 | T256 | GUI — Market Watch tile: Volume and ✕ columns removed; right-click a row → Delete. SRD-GUI-025.012 reopened by user and text updated. User check: right-click a tile row. | `gui/dashboard_panel.py` | Low | Open |
+| T257 | GUI — User check in both themes: sidebar power button (no blue fill), status pills, Stop and Trip breaker buttons, Charts 1D / 1W chip gaps. | `gui/sidebar.py`, `gui/strategies_views.py`, `gui/strategies_pane.py`, `gui/screener_views.py` | Medium | Open |
+| T258 | BKT — User check: open a backtest Trade list and an HTML export; Entry and Exit rows in time order, Available values, red shade above 80% of start capital. | `gui/backtest_trade_list.py`, `backtest/html_report.py` | Medium | Open |
+| T259 | BKT — User check: re-run the 2021 Accumulation backtest; sessions should start 2021-01-04 (was 2024). Download with TWS first if needed. | `backtest/steps/stocks.py`, `backtest/planner.py` | High | Open |
+| T260 | EXE — User check on the next closed-market day: Market Watch LTP and change % are not stale after the Thanksgiving fix (SRD-EXE-008.007). | `execution/live_tick_worker.py` | High | Open |
+| T261 | EXE — User check: restart the app; indicator warnings gone, `plugins\1` folder removed, re-import trend_pullback.py. | `core/indicator_plugins/_registry.py`, `core/indicator_plugins/_check.py` | Medium | Open |
+| T262 | GUI — User check: Settings → Universe shows 13 ETF rows (SPY, RSP, 11 sector ETFs) after the stocks, each with a tick mark for daily backtest status. | `gui/settings_panel.py`, `gui/app_service.py` | Low | Open |
+| T263 | GUI — Cleanup: delete unused StatusBadgeDelegate in `gui/strategy_table_model.py` and stale `tests/screener/test_llm_claude_screener.py` (breaks full test collection). | `gui/strategy_table_model.py`, `tests/screener/` | Low | Open |

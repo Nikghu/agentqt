@@ -687,13 +687,13 @@ function gapTip(sym){{const g=G[sym]||[];if(!g.length)return'';return' · missin
 function updateBt(sym,c,g){{const r=D.find(x=>x[1]===sym);if(!r)return;r[8]=c[0];r[9]=c[1];r[10]=c[2];G[sym]=g||[];if(c[2]==='ok')SEL.delete(sym);render();syncSel();}}
 /* the page title carries the tick count to the Python buttons */
 function syncSel(){{
-  const n=D.filter(r=>r[10]!=='ok').length;
+  const n=D.filter(r=>r[10]!=='ok'&&r[3]!=='ETF').length;
   const all=document.getElementById('selall');
   if(all){{all.checked=n>0&&SEL.size===n;all.indeterminate=SEL.size>0&&SEL.size<n;}}
   document.title='sel:'+SEL.size;
 }}
 function tog(sym,on){{if(on)SEL.add(sym);else SEL.delete(sym);syncSel();}}
-function selectPartial(){{D.forEach(r=>{{if(r[10]!=='ok')SEL.add(r[1]);}});render(false);syncSel();}}
+function selectPartial(){{D.forEach(r=>{{if(r[10]!=='ok'&&r[3]!=='ETF')SEL.add(r[1]);}});render(false);syncSel();}}
 function toggleSel(){{if(SEL.size)clearSel();else selectPartial();}}
 function selected(){{return Array.from(SEL);}}
 function clearSel(){{SEL.clear();render(false);syncSel();}}
@@ -802,7 +802,7 @@ function render(resort=true){{
       const [,di,w]=COLS[ci];
       const style=`style="width:${{w}}px;max-width:${{w}}px"`;
       if(di===-1) return `<td ${{style}}>${{i+1}}</td>`;
-      if(di===-2) return r[10]==='ok'?`<td ${{style}}></td>`:`<td ${{style}}><input type="checkbox" title="Tick to fill this stock" ${{SEL.has(r[1])?'checked':''}} onclick="tog('${{r[1]}}',this.checked)"></td>`;
+      if(di===-2) return (r[10]==='ok'||r[3]==='ETF')?`<td ${{style}}></td>`:`<td ${{style}}><input type="checkbox" title="Tick to fill this stock" ${{SEL.has(r[1])?'checked':''}} onclick="tog('${{r[1]}}',this.checked)"></td>`;
       if(ci===1)  return `<td class="sym" ${{style}}>${{r[1]}}</td>`;
       if(ci===4)  return `<td class="cap" ${{style}}>${{fc(r[4])}}</td>`;
       if(ci===5)  return `<td class="name" ${{style}}>${{r[5]}}</td>`;
@@ -832,6 +832,7 @@ def _build_universe_html(
     backtest: "dict[str, tuple[str | None, str | None, str]] | None" = None,
     bt_range: tuple[str, str] = ("", ""),
     gaps: "dict[str, list[str]] | None" = None,
+    etfs: "list[tuple[str, str, str | None, str | None, str]] | None" = None,
 ) -> str:
     """Serialize records to an HTML page with all data embedded as JSON.
 
@@ -843,6 +844,8 @@ def _build_universe_html(
         backtest: {symbol: (first, last, status)} from the backtest store (SRD-GUI-030.008).
         bt_range: Backtest Data range ``(start, end)`` shown on partial dates.
         gaps: {symbol: ISO days with daily but no 3-minute candles}, shown in the tooltip.
+        etfs: SPY, RSP and sector ETF rows ``(symbol, name, first, last, status)``, added
+            after the stocks with sector "ETF" (SRD-GUI-030.013).
     """
     cov = coverage or {}
     bkt = backtest or {}
@@ -862,6 +865,10 @@ def _build_universe_html(
          *_sym_status(r.symbol),
          *bkt.get(r.symbol, (None, None, "none"))]
         for i, r in enumerate(records)
+    ]
+    data += [
+        [len(data) + i + 1, sym, sym, "ETF", None, name, *_sym_status(sym), first, last, status]
+        for i, (sym, name, first, last, status) in enumerate(etfs or [])
     ]
     ct = active_palette()
     return _UNIVERSE_HTML.format(
@@ -965,7 +972,8 @@ class _UniverseTab(QWidget):
         self._gaps_shown = self._svc.get_backtest_gaps()
         self._web.setHtml(_build_universe_html(records, coverage, ltd, self._backtest,
                                                self._svc.get_backtest_range(),
-                                               self._gaps_shown))
+                                               self._gaps_shown,
+                                               self._svc.get_backtest_etf_rows()))
         meta  = self._svc.get_sp500_meta()
         self._refresh_btn.setToolTip(f"Stock list updated {meta.age_str()}")
         stale = " · list is old" if meta.is_stale() else ""

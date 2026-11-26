@@ -7,6 +7,8 @@
 **Last Updated:** 2026-11-02
 **Project:** US Swing Trading System
 
+> v1.13.0: UT-BKT-002.091.M07.T01 added, UT-BKT-002.010.M07.T01 replaced — days from the stocks, not SPY.
+> v1.12.0: UT-BKT-002.089.M15.T01–T02 added, UT-BKT-002.053.M15.T01 replaced; .083.M15.T01 and T09 now expect Entry and Exit rows with time (SRD-BKT-002.089).
 > v1.11.0: UT-BKT-002.053.M12.T01, .M04.T01, .M15.T01 added — available capital per trade (SRD-BKT-002.053).
 > v1.10.0: UT-BKT-001.015.M03.T02 input moved 100 days earlier; UT-BKT-001.018.M03.T01–T02 added — sector ETF daily data (SRD-BKT-001.018).
 > v1.9.0: UT-BKT-001.005.M03.T01 changed and T05 added — one stock at a time (SRD-BKT-001.005 reopened by user 2026-11-04).
@@ -59,6 +61,7 @@
 | UT-BKT-001.015.M03.T02 | MD-BKT-001.005.M03 | Negative | Saved SPY | SPY 1d saved from 100 days before start to end | no jobs | Pass |
 | UT-BKT-001.018.M03.T01 | MD-BKT-001.005.M03 | Positive | Daily-only symbols start 100 days early | start 2025-01-01; SPY, XLK daily only | SPY and XLK from 2024-09-23; AAPL from 2025-01-01 | Pass |
 | UT-BKT-001.018.M03.T02 | MD-BKT-001.005.M03 | Positive | RSP and 11 sector ETFs daily only | SPY + 12 sector symbols | each gets 1d jobs, no 3m | Pass |
+| UT-BKT-001.019.M03.T01 | MD-BKT-001.005.M03 | Positive | SPY and sectors first | AAPL, MSFT + SPY, XLK; full and delta | SPY and XLK jobs come before every stock job | Pass |
 | UT-BKT-001.008.M03.T01 | MD-BKT-001.005.M03 | Positive | Delta asks days since last bar | last saved 3 trading days ago, `delta_only` | one job per stock and tf, duration "4 D" | Pass |
 | UT-BKT-001.008.M03.T02 | MD-BKT-001.005.M03 | Edge | Delta skips up-to-date stock | AAPL saved to last session, MSFT one day behind | no AAPL job; MSFT "2 D" for 1d and 3m | Pass |
 | UT-BKT-001.008.M03.T03 | MD-BKT-001.005.M03 | Negative | No delta with fixed end date | end date 2025-12-31, `delta_only` | empty plan | Pass |
@@ -96,7 +99,8 @@
 | UT-BKT-002.008.M05.T01 | MD-BKT-002.008.M05 | Positive | Estimate on a fake store | 3 stocks, one with no 3m, SPY saved | symbols 3; missing_3m 1; benchmark ok; days counted | Pass |
 | UT-BKT-002.008.M05.T02 | MD-BKT-002.008.M05 | Negative | Estimate with errors | plan with start after end | errors listed; day counts 0 | Pass |
 | UT-BKT-002.009.M06.T01 | MD-BKT-002.009.M06 | Positive | CLI estimate | plan file, fake service | exit 0; stock count printed | Pass |
-| UT-BKT-002.010.M07.T01 | MD-BKT-002.010.M07 | Positive | Days from SPY | SPY and AAPL saved, period inside | SPY dates in the period | Pass |
+| UT-BKT-002.010.M07.T01 | MD-BKT-002.010.M07 | Positive | Days from SPY | SPY and AAPL saved, period inside | replaced by UT-BKT-002.091.M07.T01 | Replaced |
+| UT-BKT-002.091.M07.T01 | MD-BKT-002.010.M07 | Edge | Short SPY does not cut days | stocks for 5 days; SPY for only 2 | all 5 stock days | Pass |
 | UT-BKT-002.010.M07.T02 | MD-BKT-002.010.M07 | Negative | No SPY | only AAPL and MSFT saved | union of their dates | Pass |
 | UT-BKT-002.011.M07.T01 | MD-BKT-002.010.M07 | Positive | Replay equals live screener | preset "close above EMA 20" over 3 stocks, one day | same passed and score as `PresetExecutor.screen()` on bars up to that day | Pass |
 | UT-BKT-002.011.M07.T02 | MD-BKT-002.010.M07 | Negative | No look-ahead | stock jumps the day after D | D result uses no bar after D | Pass |
@@ -144,8 +148,11 @@
 | UT-BKT-002.083.M15.T06 | MD-BKT-002.083.M15 | Edge | Open at end and hold days | end_of_test trade held 2 days | "Open at end" tag; hold "2 d" | Pass |
 | UT-BKT-002.083.M15.T07 | MD-BKT-002.083.M15 | Edge | No trades, no benchmark | empty trades, NaN benchmark | "No trades"; no benchmark line or legend | Pass |
 | UT-BKT-002.083.M15.T08 | MD-BKT-002.083.M15 | Edge | Fewer than 5 winners | 2 wins, 2 losses | best lists 2 winners, worst lists 2 losers | Pass |
-| UT-BKT-002.083.M15.T09 | MD-BKT-002.083.M15 | Positive | Day-first dates | 4 trades in March 2025 | trade dates DD-MM-YYYY, best and worst DD-MM; no ISO date left (SRD-GUI-031.083) | Pass |
-| UT-BKT-002.053.M15.T01 | MD-BKT-002.083.M15 | Positive | All trades capital columns | trades with and without avail | Allocated = price × shares; Available $777 or a dash | Pass |
+| UT-BKT-002.083.M15.T09 | MD-BKT-002.083.M15 | Positive | Day-first dates | 4 trades in March 2025 | trade times DD-MM-YYYY HH:MM, best and worst DD-MM; no ISO date left (SRD-GUI-031.083) | Pass |
+| UT-BKT-002.053.M15.T01 | MD-BKT-002.083.M15 | Positive | All trades capital columns | trades with and without avail | replaced by UT-BKT-002.089.M15.T01 | Replaced |
+| UT-BKT-002.089.M15.T01 | MD-BKT-002.083.M15 | Positive | Entry and Exit rows | 4 trades, $1,000 start | 8 rows; Entry then Exit with time; Available $900 → $1,000; exit cells blank on Entry | Pass |
+| UT-BKT-002.089.M15.T02 | MD-BKT-002.083.M15 | Edge | Exit and entry at same time | next entry at the first exit time | Exit row first; Available $900, $1,000, $900, $1,000 | Pass |
+| UT-BKT-002.090.M15.T01 | MD-BKT-002.083.M15 | Positive | Idle capital shaded red | $1,000 start; $500 and $200 trades | $500 and $800 (exactly 80%) plain; $1,000 rows shaded | Pass |
 | UT-BKT-002.019.M07.T01 | MD-BKT-002.010.M07 | Negative | Worker error is plain | screener raises an error that formats its argument | `RuntimeError("2025-03-03: Data for 'SPY' is missing")`; same text after pickling | Pass |
 | UT-BKT-002.017.M05.T01 | MD-BKT-002.008.M05 | Positive | Service run recorded | fake store, preset loader | daily list returned; run row done | Pass |
 | UT-BKT-002.017.M05.T02 | MD-BKT-002.008.M05 | Negative | Service cancel recorded | cancel at once | run row cancelled | Pass |

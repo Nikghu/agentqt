@@ -7,6 +7,10 @@
 **Last Updated:** 2026-11-02
 **Project:** US Swing Trading System
 
+> v1.23.0: SRD-BKT-001.019 added and approved by user 2026-11-27 (chat) — SPY, RSP and sector ETFs download before the stocks.
+> v1.22.0: SRD-BKT-002.091 added and approved by user 2026-11-27 (chat) — Step 1 days come from the run's stocks, not SPY; replaces the calendar part of SRD-BKT-002.010.
+> v1.21.0: SRD-BKT-002.090 added and approved by user 2026-11-26 (chat) — HTML All trades shades Available light red above 80% of start capital.
+> v1.20.0: SRD-BKT-002.089 added and approved by user 2026-11-26 (chat) — HTML All trades shows Entry and Exit rows in time order, Available after each row.
 > v1.19.0: SRD-BKT-002.053 added and approved by user 2026-11-25 (chat) — each trade saves the capital free at entry; HTML All trades shows Allocated and Available.
 > v1.18.0: SRD-BKT-001.018 added and approved by user 2026-11-25 (chat) — daily candles for RSP and the 11 sector ETFs, 100 days before the start date.
 > v1.17.0: SRD-BKT-001.005 reopened by user 2026-11-04 (chat) — download one stock fully before the next.
@@ -48,6 +52,7 @@
 | SRD-BKT-001.016 | FO-BKT-001 | Must | The store keeps 30m candles built from the saved 3m candles, one file per stock and year, like 15m. | 3m year files | 30m year files, 13 bars a day from 09:30 ET | Built on save and by build_missing for data already saved; clear and stats include them | Implemented |
 | SRD-BKT-001.017 | FO-BKT-001 | Must | A stock's floor is set only when its daily data starts after the start date; an empty 3m answer sets no floor and is asked again next run. | 1d and 3m answers | floor per listed-late stock | Approved by user 2026-11-04 (ISS-BKT-0002); old 3m floors dropped on load | Implemented |
 | SRD-BKT-001.018 | FO-BKT-001 | Must | Download and delta also fetch daily candles for RSP and the 11 sector ETFs, and all daily-only symbols start 100 days before the start date. | S&P 500 list | RSP, sector ETF and SPY 1d in the store | Approved by user 2026-11-25 (chat); data for leading-sector ranking; no 3m | Implemented |
+| SRD-BKT-001.019 | FO-BKT-001 | Must | Every download, delta and fill asks for SPY, RSP and the sector ETFs before any S&P 500 stock. | job list | daily-only jobs first | Approved by user 2026-11-27 (chat); a paused download still has the index data | Implemented |
 
 ## FO-BKT-002 — Backtest Engine (Phase 0 · Foundation)
 
@@ -158,3 +163,6 @@
 | SRD-BKT-002.086 | FO-BKT-002 | Must | With no screener, Step 1 is skipped and every universe stock is picked on every session, ranked A to Z with score 0. | plan with no screener | daily list | No preset needed; plans saved before this load as before | Implemented |
 | SRD-BKT-002.087 | FO-BKT-002 | Must | The BOSS_ST series gives, at each 3m close, the live SRD-EXE-011.027 value of its LTF and HTF frames as seen then. | frames, args | series | Timeframe comes from the LTF arg, not the last arg | Implemented |
 | SRD-BKT-002.088 | FO-BKT-002 | Should | The data check also returns the run range: Backtest Data start to the last saved day of the chosen stocks. | plan | first and last day, or none | A stock with later data does not narrow it; no saved data gives none (reopened 2026-11-22) | Implemented |
+| SRD-BKT-002.089 | FO-BKT-002 | Should | The HTML All trades table shows an Entry row and an Exit row per trade in time order, numbered by entry, with Available as start capital less open trades after each row. | saved trades, start capital | event rows | Approved by user 2026-11-26 (chat); same as SRD-GUI-031.089; Held, Move, P&L and Exit on Exit rows only; replaces the HTML columns of SRD-BKT-002.053 | Implemented |
+| SRD-BKT-002.090 | FO-BKT-002 | Should | The HTML All trades table shades the Available cell light red when it is above 80% of the start capital (money mostly idle). | event rows, start capital | cell shade | Approved by user 2026-11-26 (chat); same rule as SRD-GUI-031.090; exactly 80% stays plain | Implemented |
+| SRD-BKT-002.091 | FO-BKT-002 | Must | Step 1 days are the run stocks' own 1d dates inside the period; SPY data never sets or cuts the days. | store, period, stocks | days | Approved by user 2026-11-27 (chat: only S&P 500 stocks are traded); SPY stays only for the RS rule; replaces the day source of SRD-BKT-002.010 | Implemented |

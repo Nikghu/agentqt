@@ -167,6 +167,22 @@ def test_sector_etfs_get_daily_jobs_only() -> None:
         assert {j.tf for j in jobs if j.symbol == symbol} == {"1d"}
 
 
+def test_spy_and_sectors_come_first() -> None:
+    """UT-BKT-001.019.M03.T01: SPY and sector ETF jobs come before every stock job,
+    in full and delta runs."""
+    saved: Coverage = {("AAPL", "1d"): (date(2025, 1, 2), date(2025, 12, 1)),
+                       ("AAPL", "3m"): (date(2025, 1, 2), date(2025, 12, 1)),
+                       ("SPY", "1d"): (date(2024, 9, 23), date(2025, 12, 1)),
+                       ("XLK", "1d"): (date(2024, 9, 23), date(2025, 12, 1))}
+    for cov, delta in ((lambda _s, _tf: None, False), (lambda s, tf: saved.get((s, tf)), True)):
+        jobs = plan(["AAPL", "MSFT"], _LATEST, cov, {}, date(2025, 12, 31),
+                    delta_only=delta, daily_only=("SPY", "XLK"))
+
+        firsts = [j.symbol for j in jobs[:2]]
+        assert firsts == ["SPY", "XLK"]
+        assert all(j.symbol not in ("SPY", "XLK") for j in jobs[2:])
+
+
 def test_gap_days_asked_again() -> None:
     """UT-BKT-001.005.M03.T06: Missing 3m days get short requests, next days joined; days
     before the start and delta runs get none (ISS-BKT-0003)."""

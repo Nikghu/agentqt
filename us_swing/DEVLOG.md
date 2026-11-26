@@ -2,6 +2,19 @@
 
 ---
 
+## [20261127] GUI + BKT + EXE — Backtest trade list and HTML Entry/Exit rows, 2021 start-date fix, holiday price fix, style fixes, Universe ETF rows
+
+- Type: Bugfix (with small enhancements)
+- FO(s): FO-GUI-017, FO-GUI-022, FO-GUI-030, FO-GUI-031, FO-GUI-032; FO-BKT-001, FO-BKT-002; FO-EXE-008, FO-EXE-022
+- RN: RN-GUI-2.10.0-20261127, RN-BKT-1.17.0-20261127, RN-EXE-1.44.0-20261127
+- Artifacts updated: Code (gui: backtest_trade_list, backtest_workspace, backtest_report_view, theme, icons, sidebar, execution_header, strategies_views, strategies_pane, screener_views, settings_panel, app_service; backtest: html_report, steps/stocks, planner; execution: live_tick_worker; core/indicator_plugins: _check, _registry), SRD (GUI-017.006, 022.022, 030.013, 031.089–.090, 032.009; BKT-001.019, 002.089–.091; EXE-008.007), UTCD, Tests, TRACE, RN, CONTEXT, DEVLOG, TODO
+- Decisions: Available capital worked out from saved trades (old runs work); red shade above 80% of start capital; new "stop" button role; Step 1 days from the run stocks, SPY only for the RS rule; Universe ETF rows outside stock counts and without a fill tick box
+- Cause (BKT): a 2021 plan started in 2024 because Step 1 days came from SPY daily candles, which start 2024-01-02. One-off data repair: SPY, RSP and 11 sector ETFs re-downloaded and merged (2019-09-23 to 2026-11-25).
+- Cause (EXE): on Thanksgiving 2026-11-26 live LTP showed the 24 Nov IBKR close; tick worker now asks for frozen data after connect. Not yet confirmed in the app.
+- Also: indicator check false "uses future candles" alarm fixed (cut by datetime); stale test UT-GUI-030.008.M02.T02 fixed.
+- Open checks: TODO T257–T263
+---
+
 ## [20261126] GUI — Market Watch change % uses the right previous close (ISS-GUI-0024); Market Watch tile drops Volume and ✕ for right-click Delete
 
 - Type: Bugfix (branch `fix/bugfix-batch-20261125`, 14 commits; being pushed and merged to main)

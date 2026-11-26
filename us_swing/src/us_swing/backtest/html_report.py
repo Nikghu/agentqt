@@ -18,7 +18,7 @@ from html import escape
 import pandas as pd
 
 from us_swing.backtest.steps.report import Report
-from us_swing.core.dates import show_date
+from us_swing.core.dates import DATE_FMT, show_date
 
 ET = "America/New_York"
 _MONTHS = ("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
@@ -27,6 +27,7 @@ _REASONS = {"strategy": "Exit rule", "stop": "Stop loss", "target": "Target",
 _HOLD_BUCKETS = (("Same day", 0, 1), ("1–13 d", 1, 14), ("2–4 wk", 14, 30),
                  ("1–2 mo", 30, 60), ("Over 2 mo", 60, 10**6))
 _EQ_COLOR, _BENCH_COLOR = "#2a78d6", "#94a3b8"
+IDLE_SHARE = 0.8  # Available capital above this share of start capital is shaded red
 
 _CSS = """
 :root { --bg:#fff; --ink:#0f172a; --ink2:#64748b; --line:#e2e8f0; --soft:#f1f5f9;
@@ -63,6 +64,7 @@ tbody tr:hover td { background: #f8fafc; }
 .tag { display: inline-block; font-size: 11px; padding: 0 8px; border-radius: 99px;
        border: 1px solid var(--line); color: var(--ink2); white-space: nowrap; }
 .tag.open { border-color: var(--accent); color: var(--accent); }
+td.idle { background: #fee2e2; }
 .legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12px; color: var(--ink2);
           margin-bottom: 6px; }
 .legend i { display: inline-block; width: 14px; height: 2px; vertical-align: middle;
@@ -130,7 +132,8 @@ class _Trade:
     pnl: float
     reason: str
     alloc: float
-    avail: float
+    entry_at: pd.Timestamp
+    exit_at: pd.Timestamp
 
 
 def fmt(value: float, kind: str) -> str:
@@ -210,16 +213,28 @@ def _trade_rows(rep: Report) -> list[_Trade]:
     exit_ = pd.to_datetime(t["exit_ts"], utc=True).dt.tz_convert(ET)
     holds = (exit_.dt.normalize() - entry.dt.normalize()).dt.days.astype(int).tolist()
     sign = [-1.0 if d == "SHORT" else 1.0 for d in t["direction"]]
-    avail = (pd.to_numeric(t["avail"], errors="coerce").tolist() if "avail" in t
-             else [math.nan] * len(t))
     cols = zip(t["strategy"].astype(str), t["symbol"].astype(str), entry.dt.strftime("%Y-%m-%d"),
                t["entry_px"].astype(float).tolist(), t["qty"].astype(int).tolist(),
                exit_.dt.strftime("%Y-%m-%d"), t["exit_px"].astype(float).tolist(), holds, sign,
-               t["net_pnl"].astype(float).tolist(), t["exit_reason"].astype(str), avail)
+               t["net_pnl"].astype(float).tolist(), t["exit_reason"].astype(str), entry, exit_)
     return [_Trade(i, st, sym, ent, epx, qty, ext, xpx, hold,
-                   s * (xpx / epx - 1.0) if epx else math.nan, pnl, why, epx * qty, free)
-            for i, (st, sym, ent, epx, qty, ext, xpx, hold, s, pnl, why, free)
+                   s * (xpx / epx - 1.0) if epx else math.nan, pnl, why, epx * qty, e_at, x_at)
+            for i, (st, sym, ent, epx, qty, ext, xpx, hold, s, pnl, why, e_at, x_at)
             in enumerate(cols, start=1)]
+
+
+def _events(trades: Sequence[_Trade], capital: float) -> list[tuple[_Trade, bool, float]]:
+    """(trade, is exit, free capital after the row) in time order (SRD-BKT-002.089).
+
+    An exit at the same time as an entry comes first, as in the engine.
+    """
+    order = sorted([(t.entry_at, 1, t.n, t) for t in trades]
+                   + [(t.exit_at, 0, t.n, t) for t in trades], key=lambda e: e[:3])
+    free, out = capital, []
+    for _at, first, _n, t in order:
+        free += t.alloc if first == 0 else -t.alloc
+        out.append((t, first == 0, free))
+    return out
 
 
 def equity_svg(daily: pd.DataFrame, capital: float) -> str:
@@ -389,24 +404,29 @@ def _ranked(trades: Sequence[_Trade]) -> str:
     return "<table><tbody>" + "".join(f"<tr>{r}</tr>" for r in rows) + "</tbody></table>"
 
 
-def _all_trades(trades: Sequence[_Trade]) -> str:
-    if not trades:
-        return '<p class="mut">No trades</p>'
-    rows = [f'<td class="n mut">{t.n}</td><td><b>{escape(t.symbol)}</b></td>'
-            f"<td>{escape(t.strategy)}</td>"
-            f'<td class="n">{_day(t.entry)}</td><td class="n">{t.entry_px:.2f}</td>'
-            f'<td class="n">{t.qty}</td>'
-            f'<td class="n">{_short_usd(t.alloc)}</td>'
-            f'<td class="n">{"—" if math.isnan(t.avail) else _short_usd(t.avail)}</td>'
-            f'<td class="n">{_day(t.exit)}</td>'
-            f'<td class="n">{t.exit_px:.2f}</td><td class="n">{t.hold} d</td>'
+def _exit_cells(t: _Trade) -> str:
+    return (f'<td class="n">{t.hold} d</td>'
             f'<td class="{_cls("n", _tone(t.move))}">{t.move:+.1%}</td>{_usd_cell(t.pnl)}'
             f'<td><span class="{_cls("tag", "open" if t.reason == "end_of_test" else "")}">'
-            f"{escape(_REASONS.get(t.reason, t.reason))}</span></td>"
-            for t in trades]
-    return _table(["#", "Stock", "Strategy", "Entry", "Entry $", "Shares", "Allocated",
-                   "Available", "Exit", "Exit $", "Held", "Move", "Net P&L", "Exit"], rows,
-                  [True, False, False, True, True, True, True, True, True, True, True, True, True,
+            f"{escape(_REASONS.get(t.reason, t.reason))}</span></td>")
+
+
+def _all_trades(trades: Sequence[_Trade], capital: float) -> str:
+    if not trades:
+        return '<p class="mut">No trades</p>'
+    number = {t.n: i for i, t in enumerate(sorted(trades, key=lambda t: t.entry_at), start=1)}
+    rows = [f'<td class="n mut">{number[t.n]}</td><td>{"Exit" if out else "Entry"}</td>'
+            f"<td><b>{escape(t.symbol)}</b></td><td>{escape(t.strategy)}</td>"
+            f'<td class="n">{(t.exit_at if out else t.entry_at).strftime(f"{DATE_FMT} %H:%M")}'
+            f'</td><td class="n">{t.exit_px if out else t.entry_px:.2f}</td>'
+            f'<td class="n">{t.qty}</td><td class="n">{_short_usd(t.alloc)}</td>'
+            f'<td class="{_cls("n", "idle" if free > IDLE_SHARE * capital else "")}">'
+            f"{_short_usd(free)}</td>"
+            + (_exit_cells(t) if out else "<td></td>" * 4)
+            for t, out, free in _events(trades, capital)]
+    return _table(["#", "Trade", "Stock", "Strategy", "Time", "Price", "Shares", "Allocated",
+                   "Available", "Held", "Move", "Net P&L", "Exit"], rows,
+                  [True, False, False, False, True, True, True, True, True, True, True, True,
                    False])
 
 
@@ -452,7 +472,7 @@ def _variant(rep: Report, title: bool) -> str:
         f'<div class="box"><h3>Worst trades</h3><p>Top 5 losers</p>{_ranked(losses)}</div></div>'
         + '<div class="box" style="margin-bottom:18px"><h3>All trades</h3>'
         "<p>\"Open at end\" means the test stopped before the exit rule fired.</p>"
-        + _all_trades(trades) + "</div>"
+        + _all_trades(trades, rep.capital) + "</div>"
         + f'<div class="box"><h3>All measures</h3><p>Every Step 4 measure</p>{_all_stats(rep)}'
         "</div>"
     )

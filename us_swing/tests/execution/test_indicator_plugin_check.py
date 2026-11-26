@@ -4,9 +4,17 @@ from __future__ import annotations
 from collections.abc import Iterator
 from pathlib import Path
 
+import numpy as np
+import pandas as pd
 import pytest
 
-from tests.execution.plugin_helpers import SWING_PLUS, frames, swing_plus_source, write_plugin
+from tests.execution.plugin_helpers import (
+    SWING_PLUS,
+    frame,
+    frames,
+    swing_plus_source,
+    write_plugin,
+)
 from us_swing.core.indicator_plugins import _check as check_module
 from us_swing.core.indicator_plugins import check_file
 from us_swing.core.indicator_plugins._check import DEV_REASON, FUTURE_REASON
@@ -130,6 +138,42 @@ def test_uses_future_candles(tmp_path: Path) -> None:
         ("swing_high = highs.rolling(count).max()", 'swing_high = candles["close"].shift(-1)')))
 
     assert _check(path, candle_probe=_probe) == (False, [FUTURE_REASON])
+
+
+_WEEKLY_FILTER = '''
+import pandas as pd
+from usswing import Input, USSwingIndicator
+
+
+class WeeklyFilter(USSwingIndicator):
+    """Daily close, kept only when the last closed week closed higher."""
+
+    indicator_name = "WEEKLY_FILTER"
+    description = "Daily close with a closed-week filter"
+    version = "1.0"
+    output_type = "value"
+    parameters = [Input("Symbol Type", options=["Spot"], default="Spot")]
+
+    def calculate(self):
+        kind = self.parameter("Symbol Type")
+        day = self.candles(symbol_type=kind, timeframe="1d")
+        week = self.candles(symbol_type=kind, timeframe="1w")
+        up = pd.Series((week["close"] > week["open"]).to_numpy(),
+                       index=week["datetime"] + pd.Timedelta(days=7))
+        seen = up.reindex(day["datetime"] + pd.Timedelta(days=1), method="ffill").to_numpy()
+        return day["close"].where(seen == True)  # noqa: E712
+'''
+
+
+def test_higher_timeframe_cut_by_time(tmp_path: Path) -> None:
+    """UT-EXE-022.007.M02.T06: With a datetime column, every timeframe is cut at the same time."""
+    path = write_plugin(tmp_path, "weekly_filter.py", _WEEKLY_FILTER)
+    day = frame(120, "1d").rename(columns={"ts": "datetime"})
+    week = frame(18, "1d", seed=2).rename(columns={"ts": "datetime"}).assign(
+        datetime=pd.date_range(pd.Timestamp("2026-11-02", tz="UTC"), periods=18, freq="7D"),
+        open=lambda f: f["close"] - np.where(np.arange(18) % 2 == 0, 1.0, -1.0))
+
+    assert _check(path, candle_probe=lambda: [("AAA", {"1d": day, "1w": week})]) == (True, [])
 
 
 def test_empty_values_at_start_are_fine() -> None:
