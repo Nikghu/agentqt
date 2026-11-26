@@ -2,6 +2,18 @@
 
 ---
 
+## [20261126] GUI — Market Watch change % uses the right previous close (ISS-GUI-0024); Market Watch tile drops Volume and ✕ for right-click Delete
+
+- Type: Bugfix (branch `fix/bugfix-batch-20261125`, 14 commits; being pushed and merged to main)
+- FO(s): FO-GUI-012 (ISS-GUI-0024); FO-GUI-025 (SRD-GUI-025.012 reopened by user and reworded)
+- RN: RN-GUI-2.9.1-20261126
+- Artifacts updated: Code (gui/app_service.py, execution/live_tick_worker.py, gui/dashboard_panel.py), SRD (SRD-GUI-025.012 text, Implemented), MD (MD-GUI-004.001.M01, MD-EXE-008.001.M01, MD-GUI-002.001.M01), UTCD (UT-GUI-012.003.M01.T09–T14, UT-GUI-025.012.M01.T01–T03), Tests, TRACE, RN, CONTEXT, DEVLOG
+- Cause: Market Watch CHG $ and % differed from IBKR Desktop. The previous close came from Yahoo, fetched once at IBKR connect, so after an overnight run the change spanned two days.
+- Decisions: previous close order is daily candle (only when candles.db has the prior trading day, `_prior_session_day`), then IBKR `ticker.close` (new `LiveTickWorker.prev_close` signal), then Yahoo; re-read per day and on connect, add and refresh. Market Watch tile shows Symbol, LTP, Chg ($), Chg % only; stock removed by right-click Delete (shared row menu).
+- Tests: UT-GUI-012.003.M01.T09–T14 added; UT-GUI-025.012.M01.T01–T03 updated. ruff and mypy: no new errors.
+- Notes: PowerShell 5.1 `Set-Content -Encoding utf8` writes a BOM; stripped. Write docs with UTF-8 and no BOM.
+---
+
 ## [20261125] GUI — Update popups: theme colours + centred; Strategy P&L moved into the Market Watch tabs; Execution header stats centred; Risk settings cleanup; sector ETF daily data; backtest trade list days + capital columns
 
 - Type: Bugfix (branch `fix/bugfix-batch-20261125`, unpushed)
