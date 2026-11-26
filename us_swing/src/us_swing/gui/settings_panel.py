@@ -149,19 +149,11 @@ class _UserDialog(FramelessDialog):
         self._max_loss.setDecimals(1)
         self._max_loss.setSuffix(" %")
         self._max_loss.setValue(rc.max_daily_loss_pct)
-        self._order_type = QComboBox()
-        self._order_type.addItems(["MKT", "LMT", "MOO", "LOO"])
-        if user:
-            self._order_type.setCurrentText(rc.default_order_type)
-        self._confirm    = QCheckBox("Require order confirmation")
-        self._confirm.setChecked(rc.confirm_orders if user else True)
 
         risk_form.addRow("Risk per trade",    self._risk)
         risk_form.addRow("Max position",      self._max_pos)
         risk_form.addRow("Max capital",       self._max_cap)
         risk_form.addRow("Max daily loss",    self._max_loss)
-        risk_form.addRow("Default order",     self._order_type)
-        risk_form.addRow("",                  self._confirm)
 
         cancel_btn = QPushButton("Cancel")
         cancel_btn.clicked.connect(self.reject)
@@ -203,8 +195,6 @@ class _UserDialog(FramelessDialog):
                 max_position_value = self._max_pos.value(),
                 max_capital_value  = self._max_cap.value(),
                 max_daily_loss_pct = self._max_loss.value(),
-                default_order_type = self._order_type.currentText(),
-                confirm_orders     = self._confirm.isChecked(),
             ),
         )
 
@@ -216,10 +206,10 @@ class _UsersTab(QWidget):
         super().__init__(parent)
         self._demo = demo
 
-        self._table = QTableWidget(0, 11)
+        self._table = QTableWidget(0, 9)
         self._table.setHorizontalHeaderLabels([
             "ID", "Username", "Display Name", "IBKR ID", "Mode",
-            "Risk %", "Max Capital $", "Max Position", "Max Daily Loss", "Default Order", "Order Confirm",
+            "Risk %", "Max Capital $", "Max Position", "Max Daily Loss",
         ])
         self._table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self._table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
@@ -280,8 +270,6 @@ class _UsersTab(QWidget):
                 f"${rc.max_capital_value:,.0f}",
                 f"${rc.max_position_value:,.0f}",
                 f"{rc.max_daily_loss_pct:.1f}%",
-                rc.default_order_type,
-                "Yes" if rc.confirm_orders else "No",
             ]
             for c, txt in enumerate(items):
                 item = QTableWidgetItem(txt)
@@ -351,80 +339,6 @@ class _UsersTab(QWidget):
             err = self._demo.delete_user(user.user_id)
             if err:
                 notify(self, "Cannot Delete", err, "warning")
-
-
-# ── Risk sub-tab ──────────────────────────────────────────────────────────────
-
-class _RiskTab(QWidget):
-    def __init__(self, demo: AppService, parent: QWidget | None = None) -> None:
-        super().__init__(parent)
-        self._demo = demo
-        user = demo.get_active_user()
-        form = QFormLayout()
-        form.setSpacing(12)
-
-        def _spin(lo, hi, val, dec=1, suffix=""):
-            s = QDoubleSpinBox()
-            s.setRange(lo, hi)
-            s.setDecimals(dec)
-            s.setValue(val)
-            if suffix:
-                s.setSuffix(suffix)
-            return s
-
-        rc = user.risk_config
-        self._risk      = _spin(0.1, 10.0, rc.risk_per_trade_pct, suffix=" %")
-        self._max_pos   = _spin(1000, 500_000, rc.max_position_value, dec=0, suffix=" $")
-        self._max_cap   = _spin(100, 1_000_000, rc.max_capital_value, dec=0, suffix=" $")
-        self._max_loss  = _spin(0.5, 10.0, rc.max_daily_loss_pct, suffix=" %")
-        self._ord_type  = QComboBox()
-        self._ord_type.addItems(["MKT", "LMT", "MOO", "LOO"])
-        self._ord_type.setCurrentText(rc.default_order_type)
-        self._confirm   = QCheckBox("Confirm before each order")
-        self._confirm.setToolTip("Show a confirmation dialog before an order is sent")
-        self._confirm.setChecked(rc.confirm_orders)
-
-        form.addRow("Risk per trade:",         self._risk)
-        form.addRow("Max single position:",    self._max_pos)
-        form.addRow("Max capital:",            self._max_cap)
-        form.addRow("Max daily loss:",         self._max_loss)
-        form.addRow("Default order type:",     self._ord_type)
-        form.addRow("",                        self._confirm)
-
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(14, 14, 14, 14)
-        layout.setSpacing(12)
-        layout.addLayout(form)
-        layout.addStretch()
-
-    @property
-    def inputs(self) -> list[QWidget]:
-        """Fields the Settings dialog watches for changes (SRD-GUI-027.010)."""
-        return [self._risk, self._max_pos, self._max_cap, self._max_loss,
-                self._ord_type, self._confirm]
-
-    def load(self, rc: RiskConfig | None = None) -> None:
-        """Fill the fields from ``rc``, or from the active user when ``None``."""
-        rc = rc or self._demo.get_active_user().risk_config
-        self._risk.setValue(rc.risk_per_trade_pct)
-        self._max_pos.setValue(rc.max_position_value)
-        self._max_cap.setValue(rc.max_capital_value)
-        self._max_loss.setValue(rc.max_daily_loss_pct)
-        self._ord_type.setCurrentText(rc.default_order_type)
-        self._confirm.setChecked(rc.confirm_orders)
-
-    def _on_save(self) -> None:
-        user = self._demo.get_active_user()
-        user.risk_config = dataclasses.replace(
-            user.risk_config,
-            risk_per_trade_pct = self._risk.value(),
-            max_position_value = self._max_pos.value(),
-            max_capital_value  = self._max_cap.value(),
-            max_daily_loss_pct = self._max_loss.value(),
-            default_order_type = self._ord_type.currentText(),
-            confirm_orders     = self._confirm.isChecked(),
-        )
-        self._demo.update_user(user)
 
 
 # ── System sections ───────────────────────────────────────────────────────────
@@ -1782,11 +1696,8 @@ class SettingsPanel(QWidget):
         self._sys.theme_changed.connect(self.theme_changed)
         self._sys.ai_block.valid_changed.connect(self.valid_changed)
         self._sys.theme_changed.connect(self._universe_tab.refresh_theme)
-        risk = _RiskTab(demo)
         sys_ = self._sys
         self._editable: dict[str, _Editable] = {
-            "Risk": _Editable(risk.inputs, risk._on_save, risk.load,
-                              lambda: risk.load(RiskConfig())),
             "Connection": _Editable(sys_.connection_inputs, sys_._on_save, sys_.load_connection,
                                     lambda: sys_.load_connection(SystemConfig())),
             "Scheduler": _Editable(sys_.scheduler_inputs, sys_._on_save_scheduler,
@@ -1809,7 +1720,6 @@ class SettingsPanel(QWidget):
 
         sections: list[tuple[str, QWidget]] = [
             ("Users", _UsersTab(demo)),
-            ("Risk",  risk),
             *self._sys.pages,
             ("Universe", self._universe_tab),
             ("Candle data", self._data),

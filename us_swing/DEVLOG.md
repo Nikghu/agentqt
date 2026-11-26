@@ -2,6 +2,27 @@
 
 ---
 
+## [20261126] GUI — Market Watch change % uses the right previous close (ISS-GUI-0024); Market Watch tile drops Volume and ✕ for right-click Delete
+
+- Type: Bugfix (branch `fix/bugfix-batch-20261125`, 14 commits; being pushed and merged to main)
+- FO(s): FO-GUI-012 (ISS-GUI-0024); FO-GUI-025 (SRD-GUI-025.012 reopened by user and reworded)
+- RN: RN-GUI-2.9.1-20261126
+- Artifacts updated: Code (gui/app_service.py, execution/live_tick_worker.py, gui/dashboard_panel.py), SRD (SRD-GUI-025.012 text, Implemented), MD (MD-GUI-004.001.M01, MD-EXE-008.001.M01, MD-GUI-002.001.M01), UTCD (UT-GUI-012.003.M01.T09–T14, UT-GUI-025.012.M01.T01–T03), Tests, TRACE, RN, CONTEXT, DEVLOG
+- Cause: Market Watch CHG $ and % differed from IBKR Desktop. The previous close came from Yahoo, fetched once at IBKR connect, so after an overnight run the change spanned two days.
+- Decisions: previous close order is daily candle (only when candles.db has the prior trading day, `_prior_session_day`), then IBKR `ticker.close` (new `LiveTickWorker.prev_close` signal), then Yahoo; re-read per day and on connect, add and refresh. Market Watch tile shows Symbol, LTP, Chg ($), Chg % only; stock removed by right-click Delete (shared row menu).
+- Tests: UT-GUI-012.003.M01.T09–T14 added; UT-GUI-025.012.M01.T01–T03 updated. ruff and mypy: no new errors.
+- Notes: PowerShell 5.1 `Set-Content -Encoding utf8` writes a BOM; stripped. Write docs with UTF-8 and no BOM.
+---
+
+## [20261125] GUI — Update popups: theme colours + centred; Strategy P&L moved into the Market Watch tabs; Execution header stats centred; Risk settings cleanup; sector ETF daily data; backtest trade list days + capital columns
+
+- Type: Bugfix (branch `fix/bugfix-batch-20261125`, unpushed)
+- FO(s): FO-GUI-027, FO-GUI-025, FO-GUI-024, FO-EXE-017, FO-BKT-001, FO-BKT-002, FO-GUI-031 (SRD-BKT-001.018, SRD-BKT-002.053, SRD-GUI-031.088 new, approved by user in chat; SRD-GUI-027.002 reworded)
+- RN: RN-BKT-1.15.0-20261125, RN-BKT-1.16.0-20261125 (no GUI/EXE RN)
+- Artifacts updated: Code (backtest/planner.py, src/update_dialog.py, gui/update_popup.py, gui/sidebar.py, gui/dashboard_panel.py, gui/dashboard_tiles.py, gui/execution_header.py, gui/settings_panel.py, execution/risk_manager.py, gui/app_service.py), SRD (SRD-GUI-027.002 reopened by user and reworded), Tests (test_sidebar_shell.py rename; new UT-GUI-025.021.M02.T02, UT-GUI-024.001.M01.T03, UT-EXE-017.006.M01.T09, UT-GUI-006.001.M01.T28, UT-BKT-001.018.M03.T01-T02, UT-BKT-002.053.M12/M04/M15.T01, UT-GUI-031.088.M07.T01-T02; settings tests moved from Risk to Connection; UT-GUI-021.002.M01.T01-T02 retired), UTCD, BKT SRD/MD/TRACE, TODO (T246-T254), DEVLOG
+- Decisions: popup reads the active theme colours (`C` tokens) since the theme is loaded before the update check; Dashboard grid is now 3 tiles, the tabs tile spans the right column; a saved maximised "strategy" tile falls back to the full grid; risk check reads the active user's limits on every order (was fixed at app start); unused order type / confirm fields hidden but kept in users.json
+---
+
 ## [20261124] EXE — Lost IBKR fill after restart fixed (ISS-EXE-0018) + Backtest data, Position and LTP GUI fixes; session close
 
 - Type: Bugfix (branch `fix/bugfix-batch-20261124`, 4 commits, unpushed)

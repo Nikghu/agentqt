@@ -49,8 +49,8 @@ def _make_open_position(symbol: str, current_price: float = 180.0) -> OpenPositi
 # ---------------------------------------------------------------------------
 
 @pytest.fixture()
-def svc(qapp):
-    """Minimal AppService with all side-effect entry points patched."""
+def svc(qapp, tmp_path):
+    """Minimal AppService with all side-effect entry points patched; no real candles.db."""
     mock_net_watcher = MagicMock()
     mock_net_watcher.start = MagicMock()
     mock_net_watcher.status_changed = MagicMock()
@@ -61,6 +61,7 @@ def svc(qapp):
         patch("us_swing.gui.app_service.load_users", return_value=[]),
         patch("us_swing.gui.app_service.load_system_config") as mock_cfg,
         patch("us_swing.gui.app_service.QTimer") as mock_qtimer_cls,
+        patch("us_swing.gui.app_service._CANDLE_DB_PATH", tmp_path / "candles.db"),
     ):
         from us_swing.gui.system_store import SystemConfig
 
@@ -266,6 +267,84 @@ class TestMarketWatchTick:
         svc._flush_tick_refresh()
 
         assert emitted == []
+
+
+# ---------------------------------------------------------------------------
+# ISS-GUI-0024 — previous close: daily candle (up to date) → IBKR → Yahoo
+# ---------------------------------------------------------------------------
+
+def _write_candles(path: Any, rows: list[tuple[str, str, float]]) -> None:
+    import sqlite3
+
+    with sqlite3.connect(path) as conn:
+        conn.execute("DROP TABLE IF EXISTS price_1d")
+        conn.execute("CREATE TABLE price_1d (symbol TEXT, datetime TEXT, close REAL)")
+        conn.executemany("INSERT INTO price_1d VALUES (?, ?, ?)", rows)
+    conn.close()
+
+
+def _prior_day() -> str:
+    import datetime
+
+    today = datetime.datetime.now(app_service._ET).date()
+    return app_service._prior_session_day(today).isoformat()
+
+
+class TestPreviousClose:
+    def test_prior_session_day(self):
+        """UT-GUI-012.003.M01.T09: prior day skips weekends and holidays; weekend uses Friday."""
+        import datetime
+
+        day = datetime.date
+        assert app_service._prior_session_day(day(2026, 11, 25)) == day(2026, 11, 24)  # Wed
+        assert app_service._prior_session_day(day(2026, 11, 23)) == day(2026, 11, 20)  # Mon
+        assert app_service._prior_session_day(day(2026, 11, 28)) == day(2026, 11, 25)  # Sat
+        assert app_service._prior_session_day(day(2026, 12, 28)) == day(2026, 12, 24)  # Xmas
+
+    def test_up_to_date_candle_wins(self, svc):
+        """UT-GUI-012.003.M01.T10: an up-to-date daily candle is the base, not IBKR or Yahoo."""
+        _write_candles(app_service._CANDLE_DB_PATH, [("SPY", f"{_prior_day()} 00:00:00", 400.0)])
+        svc._ibkr_prev["SPY"] = 410.0
+        svc._yahoo_prev["SPY"] = 420.0
+
+        svc._on_watchlist_tick("SPY", 404.0)
+
+        item = svc._mw_items[0]
+        assert item.prev_close == 400.0 and item.change_pct == pytest.approx(1.0)
+
+    def test_stale_candle_uses_ibkr(self, svc):
+        """UT-GUI-012.003.M01.T11: a candle older than the prior day is skipped for IBKR's close."""
+        _write_candles(app_service._CANDLE_DB_PATH, [("SPY", "2020-01-02 00:00:00", 300.0)])
+        svc._ibkr_prev["SPY"] = 400.0
+        svc._yahoo_prev["SPY"] = 420.0
+
+        svc._on_watchlist_tick("SPY", 404.0)
+
+        assert svc._mw_items[0].change == pytest.approx(4.0)
+
+    def test_no_candle_no_ibkr_uses_yahoo(self, svc):
+        """UT-GUI-012.003.M01.T12: without a candle file or IBKR close, Yahoo's close is used."""
+        svc._yahoo_prev["SPY"] = 400.0
+
+        svc._on_watchlist_tick("SPY", 396.0)
+
+        assert svc._mw_items[0].change_pct == pytest.approx(-1.0)
+
+    def test_new_day_rereads_candles(self, svc):
+        """UT-GUI-012.003.M01.T13: a stale day key re-reads candles; a stale close is not kept."""
+        _write_candles(app_service._CANDLE_DB_PATH, [("SPY", f"{_prior_day()} 00:00:00", 400.0)])
+        svc._candle_prev = {"SPY": 999.0}
+        svc._candle_prev_day = None
+
+        svc._on_watchlist_tick("SPY", 404.0)
+
+        assert svc._mw_items[0].prev_close == 400.0
+
+    def test_ibkr_close_signal_stored(self, svc):
+        """UT-GUI-012.003.M01.T14: IBKR's previous-day close from the feed is kept per symbol."""
+        svc._on_ibkr_prev_close("SPY", 401.5)
+
+        assert svc._prev_close("SPY") == 401.5
 
 
 # ---------------------------------------------------------------------------

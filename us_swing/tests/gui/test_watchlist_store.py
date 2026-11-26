@@ -150,6 +150,7 @@ def test_tick_updates_both_lists() -> None:
     svc._watchlist = [WatchlistItem(symbol="AAPL", prev_close=100.0)]
     svc._market_list = [WatchlistItem(symbol="AAPL", prev_close=100.0)]
     svc._queue_tick_refresh = emitted.append
+    svc._prev_close = lambda _symbol: 100.0
 
     AppService._on_watchlist_tick(svc, "AAPL", 110.0)
 

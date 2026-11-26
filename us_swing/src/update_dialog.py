@@ -15,6 +15,7 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
 )
 
+from us_swing.gui.theme import C
 from updater_stub import UpdateInfo, check_update_available, download_and_verify_update
 
 
@@ -57,38 +58,40 @@ class _DownloadWorker(QThread):
         self.progress.emit(received, total)
 
 
-class _UpdateDialog(QDialog):
-    _QSS = """
-        QDialog {
-            background: #1a1a2e;
-            border: 1px solid #2d2d4e;
+def _dialog_qss() -> str:
+    return f"""
+        QDialog {{
+            background: {C.SURFACE};
+            border: 1px solid {C.OVERLAY2};
             border-radius: 10px;
-        }
-        QLabel { color: #e0e0e0; background: transparent; }
-        QProgressBar {
-            background: #2d2d4e;
+        }}
+        QLabel {{ color: {C.TEXT}; background: transparent; }}
+        QProgressBar {{
+            background: {C.OVERLAY};
             border: none;
             border-radius: 4px;
-        }
-        QProgressBar::chunk {
-            background: #4e9af1;
+        }}
+        QProgressBar::chunk {{
+            background: {C.BLUE};
             border-radius: 4px;
-        }
-        QPushButton {
-            background: #2d2d4e;
-            color: #888888;
-            border: none;
+        }}
+        QPushButton {{
+            background: {C.OVERLAY};
+            color: {C.SUBTEXT};
+            border: 1px solid {C.OVERLAY2};
             border-radius: 4px;
             padding: 4px 14px;
             font-size: 12px;
-            min-height: 28px;
-            max-height: 28px;
+            min-height: {C.BTN_H}px;
+            max-height: {C.BTN_H}px;
             outline: none;
-        }
-        QPushButton:hover { background: #3d3d5e; color: #bbbbbb; }
-        QPushButton:focus { outline: none; }
+        }}
+        QPushButton:hover {{ background: {C.OVERLAY2}; color: {C.TEXT}; }}
+        QPushButton:focus {{ outline: none; }}
     """
 
+
+class _UpdateDialog(QDialog):
     def __init__(self, info: UpdateInfo) -> None:
         super().__init__()
         self._worker = _DownloadWorker(info)
@@ -100,7 +103,7 @@ class _UpdateDialog(QDialog):
     def _setup_ui(self, remote_version: str) -> None:
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.Dialog)
         self.setFixedWidth(400)
-        self.setStyleSheet(self._QSS)
+        self.setStyleSheet(_dialog_qss())
 
         root = QVBoxLayout(self)
         root.setContentsMargins(24, 20, 24, 20)
@@ -108,7 +111,7 @@ class _UpdateDialog(QDialog):
 
         header = QHBoxLayout()
         title = QLabel(f"USSwing v{remote_version} Available")
-        title.setStyleSheet("font-size: 13px; font-weight: bold; color: #ffffff;")
+        title.setStyleSheet(f"font-size: 13px; font-weight: bold; color: {C.TEXT};")
         self._skip_btn = QPushButton("Skip")
         header.addWidget(title)
         header.addStretch()
@@ -116,7 +119,7 @@ class _UpdateDialog(QDialog):
         root.addLayout(header)
 
         self._status = QLabel("Downloading update...")
-        self._status.setStyleSheet("font-size: 12px; color: #aaaaaa;")
+        self._status.setStyleSheet(f"font-size: 12px; color: {C.SUBTEXT};")
         root.addWidget(self._status)
 
         self._bar = QProgressBar()
@@ -127,7 +130,7 @@ class _UpdateDialog(QDialog):
         root.addWidget(self._bar)
 
         self._size_label = QLabel("Starting...")
-        self._size_label.setStyleSheet("font-size: 11px; color: #666666;")
+        self._size_label.setStyleSheet(f"font-size: 11px; color: {C.MUTED};")
         root.addWidget(self._size_label)
 
     def _wire(self) -> None:
@@ -163,7 +166,7 @@ class _UpdateDialog(QDialog):
 
     def _on_failed(self, msg: str) -> None:
         self._status.setText("Update failed — starting normally")
-        self._status.setStyleSheet("font-size: 12px; color: #e74c3c;")
+        self._status.setStyleSheet(f"font-size: 12px; color: {C.RED};")
         self._size_label.setText(msg)
         self._skip_btn.setText("Continue")
 

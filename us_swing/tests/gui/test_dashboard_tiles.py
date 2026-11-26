@@ -6,7 +6,7 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 import pytest
-from PyQt6.QtCore import QSettings
+from PyQt6.QtCore import QSettings, Qt
 from PyQt6.QtWidgets import QLabel
 
 from us_swing.data.models import AccountState
@@ -192,11 +192,11 @@ def test_density_and_maximised_remembered(qtbot, settings):
     """UT-GUI-025.006.M02.T01: Density and maximised tile come back after a restart."""
     panel = _panel(qtbot, _service([]), settings)
     panel._density_chips.buttons[0].click()          # Comfort
-    panel._strategy_tile.max_btn.click()
+    panel._watch_tile.max_btn.click()
     again = _panel(qtbot, _service([]), settings)
     assert again._density_chips.value == "comfort"
     assert again._pos_view.verticalHeader().defaultSectionSize() == ROW_H["comfort"]
-    assert again._grid.maximised == "strategy"
+    assert again._grid.maximised == "watch"
 
 
 def test_defaults_without_saved_settings(qtbot, settings):
@@ -380,27 +380,40 @@ def test_export_bad_path_logs_error(qtbot, settings, tmp_path, caplog):
     warn.assert_called_once()
 
 
-def test_watch_row_cross_removes_symbol(qtbot, settings):
-    """UT-GUI-025.012.M01.T01: Clicking ✕ removes that row's symbol from the Market Watch list."""
+def test_watch_row_right_click_deletes_symbol(qtbot, settings):
+    """UT-GUI-025.012.M01.T01: Right-click → Delete removes that row's symbol from Market Watch."""
+    from PyQt6.QtWidgets import QMenu
+
     svc = _service([])
     svc.get_market_list_items.return_value = [_watch_item("AAPL"), _watch_item("MSFT")]
     panel = _panel(qtbot, svc, settings)
-    model = panel._watch_list._model
-    assert model.data(model.index(1, model.remove_col)) == "✕"
-    panel._watch_list._on_cell_clicked(model.index(1, model.remove_col))
+    tile = panel._watch_list
+    tile.table_view.resize(400, 200)
+    pos = tile.table_view.visualRect(tile._model.index(1, 0)).center()
+    texts: list[str] = []
+
+    def pick_first(menu: QMenu, *_args: object) -> None:
+        texts.extend(a.text() for a in menu.actions())
+        menu.actions()[0].trigger()
+
+    with patch.object(QMenu, "exec", pick_first):
+        tile._show_row_menu(pos)
+    assert texts == ["Delete MSFT"]
     svc.remove_from_market_list.assert_called_once_with("MSFT")
     svc.remove_from_watchlist.assert_not_called()
 
 
-def test_watch_other_cell_does_not_remove(qtbot, settings):
-    """UT-GUI-025.012.M01.T02: Clicking any other cell removes nothing; right panel has no ✕."""
+def test_watch_tile_has_no_volume_or_cross(qtbot, settings):
+    """UT-GUI-025.012.M01.T02: The tile shows Symbol, LTP, Chg ($), Chg % only — no Volume, no ✕."""
     svc = _service([])
     svc.get_market_list_items.return_value = [_watch_item("AAPL")]
     panel = _panel(qtbot, svc, settings)
     model = panel._watch_list._model
-    panel._watch_list._on_cell_clicked(model.index(0, 0))
-    svc.remove_from_market_list.assert_not_called()
-    assert panel._watchlist_tab._model.remove_col == -1
+    view = panel._watch_list.table_view
+    shown = [model.headerData(c, Qt.Orientation.Horizontal) for c in range(model.columnCount())
+             if not view.isColumnHidden(c)]
+    assert shown == ["Symbol", "LTP", "Chg ($)", "Chg %"]
+    assert "✕" not in [model.data(model.index(0, c)) for c in range(model.columnCount())]
 
 
 def test_filter_and_columns_survive_reload(qtbot, settings):
@@ -468,7 +481,7 @@ def test_watch_columns_survive_reload(qtbot, settings):
     panel = _panel(qtbot, svc, settings)
     panel._watch_list.reload()
     view = panel._watch_list.table_view
-    assert view.isColumnHidden(4) and not view.isColumnHidden(panel._watch_list._model.remove_col)
+    assert view.isColumnHidden(4) and view.isColumnHidden(7) and not view.isColumnHidden(3)
 
 
 # ── Phase 4: Performance band and Exposure tab (SRD-GUI-025.013–.015) ─────────
@@ -666,3 +679,19 @@ def test_sector_rotation_tab(qtbot, settings):
     panel._watch_tabs.buttons[0].click()
     assert panel._sector_range.isHidden()
     assert not any(tool.isHidden() for tool in panel._watch_tools)
+
+
+def test_strategy_pnl_tab(qtbot, settings):
+    """UT-GUI-025.021.M02.T02: Strategy P&L tab shows today's P&L list and hides watch tools."""
+    panel = _panel(qtbot, _service([]), settings)
+
+    panel._watch_tabs.buttons[2].click()
+
+    assert panel._watch_stack.currentWidget() is panel._strategy_list
+    assert panel._sector_range.isHidden()
+    assert all(tool.isHidden() for tool in panel._watch_tools)
+    assert panel._watch_tile.count_lbl.text() == "Today"
+    panel._refresh_watch_count()
+    assert panel._watch_tile.count_lbl.text() == "Today"
+    panel._watch_tabs.buttons[0].click()
+    assert panel._watch_tile.count_lbl.text() == str(panel._watch_list.symbol_count)

@@ -5,6 +5,7 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-11-23
+> SRD-GUI-031.088 added and approved by user 2026-11-25 (chat) — trade list Duration (days), Allocated capital, Available capital.
 > v2.143.3: SRD-GUI-046.006 reads Backtest Data and lists S&P 500 stocks (user asked 2026-11-23).
 > v2.143.2: SRD-GUI-046.001/.003 wording: indicators shared by all users (user decision 2026-11-23: one shared folder, no user part).
 > v2.143.1: SRD-GUI-046.010 wording: the guide is a web page opened in the browser (user asked 2026-11-23).
@@ -629,7 +630,7 @@
 | SRD-GUI-025.009 | FO-GUI-025 | Should | The Open Positions Columns button opens a checkable list of columns; unticked columns are hidden and remembered. | ticks | visible columns | Symbol cannot be hidden | Implemented |
 | SRD-GUI-025.010 | FO-GUI-025 | Must | Trade History has a range menu (Today, 7 days, 30 days, All) and a state menu (All, Filled, Partial, Cancelled, Rejected, New); the header count shows the range and row count. | trades, choice | filtered rows | Range uses the market time zone; choices remembered | Implemented |
 | SRD-GUI-025.011 | FO-GUI-025 | Should | The Trade History Export button saves the shown rows and columns to a CSV file the user picks. | rows | `.csv` file | Log "[Trade History] Saved N order(s) to <file>" | Implemented |
-| SRD-GUI-025.012 | FO-GUI-025 | Should | Each Market Watch tile row ends with a ✕ that removes that symbol; the Remove button leaves the tile header. | click | watchlist | Right-panel watchlist unchanged | Implemented |
+| SRD-GUI-025.012 | FO-GUI-025 | Should | The Market Watch tile shows Symbol, LTP, Chg ($) and Chg % only; right-click a row and pick Delete to remove that symbol. | right-click | watchlist | Reopened by user 2026-11-26 and text updated (was a ✕ per row); right-panel watchlist unchanged | Implemented |
 | SRD-GUI-025.013 | FO-GUI-025 | Must | A Performance band above the tiles shows Account Equity, its change for the chosen range (amount and %), range buttons 1D / 1W / 1M / 3M / YTD and a line-and-area equity chart. | `get_equity_curve(range)` | band | "No equity data for this range yet" when empty; range remembered | Implemented |
 | SRD-GUI-025.014 | FO-GUI-025 | Must | A "Performance" button at the end of the KPI strip shows or hides the band; the band is shown on first start and the choice is remembered. | click, setting | band visibility | Hidden band gives its space to the tiles | Implemented |
 | SRD-GUI-025.015 | FO-GUI-025 | Must | The Open Positions tile has tabs "Open Positions" and "Exposure"; Exposure shows a vertical bar per symbol (largest first, long blue, short amber) with its value on top, Long, Short, Net and Gross ÷ Equity totals, and a "$ Value / % Equity" switch. | open positions, equity | bar chart | Filter and Columns hide on the Exposure tab; bars follow price updates; more than 8 bars: the smallest join one "N others" bar | Implemented |
@@ -665,7 +666,7 @@
 | ID | Parent | P | Description | In | Out | Constraints | Status |
 |---|---|---|---|---|---|---|---|
 | SRD-GUI-027.001 | FO-GUI-027 | Must | `SettingsDialog` is a frameless modal dialog with a custom title bar (Settings, minimise, maximise, close) and drag-to-move. | open request | dialog | Same title bar pattern as `scheduler_dialog.py` | Implemented |
-| SRD-GUI-027.002 | FO-GUI-027 | Must | A left list holds Users, Risk, Connection, Scheduler, Telegram, Universe, Candle data and Appearance; clicking one shows only that section. | section click | one section shown | Section bodies reuse the existing settings widgets | Implemented |
+| SRD-GUI-027.002 | FO-GUI-027 | Must | A left list holds Users, Connection, Scheduler, Telegram, Universe, Candle data and Appearance; clicking one shows only that section; risk is edited per user in Users. | section click | one section shown | Section bodies reuse the existing settings widgets | Implemented |
 | SRD-GUI-027.003 | FO-GUI-027 | Must | The footer has Restore defaults on the left and Cancel, Apply and OK on the right; Esc acts as Cancel. | click, Esc | close or save | Apply disabled until a value changes | Implemented |
 | SRD-GUI-027.004 | FO-GUI-027 | Must | A Settings item pinned to the sidebar bottom opens the dialog; the sidebar lists four screens and Settings is no longer a stacked page. | click | dialog | Current screen and checked item do not change | Implemented |
 | SRD-GUI-027.005 | FO-GUI-027 | Must | Appearance (theme) is a dialog section; a sidebar Updates item below the Connections panel opens a popup with the installed version, last check time and Check for Updates. | click | popup, dot | Theme and update logic unchanged; dot on the item when an update is found | Implemented |
@@ -791,6 +792,7 @@
 | SRD-GUI-031.085 | FO-GUI-031 | Should | The Screener page Source offers No screener; it disables Preset, Stocks per day and AI ranking, and the data check warns above 50 stocks. | Source choice | plan, data check line | Warning text: Step 2 will be slow | Implemented |
 | SRD-GUI-031.086 | FO-GUI-031 | Should | A new backtest plan starts with Daily loss stop 10 % and Commission $0 per order; only Capital comes from the active user. | new plan | start values | Replaces the user loss default of .030; saved plans keep their values, and old plan files without a commission still read $1 | Implemented |
 | SRD-GUI-031.087 | FO-GUI-031 | Should | From and To only allow days inside the run range (SRD-BKT-002.088, reopened 2026-11-22); until the user picks a date, To is the last saved day and From one year before it. | data check | date limits and values | Picked or loaded dates are kept, or moved to the nearest edge; no saved data allows 2000 to today | Implemented |
+| SRD-GUI-031.088 | FO-GUI-031 | Should | The Trade list shows Duration in days (one decimal) instead of hours, plus Allocated capital (entry price × qty) and Available capital (free capital at entry). | saved trades | three columns | Approved by user 2026-11-25 (chat); old runs show a dash for Available; replaces the hours column of SRD-GUI-031.053 | Implemented |
 
 ## FO-GUI-032 — Strategies Views
 

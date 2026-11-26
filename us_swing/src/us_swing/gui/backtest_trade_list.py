@@ -3,7 +3,8 @@ Module: MD-GUI-031.053.M07 — Backtest trade list
 Parent SRD: SRD-GUI-031.053
 
 Every trade of the run: Trade #, LONG/SHORT pill, times, prices, P&L, P&L %, qty,
-duration and exit reason, with All / Wins / Losses / LONG / SHORT chips.
+allocated and available capital, duration in days and exit reason, with
+All / Wins / Losses / LONG / SHORT chips (SRD-GUI-031.088).
 Clicking a row asks the workspace to open that trade's day in the Inspector. A breakdown
 row click can narrow the list to one group's trades (SRD-GUI-031.066).
 """
@@ -27,7 +28,8 @@ from us_swing.gui.screener_views import ChipGroup
 from us_swing.gui.theme import C
 
 HEADERS = ["Trade #", "Type", "Symbol", "Strategy", "Entry time", "Exit time", "Entry price",
-           "Exit price", "P&L", "P&L %", "Qty", "Duration (hrs)", "Exit reason"]
+           "Exit price", "P&L", "P&L %", "Qty", "Allocated capital", "Available capital",
+           "Duration (days)", "Exit reason"]
 FILTERS = [("All", "all"), ("Wins", "wins"), ("Losses", "losses"), ("LONG", "LONG"),
            ("SHORT", "SHORT")]
 _ET = "America/New_York"
@@ -35,15 +37,22 @@ _TIME = f"{DATE_FMT} %H:%M:%S"
 
 
 def numbered(trades: pd.DataFrame) -> pd.DataFrame:
-    """Trades in entry order with ``number``, ``pnl_pct``, ``hours`` and ET ``day`` columns."""
+    """Trades in entry order with ``number``, ``pnl_pct``, ``hours``, ``days``, ``alloc``,
+    ``avail`` (free capital at entry; NaN for runs saved before it existed) and ET ``day``."""
     out = trades.sort_values("entry_ts", kind="stable").reset_index(drop=True)
     entry = pd.DatetimeIndex(pd.to_datetime(out["entry_ts"], utc=True))
     exit_ = pd.DatetimeIndex(pd.to_datetime(out["exit_ts"], utc=True))
-    cost = (out["entry_px"].astype(float) * out["qty"].astype(float)).replace(0.0, float("nan"))
+    alloc = out["entry_px"].astype(float) * out["qty"].astype(float)
+    hours = (exit_ - entry).total_seconds() / 3600.0
+    avail = (pd.to_numeric(out["avail"], errors="coerce") if "avail" in out
+             else pd.Series(float("nan"), index=out.index))
     return out.assign(
         number=range(1, len(out) + 1),
-        pnl_pct=out["net_pnl"].astype(float) / cost * 100.0,
-        hours=(exit_ - entry).total_seconds() / 3600.0,
+        pnl_pct=out["net_pnl"].astype(float) / alloc.replace(0.0, float("nan")) * 100.0,
+        hours=hours,
+        days=hours / 24.0,
+        alloc=alloc,
+        avail=avail,
         day=entry.tz_convert(_ET).date,
     )
 
@@ -131,8 +140,9 @@ class TradeList(QWidget):
             _times(rows["entry_ts"]), _times(rows["exit_ts"]),
             [f"{v:,.2f}" for v in rows["entry_px"]], [f"{v:,.2f}" for v in rows["exit_px"]],
             [_usd(float(v)) for v in rows["net_pnl"]], [f"{v:+.2f}%" for v in rows["pnl_pct"]],
-            [str(v) for v in rows["qty"]], [f"{v:.2f}" for v in rows["hours"]],
-            list(rows["exit_reason"]),
+            [str(v) for v in rows["qty"]], [_usd(float(v)) for v in rows["alloc"]],
+            ["—" if pd.isna(v) else _usd(float(v)) for v in rows["avail"]],
+            [f"{v:.1f}" for v in rows["days"]], list(rows["exit_reason"]),
         ]
         for col, values in enumerate(cells):
             for row, value in enumerate(values):

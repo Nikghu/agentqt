@@ -7,6 +7,7 @@
 **Last Updated:** 2026-11-23
 **Project:** US Swing Trading System
 
+> UT-GUI-031.088.M07.T01–T02 added — trade list days and capital columns.
 > v1.58.9: UT-GUI-046.003.M02.T03 added — icon-only buttons with name tooltips (user asked 2026-11-23).
 > v1.58.8: UT-GUI-046.006.M02.T02–T03 added — S&P 500 list, Backtest Data.
 > v1.58.7: UT-GUI-046.003.M02.T02 and .004.M02.T04 changed (user decision 2026-11-23: one shared folder, no user part).
@@ -251,6 +252,7 @@
 | UT-GUI-006.001.M01.T25 | MD-GUI-006.001.M01 | Positive | Update now picks only stocks behind the last trading day (SRD-GUI-006.023) | AAA, BBB at 11-04; HLT at 11-03; NEW no candles | `["HLT", "NEW"]` | Pass |
 | UT-GUI-006.001.M01.T26 | MD-GUI-006.001.M01 | Negative | No stock picked when all have the last trading day | AAA, BBB at 11-04 | `[]` | Pass |
 | UT-GUI-006.001.M01.T27 | MD-GUI-006.001.M01 | Positive | Update now starts the day after the oldest stock behind | AAA 11-04, HLT 11-03 | `(["HLT"], 2026-11-03)` | Pass |
+| UT-GUI-006.001.M01.T28 | MD-GUI-006.001.M01 | Negative | Edit user hides order type and confirm but keeps their values | user with LMT, confirm off; set risk 2.5 | no order-type or confirm field; LMT and confirm off kept | Pass |
 
 ---
 
@@ -694,8 +696,8 @@ Test files:
 |---|---|---|---|---|---|---|
 | UT-GUI-021.001.M01.T01 | MD-GUI-021.001.M01 | Positive | System tab is split into three sections | build `_SystemSections` | Connection, Scheduler, Telegram | Pass |
 | UT-GUI-021.001.M01.T02 | MD-GUI-021.001.M01 | Positive | Section click shows one section | click Telegram | stack shows Telegram; Users unchecked; 6 sections, no Theme, Diagnostics or Database | Pass |
-| UT-GUI-021.002.M01.T01 | MD-GUI-021.001.M01 | Positive | Risk save persists values | set 2.5 % and LMT, Save | `update_user` called with new risk config | Pass |
-| UT-GUI-021.002.M01.T02 | MD-GUI-021.001.M01 | Negative | Risk save keeps other user fields | chat ID set, Save | chat ID and username unchanged | Pass |
+| UT-GUI-021.002.M01.T01 | MD-GUI-021.001.M01 | Positive | Risk save persists values | set 2.5 % and LMT, Save | `update_user` called with new risk config | Retired (Risk page removed 2026-11-25) |
+| UT-GUI-021.002.M01.T02 | MD-GUI-021.001.M01 | Negative | Risk save keeps other user fields | chat ID set, Save | chat ID and username unchanged | Retired (Risk page removed 2026-11-25) |
 | UT-GUI-021.003.M01.T01 | MD-GUI-021.001.M01 | Positive | System panel holds Theme, Updates, Diagnostics | build `_SystemSections` | theme, update and circuit breaker buttons inside `panel`; groups THEME, UPDATES, ORDERS | Pass |
 | UT-GUI-021.003.M02.T01 | MD-GUI-019.001.M01 | Positive | Strip has a System button | click System | `panel_toggled("system", True)` | Pass |
 | UT-GUI-021.004.M01.T01 | MD-GUI-021.001.M01 | Positive | Progress shows percent | progress MSFT 312 of 503 | "62%", "312 / 503 stocks", "Now: MSFT"; state downloading 62 | Superseded (UT-GUI-028.*) |
@@ -763,6 +765,7 @@ Test files:
 |---|---|---|---|---|---|---|
 | UT-GUI-024.001.M01.T01 | MD-GUI-024.001.M01 | Positive | Chips show running count and unrealised P&L | 3 strategies, 1 RUNNING + 1 with open cycle; open cycles P&L +10 and −4 | "2 of 3"; "+$6.00" | Pass |
 | UT-GUI-024.001.M01.T02 | MD-GUI-024.001.M01 | Positive | Broker value follows user mode and status | paper; live connected; live not connected | "Paper" + green "ready"; "IBKR" + green "live"; "IBKR" + red "offline"; no dot | Pass |
+| UT-GUI-024.001.M01.T03 | MD-GUI-024.001.M01 | Positive | Stats group sits in the header centre | header 1800 px wide, long last-run text | stats centre within 4 px of header centre | Pass |
 | UT-GUI-024.002.M02.T01 | MD-GUI-024.002.M02 | Positive | Groups: Manual first, screeners A→Z, score order, counts | 1 pick, 2 "Price Action", 2 "Momentum" | groups Manual, Momentum, Price Action; counts 1, 2, 2; higher score first | Pass |
 | UT-GUI-024.002.M02.T02 | MD-GUI-024.002.M02 | Positive | ✕ on a pick removes it | click Score cell of pick row | `remove_manual_pick("DELL")` called once | Pass |
 | UT-GUI-024.002.M02.T03 | MD-GUI-024.002.M02 | Negative | Not-ready symbol is tinted | readiness {"NVDA": False} | NVDA row has a background brush; others none | Pass |
@@ -804,9 +807,9 @@ Test files:
 | UT-GUI-025.010.M02.T02 | MD-GUI-025.001.M02 | Edge | Choices remembered; bad value falls back | 30 days + Cancelled; then "bogus" | texts restored, 1 row; then "Today" | Pass |
 | UT-GUI-025.011.M02.T01 | MD-GUI-025.001.M02 | Positive | Export writes shown rows | Today view | header User, Date & Time, Symbol; rows A, B | Pass |
 | UT-GUI-025.011.M02.T02 | MD-GUI-025.001.M02 | Negative | Unwritable path | folder path | error logged with reason; warning box shown | Pass |
-| UT-GUI-025.012.M01.T01 | MD-GUI-002.001.M01 | Positive | ✕ removes that symbol | click ✕ on MSFT row | `remove_from_watchlist("MSFT")` | Pass |
-| UT-GUI-025.012.M01.T02 | MD-GUI-002.001.M01 | Negative | Other cell removes nothing | click Symbol cell | not called; right-panel model has no ✕ | Pass |
-| UT-GUI-025.012.M01.T03 | MD-GUI-002.001.M01 | Edge | Tile watchlist keeps hidden columns after new quotes | reload | Open column hidden; ✕ shown | Pass |
+| UT-GUI-025.012.M01.T01 | MD-GUI-002.001.M01 | Positive | Right-click Delete removes that symbol | right-click MSFT row, pick Delete MSFT | `remove_from_market_list("MSFT")` | Pass |
+| UT-GUI-025.012.M01.T02 | MD-GUI-002.001.M01 | Negative | No Volume or ✕ column on the tile | open tile | shown: Symbol, LTP, Chg ($), Chg %; no ✕ | Pass |
+| UT-GUI-025.012.M01.T03 | MD-GUI-002.001.M01 | Edge | Tile watchlist keeps hidden columns after new quotes | reload | Open and Volume hidden; Chg % shown | Pass |
 | UT-GUI-025.013.M03.T01 | MD-GUI-025.013.M03 | Positive | Change text for the range | 25,000 → 25,041.75, 1D; reversed, 1W | "+$41.75 (+0.17%) today"; "−$41.75 (−0.17%) this week" | Pass |
 | UT-GUI-025.013.M03.T02 | MD-GUI-025.013.M03 | Edge | One point gives no change | one point | "", 0 | Pass |
 | UT-GUI-025.013.M03.T03 | MD-GUI-025.013.M03 | Positive | Band shows value, change and chart | 3M, two points | "$25,041.75"; text ends "in 3 months"; chart has 2 points | Pass |
@@ -837,6 +840,7 @@ Test files:
 | UT-GUI-025.020.M02.T02 | MD-GUI-025.001.M02 | Positive | Tile accepts any stock | type pltr on tile | added to tile list, not watchlist | Pass |
 | UT-GUI-025.020.M02.T03 | MD-GUI-025.001.M02 | Positive | Screener add goes to watchlist | Screener add AAPL | watchlist add; tile list unchanged | Pass |
 | UT-GUI-025.021.M02.T01 | MD-GUI-025.001.M02 | Positive | Sector Rotation tab swaps view and tools | click Sector Rotation, then 1W, then Market Watch | sector view shown; range chips shown, watch tools hidden; reads 26 then 10 closes; back restores tools | Pass |
+| UT-GUI-025.021.M02.T02 | MD-GUI-025.001.M02 | Positive | Strategy P&L tab shows today's P&L list | click Strategy P&L, then Market Watch | P&L list shown; watch tools and range chips hidden; count reads "Today" until back on Market Watch | Pass |
 | UT-GUI-025.022.M06.T01 | MD-GUI-025.022.M06 | Positive | Moves ranked against RSP | RSP +2%, XLK +5%, XLE −1% | XLK +3.00, XLE −3.00; end date returned | Pass |
 | UT-GUI-025.022.M06.T02 | MD-GUI-025.022.M06 | Negative | Too few RSP closes | 3 closes, range 3; no data | no moves, empty date | Pass |
 | UT-GUI-025.022.M06.T03 | MD-GUI-025.022.M06 | Edge | Sector missing the start day | XLF without start close | XLF left out | Pass |
@@ -925,7 +929,7 @@ Test files:
 | UT-GUI-027.001.M01.T02 | MD-GUI-027.001.M01 | Positive | Open at a section | `open_at("Telegram")` | dialog visible; Telegram section shown | Pass |
 | UT-GUI-027.001.M01.T03 | MD-GUI-027.001.M01 | Edge | Each section scrolls on its own | one section taller than the 600 px dialog | tall section shows a scroll bar; Candle data shows none; dialog stays 600 px | Pass |
 | UT-GUI-027.003.M01.T01 | MD-GUI-027.001.M01 | Positive | Footer buttons | open; click Cancel; open; click OK | Apply disabled at start; rejected; accepted | Pass |
-| UT-GUI-027.003.M01.T02 | MD-GUI-027.001.M01 | Positive | Footer follows the panel | panel dirty; Risk section shown; click Restore defaults | Apply and Restore defaults enabled; panel asked to restore | Pass |
+| UT-GUI-027.003.M01.T02 | MD-GUI-027.001.M01 | Positive | Footer follows the panel | panel dirty; Connection section shown; click Restore defaults | Apply and Restore defaults enabled; panel asked to restore | Pass |
 | UT-GUI-027.004.M02.T01 | MD-GUI-027.004.M02 | Positive | Settings item opens, screen stays | click Settings with Execution checked | `settings_requested` once; Execution still checked | Pass |
 | UT-GUI-027.004.M03.T01 | MD-GUI-027.004.M03 | Positive | Four screens | `_NAV_ITEMS` | Dashboard, Screener, Execution, Charts | Pass |
 | UT-GUI-027.002.M04.T01 | MD-GUI-027.005.M04 | Positive | Eight sections in order | build panel | Users … Appearance, eight stack pages; no Updates | Pass |
@@ -939,10 +943,10 @@ Test files:
 | UT-GUI-027.008.M02.T01 | MD-GUI-027.004.M02 | Positive | Settings badge per state | downloading 62, complete, partial | "62"; check icon; "!" | Pass |
 | UT-GUI-027.008.M02.T02 | MD-GUI-027.004.M02 | Negative | Idle hides the badge | complete then idle | badge hidden | Pass |
 | UT-GUI-027.009.M05.T01 | MD-GUI-027.009.M05 | Positive | Header breaker trips and resets | click; breaker active; click | `set_circuit_breaker(True)`; label "Reset breaker"; `set_circuit_breaker(False)` | Pass |
-| UT-GUI-027.010.M04.T01 | MD-GUI-027.005.M04 | Positive | Edit then Apply saves once | change risk to 2.5; Apply | Apply enabled after edit; `update_user` once; Apply disabled | Pass |
-| UT-GUI-027.010.M04.T02 | MD-GUI-027.005.M04 | Negative | Cancel drops edits | change risk to 2.5; Cancel | no save; field back to saved value | Pass |
-| UT-GUI-027.011.M04.T01 | MD-GUI-027.005.M04 | Positive | Restore defaults after yes | Risk shown, risk 2.5, confirm yes | default risk value; section dirty | Pass |
-| UT-GUI-027.011.M04.T02 | MD-GUI-027.005.M04 | Negative | No keeps values | confirm no | risk still 2.5; nothing dirty | Pass |
+| UT-GUI-027.010.M04.T01 | MD-GUI-027.005.M04 | Positive | Edit then Apply saves once | change IBKR port to 4002; Apply | Apply enabled after edit; `save_system_config` once; Apply disabled | Pass |
+| UT-GUI-027.010.M04.T02 | MD-GUI-027.005.M04 | Negative | Cancel drops edits | change IBKR port to 4002; Cancel | no save; field back to saved value | Pass |
+| UT-GUI-027.011.M04.T01 | MD-GUI-027.005.M04 | Positive | Restore defaults after yes | Connection shown, port 4002, confirm yes | default port; section dirty | Pass |
+| UT-GUI-027.011.M04.T02 | MD-GUI-027.005.M04 | Negative | No keeps values | confirm no | port still 4002; nothing dirty | Pass |
 | UT-GUI-027.012.M04.T01 | MD-GUI-027.005.M04 | Positive | Dot states | `set_section_state` ok, warn, off, none | green, amber, grey; hidden | Pass |
 | UT-GUI-027.012.M04.T02 | MD-GUI-027.005.M04 | Edge | Telegram dot rule | enabled + token + chat; enabled, no chat; disabled | ok; warn; off | Pass |
 | UT-GUI-027.013.M04.T01 | MD-GUI-027.005.M04 | Positive | Theme waits for Apply | click Mocha; then Apply | not applied after click; applied once and saved after Apply | Pass |
@@ -1078,6 +1082,8 @@ Test files:
 | UT-GUI-031.053.M07.T02 | MD-GUI-031.053.M07 | Edge | Filters | wins, losses (0 P&L), LONG, SHORT | right rows; 0 P&L is a loss | Pass |
 | UT-GUI-031.053.M07.T03 | MD-GUI-031.053.M07 | Positive | Table and click | 3 trades; SHORT chip; click row | screenshot columns; 1 row; trade sent | Pass |
 | UT-GUI-031.053.M07.T04 | MD-GUI-031.053.M07 | Negative | No trades | empty frame | empty table; zero summary | Pass |
+| UT-GUI-031.088.M07.T01 | MD-GUI-031.053.M07 | Positive | Days and capital columns | 3 trades with saved avail | headers Allocated, Available, Duration (days); NVDA $100.00, $870.00, 0.1 | Pass |
+| UT-GUI-031.088.M07.T02 | MD-GUI-031.053.M07 | Negative | Old run without Available | trades without avail | Available shows a dash; Allocated still shown | Pass |
 | UT-GUI-031.053.M03.T01 | MD-GUI-031.003.M03 | Positive | Trade list opens day | click trade #2 | Inspector tab; day 2026-03-03; chart on MSFT | Pass |
 | UT-GUI-031.054.M08.T01 | MD-GUI-031.054.M08 | Positive | Screener use | 3 sessions, one with no picks | traded / not traded per day; facts line | Pass |
 | UT-GUI-031.054.M08.T02 | MD-GUI-031.054.M08 | Edge | Margin use | 2 days; then no days | peak = capital minus lowest margin; paints; empty safe | Pass |

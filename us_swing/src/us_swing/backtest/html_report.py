@@ -129,6 +129,8 @@ class _Trade:
     move: float
     pnl: float
     reason: str
+    alloc: float
+    avail: float
 
 
 def fmt(value: float, kind: str) -> str:
@@ -208,13 +210,15 @@ def _trade_rows(rep: Report) -> list[_Trade]:
     exit_ = pd.to_datetime(t["exit_ts"], utc=True).dt.tz_convert(ET)
     holds = (exit_.dt.normalize() - entry.dt.normalize()).dt.days.astype(int).tolist()
     sign = [-1.0 if d == "SHORT" else 1.0 for d in t["direction"]]
+    avail = (pd.to_numeric(t["avail"], errors="coerce").tolist() if "avail" in t
+             else [math.nan] * len(t))
     cols = zip(t["strategy"].astype(str), t["symbol"].astype(str), entry.dt.strftime("%Y-%m-%d"),
                t["entry_px"].astype(float).tolist(), t["qty"].astype(int).tolist(),
                exit_.dt.strftime("%Y-%m-%d"), t["exit_px"].astype(float).tolist(), holds, sign,
-               t["net_pnl"].astype(float).tolist(), t["exit_reason"].astype(str))
+               t["net_pnl"].astype(float).tolist(), t["exit_reason"].astype(str), avail)
     return [_Trade(i, st, sym, ent, epx, qty, ext, xpx, hold,
-                   s * (xpx / epx - 1.0) if epx else math.nan, pnl, why)
-            for i, (st, sym, ent, epx, qty, ext, xpx, hold, s, pnl, why)
+                   s * (xpx / epx - 1.0) if epx else math.nan, pnl, why, epx * qty, free)
+            for i, (st, sym, ent, epx, qty, ext, xpx, hold, s, pnl, why, free)
             in enumerate(cols, start=1)]
 
 
@@ -391,15 +395,19 @@ def _all_trades(trades: Sequence[_Trade]) -> str:
     rows = [f'<td class="n mut">{t.n}</td><td><b>{escape(t.symbol)}</b></td>'
             f"<td>{escape(t.strategy)}</td>"
             f'<td class="n">{_day(t.entry)}</td><td class="n">{t.entry_px:.2f}</td>'
-            f'<td class="n">{t.qty}</td><td class="n">{_day(t.exit)}</td>'
+            f'<td class="n">{t.qty}</td>'
+            f'<td class="n">{_short_usd(t.alloc)}</td>'
+            f'<td class="n">{"—" if math.isnan(t.avail) else _short_usd(t.avail)}</td>'
+            f'<td class="n">{_day(t.exit)}</td>'
             f'<td class="n">{t.exit_px:.2f}</td><td class="n">{t.hold} d</td>'
             f'<td class="{_cls("n", _tone(t.move))}">{t.move:+.1%}</td>{_usd_cell(t.pnl)}'
             f'<td><span class="{_cls("tag", "open" if t.reason == "end_of_test" else "")}">'
             f"{escape(_REASONS.get(t.reason, t.reason))}</span></td>"
             for t in trades]
-    return _table(["#", "Stock", "Strategy", "Entry", "Entry $", "Shares", "Exit", "Exit $",
-                   "Held", "Move", "Net P&L", "Exit"], rows,
-                  [True, False, False, True, True, True, True, True, True, True, True, False])
+    return _table(["#", "Stock", "Strategy", "Entry", "Entry $", "Shares", "Allocated",
+                   "Available", "Exit", "Exit $", "Held", "Move", "Net P&L", "Exit"], rows,
+                  [True, False, False, True, True, True, True, True, True, True, True, True, True,
+                   False])
 
 
 def _all_stats(rep: Report) -> str:

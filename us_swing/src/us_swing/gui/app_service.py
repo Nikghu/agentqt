@@ -516,6 +516,28 @@ def _compute_last_trading_day() -> datetime.date:
     return candidate   # fallback (shouldn't reach)
 
 
+def _prior_session_day(today: datetime.date) -> datetime.date:
+    """Trading day before the latest session (today when today is a trading day).
+
+    Change and change % on quote lists are measured from this day's close.
+    """
+    from us_swing.data.market_calendar import NYSE_HOLIDAYS
+
+    def is_trading(day: datetime.date) -> bool:
+        return day.weekday() < 5 and (day.month, day.day) not in NYSE_HOLIDAYS
+
+    day = today
+    for _ in range(14):
+        if is_trading(day):
+            break
+        day -= datetime.timedelta(days=1)
+    for _ in range(14):
+        day -= datetime.timedelta(days=1)
+        if is_trading(day):
+            break
+    return day
+
+
 # Tables cleared by a candle reset.  The intraday tables (price_1m / price_3m /
 # price_15m) and the trading tables in the same file are deliberately excluded.
 _RESETTABLE_CANDLE_TABLES: tuple[str, ...] = ("price_1d", "price_1w")
@@ -1107,13 +1129,16 @@ def _make_stk_contract(symbol: str) -> Any:
         return None
 
 
-def _apply_quotes(items: list[WatchlistItem], results: list[dict[str, Any]]) -> None:
+def _apply_quotes(
+    items: list[WatchlistItem], results: list[dict[str, Any]],
+    prev_close: Callable[[str], float],
+) -> None:
     lookup = {r["symbol"]: r for r in results}
     for item in items:
         if item.symbol in lookup:
             d = lookup[item.symbol]
             # LTP / change come from tick stream; populate prev_close + static fields
-            item.prev_close = d["prev_close"]
+            item.prev_close = prev_close(item.symbol)
             item.day_open   = d["day_open"]
             item.day_high   = d["day_high"]
             item.day_low    = d["day_low"]
@@ -1123,10 +1148,11 @@ def _apply_quotes(items: list[WatchlistItem], results: list[dict[str, Any]]) -> 
             item.market_cap = d["market_cap"]
 
 
-def _apply_tick(items: list[WatchlistItem], tag: str, price: float) -> bool:
+def _apply_tick(items: list[WatchlistItem], tag: str, price: float, prev_close: float) -> bool:
     for item in items:
         if item.symbol == tag:
             item.ltp = price
+            item.prev_close = prev_close or item.prev_close
             prev = item.prev_close or 0.0
             if prev:
                 item.change = price - prev
@@ -1345,6 +1371,11 @@ class AppService(QObject):
         self._tick_flush.setSingleShot(True)
         self._tick_flush.setInterval(_TICK_REFRESH_MS)
         self._tick_flush.timeout.connect(self._flush_tick_refresh)
+        # Previous close per symbol: daily candle (when up to date) → IBKR → Yahoo
+        self._candle_prev: dict[str, float] = {}
+        self._candle_prev_day: datetime.date | None = None
+        self._ibkr_prev: dict[str, float] = {}
+        self._yahoo_prev: dict[str, float] = {}
         self._sp500_cache: set[str] = set()   # S&P 500 symbols, populated lazily
         self._cycle_symbols: frozenset[str] = frozenset()  # symbols of open trade cycles
 
@@ -1589,10 +1620,10 @@ class AppService(QObject):
             self._tc_query, lambda: self.get_active_user().mode
         )
         self._risk_manager = RiskManager(
-            config=self.get_active_user().risk_config,
+            config_provider=lambda: self.get_active_user().risk_config,
             account_provider=lambda: self.get_account_state(self._active_uid),
             cb_state_provider=lambda: self._circuit_breaker_active,
-            user_id=self._active_uid,
+            user_id_provider=lambda: self._active_uid,
             tracker=self._cycle_position_source,
             effective_capital_provider=self.effective_capital,
             warning_sink=lambda w: self._event_bus.publish(w),
@@ -3505,6 +3536,7 @@ class AppService(QObject):
         return list(_MW_SYMBOLS)
 
     def _refresh_mw_quotes(self) -> None:
+        self._candle_prev_day = None    # re-read daily candles with the new quotes
         symbols = [item.symbol for item in self._mw_items]
         worker = _WatchlistQuoteWorker(symbols)
         worker.done.connect(self._on_mw_data)
@@ -3512,19 +3544,38 @@ class AppService(QObject):
         self._mw_worker = worker
 
     def _on_mw_data(self, results: list) -> None:
-        lookup = {r["symbol"]: r for r in results}
-        for item in self._mw_items:
-            if item.symbol in lookup:
-                d = lookup[item.symbol]
-                item.prev_close = d["prev_close"]
-                item.day_open   = d["day_open"]
-                item.day_high   = d["day_high"]
-                item.day_low    = d["day_low"]
-                item.volume     = d["volume"]
-                item.year_high  = d["year_high"]
-                item.year_low   = d["year_low"]
-                item.market_cap = d["market_cap"]
+        self._store_yahoo_prev(results)
+        _apply_quotes(self._mw_items, results, self._prev_close)
         self.market_watch_updated.emit()
+
+    # ── Previous close (ISS-GUI-0024) ─────────────────────────────────────────
+
+    def _prev_close(self, symbol: str) -> float:
+        """Close the change is measured from: daily candle when up to date, else IBKR, else Yahoo."""
+        self._load_candle_prev()
+        return (self._candle_prev.get(symbol) or self._ibkr_prev.get(symbol)
+                or self._yahoo_prev.get(symbol, 0.0))
+
+    def _load_candle_prev(self) -> None:
+        """Read the previous trading day's daily closes once per day; a missing bar means stale."""
+        day = _prior_session_day(datetime.datetime.now(_ET).date())
+        if day == self._candle_prev_day:
+            return
+        self._candle_prev_day = day
+        symbols = {i.symbol for i in (*self._mw_items, *self._watchlist, *self._market_list)}
+        closes = self.get_daily_closes(tuple(sorted(symbols)), 3)
+        key = day.isoformat()
+        self._candle_prev = {s: c[key] for s, c in closes.items() if key in c}
+        _log.info("[Market Watch] Previous close from daily candles for %d of %d stock(s), "
+                  "date %s", len(self._candle_prev), len(symbols), key)
+
+    def _store_yahoo_prev(self, results: list[dict[str, Any]]) -> None:
+        for r in results:
+            if r["prev_close"]:
+                self._yahoo_prev[r["symbol"]] = float(r["prev_close"])
+
+    def _on_ibkr_prev_close(self, tag: str, close: float) -> None:
+        self._ibkr_prev[tag] = close
 
     # ── Watchlist ─────────────────────────────────────────────────────────────
 
@@ -3560,6 +3611,7 @@ class AppService(QObject):
     def _refresh_watchlist(self) -> None:
         if not self._watchlist:
             return
+        self._candle_prev_day = None    # re-read daily candles with the new quotes
         symbols = [w.symbol for w in self._watchlist]
         worker = _WatchlistQuoteWorker(symbols)
         worker.setParent(self)    # a running fetch must outlive being replaced by a newer one
@@ -3569,7 +3621,8 @@ class AppService(QObject):
         self._wl_worker = worker
 
     def _on_watchlist_data(self, results: list) -> None:
-        _apply_quotes(self._watchlist, results)
+        self._store_yahoo_prev(results)
+        _apply_quotes(self._watchlist, results, self._prev_close)
         self.watchlist_updated.emit()
 
     # ── Market Watch tile list (SRD-GUI-025.020) ──────────────────────────────
@@ -3609,6 +3662,7 @@ class AppService(QObject):
     def _refresh_market_list(self) -> None:
         if not self._market_list:
             return
+        self._candle_prev_day = None    # re-read daily candles with the new quotes
         worker = _WatchlistQuoteWorker([w.symbol for w in self._market_list])
         worker.setParent(self)    # a running fetch must outlive being replaced by a newer one
         worker.finished.connect(worker.deleteLater)
@@ -3617,7 +3671,8 @@ class AppService(QObject):
         self._ml_worker = worker
 
     def _on_market_list_data(self, results: list[dict[str, Any]]) -> None:
-        _apply_quotes(self._market_list, results)
+        self._store_yahoo_prev(results)
+        _apply_quotes(self._market_list, results, self._prev_close)
         self.market_list_updated.emit()
 
     # ── Live tick streaming (FO-GUI-012) ──────────────────────────────────────
@@ -3699,18 +3754,13 @@ class AppService(QObject):
 
     def _on_watchlist_tick(self, tag: str, price: float) -> None:
         """Update Market Watch, Watchlist and Market Watch tile ltp/change from tick stream."""
-        for item in self._mw_items:
-            if item.symbol == tag:
-                item.ltp = price
-                prev = item.prev_close or 0.0
-                if prev:
-                    item.change = price - prev
-                    item.change_pct = item.change / prev * 100
-                self._queue_tick_refresh("market_watch_updated")
-                return
-        if _apply_tick(self._watchlist, tag, price):
+        prev = self._prev_close(tag)
+        if _apply_tick(self._mw_items, tag, price, prev):
+            self._queue_tick_refresh("market_watch_updated")
+            return
+        if _apply_tick(self._watchlist, tag, price, prev):
             self._queue_tick_refresh("watchlist_updated")
-        if _apply_tick(self._market_list, tag, price):
+        if _apply_tick(self._market_list, tag, price, prev):
             self._queue_tick_refresh("market_list_updated")
 
     def _queue_tick_refresh(self, signal_name: str) -> None:
@@ -3867,6 +3917,7 @@ class AppService(QObject):
             parent=self,
         )
         tw.tick_price.connect(self._record_market_price)
+        tw.prev_close.connect(self._on_ibkr_prev_close)
         tw.tick_price.connect(self._on_watchlist_tick)
         tw.tick_price.connect(self._on_position_tick)
         tw.tick_price.connect(self._on_cycle_tick)
@@ -5016,7 +5067,8 @@ class AppService(QObject):
             gaps = None if delta else store.refresh_gaps(symbols)  # ISS-BKT-0003
             return plan(symbols, settings, store.coverage, floors,
                         _compute_last_trading_day(), delta,
-                        daily_only=(BENCHMARK,), gaps=gaps)  # SRD-BKT-001.015
+                        daily_only=(BENCHMARK, *SECTOR_SYMBOLS),
+                        gaps=gaps)  # SRD-BKT-001.015, SRD-BKT-001.018
 
         return build_plan
 

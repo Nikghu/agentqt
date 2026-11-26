@@ -27,7 +27,8 @@ from us_swing.core.expr.series import ET
 
 _NS_PER_MIN = 60_000_000_000
 TRADE_COLUMNS = ["strategy", "symbol", "direction", "entry_ts", "entry_px", "qty", "exit_ts",
-                 "exit_px", "exit_reason", "costs", "net_pnl", "mae", "mfe", "score", "rank"]
+                 "exit_px", "exit_reason", "costs", "net_pnl", "mae", "mfe", "score", "rank",
+                 "avail"]
 LOG_COLUMNS = ["ts", "symbol", "strategy", "decision", "margin_available", "strategy_deployed"]
 MONEY_COLUMNS = ["date", "start_capital", "deployed", "margin_min", "margin_close",
                  "open_value", "equity"]
@@ -149,6 +150,7 @@ class _Position:
     target: float | None = None
     best: float = 0.0
     worst: float = 0.0
+    avail: float = 0.0
 
     @property
     def cost(self) -> float:
@@ -207,7 +209,7 @@ class _Account:
         mae = max(0.0, pos.rules.sign * (pos.entry_px - pos.worst)) * pos.qty
         self.trades.append((pos.rules.name, pos.symbol, "LONG" if pos.rules.sign > 0 else "SHORT",
                             pos.entry_ns, pos.entry_px, pos.qty, ns, px, reason, costs, net,
-                            mae, mfe, pos.score, pos.rank))
+                            mae, mfe, pos.score, pos.rank, pos.avail))
         del self.positions[pos.symbol]
         self.pending = [o for o in self.pending
                         if not (o.kind == "exit" and o.symbol == pos.symbol)]
@@ -226,12 +228,13 @@ class _Account:
         if self.open_cost(rules.name) >= limit:
             self.note(ns, order.symbol, rules, "strategy_limit", order.window)
             return False
-        qty = min(qty, math.floor(max(0.0, self.capital - self.open_cost()) / px))
+        free = max(0.0, self.capital - self.open_cost())
+        qty = min(qty, math.floor(free / px))
         if qty < 1:
             self.note(ns, order.symbol, rules, "no_margin", order.window)
             return False
         pos = _Position(rules, order.symbol, qty, px, ns, order.window, order.score, order.rank,
-                        self.costs.per_order, best=raw, worst=raw)
+                        self.costs.per_order, best=raw, worst=raw, avail=free)
         if rules.stop_pct is not None:
             pos.stop = px * (1 - rules.sign * rules.stop_pct / 100)
         if rules.target_pct is not None:

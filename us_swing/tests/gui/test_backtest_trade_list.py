@@ -71,6 +71,34 @@ def test_table_and_click(qtbot: Any) -> None:
     assert seen[0]["symbol"] == "MSFT"
 
 
+def test_days_and_capital_columns(qtbot: Any) -> None:
+    """UT-GUI-031.088.M07.T01: Duration shows days; Allocated = price x qty; Available is saved."""
+    trades = _trades().assign(avail=[900.0, 1000.0, 870.0])
+    view = TradeList()
+    qtbot.addWidget(view)
+    view.set_trades(trades)
+    headers = [view.table.horizontalHeaderItem(c).text()  # type: ignore[union-attr]
+               for c in range(view.table.columnCount())]
+
+    assert headers[11:14] == ["Allocated capital", "Available capital", "Duration (days)"]
+    assert "Duration (hrs)" not in headers
+    nvda = 2  # entry order: AAPL, MSFT, NVDA
+    assert view.table.item(nvda, 11).text() == "$100.00"  # type: ignore[union-attr]
+    assert view.table.item(nvda, 12).text() == "$870.00"  # type: ignore[union-attr]
+    assert view.table.item(nvda, 13).text() == "0.1"  # type: ignore[union-attr]
+    assert numbered(trades)["days"].iloc[0] == pytest.approx(1.5 / 24)
+
+
+def test_old_run_without_available(qtbot: Any) -> None:
+    """UT-GUI-031.088.M07.T02: A run saved before Available existed shows a dash there."""
+    view = TradeList()
+    qtbot.addWidget(view)
+    view.set_trades(_trades())
+
+    assert view.table.item(0, 12).text() == "—"  # type: ignore[union-attr]
+    assert view.table.item(0, 11).text() == "$30.00"  # type: ignore[union-attr]
+
+
 def test_empty_trade_list(qtbot: Any) -> None:
     """UT-GUI-031.053.M07.T04: No trades shows an empty table and a zero summary."""
     view = TradeList()

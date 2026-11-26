@@ -104,6 +104,7 @@ class ResultsStore:
         with closing(self._connect()) as conn, conn:
             for name, frame in (("variants", head), ("trades", trades),
                                 ("day_log", day_log), ("money_daily", money)):
+                _add_missing_columns(conn, name, frame)
                 _as_text(frame).assign(variant_id=variant_id).to_sql(
                     name, conn, if_exists="append", index=False)
         return variant_id
@@ -181,6 +182,16 @@ _RUN_COLUMNS = "run_id, name, plan_json, status, started, finished, message, not
 def _has_table(conn: sqlite3.Connection, name: str) -> bool:
     return conn.execute("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?",
                         (name,)).fetchone() is not None
+
+
+def _add_missing_columns(conn: sqlite3.Connection, table: str, frame: pd.DataFrame) -> None:
+    """Add new frame columns to a table saved by an older version; old rows read as NULL."""
+    have = {r[1] for r in conn.execute(f"PRAGMA table_info({table})")}
+    if not have:
+        return
+    for col in frame.columns:
+        if col not in have:
+            conn.execute(f'ALTER TABLE {table} ADD COLUMN "{col}"')
 
 
 def _as_text(frame: pd.DataFrame) -> pd.DataFrame:

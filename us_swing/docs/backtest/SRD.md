@@ -7,6 +7,8 @@
 **Last Updated:** 2026-11-02
 **Project:** US Swing Trading System
 
+> v1.19.0: SRD-BKT-002.053 added and approved by user 2026-11-25 (chat) — each trade saves the capital free at entry; HTML All trades shows Allocated and Available.
+> v1.18.0: SRD-BKT-001.018 added and approved by user 2026-11-25 (chat) — daily candles for RSP and the 11 sector ETFs, 100 days before the start date.
 > v1.17.0: SRD-BKT-001.005 reopened by user 2026-11-04 (chat) — download one stock fully before the next.
 > v1.16.0: SRD-BKT-001.017 added and approved by user 2026-11-04 (chat) — no floor from an empty 3m answer (ISS-BKT-0002).
 > v1.15.0: SRD-BKT-002.088 added and approved by user 2026-11-03 — data check gives the common saved range.
@@ -45,6 +47,7 @@
 | SRD-BKT-001.015 | FO-BKT-001 | Must | Download and delta also fetch SPY daily candles with the S&P 500 stocks. | S&P 500 list | SPY 1d in the store | Approved by user 2026-10-30 (RS rule needs SPY); no 3m for SPY | Implemented |
 | SRD-BKT-001.016 | FO-BKT-001 | Must | The store keeps 30m candles built from the saved 3m candles, one file per stock and year, like 15m. | 3m year files | 30m year files, 13 bars a day from 09:30 ET | Built on save and by build_missing for data already saved; clear and stats include them | Implemented |
 | SRD-BKT-001.017 | FO-BKT-001 | Must | A stock's floor is set only when its daily data starts after the start date; an empty 3m answer sets no floor and is asked again next run. | 1d and 3m answers | floor per listed-late stock | Approved by user 2026-11-04 (ISS-BKT-0002); old 3m floors dropped on load | Implemented |
+| SRD-BKT-001.018 | FO-BKT-001 | Must | Download and delta also fetch daily candles for RSP and the 11 sector ETFs, and all daily-only symbols start 100 days before the start date. | S&P 500 list | RSP, sector ETF and SPY 1d in the store | Approved by user 2026-11-25 (chat); data for leading-sector ranking; no 3m | Implemented |
 
 ## FO-BKT-002 — Backtest Engine (Phase 0 · Foundation)
 
@@ -112,6 +115,7 @@
 | SRD-BKT-002.050 | FO-BKT-002 | Must | Strategy PRICE reads only closed bars on every timeframe; "current" is the last closed bar. | bars | prices | User 2026-10-29: replaces SRD-BKT-002.023; live matches via SRD-EXE-006.014 | Implemented |
 | SRD-BKT-002.051 | FO-BKT-002 | Must | Step 1 keys each list by session date, built from the previous trading day's close, for every session from From to To. | 1d bars | daily list | User 2026-10-29: matches the pre-market screener run | Implemented |
 | SRD-BKT-002.052 | FO-BKT-002 | Must | When the screener uses RS and SPY daily candles are missing, the data check counts SPY as missing 1d and asks to download it. | preset, store | missing list, message | Approved by user 2026-10-30; replaces the "S&P 500 only" text of SRD-BKT-002.018 | Implemented |
+| SRD-BKT-002.053 | FO-BKT-002 | Must | Each trade saves the capital free just before it opened (account capital minus open trades), and the HTML All trades table shows Allocated and Available. | entry fill | `avail` per trade | Approved by user 2026-11-25 (chat); exits give money back; older results files get the column on next save | Implemented |
 
 ## FO-BKT-002 — Backtest Engine (Phase 4a · Step 4 Report)
 

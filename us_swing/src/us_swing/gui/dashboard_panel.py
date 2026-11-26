@@ -1001,17 +1001,6 @@ class _WatchlistModel(QAbstractTableModel):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
         self._rows: list[WatchlistItem] = []
-        self._removable = False
-
-    def set_removable(self, on: bool) -> None:
-        """Add a trailing remove-mark column (dashboard tile, SRD-GUI-025.012)."""
-        self.beginResetModel()
-        self._removable = on
-        self.endResetModel()
-
-    @property
-    def remove_col(self) -> int:
-        return len(self._COLS) if self._removable else -1
 
     def refresh(self, items: list[WatchlistItem]) -> None:
         same_symbols = [r.symbol for r in self._rows] == [i.symbol for i in items]
@@ -1031,12 +1020,12 @@ class _WatchlistModel(QAbstractTableModel):
         return len(self._rows)
 
     def columnCount(self, parent: QModelIndex = QModelIndex()) -> int:
-        return len(self._COLS) + (1 if self._removable else 0)
+        return len(self._COLS)
 
     def headerData(self, section: int, orientation: Qt.Orientation,
                    role: int = Qt.ItemDataRole.DisplayRole):
         if role == Qt.ItemDataRole.DisplayRole and orientation == Qt.Orientation.Horizontal:
-            return self._COLS[section] if section < len(self._COLS) else ""
+            return self._COLS[section]
         return None
 
     def data(self, index: QModelIndex, role: int = Qt.ItemDataRole.DisplayRole):
@@ -1044,9 +1033,6 @@ class _WatchlistModel(QAbstractTableModel):
             return None
         item = self._rows[index.row()]
         col  = index.column()
-
-        if col == self.remove_col:
-            return self._remove_mark(role)
 
         if role == Qt.ItemDataRole.DisplayRole:
             return self._display(item, col)
@@ -1066,18 +1052,6 @@ class _WatchlistModel(QAbstractTableModel):
                 return Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
             return Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
 
-        return None
-
-    @staticmethod
-    def _remove_mark(role: int) -> object:
-        if role == Qt.ItemDataRole.DisplayRole:
-            return "✕"
-        if role == Qt.ItemDataRole.ToolTipRole:
-            return "Remove from watchlist"
-        if role == Qt.ItemDataRole.ForegroundRole:
-            return QColor(C.MUTED)
-        if role == Qt.ItemDataRole.TextAlignmentRole:
-            return Qt.AlignmentFlag.AlignCenter
         return None
 
     def _display(self, item: WatchlistItem, col: int) -> str:
@@ -1222,7 +1196,6 @@ class _WatchlistTab(QWidget):
         h.setSectionResizeMode(10, QHeaderView.ResizeMode.Stretch)
 
         self._view.selectionModel().selectionChanged.connect(self._on_selection)
-        self._view.clicked.connect(self._on_cell_clicked)
         self._view.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self._view.customContextMenuRequested.connect(self._show_row_menu)
 
@@ -1274,16 +1247,13 @@ class _WatchlistTab(QWidget):
         self._updated_lbl.hide()
 
     def tile_tools(self) -> list[QWidget]:
-        """Fit a dashboard tile: key columns and a ✕ per row; returns the header controls."""
-        self._model.set_removable(True)
-        remove_col = self._model.remove_col
+        """Fit a dashboard tile: Symbol, LTP and change only (right-click a row to delete it);
+        returns the header controls."""
         for col in range(self._model.columnCount()):
-            self._view.setColumnHidden(col, col not in (0, 1, 2, 3, 7, remove_col))
+            self._view.setColumnHidden(col, col not in (0, 1, 2, 3))
         header = self._view.horizontalHeader()
         if header is not None:
             header.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-            header.setSectionResizeMode(remove_col, QHeaderView.ResizeMode.Fixed)
-            header.resizeSection(remove_col, 32)
         self._sym_input.setFixedWidth(120)
         self._sym_input.setPlaceholderText("+ Add symbol")
         self._add_btn.setFixedWidth(70)
@@ -1296,12 +1266,6 @@ class _WatchlistTab(QWidget):
         self._updated_lbl.hide()
         self._empty_lbl.setText("Market Watch is empty.\n\nType a symbol above and click Add.")
         return [self._sym_input, self._add_btn, self._refresh_btn]
-
-    def _on_cell_clicked(self, index: QModelIndex) -> None:
-        if index.column() == self._model.remove_col:
-            symbol = self._model.row_symbol(index.row())
-            if symbol:
-                self._remove_item(symbol)
 
     def reload(self) -> None:
         """Load the current watchlist quotes now instead of waiting for the next update."""
@@ -1544,12 +1508,15 @@ class DashboardPanel(QWidget):
         # ── Market Watch tile: its own saved list (SRD-GUI-025.020) ───────────
         self._watch_list = _WatchlistTab(demo, market_watch=True)
 
-        # ── Market Watch | Sector Rotation tabs (SRD-GUI-025.021/.022) ────────
+        # ── Market Watch | Sector Rotation | Strategy P&L tabs (SRD-GUI-025.021/.022) ─
         self._sectors = SectorRotationView()
+        self._strategy_list = StrategyPnlList()
         self._watch_stack = QStackedWidget()
         self._watch_stack.addWidget(self._watch_list)
         self._watch_stack.addWidget(self._sectors)
-        self._watch_tabs = ChipGroup([("Market Watch", "watch"), ("Sector Rotation", "sectors")])
+        self._watch_stack.addWidget(self._strategy_list)
+        self._watch_tabs = ChipGroup([("Market Watch", "watch"), ("Sector Rotation", "sectors"),
+                                      ("Strategy P&&L", "pnl")])
         self._watch_tabs.changed.connect(self._on_watch_tab)
         self._sector_range = ChipGroup([(key, key) for key in RANGE_DAYS])
         self._sector_range.buttons[1].setChecked(True)
@@ -1564,15 +1531,9 @@ class DashboardPanel(QWidget):
         demo.market_list_updated.connect(self._refresh_watch_count)
         demo.candle_db_status_changed.connect(lambda _info: self._refresh_sectors())
 
-        # ── P&L by Strategy tile (SRD-GUI-025.005) ────────────────────────────
-        self._strategy_list = StrategyPnlList()
-        self._strategy_tile = Tile("P&L by Strategy", self._strategy_list)
-        self._strategy_tile.set_count("Today")
-
         # ── Tile grid (SRD-GUI-025.003/.004) ──────────────────────────────────
         self._grid = TileGrid({
-            "positions": self._pos_tile, "watch": self._watch_tile,
-            "history": self._hist_tile, "strategy": self._strategy_tile,
+            "positions": self._pos_tile, "watch": self._watch_tile, "history": self._hist_tile,
         })
         self._grid.changed.connect(lambda name: self._settings.setValue("maximised", name))
 
@@ -1698,12 +1659,16 @@ class DashboardPanel(QWidget):
     # ── Sector Rotation tab (SRD-GUI-025.021/.022) ────────────────────────────────
 
     def _on_watch_tab(self) -> None:
-        sectors = self._watch_tabs.value == "sectors"
-        self._watch_stack.setCurrentIndex(1 if sectors else 0)
-        self._sector_range.setVisible(sectors)
-        self._watch_tile.count_lbl.setVisible(not sectors)
+        tab = self._watch_tabs.value or "watch"
+        self._watch_stack.setCurrentIndex({"sectors": 1, "pnl": 2}.get(tab, 0))
+        self._sector_range.setVisible(tab == "sectors")
+        self._watch_tile.count_lbl.setVisible(tab != "sectors")
         for tool in self._watch_tools:
-            tool.setVisible(not sectors)
+            tool.setVisible(tab not in ("sectors", "pnl"))
+        if tab == "pnl":
+            self._watch_tile.set_count("Today")
+        else:
+            self._refresh_watch_count()
         self._refresh_sectors()
 
     def _refresh_sectors(self) -> None:
@@ -2043,6 +2008,8 @@ class DashboardPanel(QWidget):
         self._refresh_exposure()
 
     def _refresh_watch_count(self) -> None:
+        if self._watch_tabs.value == "pnl":
+            return
         self._watch_tile.set_count(str(self._watch_list.symbol_count))
 
     def _refresh_strategies(self) -> None:

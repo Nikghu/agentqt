@@ -712,6 +712,7 @@
 | UT-EXE-017.005.M01.T06 | MD-EXE-017.001.M01 | Negative | `can_allocate` at/over budget blocks | budget $500; strategy deployed $500 | `CanAllocateResult(ok=False, reason='…capital limit')` | Pass |
 | UT-EXE-017.006.M01.T07 | MD-EXE-017.001.M01 | Positive | Max-position breach is advisory, not blocking | `validate` with proposed value > `max_position_value` | `ValidationResult(ok=True, qty>0)`; one `RiskWarning(kind='max_position')` published | Pass |
 | UT-EXE-017.006.M01.T08 | MD-EXE-017.001.M01 | Negative | Circuit breaker still blocks | `validate` with `cb_active=True` | `ValidationResult(ok=False, reason='circuit breaker active')`; no order | Pass |
+| UT-EXE-017.006.M01.T09 | MD-EXE-017.001.M01 | Positive | Saved limit change applies without restart | max position $1,000 then $100; $500 order validated twice | no warning first; `max_position` warning second | Pass |
 | UT-EXE-017.015.M10.T01 | MD-EXE-017.012.M10 | Positive | `margin_available` = budget − all-strategy deployed | eff_cap=$2000; two cycles across strategies worth $1200 total | `800.0` | Pass |
 | UT-EXE-017.015.M10.T02 | MD-EXE-017.012.M10 | Edge | Deployed at/over budget floors at zero | eff_cap=$2000; deployed $2100 | `0.0` | Pass |
 | UT-EXE-017.017.M10.T03 | MD-EXE-017.012.M10 | Positive | A reservation reduces margin | eff_cap=$2000; deployed $0; reserve('S','AAPL',500) | `margin_available == 1500.0` | Pass |

@@ -40,7 +40,7 @@ class _FakePanel(QWidget):
         self.shown.append(name)
 
     def can_restore(self, name: str) -> bool:
-        return name == "Risk"
+        return name == "Connection"
 
     def refresh_states(self) -> None:
         pass
@@ -105,7 +105,7 @@ def test_footer_follows_panel(dialog: SettingsDialog) -> None:
     assert not dialog._defaults_btn.isEnabled()
 
     panel.dirty_changed.emit(True)  # type: ignore[attr-defined]
-    panel.section_changed.emit("Risk")  # type: ignore[attr-defined]
+    panel.section_changed.emit("Connection")  # type: ignore[attr-defined]
 
     assert dialog._apply_btn.isEnabled() and dialog._defaults_btn.isEnabled()
     dialog._defaults_btn.click()
