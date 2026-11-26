@@ -422,7 +422,6 @@ class BacktestWorkspace(QWidget):
         report_scroll.setWidget(self.report_view)
         report_scroll.setWidgetResizable(True)
         report_scroll.setFrameShape(QScrollArea.Shape.NoFrame)
-        self.report_view.setMinimumHeight(980)
         self.trade_list = TradeList()
         self.trade_list.trade_clicked.connect(self._open_trade)
         self.breakdown = BreakdownView()

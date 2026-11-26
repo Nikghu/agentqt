@@ -232,3 +232,21 @@ def test_heat_map_shown_when_it_applies(view: ReportView) -> None:
     assert view.heat_table.item(0, 0).text() == "$1,000.00"  # type: ignore[union-attr]
     view.set_reports([_report("A"), _report("B")])
     assert view.heat_table.isHidden()
+
+
+def test_cards_never_cover_chart_dates(view: ReportView) -> None:
+    """UT-GUI-031.041.M04.T02: In a scroll area a tall report grows the page; cards stay below the chart."""
+    from PyQt6.QtWidgets import QScrollArea
+
+    view.set_reports([_report()])
+    view.month_table.setFixedHeight(400)
+    scroll = QScrollArea()
+    scroll.setWidget(view)
+    scroll.setWidgetResizable(True)
+    scroll.resize(1600, 800)
+    scroll.show()
+    cards = [w for i in range(view.groups.count()) if (w := view.groups.itemAt(i).widget())]
+
+    assert cards and cards[0].y() > view.chart.geometry().bottom()
+    assert view.chart.height() >= view.chart.minimumHeight()
+    scroll.takeWidget()

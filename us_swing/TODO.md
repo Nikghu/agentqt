@@ -273,3 +273,4 @@ Short, living task list. Keep each description ≤ 50 words; cite module + prior
 | T261 | EXE — User check: restart the app; indicator warnings gone, `plugins\1` folder removed, re-import trend_pullback.py. | `core/indicator_plugins/_registry.py`, `core/indicator_plugins/_check.py` | Medium | Open |
 | T262 | GUI — User check: Settings → Universe shows 13 ETF rows (SPY, RSP, 11 sector ETFs) after the stocks, each with a tick mark for daily backtest status. | `gui/settings_panel.py`, `gui/app_service.py` | Low | Open |
 | T263 | GUI — Cleanup: delete unused StatusBadgeDelegate in `gui/strategy_table_model.py` and stale `tests/screener/test_llm_claude_screener.py` (breaks full test collection). | `gui/strategy_table_model.py`, `tests/screener/` | Low | Open |
+| T264 | GUI — User check: Backtest Report shows the dates under the drawdown chart; Report details shows the Screener name. | `gui/backtest_workspace.py`, `gui/backtest_reports.py` | Low | Open |

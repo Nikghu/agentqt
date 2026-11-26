@@ -88,7 +88,7 @@ def html_file_name(rep: SavedReport) -> str:
 Section = tuple[str, list[tuple[str, str]]]
 
 
-def plan_sections(saved: SavedReport) -> list[Section]:
+def plan_sections(saved: SavedReport, screener: str = "") -> list[Section]:
     """Plan facts for the details panel as (heading, [(label, value)]) groups."""
     plan = saved.plan
     strategies = [(s.id, f"Allocation {s.allocation_pct[0]:g}% · "
@@ -98,6 +98,7 @@ def plan_sections(saved: SavedReport) -> list[Section]:
     return [
         ("UNIVERSE", [("Period", f"{show_date(plan.period.start)} → {show_date(plan.period.end)}"),
                       ("Stocks", _short_stocks(plan)),
+                      ("Screener", "None" if plan.screener.skip else screener or "—"),
                       ("Stocks per day", "All (no screener)" if plan.screener.skip
                        else str(plan.screener.top_n or "All"))]),
         ("STRATEGY", strategies),
@@ -294,7 +295,10 @@ class ReportsView(QWidget):
             if (widget := item.widget()) is not None:
                 widget.setParent(None)
                 widget.deleteLater()
-        for n, (head, rows) in enumerate(plan_sections(rep)):
+        screener = rep.plan.screener
+        name = "" if screener.skip or not screener.preset_id else self._service.preset_name(
+            screener.preset_id, self._user_id())
+        for n, (head, rows) in enumerate(plan_sections(rep, name)):
             if n:
                 self._sheet_body.addSpacing(8)
             title = QLabel(head)
