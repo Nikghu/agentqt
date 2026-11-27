@@ -878,3 +878,15 @@ The bridge reuses existing `AppService` reads: `/status` → `get_feed_status` +
 **Building the brief (`gui/morning_brief.py`).** On the GUI thread, `AppService` reads positions, pending signals and the latest screener rows (a read error sends a basic brief), sets `_brief_in_flight`, then starts a daemon thread with plain data. The thread calls `fetch_quotes(("SPY", "QQQ", "IWM", "^VIX"))` (yfinance 5-minute bars with `prepost=True` for the last price, daily bars for the official close of the day before the last bar; a quote whose last bar is not from today is marked `as_of="last close"`: index quotes like that are left out, VIX is shown with the mark), builds the event, and when AI notes are on calls `ask_ai` with a strict instruction and `brief_facts`; the comment is kept only if `numbers_ok`. It then calls the publish callback: `publish_notification` returns False while the worker loop is not running yet, and `SendLog` is marked only on True, so a brief the worker did not take is tried on the next tick. Any fetch error leaves that part empty; the brief is still sent.
 
 **Wiring (`gui/app_service.py`).** `_start_notifications` no longer publishes `ToolStartedEvent`. `_refresh_market_status` (60 s) calls `_maybe_send_morning_brief` and `_maybe_publish_day_end`, both guarded by `SendLog` and a running worker; day-end marks the day only when `publish_notification` returns True. `NotificationWorker.publish_event` now returns whether it queued the event. Day-end reads closed cycles of the active user whose `closed_at` falls in `_today_et_bounds_utc()`. `_build_notification_config` maps `MorningBriefEvent` to `notify_morning_brief` and sends `ToolStartedEvent` always (Send test only). Settings → Telegram: the Tool started tick becomes Morning brief.
+
+---
+
+## DD-INF-013.001.D01 — S&P 500 Membership Dates
+
+**Record (`universe/store.py`).** `Sp500Record` gets `date_added: str = ""` and `left_on: str = ""`, both ISO `YYYY-MM-DD` or empty. The CSV gets `DateAdded` and `LeftOn` columns; `_load_from_csv` reads them with `row.get(..., "")`, so an old CSV loads with empty dates.
+
+**Fetch.** `_fetch_from_wikipedia` maps the column whose name holds both "date" and "added" to `added` and parses it with `pd.to_datetime(errors="coerce")`; a blank or bad value is saved as "".
+
+**Merge (`_merge(saved, fresh, today)`).** Fresh records come first, each with `left_on=""`; an empty fresh `date_added` keeps the saved one. A saved stock missing from the fresh list is kept with its saved fields and `left_on = saved.left_on or today`. Guard: when the fresh list holds fewer than 90% of the saved current members (a cut or broken page), no stock is marked as left — those stocks are kept as current and a warning is logged.
+
+**Lists.** `refresh()` merges with the saved CSV, saves, writes the current-member count to the meta file and returns current members only. `load_sp500()` returns current members only (unchanged for every caller). `load_sp500_all()` reads the whole CSV (empty list when missing) for the Universe tab.

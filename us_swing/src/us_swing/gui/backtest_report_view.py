@@ -58,7 +58,8 @@ STAT_GROUPS = (
 _NEUTRAL = frozenset({"Average MAE", "Average MFE", "Profit given back", "Win rate",
                       "Time invested"})
 _DECISIONS = {"entered": "Entries", "no_margin": "No margin", "rex_limit": "Rex limit",
-              "already_held": "Already held", "strategy_limit": "Strategy limit"}
+              "already_held": "Already held", "strategy_limit": "Strategy limit",
+              "not_in_index_yet": "Not in index yet"}
 RISK_STATS = ("Average MAE", "Average MFE", "Profit given back", "Median hold",
               "Longest hold", "Monte Carlo drawdown, bad 5%", "Monte Carlo drawdown, median",
               "Monte Carlo drawdown, good 5%", "First half P&L", "Second half P&L",

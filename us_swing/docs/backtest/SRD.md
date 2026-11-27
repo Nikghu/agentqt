@@ -7,6 +7,7 @@
 **Last Updated:** 2026-11-02
 **Project:** US Swing Trading System
 
+> v1.24.0: SRD-BKT-002.092 added and approved by user 2026-11-27 (chat) — skip entries before a stock's S&P 500 Added date.
 > v1.23.0: SRD-BKT-001.019 added and approved by user 2026-11-27 (chat) — SPY, RSP and sector ETFs download before the stocks.
 > v1.22.0: SRD-BKT-002.091 added and approved by user 2026-11-27 (chat) — Step 1 days come from the run's stocks, not SPY; replaces the calendar part of SRD-BKT-002.010.
 > v1.21.0: SRD-BKT-002.090 added and approved by user 2026-11-26 (chat) — HTML All trades shades Available light red above 80% of start capital.
@@ -166,3 +167,4 @@
 | SRD-BKT-002.089 | FO-BKT-002 | Should | The HTML All trades table shows an Entry row and an Exit row per trade in time order, numbered by entry, with Available as start capital less open trades after each row. | saved trades, start capital | event rows | Approved by user 2026-11-26 (chat); same as SRD-GUI-031.089; Held, Move, P&L and Exit on Exit rows only; replaces the HTML columns of SRD-BKT-002.053 | Implemented |
 | SRD-BKT-002.090 | FO-BKT-002 | Should | The HTML All trades table shades the Available cell light red when it is above 80% of the start capital (money mostly idle). | event rows, start capital | cell shade | Approved by user 2026-11-26 (chat); same rule as SRD-GUI-031.090; exactly 80% stays plain | Implemented |
 | SRD-BKT-002.091 | FO-BKT-002 | Must | Step 1 days are the run stocks' own 1d dates inside the period; SPY data never sets or cuts the days. | store, period, stocks | days | Approved by user 2026-11-27 (chat: only S&P 500 stocks are traded); SPY stays only for the RS rule; replaces the day source of SRD-BKT-002.010 | Implemented |
+| SRD-BKT-002.092 | FO-BKT-002 | Must | In S&P 500 and sector runs, a stock's entry signal on a day before its S&P 500 Added date is skipped (not_in_index_yet). | Added dates, entry signals | skip row in the decision log | Approved by user 2026-11-27 (chat); always on; typed-names runs not filtered; empty Added date always allowed; saved runs unchanged | Implemented |

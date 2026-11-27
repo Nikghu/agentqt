@@ -1094,6 +1094,7 @@ Test files:
 | UT-GUI-031.089.M07.T02 | MD-GUI-031.053.M07 | Edge | Exit and entry at same time | exit time = next entry time | Exit row first; money freed before entry | Pass |
 | UT-GUI-031.089.M07.T03 | MD-GUI-031.053.M07 | Negative | No start capital | trades only | Available shows a dash; Allocated still shown | Pass |
 | UT-GUI-031.090.M07.T01 | MD-GUI-031.053.M07 | Positive | Idle capital shaded red | 3 trades, $100 start; then no start | only the two $100 rows red ($80 = 80% plain); no shade without start | Pass |
+| UT-GUI-031.091.M04.T01 | MD-GUI-031.040.M04 | Positive | Not in index yet chip | 2 entries, 3 skips before Added date | chip "Not in index yet 3"; "2 of 5 entry signals were taken" | Pass |
 | UT-GUI-031.053.M03.T01 | MD-GUI-031.003.M03 | Positive | Trade list opens day | click trade #2 | Inspector tab; day 2026-03-03; chart on MSFT | Pass |
 | UT-GUI-031.054.M08.T01 | MD-GUI-031.054.M08 | Positive | Screener use | 3 sessions, one with no picks | traded / not traded per day; facts line | Pass |
 | UT-GUI-031.054.M08.T02 | MD-GUI-031.054.M08 | Edge | Margin use | 2 days; then no days | peak = capital minus lowest margin; paints; empty safe | Pass |
@@ -1289,3 +1290,10 @@ Test files:
 | UT-GUI-046.012.M03.T01 | MD-GUI-046.007.M03 | Positive | Extensions recommended | new project | extensions.json lists Python and Claude Code | Pass |
 | UT-GUI-046.013.M04.T01 | MD-GUI-046.013.M04 | Positive | Set up Python | Python 3.11 on PATH (stubbed runs) | venv, pip install pandas numpy pytest, project settings point at it | Pass |
 | UT-GUI-046.013.M04.T02 | MD-GUI-046.013.M04 | Negative | No Python on the PC | nothing found | message with python.org link; nothing run | Pass |
+
+## FO-GUI-047 — Universe Membership Dates
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-GUI-047.001.M01.T01 | MD-GUI-047.001.M01 | Positive | Added and Left columns | one current, one left stock | page has Added and Left columns and both dates | Pass |
+| UT-GUI-047.002.M01.T01 | MD-GUI-047.001.M01 | Positive | Left stocks counted | 2 current, 1 left | meta text "2 stocks · 1 left"; left row marked | Pass |

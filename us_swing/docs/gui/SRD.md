@@ -1,10 +1,12 @@
 # Software Requirements Document — GUI Module (GUI)
 
 **Document ID:** SRD-GUI
-**Version:** 2.143.3
+**Version:** 2.144.0
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
-**Last Updated:** 2026-11-23
+**Last Updated:** 2026-11-27
+> v2.145.0: SRD-GUI-031.091 added and approved by user 2026-11-27 (chat) — Not in index yet chip.
+> v2.144.0: Section FO-GUI-047 added — SRD-GUI-047.001–.002 (Universe membership dates), approved by user 2026-11-27 (chat).
 > SRD-GUI-030.013 added and approved by user 2026-11-27 (chat) — SPY, RSP and sector ETFs shown in the Universe table.
 > SRD-GUI-022.022 added and approved by user 2026-11-27 (chat) — chip groups keep an even gap on all sides in taller rows.
 > SRD-GUI-017.006 added and approved by user 2026-11-27 (chat) — Stop and Trip breaker buttons: red text and icon, theme border (reworded 2026-11-27).
@@ -804,6 +806,7 @@
 | SRD-GUI-031.088 | FO-GUI-031 | Should | The Trade list shows Duration in days (one decimal) instead of hours, plus Allocated capital (entry price × qty) and Available capital (free capital at entry). | saved trades | three columns | Approved by user 2026-11-25 (chat); old runs show a dash for Available; replaces the hours column of SRD-GUI-031.053 | Implemented |
 | SRD-GUI-031.089 | FO-GUI-031 | Should | The Trade list shows an Entry row and an Exit row per trade in time order, with Trade and Time columns, and Available capital as start capital less open trades after each row. | saved trades, start capital | event rows | Approved by user 2026-11-26 (chat); first trade of $4,000 at $982.58 shows $3,017.42; P&L, Duration and Exit reason on Exit rows only; replaces the time and price columns of SRD-GUI-031.053 and Available of SRD-GUI-031.088 | Implemented |
 | SRD-GUI-031.090 | FO-GUI-031 | Should | The Trade list shades the Available capital cell light red when it is above 80% of the start capital (money mostly idle). | event rows, start capital | cell shade | Approved by user 2026-11-26 (chat); exactly 80% stays plain; no shade when start capital is unknown | Implemented |
+| SRD-GUI-031.091 | FO-GUI-031 | Should | The report's Signals chips show skips before the Added date as "Not in index yet N". | decision counts | chip | Approved by user 2026-11-27 (chat); counted in the "N of M entry signals were taken" line | Implemented |
 
 ## FO-GUI-032 — Strategies Views
 
@@ -913,3 +916,12 @@ Builds on FO-EXE-022. Every popup row comes from the indicator file; the screen 
 | SRD-GUI-046.011 | FO-GUI-046 | Should | Opening a project adds any missing guide and VS Code files. | project folder | added files | Never changes the user's code or own settings | Implemented |
 | SRD-GUI-046.012 | FO-GUI-046 | Could | Each project recommends the Python and Claude Code VS Code extensions. | — | `.vscode/extensions.json` | VS Code offers to install them | Implemented |
 | SRD-GUI-046.013 | FO-GUI-046 | Should | Set up Python makes one shared Python environment with pandas, numpy and pytest and points every project at it. | Python 3.10+ on the PC | environment, project settings | Plain message with the download link when no Python is found | Implemented |
+
+---
+
+## FO-GUI-047 — Universe Membership Dates
+
+| ID | Parent | P | Description | In | Out | Constraints | Status |
+|---|---|---|---|---|---|---|---|
+| SRD-GUI-047.001 | FO-GUI-047 | Should | Settings → Universe shows Added and Left columns for each S&P 500 stock. | full stock list | two date columns | Dates as DD-MM-YYYY; a missing date shows "—" | Implemented |
+| SRD-GUI-047.002 | FO-GUI-047 | Should | Stocks that left the index stay in the Universe table, greyed out, after the current stocks. | full stock list | greyed rows | The stock count counts current members and says how many left | Implemented |

@@ -2,6 +2,19 @@
 
 ---
 
+## [20261127] INF + GUI — S&P 500 membership dates; backtest report fixes; BKT review
+
+- Type: Feature (INF + GUI) + Bugfix (GUI) + Review (BKT)
+- FO(s): FO-INF-013, FO-GUI-047 (new); FO-GUI-031 (fixes)
+- RN: pending
+- Artifacts updated: FO/SRD/DD/MD/UTCD/TRACE (INF, GUI); Code (universe/store.py, gui/app_service.py, gui/settings_panel.py, gui/backtest_workspace.py, gui/backtest_report_chart.py, gui/backtest_reports.py, backtest/service.py); tests
+- Decisions: left stocks shown greyed in Settings → Universe; dates DD-MM-YYYY, "—" when missing; Left dates tracked from the first refresh (no back-fill); fresh list under 90% of saved members marks nobody left.
+- Cause (GUI): report page fixed at 980 px, so stat cards covered the chart dates; Report details had no Screener row. Merged PR #188 (043373d1).
+- Review (BKT): no look-ahead in signals, entry fill (next bar open + slippage) or screener list (previous close). Backtests use today's S&P 500 list (survivorship bias) — step B done, step A open (T266).
+- Open: T264, T265 user checks; T266 option A; T267 six old failing tests.
+
+---
+
 ## [20261127] GUI + BKT + EXE — Backtest trade list and HTML Entry/Exit rows, 2021 start-date fix, holiday price fix, style fixes, Universe ETF rows
 
 - Type: Bugfix (with small enhancements)

@@ -306,7 +306,7 @@ def test_universe_html_etf_rows() -> None:
 
     assert [r[1] for r in data] == ["AAPL", "SPY", "XLK"]
     assert data[1] == [2, "SPY", "SPY", "ETF", None, "S&P 500 (SPY)", "2026-11-25", "current",
-                       "2019-09-23", "2026-11-25", "ok"]
+                       "2019-09-23", "2026-11-25", "ok", None, None]
     assert data[2][3] == "ETF" and data[2][10] == "none"
     assert "r[3]==='ETF')?" in html
 
@@ -320,7 +320,7 @@ def test_fill_selected_maps_to_ibkr_symbols() -> None:
 
     tab_cls = settings_panel._UniverseTab
     svc = MagicMock()
-    svc.get_sp500_universe.return_value = [Sp500Record("BRK.B", "BRK B", "Berkshire", "Fin"),
+    svc.get_sp500_history.return_value = [Sp500Record("BRK.B", "BRK B", "Berkshire", "Fin"),
                                            Sp500Record("UNP", "UNP", "Union Pacific", "Ind")]
     svc.fill_backtest_symbols.return_value = True
     tab = SimpleNamespace(_svc=svc, _meta_label=MagicMock(), _run_js=MagicMock(),
@@ -456,3 +456,26 @@ def test_tall_section_does_not_scroll_others(
     assert bar_shown("Users")
     assert not bar_shown("Candle data")
     assert dialog.height() <= 600
+
+def test_universe_html_membership_dates() -> None:
+    """UT-GUI-047.001.M01.T01: Universe table has Added and Left columns with both dates."""
+    from us_swing.universe.store import Sp500Record
+
+    html = settings_panel._build_universe_html(
+        [Sp500Record("MMM", "MMM", "3M", "Industrials", None, "1957-03-04"),
+         Sp500Record("OLD", "OLD", "Old Co", "Tech", None, "2001-01-02", "2026-11-24")], {}, None)
+
+    assert "['Added',        11,100]" in html and "['Left',         12,100]" in html
+    assert '"1957-03-04", null]' in html and '"2001-01-02", "2026-11-24"]' in html
+    assert "tbody tr.left" in html
+
+
+def test_universe_count_text_counts_left_stocks() -> None:
+    """UT-GUI-047.002.M01.T01: The stock count counts current members and says how many left."""
+    from us_swing.universe.store import Sp500Record
+
+    records = [Sp500Record("AAA", "AAA", "A", "Tech"), Sp500Record("BBB", "BBB", "B", "Tech"),
+               Sp500Record("OLD", "OLD", "Old", "Tech", left_on="2026-11-24")]
+
+    assert settings_panel._count_text(records) == "2 stocks · 1 left"
+    assert settings_panel._count_text(records[:2]) == "2 stocks"

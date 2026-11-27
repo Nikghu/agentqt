@@ -61,6 +61,7 @@ from us_swing.gui.system_store import SystemConfig
 from us_swing.gui.popups import confirm, notify
 from us_swing.gui.theme import C, active_palette
 from us_swing.screener.screeners import _api_key_store
+from us_swing.universe.store import Sp500Record
 
 _log = logging.getLogger(__name__)
 
@@ -652,6 +653,7 @@ tbody tr:hover{{background:{row_hover}}}
 tbody tr.stale{{background:#322a14}}
 tbody tr.missing{{background:#321414}}
 tbody tr.stale:hover,tbody tr.missing:hover{{background:{row_hover}}}
+tbody tr.left{{opacity:.45}}
 td{{padding:4px 10px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}}
 td.sym{{font-weight:600;color:{sym_fg};text-align:center}}
 td.cap{{font-variant-numeric:tabular-nums}}
@@ -675,12 +677,15 @@ let COLS=[
   ['BT From',       8,100],
   ['BT To',         9,100],
   ['',             -2, 36],
+  ['Added',        11,100],
+  ['Left',         12,100],
 ];
-let colOrder=[11,0,1,2,3,4,5,6,7,8,9,10];   /* indices into COLS */
+let colOrder=[11,0,1,2,3,4,5,12,13,6,7,8,9,10];   /* indices into COLS */
 let sc=4, sa=false, ft='';
 const SEL=new Set();
 
 function fc(b){{if(b===null)return'\u2014';if(b>=1000)return'$'+(b/1000).toFixed(2)+'T';if(b>=1)return'$'+b.toFixed(1)+'B';return'$'+(b*1000).toFixed(0)+'M';}}
+function fd(s){{return s?s.slice(8,10)+'-'+s.slice(5,7)+'-'+s.slice(0,4):'—';}}
 function applyFilters(text,_mn,_mx){{ft=text.toLowerCase();render();}}
 const G={gaps};
 function gapTip(sym){{const g=G[sym]||[];if(!g.length)return'';return' · missing '+g.length+' day(s) of 3-minute candles: '+g.slice(0,6).join(', ')+(g.length>6?' …':'');}}
@@ -785,6 +790,8 @@ function render(resort=true){{
   }});
   if(resort){{
     v.sort((a,b)=>{{
+      const gone=(a[12]?1:0)-(b[12]?1:0);
+      if(gone)return gone;
       let av=(sc===-1)?0:a[sc], bv=(sc===-1)?0:b[sc];
       if(av===null)av=sa?Infinity:-Infinity;
       if(bv===null)bv=sa?Infinity:-Infinity;
@@ -811,9 +818,10 @@ function render(resort=true){{
       if(ci===8){{const st=r[10];const cl=st==='ok'?'{st_ok}':st==='none'?'{st_err}':'{st_warn}';const ic=st==='ok'?'✔':st==='none'?'✘':'⚠';const tip=st==='ok'?'Up to date':st==='partial'?'Partial — saved candles do not cover the Backtest Data range'+gapTip(r[1]):'Not downloaded';return `<td title="${{tip}}" style="width:${{w}}px;max-width:${{w}}px;color:${{cl}};font-size:13px;text-align:center">${{ic}}</td>`;}}
       if((ci===9||ci===10)&&r[10]==='partial'){{return `<td title="Range is {bt_start} to {bt_end}" style="width:${{w}}px;max-width:${{w}}px;color:{st_warn};font-weight:600">${{r[di]}}</td>`;}}
       if(ci===9||ci===10){{return `<td ${{style}}>${{r[di]||'—'}}</td>`;}}
+      if(ci===12||ci===13){{return `<td ${{style}}>${{fd(r[di])}}</td>`;}}
       return `<td ${{style}}>${{r[di]}}</td>`;
     }}).join('');
-    const rc=r[7]==='current'?'':r[7]==='stale'?' class="stale"':' class="missing"';
+    const rc=r[12]?' class="left"':r[7]==='current'?'':r[7]==='stale'?' class="stale"':' class="missing"';
     return `<tr${{rc}}>${{cells}}</tr>`;
   }}).join('');
 }}
@@ -863,11 +871,13 @@ def _build_universe_html(
          round(r.market_cap / 1e9, 4) if r.market_cap else None,
          r.name,
          *_sym_status(r.symbol),
-         *bkt.get(r.symbol, (None, None, "none"))]
+         *bkt.get(r.symbol, (None, None, "none")),
+         r.date_added or None, r.left_on or None]
         for i, r in enumerate(records)
     ]
     data += [
-        [len(data) + i + 1, sym, sym, "ETF", None, name, *_sym_status(sym), first, last, status]
+        [len(data) + i + 1, sym, sym, "ETF", None, name, *_sym_status(sym), first, last, status,
+         None, None]
         for i, (sym, name, first, last, status) in enumerate(etfs or [])
     ]
     ct = active_palette()
@@ -891,6 +901,12 @@ def _build_universe_html(
         bt_start=bt_range[0],
         bt_end=bt_range[1],
     )
+
+
+def _count_text(records: list[Sp500Record]) -> str:
+    """Current-member count, plus how many stocks left the index (SRD-GUI-047.002)."""
+    left = sum(1 for r in records if r.left_on)
+    return f"{len(records) - left} stocks" + (f" · {left} left" if left else "")
 
 
 class _UniverseTab(QWidget):
@@ -965,7 +981,7 @@ class _UniverseTab(QWidget):
     # ── Slots ─────────────────────────────────────────────────────────────────
 
     def _load_from_cache(self) -> None:
-        records  = self._svc.get_sp500_universe()
+        records  = self._svc.get_sp500_history() or self._svc.get_sp500_universe()
         coverage = self._svc.get_candle_symbol_coverage()
         ltd      = self._svc.get_last_trading_day()
         self._backtest = self._svc.get_backtest_symbol_coverage()
@@ -977,7 +993,7 @@ class _UniverseTab(QWidget):
         meta  = self._svc.get_sp500_meta()
         self._refresh_btn.setToolTip(f"Stock list updated {meta.age_str()}")
         stale = " · list is old" if meta.is_stale() else ""
-        self._meta_text = f"{len(records)} stocks{stale}"
+        self._meta_text = f"{_count_text(records)}{stale}"
         self._show_meta()
 
     def _show_meta(self) -> None:
@@ -1024,7 +1040,7 @@ class _UniverseTab(QWidget):
     def _fill_selected(self, symbols: object) -> None:
         """Start a fill for the ticked Universe rows (symbols come back from the page)."""
         picked = set(symbols) if isinstance(symbols, list) else set()
-        ibkr = [r.ibkr_symbol for r in self._svc.get_sp500_universe() if r.symbol in picked]
+        ibkr = [r.ibkr_symbol for r in self._svc.get_sp500_history() if r.symbol in picked]
         if not ibkr:
             self._meta_label.setText("Tick the stocks to fill first")
             return

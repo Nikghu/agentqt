@@ -1,10 +1,13 @@
-"""Module: universe/store.py — S&P 500 universe flat-file cache.
+"""Module: MD-INF-013.001.M01 — universe/store.py — S&P 500 universe flat-file cache.
+Parent SRD: SRD-INF-013.001
 
 Infrastructure layer — no GUI, no PyQt, no framework imports.
 
 Storage location
 ────────────────
-    ~/.usswing/sp500_universe.csv   — ticker list (Symbol, IbkrSymbol, Name, Sector)
+    ~/.usswing/sp500_universe.csv   — ticker list (Symbol, IbkrSymbol, Name, Sector, MarketCap,
+                                      DateAdded, LeftOn); stocks that left the index stay
+                                      with a LeftOn date (SRD-INF-013.002)
     ~/.usswing/sp500_meta.json      — fetch metadata (last_fetched, source, count)
     ~/.usswing/sp500_ibkr.csv       — IBKR-qualified contracts (Symbol, IbkrSymbol, conid, PrimaryExch)
 
@@ -24,7 +27,8 @@ Public API
 ──────────
     get_meta()                          -> Sp500Meta
     refresh()                           -> list[Sp500Record]
-    load_sp500(*, force_refresh=False)  -> list[Sp500Record]
+    load_sp500(*, force_refresh=False)  -> list[Sp500Record]   (current members only)
+    load_sp500_all()                    -> list[Sp500Record]   (also stocks that left)
     ibkr_csv_exists()                   -> bool
     load_ibkr_universe()                -> list[dict]
 """
@@ -34,7 +38,7 @@ import csv
 import json
 import logging
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 log = logging.getLogger(__name__)
@@ -48,6 +52,7 @@ _IBKR_CSV     = _APP_DIR / "sp500_ibkr.csv"
 
 _WIKIPEDIA_URL = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
 REFRESH_DAYS   = 7
+_MIN_FRESH_SHARE = 0.9   # a smaller fresh list is a cut page: mark nobody as left
 
 
 # ── Data types ────────────────────────────────────────────────────────────────
@@ -59,6 +64,8 @@ class Sp500Record:
     name:        str
     sector:      str
     market_cap:  float | None = None  # USD, fetched from yfinance after Wikipedia fetch
+    date_added:  str = ""   # ISO date the stock joined the index; "" when unknown
+    left_on:     str = ""   # ISO date it was first missing from the list; "" while a member
 
 
 @dataclass
@@ -130,6 +137,8 @@ def _load_from_csv() -> list[Sp500Record]:
                 name        = row["Name"],
                 sector      = row["Sector"],
                 market_cap  = mc,
+                date_added  = row.get("DateAdded") or "",
+                left_on     = row.get("LeftOn") or "",
             ))
     return records
 
@@ -138,7 +147,8 @@ def _save_to_csv(records: list[Sp500Record]) -> None:
     _APP_DIR.mkdir(parents=True, exist_ok=True)
     tmp = _UNIVERSE_CSV.with_suffix(".tmp")
     with tmp.open("w", encoding="utf-8", newline="") as f:
-        w = csv.DictWriter(f, fieldnames=["Symbol", "IbkrSymbol", "Name", "Sector", "MarketCap"])
+        w = csv.DictWriter(f, fieldnames=["Symbol", "IbkrSymbol", "Name", "Sector", "MarketCap",
+                                          "DateAdded", "LeftOn"])
         w.writeheader()
         for r in records:
             w.writerow({
@@ -147,6 +157,8 @@ def _save_to_csv(records: list[Sp500Record]) -> None:
                 "Name":        r.name,
                 "Sector":      r.sector,
                 "MarketCap":   "" if r.market_cap is None else str(r.market_cap),
+                "DateAdded":   r.date_added,
+                "LeftOn":      r.left_on,
             })
     tmp.replace(_UNIVERSE_CSV)   # atomic rename
 
@@ -183,10 +195,14 @@ def _fetch_from_wikipedia() -> list[Sp500Record]:
             col_map[col] = "name"
         elif "gics sector" in low or "sector" in low:
             col_map[col] = "sector"
+        elif "date" in low and "added" in low:
+            col_map[col] = "added"
     df = df.rename(columns=col_map)
+    added = (pd.to_datetime(df["added"], errors="coerce") if "added" in df
+             else pd.Series(pd.NaT, index=df.index))
 
     records: list[Sp500Record] = []
-    for _, row in df.iterrows():
+    for (_, row), when in zip(df.iterrows(), added):
         sym = str(row.get("symbol", "")).strip().upper()
         if not sym:
             continue
@@ -196,6 +212,7 @@ def _fetch_from_wikipedia() -> list[Sp500Record]:
             ibkr_symbol = ibkr_sym,
             name        = str(row.get("name", "")).strip(),
             sector      = str(row.get("sector", "")).strip(),
+            date_added  = "" if pd.isna(when) else when.date().isoformat(),
         ))
     log.info("universe.store: fetched %d records", len(records))
 
@@ -236,13 +253,46 @@ def get_meta() -> Sp500Meta:
     return _load_meta()
 
 
+def _merge(saved: list[Sp500Record], fresh: list[Sp500Record],
+           today: date) -> list[Sp500Record]:
+    """Fresh members first, then saved stocks no longer listed, marked as left today.
+
+    A fresh list under ``_MIN_FRESH_SHARE`` of the saved members is treated as a
+    cut page: the missing stocks are kept as current members (DD-INF-013.001.D01).
+    """
+    old = {r.symbol: r for r in saved}
+    listed = {r.symbol for r in fresh}
+    current = sum(1 for r in saved if not r.left_on)
+    cut = len(fresh) < _MIN_FRESH_SHARE * current
+    if cut:
+        log.warning("[Universe] Stock list has only %d of %d stocks; no stock marked as left",
+                    len(fresh), current)
+    merged: list[Sp500Record] = []
+    for r in fresh:
+        before = old.get(r.symbol)
+        r.left_on = ""
+        if not r.date_added and before is not None:
+            r.date_added = before.date_added
+        merged.append(r)
+    for r in saved:
+        if r.symbol in listed:
+            continue
+        if not cut and not r.left_on:
+            r.left_on = today.isoformat()
+        merged.append(r)
+    return merged
+
+
 def refresh() -> list[Sp500Record]:
-    """Force-download from Wikipedia, save CSV + meta, return records."""
-    records = _fetch_from_wikipedia()
+    """Force-download from Wikipedia, merge with the saved list, save, return current members."""
+    saved = _load_from_csv() if _UNIVERSE_CSV.exists() else []
+    records = _merge(saved, _fetch_from_wikipedia(), date.today())
     _save_to_csv(records)
-    _save_meta(len(records))
-    log.info("universe.store: saved %d records to %s", len(records), _UNIVERSE_CSV)
-    return records
+    current = [r for r in records if not r.left_on]
+    _save_meta(len(current))
+    log.info("[Universe] Saved %d stocks; %d have left the index",
+             len(current), len(records) - len(current))
+    return current
 
 
 def load_sp500(*, force_refresh: bool = False) -> list[Sp500Record]:
@@ -264,7 +314,12 @@ def load_sp500(*, force_refresh: bool = False) -> list[Sp500Record]:
         "universe.store: loaded from cache (%s, %d tickers, last fetched %s)",
         _UNIVERSE_CSV, meta.count, meta.age_str(),
     )
-    return _load_from_csv()
+    return [r for r in _load_from_csv() if not r.left_on]
+
+
+def load_sp500_all() -> list[Sp500Record]:
+    """Return every saved stock, including those that left the index; never downloads."""
+    return _load_from_csv() if _UNIVERSE_CSV.exists() else []
 
 
 def ibkr_csv_exists() -> bool:

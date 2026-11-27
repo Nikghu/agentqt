@@ -56,7 +56,8 @@ def _daily(rows: list[tuple[date, str, float]]) -> pd.DataFrame:
 def _run(tmp_path: Path, bars: dict[str, list[pd.DataFrame]], signals: list[dict[str, Any]],
          daily: pd.DataFrame, strategies: list[tuple[dict[str, Any], float, float]],
          capital: float = 1000.0, days: tuple[date, ...] = (D1, D2),
-         loading: portfolio.Progress | None = None, **account: Any
+         loading: portfolio.Progress | None = None,
+         added: dict[str, date] | None = None, **account: Any
          ) -> portfolio.VariantResult:
     store = BacktestStore(tmp_path / "store")
     for sym, frames in bars.items():
@@ -72,7 +73,8 @@ def _run(tmp_path: Path, bars: dict[str, list[pd.DataFrame]], signals: list[dict
     frame = pd.DataFrame(signals, columns=["strategy", "symbol", "kind", "start", "end",
                                            "close_at_start", "values", "pnl"])
     (result,) = portfolio.run_portfolio(plan, [cfg for cfg, _a, _p in strategies], daily,
-                                        list(days), frame, store, loading=loading)
+                                        list(days), frame, store, loading=loading,
+                                        added=added)
     return result
 
 
@@ -304,3 +306,27 @@ def test_first_session_trades_its_list() -> None:
     picks = portfolio.picks_by_day(_daily([(D1, "AAPL", 1.0)]), [D1, D2], 0)
 
     assert picks == {D1: {"AAPL": (1.0, 1)}, D2: {}}
+
+
+def test_no_entry_before_added_date(tmp_path: Path) -> None:
+    """UT-BKT-002.092.M12.T01: A stock added to the index after the day is skipped, not traded."""
+    res = _run(tmp_path, {"AAPL": [_bars(D2)], "MSFT": [_bars(D2)]},
+               [_sig("S1", "AAPL", "entry", D2, "10:00", "10:00"),
+                _sig("S1", "MSFT", "entry", D2, "10:00", "10:00")],
+               _daily([(D2, "AAPL", 1.0), (D2, "MSFT", 0.9)]), [(_strategy(), 100, 50)],
+               added={"AAPL": D3, "MSFT": D1})
+
+    assert list(res.trades["symbol"]) == ["MSFT"]
+    assert ("AAPL", "not_in_index_yet") in _decisions(res)
+
+
+def test_added_today_or_unknown_is_allowed(tmp_path: Path) -> None:
+    """UT-BKT-002.092.M12.T02: Added on the day itself, or no Added date, still trades."""
+    res = _run(tmp_path, {"AAPL": [_bars(D2)], "MSFT": [_bars(D2)]},
+               [_sig("S1", "AAPL", "entry", D2, "10:00", "10:00"),
+                _sig("S1", "MSFT", "entry", D2, "10:00", "10:00")],
+               _daily([(D2, "AAPL", 1.0), (D2, "MSFT", 0.9)]), [(_strategy(), 100, 50)],
+               added={"AAPL": D2})
+
+    assert sorted(res.trades["symbol"]) == ["AAPL", "MSFT"]
+    assert "not_in_index_yet" not in set(res.day_log["decision"])

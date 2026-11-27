@@ -1,12 +1,13 @@
 # Functional Overview — GUI Module (GUI)
 
 **Document ID:** FO-GUI
-**Version:** 2.38.1
+**Version:** 2.39.0
 **Traces To:** requirements.md §21, §22, §23.3, §24, §25, §28.1, §29.1, §32
 **Status:** Draft
-**Last Updated:** 2026-11-23
+**Last Updated:** 2026-11-27
 **Project:** US Swing Trading System
 
+> v2.39.0: FO-GUI-047 added — Universe membership dates (user, 2026-11-27).
 > v2.38.1: FO-GUI-046 indicators shared by all users (user decision 2026-11-23: one shared folder, no user part).
 > v2.38.0: FO-GUI-046 adds easy-setup statements (user, 2026-11-23).
 > v2.37.0: FO-GUI-046 adds the AI guide and open-or-create project statements (user, 2026-11-23).
@@ -1108,3 +1109,20 @@ The system shall let a user manage their own indicators in the tool and use them
 2. A refused file shows its reason and does not appear in the indicator list of the popup.
 3. Removing an indicator used by a strategy asks first and names the strategies.
 4. New indicator creates the project folder with an example file and a test file.
+
+---
+
+## FO-GUI-047: Universe Membership Dates
+
+**Status:** Approved (user, 2026-11-27)
+**Priority:** Should
+**Depends on:** FO-INF-013 (S&P 500 Membership Dates), FO-GUI-027 (Settings dialog)
+
+- The system shall show in Settings → Universe when each stock was added to the S&P 500 and, for a stock that left, when it left.
+- The system shall keep stocks that left in the table, greyed out.
+
+### Acceptance Criteria
+
+1. MMM shows Added 04-03-1957 and no Left date.
+2. A stock that left on 24-11-2026 shows greyed out with Left 24-11-2026.
+3. A stock with no added date shows "—".

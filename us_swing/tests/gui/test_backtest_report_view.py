@@ -250,3 +250,17 @@ def test_cards_never_cover_chart_dates(view: ReportView) -> None:
     assert cards and cards[0].y() > view.chart.geometry().bottom()
     assert view.chart.height() >= view.chart.minimumHeight()
     scroll.takeWidget()
+
+
+def test_not_in_index_yet_chip(view: ReportView) -> None:
+    """UT-GUI-031.091.M04.T01: Skips before the Added date show as a "Not in index yet" chip."""
+    from dataclasses import replace
+
+    rep = replace(_report(), skips=pd.DataFrame({"decision": ["entered", "not_in_index_yet"],
+                                                 "count": [2, 3]}))
+    view.set_reports([rep])
+
+    texts = [w.text() for i in range(view.signals.count())
+             if (w := view.signals.itemAt(i).widget()) is not None]
+    assert "Not in index yet <b>3</b>" in texts
+    assert view.skips_label.text() == "2 of 5 entry signals were taken"

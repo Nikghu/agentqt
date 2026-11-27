@@ -325,6 +325,7 @@ class BacktestService:
             results = portfolio.run_portfolio(
                 plan, chosen, daily.frame, daily.days, found, self._store,
                 progress=progress, cancel=cancel, loading=loading,
+                added=self._added_dates(plan),
             )
             for i, res in enumerate(results):
                 self._results.save_variant(run_id, i, res.variant, res.trades, res.day_log,
@@ -335,6 +336,18 @@ class BacktestService:
         _log.info("[Backtest] Portfolio done: %d trade(s) in %d variant(s)",
                   sum(len(r.trades) for r in results), len(results))
         return results
+
+    def _added_dates(self, plan: RunPlan) -> dict[str, date]:
+        """S&P 500 Added date per stock; typed-names runs get none (SRD-BKT-002.092)."""
+        if plan.universe.mode not in ("sp500", "sector"):
+            return {}
+        added: dict[str, date] = {}
+        for rec in self._records():
+            try:
+                added[rec.symbol] = date.fromisoformat(str(getattr(rec, "date_added", "")))
+            except ValueError:
+                continue
+        return added
 
     def build_reports(self, plan: RunPlan, results: Sequence[portfolio.VariantResult]
                       ) -> list[report.Report]:
