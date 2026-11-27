@@ -88,14 +88,14 @@ def test_entry_exit_rows_in_time_order(qtbot: Any) -> None:
     assert [(_text(view, r, 3), _text(view, r, 1)) for r in range(6)] == [
         ("AAPL", "Entry"), ("MSFT", "Entry"), ("AAPL", "Exit"), ("MSFT", "Exit"),
         ("NVDA", "Entry"), ("NVDA", "Exit")]
-    assert [_text(view, r, 11) for r in range(6)] == [
+    assert [_text(view, r, 12) for r in range(6)] == [
         "$970.00", "$950.00", "$980.00", "$1,000.00", "$900.00", "$1,000.00"]
     assert _text(view, 0, 6) == "10.00"
     assert _text(view, 2, 6) == "20.00"
-    assert [_text(view, 0, c) for c in (8, 9, 12, 13)] == ["", "", "", ""]
-    assert [_text(view, 2, c) for c in (8, 9, 12, 13)] == ["$30.00", "+100.00%", "0.1",
+    assert [_text(view, 0, c) for c in (8, 9, 10, 13, 14)] == ["", "", "", "", ""]
+    assert [_text(view, 2, c) for c in (8, 9, 13, 14)] == ["$30.00", "+100.00%", "0.1",
                                                           "strategy"]
-    assert _text(view, 0, 10) == "$30.00"
+    assert _text(view, 0, 11) == "$30.00"
     assert numbered(_trades())["days"].iloc[0] == pytest.approx(1.5 / 24)
 
 
@@ -105,14 +105,14 @@ def test_idle_capital_shaded_red(qtbot: Any) -> None:
     qtbot.addWidget(view)
     view.set_trades(_trades(), 100.0)
 
-    shown = [_text(view, r, 11) for r in range(6)]
-    red = [view.table.item(r, 11).background().style()  # type: ignore[union-attr]
+    shown = [_text(view, r, 12) for r in range(6)]
+    red = [view.table.item(r, 12).background().style()  # type: ignore[union-attr]
            != Qt.BrushStyle.NoBrush for r in range(6)]
 
     assert shown == ["$70.00", "$50.00", "$80.00", "$100.00", "$0.00", "$100.00"]
     assert red == [False, False, False, True, False, True]
     view.set_trades(_trades())
-    assert view.table.item(0, 11).background().style() == Qt.BrushStyle.NoBrush  # type: ignore[union-attr]
+    assert view.table.item(0, 12).background().style() == Qt.BrushStyle.NoBrush  # type: ignore[union-attr]
 
 
 def test_exit_before_entry_at_same_time() -> None:
@@ -133,8 +133,25 @@ def test_available_unknown_without_capital(qtbot: Any) -> None:
     qtbot.addWidget(view)
     view.set_trades(_trades())
 
-    assert _text(view, 0, 11) == "—"
-    assert _text(view, 0, 10) == "$30.00"
+    assert _text(view, 0, 12) == "—"
+    assert _text(view, 0, 11) == "$30.00"
+
+
+def test_running_total_pnl(qtbot: Any) -> None:
+    """UT-GUI-031.095.M07.T01: Exit rows show the running total of closed P&L; Entry rows are empty."""
+    from PyQt6.QtGui import QColor
+
+    from us_swing.gui.theme import C
+
+    view = TradeList()
+    qtbot.addWidget(view)
+    view.set_trades(_trades(), 1000.0)
+
+    assert view.table.horizontalHeaderItem(10).text() == "Total P&L"  # type: ignore[union-attr]
+    assert [_text(view, r, 10) for r in range(6)] == [
+        "", "", "$30.00", "$28.00", "", "$28.00"]
+    assert view.table.item(3, 10).foreground().color() == QColor(C.GREEN)  # type: ignore[union-attr]
+    assert list(events(numbered(_trades().iloc[:1]), None)["total"]) == [0.0, -2.0]
 
 
 def test_empty_trade_list(qtbot: Any) -> None:

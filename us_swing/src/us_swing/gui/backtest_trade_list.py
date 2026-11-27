@@ -27,7 +27,8 @@ from us_swing.gui.screener_views import ChipGroup
 from us_swing.gui.theme import C
 
 HEADERS = ["Trade #", "Trade", "Type", "Symbol", "Strategy", "Time", "Price", "Qty", "P&L",
-           "P&L %", "Allocated capital", "Available capital", "Duration (days)", "Exit reason"]
+           "P&L %", "Total P&L", "Allocated capital", "Available capital", "Duration (days)",
+           "Exit reason"]
 FILTERS = [("All", "all"), ("Wins", "wins"), ("Losses", "losses"), ("LONG", "LONG"),
            ("SHORT", "SHORT")]
 IDLE_SHARE = 0.8  # Available capital above this share of start capital is shaded red
@@ -55,8 +56,9 @@ def numbered(trades: pd.DataFrame) -> pd.DataFrame:
 
 def events(trades: pd.DataFrame, capital: float | None) -> pd.DataFrame:
     """One Entry and one Exit row per numbered trade in time order, with ``event``, ``time``,
-    ``price`` and ``avail``: free capital after the row (an exit at the same time comes first,
-    as in the engine). ``avail`` is NaN when ``capital`` is not known."""
+    ``price``, ``avail``: free capital after the row (an exit at the same time comes first,
+    as in the engine; NaN when ``capital`` is not known) and ``total``: net P&L of all trades
+    closed up to the row (SRD-GUI-031.095)."""
     entry = trades.assign(event="Entry", time=pd.to_datetime(trades["entry_ts"], utc=True),
                           price=trades["entry_px"], _first=1)
     exit_ = trades.assign(event="Exit", time=pd.to_datetime(trades["exit_ts"], utc=True),
@@ -66,7 +68,8 @@ def events(trades: pd.DataFrame, capital: float | None) -> pd.DataFrame:
            .drop(columns="_first").reset_index(drop=True))
     change = out["alloc"].where(out["event"] == "Exit", -out["alloc"]).astype(float)
     start = float("nan") if capital is None else capital
-    return out.assign(avail=start + change.cumsum())
+    closed = out["net_pnl"].where(out["event"] == "Exit", 0.0).astype(float)
+    return out.assign(avail=start + change.cumsum(), total=closed.cumsum())
 
 
 def keep(trades: pd.DataFrame, which: str) -> pd.DataFrame:
@@ -163,6 +166,7 @@ class TradeList(QWidget):
             [f"{v:,.2f}" for v in shown["price"]], [str(v) for v in shown["qty"]],
             on_exit([_usd(float(v)) for v in shown["net_pnl"]]),
             on_exit([f"{v:+.2f}%" for v in shown["pnl_pct"]]),
+            on_exit([_usd(float(v)) for v in shown["total"]]),
             [_usd(float(v)) for v in shown["alloc"]],
             ["—" if pd.isna(v) else _usd(float(v)) for v in shown["avail"]],
             on_exit([f"{v:.1f}" for v in shown["days"]]),
@@ -185,7 +189,10 @@ class TradeList(QWidget):
         elif col in (8, 9):
             pnl = float(rows["net_pnl"].iloc[row])
             item.setForeground(QColor(C.GREEN if pnl > 0 else C.RED))
-        elif col == 11 and self._capital and (
+        elif col == 10:
+            total = float(rows["total"].iloc[row])
+            item.setForeground(QColor(C.GREEN if total > 0 else C.RED if total < 0 else C.TEXT))
+        elif col == 12 and self._capital and (
                 float(rows["avail"].iloc[row]) > IDLE_SHARE * self._capital):
             back = QColor(C.RED)
             back.setAlpha(40)

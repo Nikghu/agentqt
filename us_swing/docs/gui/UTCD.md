@@ -1095,6 +1095,7 @@ Test files:
 | UT-GUI-031.089.M07.T02 | MD-GUI-031.053.M07 | Edge | Exit and entry at same time | exit time = next entry time | Exit row first; money freed before entry | Pass |
 | UT-GUI-031.089.M07.T03 | MD-GUI-031.053.M07 | Negative | No start capital | trades only | Available shows a dash; Allocated still shown | Pass |
 | UT-GUI-031.090.M07.T01 | MD-GUI-031.053.M07 | Positive | Idle capital shaded red | 3 trades, $100 start; then no start | only the two $100 rows red ($80 = 80% plain); no shade without start | Pass |
+| UT-GUI-031.095.M07.T01 | MD-GUI-031.053.M07 | Positive | Total P&L column | 3 trades +30, −2, 0 | Exit rows $30.00, $28.00, $28.00; Entry rows empty; green | Pass |
 | UT-GUI-031.091.M04.T01 | MD-GUI-031.040.M04 | Positive | Not in index yet chip | 2 entries, 3 skips before Added date | chip "Not in index yet 3"; "2 of 5 entry signals were taken" | Pass |
 | UT-GUI-031.093.M04.T01 | MD-GUI-031.040.M04 | Positive | Sector chips | 4 not leading, 2 not weak | chips "Sector not leading 4", "Sector not weak 2" | Pass |
 | UT-GUI-031.094.M04.T01 | MD-GUI-031.040.M04 | Positive | Same stocks and Edge rows | winning and losing report | Same stocks return 1.2%; Edge 0.8% green, −5.2% red | Pass |
