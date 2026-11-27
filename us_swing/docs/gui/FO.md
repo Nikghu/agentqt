@@ -1114,7 +1114,7 @@ The system shall let a user manage their own indicators in the tool and use them
 
 ## FO-GUI-047: Universe Membership Dates
 
-**Status:** Draft
+**Status:** Approved (user, 2026-11-27)
 **Priority:** Should
 **Depends on:** FO-INF-013 (S&P 500 Membership Dates), FO-GUI-027 (Settings dialog)
 

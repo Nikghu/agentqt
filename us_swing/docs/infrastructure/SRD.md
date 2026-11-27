@@ -7,7 +7,7 @@
 **Last Updated:** 2026-11-27
 **Project:** US Swing Trading System
 
-> v1.13.0: Section 13 added — SRD-INF-013.001–.004 (S&P 500 membership dates), Draft.
+> v1.13.0: Section 13 added — SRD-INF-013.001–.004 (S&P 500 membership dates), approved by user 2026-11-27 (chat).
 > v1.5.0: Section 9 added — SRD-INF-009.001–.006 (Pluggable Broker Abstraction; Broker_fix.md Phases 1/3/4).
 > v1.6.0: SRD-INF-009.007 added (ISS-INF-0002) — SimBroker fills MARKET orders at an injected live-price provider so paper fills mirror a real broker instead of echoing a caller-supplied reference price.
 > v1.7.0: Section 10 added — SRD-INF-010.001–.009 (Telegram Notification Integration; scalable business-event notification service).
@@ -210,7 +210,7 @@
 
 | ID | Parent | P | Description | In | Out | Constraints | Status |
 |---|---|---|---|---|---|---|---|
-| SRD-INF-013.001 | FO-INF-013 | Must | Each saved S&P 500 record carries an added date and a left date, both optional. | Wikipedia "Date added" column | saved list with two date columns | A blank or unreadable date is saved empty; an old list without the columns loads with empty dates | Draft |
-| SRD-INF-013.002 | FO-INF-013 | Must | A refresh merges with the saved list: a stock no longer listed is kept with today's date as its left date. | saved list, fresh list | merged saved list | An existing left date is never overwritten; the stock's other saved fields stay | Draft |
-| SRD-INF-013.003 | FO-INF-013 | Must | A stock that is listed again has its left date cleared and its fields updated from the fresh list. | saved list, fresh list | merged saved list | — | Draft |
-| SRD-INF-013.004 | FO-INF-013 | Must | The current-member list used by the screener, backtest and other tools leaves out stocks with a left date; a separate full list includes them. | merged saved list | current list, full list | Stock count and refresh log count current members only and say how many left | Draft |
+| SRD-INF-013.001 | FO-INF-013 | Must | Each saved S&P 500 record carries an added date and a left date, both optional. | Wikipedia "Date added" column | saved list with two date columns | A blank or unreadable date is saved empty; an old list without the columns loads with empty dates | Implemented |
+| SRD-INF-013.002 | FO-INF-013 | Must | A refresh merges with the saved list: a stock no longer listed is kept with today's date as its left date. | saved list, fresh list | merged saved list | An existing left date is never overwritten; the stock's other saved fields stay | Implemented |
+| SRD-INF-013.003 | FO-INF-013 | Must | A stock that is listed again has its left date cleared and its fields updated from the fresh list. | saved list, fresh list | merged saved list | — | Implemented |
+| SRD-INF-013.004 | FO-INF-013 | Must | The current-member list used by the screener, backtest and other tools leaves out stocks with a left date; a separate full list includes them. | merged saved list | current list, full list | Stock count and refresh log count current members only and say how many left | Implemented |

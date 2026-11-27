@@ -5,7 +5,7 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-11-27
-> v2.144.0: Section FO-GUI-047 added — SRD-GUI-047.001–.002 (Universe membership dates), Draft.
+> v2.144.0: Section FO-GUI-047 added — SRD-GUI-047.001–.002 (Universe membership dates), approved by user 2026-11-27 (chat).
 > SRD-GUI-030.013 added and approved by user 2026-11-27 (chat) — SPY, RSP and sector ETFs shown in the Universe table.
 > SRD-GUI-022.022 added and approved by user 2026-11-27 (chat) — chip groups keep an even gap on all sides in taller rows.
 > SRD-GUI-017.006 added and approved by user 2026-11-27 (chat) — Stop and Trip breaker buttons: red text and icon, theme border (reworded 2026-11-27).
@@ -921,5 +921,5 @@ Builds on FO-EXE-022. Every popup row comes from the indicator file; the screen 
 
 | ID | Parent | P | Description | In | Out | Constraints | Status |
 |---|---|---|---|---|---|---|---|
-| SRD-GUI-047.001 | FO-GUI-047 | Should | Settings → Universe shows Added and Left columns for each S&P 500 stock. | full stock list | two date columns | Dates as DD-MM-YYYY; a missing date shows "—" | Draft |
-| SRD-GUI-047.002 | FO-GUI-047 | Should | Stocks that left the index stay in the Universe table, greyed out, after the current stocks. | full stock list | greyed rows | The stock count counts current members and says how many left | Draft |
+| SRD-GUI-047.001 | FO-GUI-047 | Should | Settings → Universe shows Added and Left columns for each S&P 500 stock. | full stock list | two date columns | Dates as DD-MM-YYYY; a missing date shows "—" | Implemented |
+| SRD-GUI-047.002 | FO-GUI-047 | Should | Stocks that left the index stay in the Universe table, greyed out, after the current stocks. | full stock list | greyed rows | The stock count counts current members and says how many left | Implemented |

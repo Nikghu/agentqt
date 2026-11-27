@@ -1289,3 +1289,10 @@ Test files:
 | UT-GUI-046.012.M03.T01 | MD-GUI-046.007.M03 | Positive | Extensions recommended | new project | extensions.json lists Python and Claude Code | Pass |
 | UT-GUI-046.013.M04.T01 | MD-GUI-046.013.M04 | Positive | Set up Python | Python 3.11 on PATH (stubbed runs) | venv, pip install pandas numpy pytest, project settings point at it | Pass |
 | UT-GUI-046.013.M04.T02 | MD-GUI-046.013.M04 | Negative | No Python on the PC | nothing found | message with python.org link; nothing run | Pass |
+
+## FO-GUI-047 — Universe Membership Dates
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-GUI-047.001.M01.T01 | MD-GUI-047.001.M01 | Positive | Added and Left columns | one current, one left stock | page has Added and Left columns and both dates | Pass |
+| UT-GUI-047.002.M01.T01 | MD-GUI-047.001.M01 | Positive | Left stocks counted | 2 current, 1 left | meta text "2 stocks · 1 left"; left row marked | Pass |

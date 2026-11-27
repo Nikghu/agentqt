@@ -484,3 +484,11 @@ Minimal GUI docs: design in DD-EXE-022.*.D01 (registry, check, runner). Phases P
 | MD-GUI-046.003.M02 | SRD-GUI-046.003 | `us_swing/src/us_swing/gui/indicators_section.py` (new), `gui/settings_panel.py` | Settings "Indicators" section: list with name, version and status; Import (warning, check before copy), Export, Remove (asks, names and stops the strategies that use it), Reload, Check on one stock | `IndicatorsSection`, `CheckDialog`, `ProjectDialog`, `PythonSetupDialog`, `strategies_using(name)` | `AppService.reload_indicators()`, `.stop_strategies()`, `.indicator_probe()`, `.backtest_frames()`, `.get_sp500_universe()`, `core.indicator_plugins`, `strategy_store`, `popups` | Check runs in a worker thread |
 | MD-GUI-046.007.M03 | SRD-GUI-046.007 | `us_swing/src/us_swing/gui/indicator_project.py` (new), `gui/indicator_guides.py`, `gui/guide_html.py` (new) | New indicator project: example indicator, test file, VS Code settings, launch (own Python) a Check indicator task (the tool's command) and a CLAUDE.md guide for AI helpers; lists projects; opens VS Code or the folder | `create_project(name) -> Path`, `list_projects()`, `import_start_folder()`, `ensure_project_files(folder)`, `check_command(file)`, `point_projects_at_python()`, `open_project(path)` | `core.indicator_plugins.plugin_dir` | No |
 | MD-GUI-046.013.M04 | SRD-GUI-046.013 | `us_swing/src/us_swing/gui/indicator_python.py` (new) | Finds Python 3.10+ (`py` launcher, then PATH), makes `<plugins>/python` venv, installs pandas, numpy, pytest, points projects at it | `find_base_python()`, `setup_python(root, run, step)`, `python_ready()`, `PythonSetupError` | `indicator_project` | Runs in a worker thread from `PythonSetupDialog` |
+
+## FO-GUI-047 — Universe Membership Dates
+
+Minimal GUI docs: design in DD-INF-013.001.D01.
+
+| MD ID | SRD | File | Purpose | Public API | Depends on | Async |
+|---|---|---|---|---|---|---|
+| MD-GUI-047.001.M01 | SRD-GUI-047.001 | `us_swing/src/us_swing/gui/settings_panel.py`, `gui/app_service.py` | Universe table Added and Left columns; left stocks greyed after current ones; count says how many left | `_build_universe_html()`, `AppService.get_sp500_history()` | `universe/store.py` | No |

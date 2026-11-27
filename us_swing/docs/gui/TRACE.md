@@ -157,6 +157,7 @@
 | FO-GUI-046 | SRD-GUI-046.011 | — (minimal GUI docs) | MD-GUI-046.007.M03 | UT-GUI-046.011.M03.T01 (1, Pass) | `gui/indicator_project.py` | Implemented | RN-GUI-2.9.0-20261123 |
 | FO-GUI-046 | SRD-GUI-046.012 | — (minimal GUI docs) | MD-GUI-046.007.M03 | UT-GUI-046.012.M03.T01 (1, Pass) | `gui/indicator_project.py` | Implemented | RN-GUI-2.9.0-20261123 |
 | FO-GUI-046 | SRD-GUI-046.013 | — (minimal GUI docs) | MD-GUI-046.013.M04 | UT-GUI-046.013.M04.T01–T02 (2, Pass) | `gui/indicator_python.py`, `gui/indicators_section.py` | Implemented | RN-GUI-2.9.0-20261123 |
+| FO-GUI-047 | SRD-GUI-047.001–.002 | — (minimal GUI docs; design in DD-INF-013.001.D01) | MD-GUI-047.001.M01 | UT-GUI-047.001.M01.T01, .002.M01.T01 (2, Pass) | `gui/settings_panel.py`, `gui/app_service.py` | Implemented | pending |
 
 ---
 

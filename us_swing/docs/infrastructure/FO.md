@@ -237,7 +237,7 @@
 ---
 
 ## FO-INF-013: S&P 500 Membership Dates
-- **Status:** Draft
+- **Status:** Approved (user, 2026-11-27)
 
 > Source: chat 2026-11-27 — survivorship bias review, option B. User picked: start tracking from the first refresh (no back-fill); option A (backtest uses members per day) comes later.
 

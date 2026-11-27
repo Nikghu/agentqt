@@ -274,3 +274,6 @@ Short, living task list. Keep each description ≤ 50 words; cite module + prior
 | T262 | GUI — User check: Settings → Universe shows 13 ETF rows (SPY, RSP, 11 sector ETFs) after the stocks, each with a tick mark for daily backtest status. | `gui/settings_panel.py`, `gui/app_service.py` | Low | Open |
 | T263 | GUI — Cleanup: delete unused StatusBadgeDelegate in `gui/strategy_table_model.py` and stale `tests/screener/test_llm_claude_screener.py` (breaks full test collection). | `gui/strategy_table_model.py`, `tests/screener/` | Low | Open |
 | T264 | GUI — User check: Backtest Report shows the dates under the drawdown chart; Report details shows the Screener name. | `gui/backtest_workspace.py`, `gui/backtest_reports.py` | Low | Open |
+| T265 | INF/GUI — User check: Settings → Universe shows Added and Left columns; after a list refresh, a stock that left stays greyed with its Left date. | `universe/store.py`, `gui/settings_panel.py` | Low | Open |
+| T266 | BKT — Option A: use only S&P 500 members on each backtest day (GitHub history file + candles for removed stocks); removes survivorship bias. | `backtest/universe.py`, `universe/store.py` | Medium | Open |
+| T267 | Tests — Fix 6 old failing tests: `test_manual_picks.py` (4) and `test_preset.py` T17/T18 (2); they fail on main too. | `tests/gui/`, `tests/screener/` | Low | Open |

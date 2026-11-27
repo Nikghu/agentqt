@@ -85,7 +85,7 @@ if TYPE_CHECKING:
     from us_swing.execution.trade_cycle import CycleSnapshot, StrategyPnlSummary
     from us_swing.gui.chart_drawings import DrawingStore
     from us_swing.gui.telegram_commands import TelegramCommandBridge
-    from us_swing.universe.store import Sp500Meta
+    from us_swing.universe.store import Sp500Meta, Sp500Record
 
 _log = logging.getLogger(__name__)
 
@@ -4206,6 +4206,11 @@ class AppService(QObject):
         on first run before the background check completes."""
         return list(self._sp500)
 
+    def get_sp500_history(self) -> list[Sp500Record]:
+        """Every saved S&P 500 record, also stocks that left the index (SRD-GUI-047.001)."""
+        from us_swing.universe.store import load_sp500_all
+        return load_sp500_all()
+
     def get_sp500_meta(self) -> Sp500Meta:
         """Return Sp500Meta (last_fetched, source, count, is_stale)."""
         from us_swing.universe.store import get_meta
@@ -4240,6 +4245,10 @@ class AppService(QObject):
             worker.start()
             self._sp500_worker = worker   # keep reference
 
+    def _left_note(self) -> str:
+        left = sum(1 for r in self.get_sp500_history() if r.left_on)
+        return f", {left} left the index" if left else ""
+
     def _on_sp500_done(self, records: list) -> None:
         self._sp500 = records
         self._sp500_cache = set()   # invalidate cache so it rebuilds with new universe
@@ -4250,7 +4259,7 @@ class AppService(QObject):
         self.log_message.emit(
             "INFO",
             f"[Universe] S&P 500 refreshed from Wikipedia — {len(records)} tickers"
-            f"  (saved to ~/.usswing/sp500_universe.csv)",
+            f"{self._left_note()}  (saved to ~/.usswing/sp500_universe.csv)",
         )
         from us_swing.universe.store import ibkr_csv_exists
         if not ibkr_csv_exists():

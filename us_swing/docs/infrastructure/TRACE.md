@@ -35,6 +35,7 @@
 | FO-INF-011 | SRD-INF-011.004 | DD-INF-011.001.D01 | MD-INF-011.001.M01 | UT-INF-011.004.M01.T01 | `core/notifications/_ai_client.py` | Implemented | RN-SCR-2.12.0-20261118 |
 | FO-INF-011 | SRD-INF-011.001–003 | DD-INF-011.001.D01 | MD-INF-011.001.M01 | UT-INF-011.001.M01.T01–T02, .002.M01.T01, .003.M01.T01–T02 | `core/notifications/_ai_client.py` | Implemented | RN-INF-1.9.0-20261105 |
 | FO-INF-012 | SRD-INF-012.001–006 | DD-INF-012.001.D01 | MD-INF-012.002.M01, .003.M02, .003.M03, .001.M04 | UT-INF-012.*, UT-INF-010.001.M09.T01–T03 | `core/notifications/_briefs.py`, `_events.py`, `_formatters.py`, `gui/morning_brief.py`, `gui/app_service.py`, `gui/notification_worker.py`, `gui/settings_panel.py`, `gui/user_store.py`, `data/models.py` | Implemented | RN-INF-1.10.0-20261105 |
+| FO-INF-013 | SRD-INF-013.001–004 | DD-INF-013.001.D01 | MD-INF-013.001.M01 | UT-INF-013.001.M01.T01–T02, .002.M01.T01–T03, .003.M01.T01, .004.M01.T01 (7, Pass) | `universe/store.py` | Implemented | pending |
 | FO-INF-005 | SRD-INF-005.001 | DD-INF-005.001.D01 | MD-INF-005.001.M01 | UT-INF-005.001.M01.T06 | `monitoring/logging_setup.py` | Implemented | RN-INF-1.10.1-20261105 |
 
 ---
@@ -63,6 +64,7 @@
 | `core/notifications/_ai_client.py` | MD-INF-011.001.M01 | SRD-INF-011.001 | FO-INF-011 |
 | `core/notifications/_briefs.py` | MD-INF-012.002.M01 | SRD-INF-012.002 | FO-INF-012 |
 | `gui/morning_brief.py` | MD-INF-012.003.M03 | SRD-INF-012.003 | FO-INF-012 |
+| `universe/store.py` | MD-INF-013.001.M01 | SRD-INF-013.001 | FO-INF-013 |
 | `core/notifications/_events.py` | MD-INF-010.001.M01 | SRD-INF-010.001 | FO-INF-010 |
 | `core/notifications/_protocols.py` | MD-INF-010.001.M02 | SRD-INF-010.002, .014 | FO-INF-010 |
 | `core/notifications/_telegram.py` | MD-INF-010.001.M03 | SRD-INF-010.003 | FO-INF-010 |

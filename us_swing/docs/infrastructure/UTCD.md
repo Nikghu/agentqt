@@ -310,3 +310,15 @@
 | UT-INF-012.002.M04.T01 | MD-INF-012.001.M04 | Positive | Brief sent once per day | two ticks in pre-market | one brief job started; send log has today | Pass |
 | UT-INF-012.005.M04.T01 | MD-INF-012.001.M04 | Positive | Day-end uses today's closed trades | closed cycles today and yesterday | only today's trades in the event | Pass |
 | UT-INF-012.006.M04.T01 | MD-INF-012.001.M04 | Positive | Morning brief toggle | untick and Apply; reload | `notify_morning_brief` False; config maps it | Pass |
+
+## Module: `universe/store.py` — S&P 500 membership dates
+
+| ID | Module | Type | Objective | Input | Expected Output | Status |
+|---|---|---|---|---|---|---|
+| UT-INF-013.001.M01.T01 | MD-INF-013.001.M01 | Positive | Added date read from the page | table with Date added 1957-03-04 and a blank | `date_added` "1957-03-04" and "" | Pass |
+| UT-INF-013.001.M01.T02 | MD-INF-013.001.M01 | Edge | Old saved list loads | CSV without DateAdded/LeftOn | records with empty dates | Pass |
+| UT-INF-013.002.M01.T01 | MD-INF-013.001.M01 | Positive | Removed stock kept | saved AAA, BBB; fresh AAA | BBB kept, `left_on` today, fields kept | Pass |
+| UT-INF-013.002.M01.T02 | MD-INF-013.001.M01 | Negative | Left date not overwritten | BBB left 2026-11-01, still missing | `left_on` stays 2026-11-01 | Pass |
+| UT-INF-013.002.M01.T03 | MD-INF-013.001.M01 | Negative | Cut page marks nobody left | 20 saved, fresh has 5 | no stock gets a left date | Pass |
+| UT-INF-013.003.M01.T01 | MD-INF-013.001.M01 | Positive | Returning stock | BBB left, fresh has BBB | `left_on` "", fields from fresh | Pass |
+| UT-INF-013.004.M01.T01 | MD-INF-013.001.M01 | Positive | Current and full lists | CSV with one left stock | `load_sp500` without it; `load_sp500_all` with it; meta count current only | Pass |
