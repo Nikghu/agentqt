@@ -6,7 +6,7 @@
 
 - Type: Feature (BKT + GUI)
 - FO(s): FO-BKT-002, FO-GUI-031
-- RN: pending
+- RN: RN-BKT-1.18.0-20261127, RN-GUI-2.11.0-20261127
 - Artifacts updated: SRD/DD/MD/UTCD/TRACE (BKT, GUI); Code (backtest/spec.py, steps/sectors.py, steps/portfolio.py, steps/report.py, service.py; gui/backtest_builder.py, backtest_report_view.py, backtest_reports.py); tests
 - Decisions: Added date always on for S&P 500/sector runs; Leading sectors off by default, Top 3, 1M, Must beat RSP, one N and range for longs and shorts, ranking on the previous day's closes, open trades kept; benchmark uses the same Added-date rule; Edge = strategy return minus Same stocks return; chart line stays hidden; no RSP line.
 - Findings: S&P 500 2021–2026 run +20.6% off vs +84.5% with Leading sectors; SPY +94.3%, today's list +91.3%, RSP +71.6% — no edge over the fair benchmark yet. T266 closed: user keeps today's S&P 500 list.
@@ -18,7 +18,7 @@
 
 - Type: Feature (INF + GUI) + Bugfix (GUI) + Review (BKT)
 - FO(s): FO-INF-013, FO-GUI-047 (new); FO-GUI-031 (fixes)
-- RN: pending
+- RN: RN-INF-1.11.0-20261127, RN-GUI-2.11.0-20261127
 - Artifacts updated: FO/SRD/DD/MD/UTCD/TRACE (INF, GUI); Code (universe/store.py, gui/app_service.py, gui/settings_panel.py, gui/backtest_workspace.py, gui/backtest_report_chart.py, gui/backtest_reports.py, backtest/service.py); tests
 - Decisions: left stocks shown greyed in Settings → Universe; dates DD-MM-YYYY, "—" when missing; Left dates tracked from the first refresh (no back-fill); fresh list under 90% of saved members marks nobody left.
 - Cause (GUI): report page fixed at 980 px, so stat cards covered the chart dates; Report details had no Screener row. Merged PR #188 (043373d1).

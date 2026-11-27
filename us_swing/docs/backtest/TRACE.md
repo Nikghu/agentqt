@@ -36,9 +36,9 @@
 | FO-BKT-002 | SRD-BKT-002.088 | None (small step) | MD-BKT-002.008.M05 | UT-BKT-002.088.M05.T01–T02 (2 tests, Pass) | `backtest/service.py` | Implemented | RN-BKT-1.12.0-20261103, RN-BKT-1.14.1-20261123 |
 | FO-BKT-002 | SRD-BKT-002.089–.090 | DD-BKT-002.083.D01 | MD-BKT-002.083.M15 (+ .008.M05) | UT-BKT-002.089.M15.T01–T02, UT-BKT-002.090.M15.T01 (Pass); UT-BKT-002.053.M15.T01 Replaced | `backtest/html_report.py` | Implemented | RN-BKT-1.17.0-20261127 |
 | FO-BKT-002 | SRD-BKT-002.091 | DD-BKT-002.010.D01 | MD-BKT-002.010.M07 | UT-BKT-002.091.M07.T01 (Pass); UT-BKT-002.010.M07.T01 Replaced | `backtest/steps/stocks.py` | Implemented | RN-BKT-1.17.0-20261127 |
-| FO-BKT-002 | SRD-BKT-002.092 | DD-BKT-002.092.D01 | MD-BKT-002.030.M12 (+ .008.M05) | UT-BKT-002.092.M12.T01–T02, UT-BKT-002.092.M05.T01 (Pass) | `backtest/steps/portfolio.py`, `backtest/service.py` | Implemented | pending |
-| FO-BKT-002 | SRD-BKT-002.093–.095 | DD-BKT-002.093.D01 | MD-BKT-002.093.M16, .030.M12, .001.M01, .008.M05 | UT-BKT-002.093.M12.T01–T03, .093.M16.T01–T03, .094.M01.T01, .095.M16.T01, .095.M05.T01 (9, Pass) | `backtest/steps/sectors.py`, `steps/portfolio.py`, `spec.py`, `service.py` | Implemented | pending |
-| FO-BKT-002 | SRD-BKT-002.096–.097 | DD-BKT-002.096.D01 | MD-BKT-002.040.M13, .008.M05 | UT-BKT-002.096.M13.T01, .097.M13.T01–T02 (3, Pass) | `backtest/steps/report.py`, `service.py` | Implemented | pending |
+| FO-BKT-002 | SRD-BKT-002.092 | DD-BKT-002.092.D01 | MD-BKT-002.030.M12 (+ .008.M05) | UT-BKT-002.092.M12.T01–T02, UT-BKT-002.092.M05.T01 (Pass) | `backtest/steps/portfolio.py`, `backtest/service.py` | Implemented | RN-BKT-1.18.0-20261127 |
+| FO-BKT-002 | SRD-BKT-002.093–.095 | DD-BKT-002.093.D01 | MD-BKT-002.093.M16, .030.M12, .001.M01, .008.M05 | UT-BKT-002.093.M12.T01–T03, .093.M16.T01–T03, .094.M01.T01, .095.M16.T01, .095.M05.T01 (9, Pass) | `backtest/steps/sectors.py`, `steps/portfolio.py`, `spec.py`, `service.py` | Implemented | RN-BKT-1.18.0-20261127 |
+| FO-BKT-002 | SRD-BKT-002.096–.097 | DD-BKT-002.096.D01 | MD-BKT-002.040.M13, .008.M05 | UT-BKT-002.096.M13.T01, .097.M13.T01–T02 (3, Pass) | `backtest/steps/report.py`, `service.py` | Implemented | RN-BKT-1.18.0-20261127 |
 
 ## Reverse Traceability: Code → MD → SRD → FO
 
