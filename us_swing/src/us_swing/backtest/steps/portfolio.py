@@ -6,7 +6,9 @@ Step 3 · Portfolio: one shared account per variant. Signals of the picked
 strategies become trades with the live money rules (per-trade size, strategy
 limit, margin), next-open fills with costs, stop / target / end time / exit
 condition, a per-day Rex limit and the daily loss stop. A stock is not entered
-before its S&P 500 Added date (SRD-BKT-002.092). Every decision is logged.
+before its S&P 500 Added date (SRD-BKT-002.092); with Leading sectors on, longs
+enter only leading sectors and shorts only weak ones (SRD-BKT-002.093). Every
+decision is logged.
 """
 from __future__ import annotations
 
@@ -22,6 +24,7 @@ import numpy.typing as npt
 import pandas as pd
 
 from us_swing.backtest.spec import AccountSpec, CostSpec, RunPlan, Variant
+from us_swing.backtest.steps.sectors import SectorGate
 from us_swing.backtest.steps.stocks import Cancel, Progress, StepCancelled, StepRefused, top_n
 from us_swing.backtest.store import BacktestStore
 from us_swing.core.expr.series import ET
@@ -266,11 +269,15 @@ class _Sim:
                  picks: dict[date, dict[str, tuple[float, int]]], bars: dict[str, _Bars],
                  entry: dict[tuple[str, str], IntArray],
                  exits: dict[tuple[str, str], BoolArray],
-                 added: Mapping[str, date] | None = None) -> None:
+                 added: Mapping[str, date] | None = None,
+                 gates: Mapping[date, SectorGate] | None = None,
+                 sectors: Mapping[str, str] | None = None) -> None:
         self.acc = _Account(variant.capital, plan.account, plan.costs)
         self.rules, self.picks, self.bars = rules, picks, bars
         self.entry, self.exits = entry, exits
         self.added: Mapping[str, date] = added or {}
+        self.gates: Mapping[date, SectorGate] = gates or {}
+        self.sectors: Mapping[str, str] = sectors or {}
         self.today: date | None = None
         self.when_full = plan.account.when_full
         self.money: list[tuple[Any, ...]] = []
@@ -373,6 +380,10 @@ class _Sim:
                 if joined is not None and self.today is not None and self.today < joined:
                     acc.note(t, s, rules, "not_in_index_yet", window)
                     continue
+                skip = self._sector_skip(s, rules)
+                if skip:
+                    acc.note(t, s, rules, skip, window)
+                    continue
                 if stopped:
                     acc.note(t, s, rules, "daily_loss_stop", window)
                     continue
@@ -391,6 +402,16 @@ class _Sim:
                 acc.note(t, order.symbol, order.rules, "already_held", order.window)
             else:
                 acc.pending.append(order)
+
+    def _sector_skip(self, symbol: str, rules: StrategyRules) -> str:
+        """Skip code when the stock's sector is closed for this side today, else ""."""
+        gate = self.gates.get(self.today) if self.today is not None else None
+        sector = self.sectors.get(symbol)
+        if gate is None or not sector:
+            return ""
+        if rules.sign > 0:
+            return "" if sector in gate.longs else "sector_not_leading"
+        return "" if sector in gate.shorts else "sector_not_weak"
 
     def finish(self, variant: Variant) -> VariantResult:
         acc = self.acc
@@ -431,11 +452,15 @@ def run_portfolio(
     cancel: Cancel | None = None,
     loading: Progress | None = None,
     added: Mapping[str, date] | None = None,
+    gates: Mapping[date, SectorGate] | None = None,
+    sectors: Mapping[str, str] | None = None,
 ) -> list[VariantResult]:
     """Run every variant of the plan (SRD-BKT-002.030–.038).
 
     ``loading`` gets (stocks read, total) while 3m candles load, before ``progress`` starts.
     ``added`` maps a stock to its S&P 500 Added date; earlier entries are skipped.
+    ``gates`` gives the open sectors per session and ``sectors`` each stock's GICS sector;
+    a session or stock missing from them is not checked.
 
     Raises:
         StepRefused: trailing levels, PNL conditions or Grow with P&L.
@@ -473,7 +498,7 @@ def run_portfolio(
     for vi, variant in enumerate(variants):
         rules = {name: StrategyRules.from_live(live[name], alloc, per)
                  for name, alloc, per in variant.strategies}
-        sim = _Sim(variant, rules, plan, picks, bars, entry, exits, added)
+        sim = _Sim(variant, rules, plan, picks, bars, entry, exits, added, gates, sectors)
         for di, day in enumerate(ordered, start=1):
             sim.run_day(day)
             report(vi * len(ordered) + di, total)

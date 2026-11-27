@@ -137,3 +137,21 @@ def test_run_from_window(workspace: BacktestWorkspace, qtbot: Any) -> None:  # n
     qtbot.waitUntil(lambda: workspace._runner is None)
     assert workspace.pills[0].property("state") == "complete"
     assert date(2026, 3, 3) in workspace._daily.days  # type: ignore[union-attr]
+
+
+def test_leading_sectors_card(qtbot: Any) -> None:
+    """UT-GUI-031.092.M02.T01: The card is off and greyed by default; ticked it goes into the plan."""
+    builder = _builder(qtbot)
+    assert not builder._lead.isChecked() and not builder._lead_top.isEnabled()
+
+    builder._lead.setChecked(True)
+    builder._lead_top.setValue(2)
+    builder._lead_range.setCurrentIndex(2)
+    plan = builder.plan()
+    other = _builder(qtbot)
+    other.load_plan(plan)
+
+    assert builder._lead_top.isEnabled()
+    assert (plan.sector_filter.top_n, plan.sector_filter.range) == (2, "3M")
+    assert other.plan().sector_filter == plan.sector_filter
+    assert builder.summaries()["stocks"].endswith(" · leading 2 (3M)")

@@ -7,6 +7,7 @@
 **Last Updated:** 2026-11-02
 **Project:** US Swing Trading System
 
+> v1.15.0: UT-BKT-002.093–.095 added — Leading sectors.
 > v1.14.0: UT-BKT-002.092.M12.T01–T02 and UT-BKT-002.092.M05.T01 added — skip entries before the Added date.
 > v1.13.0: UT-BKT-002.091.M07.T01 added, UT-BKT-002.010.M07.T01 replaced — days from the stocks, not SPY.
 > v1.12.0: UT-BKT-002.089.M15.T01–T02 added, UT-BKT-002.053.M15.T01 replaced; .083.M15.T01 and T09 now expect Entry and Exit rows with time (SRD-BKT-002.089).
@@ -212,6 +213,15 @@
 | UT-BKT-002.092.M12.T01 | MD-BKT-002.030.M12 | Negative | No entry before Added date | AAPL added the next day, MSFT earlier | only MSFT traded; AAPL not_in_index_yet logged | Pass |
 | UT-BKT-002.092.M12.T02 | MD-BKT-002.030.M12 | Edge | Added today or unknown | AAPL added that day, MSFT no date | both traded; no skip logged | Pass |
 | UT-BKT-002.092.M05.T01 | MD-BKT-002.008.M05 | Positive | Added dates by universe mode | S&P 500, sector, names runs | dates for S&P 500 and sector; none for names; empty or bad dates left out | Pass |
+| UT-BKT-002.093.M12.T01 | MD-BKT-002.030.M12 | Negative | Longs only in leading sectors | Tech leading; AAPL (Tech), XOM (Energy), ZZZ (no sector) | AAPL and ZZZ traded; XOM sector_not_leading | Pass |
+| UT-BKT-002.093.M12.T02 | MD-BKT-002.030.M12 | Negative | Shorts only in weak sectors | Energy weak; short strategy | XOM and ZZZ traded; AAPL sector_not_weak | Pass |
+| UT-BKT-002.093.M12.T03 | MD-BKT-002.030.M12 | Edge | Open trade kept | no ranking on entry day; Energy not leading next day | trade entered and held to end of test | Pass |
+| UT-BKT-002.093.M16.T01 | MD-BKT-002.093.M16 | Positive | Ranks on previous closes | XLU doubles on the day itself | top 2 XLK, XLF; bottom 2 XLE, XLU | Pass |
+| UT-BKT-002.093.M16.T02 | MD-BKT-002.093.M16 | Positive | Must beat RSP | only XLK above, XLE below RSP | on: longs Tech, shorts Energy; off: top 3 | Pass |
+| UT-BKT-002.093.M16.T03 | MD-BKT-002.093.M16 | Edge | Too little history | day 4 with 1W range | no ranking | Pass |
+| UT-BKT-002.094.M01.T01 | MD-BKT-002.001.M01 | Positive | Plan setting | on plan, old plan, bad values | round trip equal; old plan off and no block; two errors | Pass |
+| UT-BKT-002.095.M16.T01 | MD-BKT-002.093.M16 | Negative | Missing ETFs named | RSP and XLC missing | [RSP, XLC] | Pass |
+| UT-BKT-002.095.M05.T01 | MD-BKT-002.008.M05 | Negative | Estimate refuses without ETF data | filter on, no ETF files | error names RSP, XLK…; none with filter off | Pass |
 | UT-BKT-002.039.M04.T01 | MD-BKT-002.007.M04 | Positive | Variant rows saved | one variant result | rows in variants, trades, day_log, money_daily | Pass |
 | UT-BKT-002.051.M07.T01 | MD-BKT-002.010.M07 | Positive | Sessions use the previous close | 5 sessions from Mon 2025-03-03 | each session maps to the trading day before; first maps to Fri 02-28; no list from the last close | Pass |
 | UT-BKT-002.051.M12.T01 | MD-BKT-002.030.M12 | Edge | First session trades its own list | list for session D1, days D1 and D2 | D1 has the stock; D2 has none | Pass |

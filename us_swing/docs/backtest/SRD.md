@@ -7,6 +7,7 @@
 **Last Updated:** 2026-11-02
 **Project:** US Swing Trading System
 
+> v1.25.0: SRD-BKT-002.093–.095 added and approved by user 2026-11-27 (chat) — Leading sectors backtest option (T253).
 > v1.24.0: SRD-BKT-002.092 added and approved by user 2026-11-27 (chat) — skip entries before a stock's S&P 500 Added date.
 > v1.23.0: SRD-BKT-001.019 added and approved by user 2026-11-27 (chat) — SPY, RSP and sector ETFs download before the stocks.
 > v1.22.0: SRD-BKT-002.091 added and approved by user 2026-11-27 (chat) — Step 1 days come from the run's stocks, not SPY; replaces the calendar part of SRD-BKT-002.010.
@@ -168,3 +169,6 @@
 | SRD-BKT-002.090 | FO-BKT-002 | Should | The HTML All trades table shades the Available cell light red when it is above 80% of the start capital (money mostly idle). | event rows, start capital | cell shade | Approved by user 2026-11-26 (chat); same rule as SRD-GUI-031.090; exactly 80% stays plain | Implemented |
 | SRD-BKT-002.091 | FO-BKT-002 | Must | Step 1 days are the run stocks' own 1d dates inside the period; SPY data never sets or cuts the days. | store, period, stocks | days | Approved by user 2026-11-27 (chat: only S&P 500 stocks are traded); SPY stays only for the RS rule; replaces the day source of SRD-BKT-002.010 | Implemented |
 | SRD-BKT-002.092 | FO-BKT-002 | Must | In S&P 500 and sector runs, a stock's entry signal on a day before its S&P 500 Added date is skipped (not_in_index_yet). | Added dates, entry signals | skip row in the decision log | Approved by user 2026-11-27 (chat); always on; typed-names runs not filtered; empty Added date always allowed; saved runs unchanged | Implemented |
+| SRD-BKT-002.093 | FO-BKT-002 | Should | With Leading sectors on, a long entry is skipped (sector_not_leading) unless the stock's sector is in the day's top N sectors against RSP, and a short entry is skipped (sector_not_weak) unless it is in the bottom N. | sector ETF and RSP daily closes, stock sectors | skip row in the decision log | Approved by user 2026-11-27 (chat, weak sectors for shorts added); ranking uses closes up to the previous trading day over the chosen range; Must beat RSP keeps longs to sectors above RSP and shorts to sectors below it; open trades untouched; all universe modes; unknown sector or a day with no ranking is allowed | Implemented |
+| SRD-BKT-002.094 | FO-BKT-002 | Should | The run plan holds the Leading sectors setting: on or off, Top N (1–11), range 1W, 1M or 3M, and Must beat RSP. | setup values | plan JSON | Approved by user 2026-11-27 (chat); default off, Top 3, 1M, Must beat RSP on; one N and range for longs and shorts; plans saved before this load with it off | Implemented |
+| SRD-BKT-002.095 | FO-BKT-002 | Should | With Leading sectors on, Estimate and Run refuse when RSP or any of the 11 sector ETFs has no saved daily data. | Backtest Data | plain error | Approved by user 2026-11-27 (chat); the message names the missing symbols | Implemented |

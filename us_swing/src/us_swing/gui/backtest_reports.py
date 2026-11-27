@@ -100,13 +100,22 @@ def plan_sections(saved: SavedReport, screener: str = "") -> list[Section]:
                       ("Stocks", _short_stocks(plan)),
                       ("Screener", "None" if plan.screener.skip else screener or "—"),
                       ("Stocks per day", "All (no screener)" if plan.screener.skip
-                       else str(plan.screener.top_n or "All"))]),
+                       else str(plan.screener.top_n or "All")),
+                      ("Leading sectors", _lead_text(plan))]),
         ("STRATEGY", strategies),
         ("MONEY", [("Capital", capital),
                    ("Daily loss stop", f"{plan.account.max_daily_loss_pct:g}%"),
                    ("Costs", f"${plan.costs.per_order:g} an order · "
                              f"{plan.costs.slippage_bps:g} bps")]),
     ]
+
+
+def _lead_text(plan: RunPlan) -> str:
+    """Leading sectors setting in plain words (SRD-GUI-031.093)."""
+    lead = plan.sector_filter
+    if not lead.enabled:
+        return "Off"
+    return f"Top {lead.top_n} · {lead.range}" + (" · beats RSP" if lead.beat_benchmark else "")
 
 
 def _short_stocks(plan: RunPlan) -> str:

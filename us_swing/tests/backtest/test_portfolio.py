@@ -11,6 +11,7 @@ import pytest
 from us_swing.backtest.results import ResultsStore
 from us_swing.backtest.spec import AccountSpec, CostSpec, Period, RunPlan, ScreenerSpec, StrategySpec
 from us_swing.backtest.steps import portfolio
+from us_swing.backtest.steps.sectors import SectorGate
 from us_swing.backtest.steps.stocks import StepRefused
 from us_swing.backtest.store import BacktestStore
 from tests.backtest.conftest import LATE
@@ -57,7 +58,9 @@ def _run(tmp_path: Path, bars: dict[str, list[pd.DataFrame]], signals: list[dict
          daily: pd.DataFrame, strategies: list[tuple[dict[str, Any], float, float]],
          capital: float = 1000.0, days: tuple[date, ...] = (D1, D2),
          loading: portfolio.Progress | None = None,
-         added: dict[str, date] | None = None, **account: Any
+         added: dict[str, date] | None = None,
+         gates: dict[date, SectorGate] | None = None, sectors: dict[str, str] | None = None,
+         **account: Any
          ) -> portfolio.VariantResult:
     store = BacktestStore(tmp_path / "store")
     for sym, frames in bars.items():
@@ -74,7 +77,7 @@ def _run(tmp_path: Path, bars: dict[str, list[pd.DataFrame]], signals: list[dict
                                            "close_at_start", "values", "pnl"])
     (result,) = portfolio.run_portfolio(plan, [cfg for cfg, _a, _p in strategies], daily,
                                         list(days), frame, store, loading=loading,
-                                        added=added)
+                                        added=added, gates=gates, sectors=sectors)
     return result
 
 
@@ -330,3 +333,46 @@ def test_added_today_or_unknown_is_allowed(tmp_path: Path) -> None:
 
     assert sorted(res.trades["symbol"]) == ["AAPL", "MSFT"]
     assert "not_in_index_yet" not in set(res.day_log["decision"])
+
+
+def _three_stocks() -> tuple[dict[str, list[pd.DataFrame]], list[dict[str, Any]], pd.DataFrame]:
+    return ({s: [_bars(D2)] for s in ("AAPL", "XOM", "ZZZ")},
+            [_sig("S1", s, "entry", D2, "10:00", "10:00") for s in ("AAPL", "XOM", "ZZZ")],
+            _daily([(D2, "AAPL", 1.0), (D2, "XOM", 0.9), (D2, "ZZZ", 0.8)]))
+
+
+_TECH_LEADS = {D2: SectorGate(frozenset({"Information Technology"}), frozenset({"Energy"}))}
+_SECTOR_OF = {"AAPL": "Information Technology", "XOM": "Energy"}
+
+
+def test_longs_only_in_leading_sectors(tmp_path: Path) -> None:
+    """UT-BKT-002.093.M12.T01: A long in a non-leading sector is skipped; unknown sector trades."""
+    bars, sigs, daily = _three_stocks()
+
+    res = _run(tmp_path, bars, sigs, daily, [(_strategy(), 100, 30)],
+               gates=_TECH_LEADS, sectors=_SECTOR_OF)
+
+    assert sorted(res.trades["symbol"]) == ["AAPL", "ZZZ"]
+    assert ("XOM", "sector_not_leading") in _decisions(res)
+
+
+def test_shorts_only_in_weak_sectors(tmp_path: Path) -> None:
+    """UT-BKT-002.093.M12.T02: A short in a sector that is not weak is skipped."""
+    bars, sigs, daily = _three_stocks()
+
+    res = _run(tmp_path, bars, sigs, daily, [(_strategy(direction="SHORT"), 100, 30)],
+               gates=_TECH_LEADS, sectors=_SECTOR_OF)
+
+    assert sorted(res.trades["symbol"]) == ["XOM", "ZZZ"]
+    assert ("AAPL", "sector_not_weak") in _decisions(res)
+
+
+def test_open_trade_kept_when_sector_drops(tmp_path: Path) -> None:
+    """UT-BKT-002.093.M12.T03: No ranking on the entry day allows it; a later non-leading day keeps it open."""
+    res = _run(tmp_path, {"XOM": [_bars(D2), _bars(D3)]},
+               [_sig("S1", "XOM", "entry", D2, "10:00", "10:00")],
+               _daily([(D2, "XOM", 1.0), (D3, "XOM", 1.0)]),
+               [(_strategy(trade_type="Swing"), 100, 30)], days=(D1, D2, D3),
+               gates={D3: _TECH_LEADS[D2]}, sectors=_SECTOR_OF)
+
+    assert list(res.trades["exit_reason"]) == ["end_of_test"]

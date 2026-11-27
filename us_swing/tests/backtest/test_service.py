@@ -155,3 +155,19 @@ def test_added_dates_by_universe_mode(store: BacktestStore, tmp_path: Path, mode
                    universe=UniverseSpec(mode=mode, sectors=("IT",), names=("AAPL",)))
 
     assert svc._added_dates(plan) == expected
+
+
+def test_leading_sectors_needs_etf_data(store: BacktestStore, tmp_path: Path) -> None:
+    """UT-BKT-002.095.M05.T01: With Leading sectors on, missing RSP or ETF data is an Estimate error."""
+    from dataclasses import replace
+
+    from us_swing.backtest.spec import SectorFilterSpec
+
+    svc, _ = _service(store, tmp_path)
+    plan = plan_for(date(2025, 3, 3), date(2025, 3, 10), _NAMES)
+    on = replace(plan, sector_filter=SectorFilterSpec(enabled=True))
+
+    errors = svc.estimate(on, "u").errors
+
+    assert any(e.startswith("Leading sectors needs daily data for RSP, XLK") for e in errors)
+    assert not any(e.startswith("Leading sectors") for e in svc.estimate(plan, "u").errors)

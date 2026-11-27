@@ -96,6 +96,19 @@ class CostSpec:
     slippage_bps: float = 5.0
 
 
+SECTOR_RANGES = ("1W", "1M", "3M")
+
+
+@dataclass(frozen=True)
+class SectorFilterSpec:
+    """Leading sectors: longs in the top N sectors vs RSP, shorts in the bottom N (SRD-BKT-002.094)."""
+
+    enabled: bool = False
+    top_n: int = 3
+    range: str = "1M"
+    beat_benchmark: bool = True
+
+
 @dataclass(frozen=True)
 class Variant:
     """One point of the variant grid: capital plus (id, allocation %, per-trade %)."""
@@ -115,11 +128,12 @@ class RunPlan:
     strategies: tuple[StrategySpec, ...] = ()
     account: AccountSpec = field(default_factory=AccountSpec)
     costs: CostSpec = field(default_factory=CostSpec)
+    sector_filter: SectorFilterSpec = field(default_factory=SectorFilterSpec)
     schema: int = SCHEMA
 
     def to_dict(self) -> dict[str, Any]:
         """Return the JSON form; single list values are written as numbers."""
-        u, s, a, c = self.universe, self.screener, self.account, self.costs
+        u, s, a, c, f = self.universe, self.screener, self.account, self.costs, self.sector_filter
         return {
             "schema": self.schema,
             "name": self.name,
@@ -137,6 +151,8 @@ class RunPlan:
             "account": {"capital": _one_or_list(a.capital), "grow_with_pnl": a.grow_with_pnl,
                         "max_daily_loss_pct": a.max_daily_loss_pct, "when_full": a.when_full},
             "costs": {"per_order": c.per_order, "slippage_bps": c.slippage_bps},
+            **({"sector_filter": {"enabled": True, "top_n": f.top_n, "range": f.range,
+                                  "beat_benchmark": f.beat_benchmark}} if f.enabled else {}),
         }
 
     @classmethod
@@ -151,7 +167,8 @@ class RunPlan:
         s = data.get("screener") or {}
         a = data.get("account") or {}
         c = data.get("costs") or {}
-        account, costs = AccountSpec(), CostSpec()
+        f = data.get("sector_filter") or {}
+        account, costs, sector = AccountSpec(), CostSpec(), SectorFilterSpec()
         return cls(
             schema=int(data.get("schema", SCHEMA)),
             name=str(data.get("name", "")),
@@ -185,6 +202,12 @@ class RunPlan:
             costs=CostSpec(
                 per_order=float(c.get("per_order", costs.per_order)),
                 slippage_bps=float(c.get("slippage_bps", costs.slippage_bps)),
+            ),
+            sector_filter=SectorFilterSpec(
+                enabled=bool(f.get("enabled", sector.enabled)),
+                top_n=int(f.get("top_n", sector.top_n)),
+                range=str(f.get("range", sector.range)),
+                beat_benchmark=bool(f.get("beat_benchmark", sector.beat_benchmark)),
             ),
         )
 
@@ -245,6 +268,11 @@ class RunPlan:
             errors.append(f"Unknown rule when money is short: {a.when_full}")
         if self.costs.per_order < 0 or self.costs.slippage_bps < 0:
             errors.append("Costs cannot be negative")
+        sector = self.sector_filter
+        if sector.enabled and not 1 <= sector.top_n <= 11:
+            errors.append("Leading sectors: Top must be between 1 and 11")
+        if sector.enabled and sector.range not in SECTOR_RANGES:
+            errors.append(f"Leading sectors: unknown period {sector.range}")
         if self.variant_count() > MAX_VARIANTS:
             errors.append(
                 f"{self.variant_count()} variants is more than the limit of {MAX_VARIANTS}"

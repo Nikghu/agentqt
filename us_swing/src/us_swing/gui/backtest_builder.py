@@ -41,6 +41,7 @@ from us_swing.backtest.spec import (
     Period,
     RunPlan,
     ScreenerSpec,
+    SectorFilterSpec,
     StrategySpec,
     UniverseSpec,
 )
@@ -221,6 +222,21 @@ class BacktestBuilder(QWidget):
         self._slippage.setSuffix(" bps")
         self._slippage.setValue(5)
         self._slippage.setFixedWidth(_FIELD_W)
+        self._lead = QCheckBox("Only trade leading sectors")
+        self._lead.setToolTip("Longs only in the strongest sectors against RSP, "
+                              "shorts only in the weakest")
+        self._lead_top = QSpinBox()
+        self._lead_top.setRange(1, 11)
+        self._lead_top.setValue(SectorFilterSpec().top_n)
+        self._lead_top.setFixedWidth(_FIELD_W)
+        self._lead_range = QComboBox()
+        for text, value in (("1 week", "1W"), ("1 month", "1M"), ("3 months", "3M")):
+            self._lead_range.addItem(text, value)
+        self._lead_range.setCurrentIndex(1)
+        self._lead_range.setFixedWidth(_FIELD_W)
+        self._lead_beat = QCheckBox("Must beat RSP")
+        self._lead_beat.setChecked(True)
+        self._lead_beat.setToolTip("Longs: sector above RSP. Shorts: sector below RSP")
         self.pages = self._build_pages()
 
         for edit in (self._name, self._names_edit, self._add, self._remove):
@@ -238,7 +254,12 @@ class BacktestBuilder(QWidget):
             spin.valueChanged.connect(self.changed)
         self._slippage.valueChanged.connect(self.changed)
         self._when.currentIndexChanged.connect(self.changed)
+        self._lead.toggled.connect(self._on_lead)
+        self._lead_top.valueChanged.connect(self.changed)
+        self._lead_range.currentIndexChanged.connect(self.changed)
+        self._lead_beat.toggled.connect(self.changed)
         self._on_mode()
+        self._on_lead()
 
     def _build_pages(self) -> dict[str, QWidget]:
         """One page of cards per section (SRD-GUI-031.072, .073)."""
@@ -254,6 +275,10 @@ class BacktestBuilder(QWidget):
                       ("Names", self._names_edit)]),
                 card("Adjust the list", "Optional names to add or leave out, comma separated.",
                      [("Add stocks", self._add), ("Remove stocks", self._remove)]),
+                card("Leading sectors", "Longs enter only the strongest sectors against RSP, "
+                     "shorts only the weakest. Open trades are not affected.",
+                     [(None, self._lead), ("Top sectors", self._lead_top),
+                      ("Period", self._lead_range), ("", self._lead_beat)]),
             ),
             "screener": _page(
                 card("Preset", "The screener that makes each day's stock list.",
@@ -445,6 +470,11 @@ class BacktestBuilder(QWidget):
         self._start.setDate(_qdate(first))
         self._end.setDate(_qdate(last))
 
+    def _on_lead(self) -> None:
+        for field in (self._lead_top, self._lead_range, self._lead_beat):
+            field.setEnabled(self._lead.isChecked())
+        self.changed.emit()
+
     def summaries(self) -> dict[str, str]:
         """One short line per section for the setup menu and the plan line (SRD-GUI-031.070)."""
         plan = self.plan()
@@ -453,7 +483,9 @@ class BacktestBuilder(QWidget):
                   "names": ", ".join(uni.names[:4]) or "No names"}.get(uni.mode, "S&P 500")
         return {
             "run": f"{plan.name} · {show_date(plan.period.start)} → {show_date(plan.period.end)}",
-            "stocks": stocks,
+            "stocks": stocks + (f" · leading {plan.sector_filter.top_n} "
+                                f"({plan.sector_filter.range})" if plan.sector_filter.enabled
+                                else ""),
             "screener": _NO_SCREENER_TEXT if scr.skip else (
                 f"{self._preset.currentText() or 'No preset'} · "
                 f"{'saved lists' if scr.recorded else 'replay'} · {scr.top_n or 'All'} a day"),
@@ -492,8 +524,14 @@ class BacktestBuilder(QWidget):
         self._when.setCurrentIndex(max(self._when.findData(plan.account.when_full), 0))
         self._commission.setValue(plan.costs.per_order)
         self._slippage.setValue(int(plan.costs.slippage_bps))
+        lead = plan.sector_filter
+        self._lead.setChecked(lead.enabled)
+        self._lead_top.setValue(lead.top_n)
+        self._lead_range.setCurrentIndex(max(self._lead_range.findData(lead.range), 0))
+        self._lead_beat.setChecked(lead.beat_benchmark)
         self.blockSignals(False)
         self._on_mode()
+        self._on_lead()
 
     def plan(self) -> RunPlan:
         """Return the run plan made from the fields."""
@@ -522,4 +560,9 @@ class BacktestBuilder(QWidget):
             ),
             costs=CostSpec(per_order=self._commission.value(),
                            slippage_bps=float(self._slippage.value())),
+            sector_filter=SectorFilterSpec(
+                enabled=self._lead.isChecked(), top_n=self._lead_top.value(),
+                range=str(self._lead_range.currentData()),
+                beat_benchmark=self._lead_beat.isChecked(),
+            ),
         )

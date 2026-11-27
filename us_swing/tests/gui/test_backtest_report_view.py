@@ -264,3 +264,16 @@ def test_not_in_index_yet_chip(view: ReportView) -> None:
              if (w := view.signals.itemAt(i).widget()) is not None]
     assert "Not in index yet <b>3</b>" in texts
     assert view.skips_label.text() == "2 of 5 entry signals were taken"
+
+
+def test_sector_chips(view: ReportView) -> None:
+    """UT-GUI-031.093.M04.T01: Sector skips show as Sector not leading and Sector not weak chips."""
+    from dataclasses import replace
+
+    rep = replace(_report(), skips=pd.DataFrame(
+        {"decision": ["entered", "sector_not_leading", "sector_not_weak"], "count": [1, 4, 2]}))
+    view.set_reports([rep])
+
+    texts = [w.text() for i in range(view.signals.count())
+             if (w := view.signals.itemAt(i).widget()) is not None]
+    assert {"Sector not leading <b>4</b>", "Sector not weak <b>2</b>"} <= set(texts)
