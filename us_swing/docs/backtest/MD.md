@@ -40,7 +40,7 @@
 | MD-BKT-002.004.M02 | SRD-BKT-002.004 | `us_swing/src/us_swing/backtest/universe.py` | Resolve the stock list | `resolve()` | `spec` | No |
 | MD-BKT-002.005.M03 | SRD-BKT-002.005 | `us_swing/src/us_swing/backtest/cache.py` | Keyed step cache with atomic writes and cleanup | `StepCache`, `make_key()`, `read()`, `write()`, `names()`, `cleanup()` | `pandas`, `pyarrow` | No |
 | MD-BKT-002.007.M04 | SRD-BKT-002.007 | `us_swing/src/us_swing/backtest/results.py` | Run rows in `results.db` | `ResultsStore`, `start_run()`, `finish_run()`, `list_runs()`, `get_run()` | `sqlite3` | No |
-| MD-BKT-002.008.M05 | SRD-BKT-002.008 | `us_swing/src/us_swing/backtest/service.py` | Estimate and Step 1 run for GUI and CLI | `BacktestService`, `Estimate`, `DailyList`, `estimate()`, `run_stocks()` | `store`, `cache`, `results`, `universe`, `steps.stocks` | No (called from a worker thread) |
+| MD-BKT-002.008.M05 | SRD-BKT-002.008, .096 | `us_swing/src/us_swing/backtest/service.py` | Estimate and Step 1 run for GUI and CLI | `BacktestService`, `Estimate`, `DailyList`, `estimate()`, `run_stocks()` | `store`, `cache`, `results`, `universe`, `steps.stocks` | No (called from a worker thread) |
 | MD-BKT-002.009.M06 | SRD-BKT-002.009 | `us_swing/src/us_swing/backtest/cli.py` | Command line `estimate` and `run` | `main()` | `service`, `core.backtest_bridge` | No |
 | MD-BKT-002.010.M07 | SRD-BKT-002.010 | `us_swing/src/us_swing/backtest/steps/stocks.py` | Step 1 screener replay, day cache, daily list | `trading_days()`, `rules_key()`, `run_stocks()`, `daily_list()`, `top_n()`, `StepCancelled`, `StepRefused` | `cache`, `store`, `core.backtest_bridge` | Process pool |
 | MD-BKT-002.011.M08 | SRD-BKT-002.011 | `us_swing/src/us_swing/core/backtest_bridge.py` | Bridge to screener presets and the universe | `load_universe()`, `list_presets()`, `PresetInfo`, `load_preset_dict()`, `screen_day()` | `screener`, `universe` | No |
@@ -81,6 +81,6 @@ Also changed: `backtest/results.py` (MD-BKT-002.007.M04) adds `save_variant()` a
 
 | MD ID | SRD | File | Purpose | Public API | Depends on | Async |
 |---|---|---|---|---|---|---|
-| MD-BKT-002.040.M13 | SRD-BKT-002.040 | `us_swing/src/us_swing/backtest/steps/report.py` | Step 4 stats, breakdowns, benchmark, compare | `build_report()`, `breakdown()`, `compare()`, `equal_weight_benchmark()`, `Report` | `pandas`, `numpy` | No |
+| MD-BKT-002.040.M13 | SRD-BKT-002.040, .096, .097 | `us_swing/src/us_swing/backtest/steps/report.py` | Step 4 stats, breakdowns, benchmark, compare | `build_report()`, `breakdown()`, `compare()`, `equal_weight_benchmark()`, `Report` | `pandas`, `numpy` | No |
 
 Also changed: `backtest/results.py` (MD-BKT-002.007.M04) adds `list_variants()`; `backtest/service.py` (MD-BKT-002.008.M05) adds `build_reports()`, `report_for_run()` and `variant_label()`.

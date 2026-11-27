@@ -5,6 +5,7 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-11-27
+> v2.147.0: SRD-GUI-031.094 added and approved by user 2026-11-27 (chat) — Same stocks and Edge rows in the report.
 > v2.146.0: SRD-GUI-031.092–.093 added and approved by user 2026-11-27 (chat) — Leading sectors setup card and report chip.
 > v2.145.0: SRD-GUI-031.091 added and approved by user 2026-11-27 (chat) — Not in index yet chip.
 > v2.144.0: Section FO-GUI-047 added — SRD-GUI-047.001–.002 (Universe membership dates), approved by user 2026-11-27 (chat).
@@ -810,6 +811,7 @@
 | SRD-GUI-031.091 | FO-GUI-031 | Should | The report's Signals chips show skips before the Added date as "Not in index yet N". | decision counts | chip | Approved by user 2026-11-27 (chat); counted in the "N of M entry signals were taken" line | Implemented |
 | SRD-GUI-031.092 | FO-GUI-031 | Should | The backtest setup Stocks page has a Leading sectors card: Only trade leading sectors, Top N, Period and Must beat RSP; the header line shows it when on. | user input | plan setting | Approved by user 2026-11-27 (chat); Top N, Period and Must beat RSP are greyed while off; the tooltip says shorts use the weakest sectors | Implemented |
 | SRD-GUI-031.093 | FO-GUI-031 | Should | The report shows skips as "Sector not leading N" and "Sector not weak N" chips, and Report details shows the Leading sectors setting. | decision counts, plan | chips, details row | Approved by user 2026-11-27 (chat); details show "Off" or e.g. "Top 3 · 1M · beats RSP" | Implemented |
+| SRD-GUI-031.094 | FO-GUI-031 | Should | The report's Returns stats show Same stocks return, Same stocks worst drop and Edge; Edge is green above 0 and red below. | report | stat rows | Approved by user 2026-11-27 (chat); the chart benchmark line stays hidden by default | Implemented |
 
 ## FO-GUI-032 — Strategies Views
 

@@ -388,10 +388,11 @@ class BacktestService:
         records = self._records()
         sectors = {r.symbol: str(getattr(r, "sector", "") or "Unknown") for r in records}
         closes = self._closes(resolve(plan.universe, records), plan.period)
+        added = self._added_dates(plan)
         out = []
         for res in results:
             days = sorted(pd.to_datetime(res.money["date"]).dt.date)
-            bench = report.equal_weight_benchmark(closes, days, res.variant.capital)
+            bench = report.equal_weight_benchmark(closes, days, res.variant.capital, added)
             rep = report.build_report(variant_label(res.variant), res.variant.capital,
                                       res.trades, res.money, res.day_log, sectors, bench)
             per_trade = res.variant.strategies[0][2] if res.variant.strategies else math.nan

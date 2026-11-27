@@ -277,3 +277,17 @@ def test_sector_chips(view: ReportView) -> None:
     texts = [w.text() for i in range(view.signals.count())
              if (w := view.signals.itemAt(i).widget()) is not None]
     assert {"Sector not leading <b>4</b>", "Sector not weak <b>2</b>"} <= set(texts)
+
+
+def test_same_stocks_and_edge_rows(view: ReportView) -> None:
+    """UT-GUI-031.094.M04.T01: Returns show Same stocks rows and a green or red Edge."""
+    from us_swing.gui.theme import C
+
+    view.set_reports([_report()])
+    win = view.stat_values["Edge"]
+    view.set_reports([_report(pnl=(-30.0, -10.0))])
+    loss = view.stat_values["Edge"]
+
+    assert view.stat_values["Same stocks return"].text() == "1.2%"
+    assert win.text() == "0.8%" and str(C.GREEN) in win.styleSheet()
+    assert loss.text() == "-5.2%" and str(C.RED) in loss.styleSheet()
