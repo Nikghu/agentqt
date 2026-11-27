@@ -198,3 +198,19 @@ def test_details_show_screener_name(view: ReportsView) -> None:
     view.set_saved([SavedReport(rep.run, plan, 0, 0.0, 0.0, 0.0)])
 
     assert view.sheet_values()["Screener"] == "Momentum Price"
+
+
+def test_details_show_leading_sectors() -> None:
+    """UT-GUI-031.093.M09.T01: Report details show the Leading sectors setting, or Off."""
+    from dataclasses import replace
+
+    from us_swing.backtest.spec import SectorFilterSpec
+
+    rep = saved_report()
+    on = replace(rep.plan, sector_filter=SectorFilterSpec(True, 3, "1M", True))
+
+    off_rows = dict(plan_sections(rep))["UNIVERSE"]
+    on_rows = dict(plan_sections(SavedReport(rep.run, on, 0, 0.0, 0.0, 0.0)))["UNIVERSE"]
+
+    assert ("Leading sectors", "Off") in off_rows
+    assert ("Leading sectors", "Top 3 · 1M · beats RSP") in on_rows

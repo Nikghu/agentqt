@@ -36,7 +36,7 @@
 
 | MD ID | SRD | File | Purpose | Public API | Depends on | Async |
 |---|---|---|---|---|---|---|
-| MD-BKT-002.001.M01 | SRD-BKT-002.001 | `us_swing/src/us_swing/backtest/spec.py` | Run plan, JSON, validation and variants | `RunPlan`, `Period`, `UniverseSpec`, `ScreenerSpec`, `StrategySpec`, `AccountSpec`, `CostSpec`, `Variant`, `validate()`, `variants()` | — | No |
+| MD-BKT-002.001.M01 | SRD-BKT-002.001, .094 | `us_swing/src/us_swing/backtest/spec.py` | Run plan, JSON, validation and variants | `RunPlan`, `Period`, `UniverseSpec`, `ScreenerSpec`, `StrategySpec`, `AccountSpec`, `CostSpec`, `Variant`, `validate()`, `variants()` | — | No |
 | MD-BKT-002.004.M02 | SRD-BKT-002.004 | `us_swing/src/us_swing/backtest/universe.py` | Resolve the stock list | `resolve()` | `spec` | No |
 | MD-BKT-002.005.M03 | SRD-BKT-002.005 | `us_swing/src/us_swing/backtest/cache.py` | Keyed step cache with atomic writes and cleanup | `StepCache`, `make_key()`, `read()`, `write()`, `names()`, `cleanup()` | `pandas`, `pyarrow` | No |
 | MD-BKT-002.007.M04 | SRD-BKT-002.007 | `us_swing/src/us_swing/backtest/results.py` | Run rows in `results.db` | `ResultsStore`, `start_run()`, `finish_run()`, `list_runs()`, `get_run()` | `sqlite3` | No |
@@ -72,7 +72,8 @@ Also changed: `core/backtest_bridge.py` (MD-BKT-002.011.M08) adds `load_strategi
 
 | MD ID | SRD | File | Purpose | Public API | Depends on | Async |
 |---|---|---|---|---|---|---|
-| MD-BKT-002.030.M12 | SRD-BKT-002.030, .092 | `us_swing/src/us_swing/backtest/steps/portfolio.py` | Step 3 day loop, money rules, exits, logs | `run_portfolio()`, `refusals()`, `StrategyRules`, `VariantResult` | `store`, `spec` | No |
+| MD-BKT-002.030.M12 | SRD-BKT-002.030, .092, .093 | `us_swing/src/us_swing/backtest/steps/portfolio.py` | Step 3 day loop, money rules, exits, logs | `run_portfolio()`, `refusals()`, `StrategyRules`, `VariantResult` | `store`, `spec` | No |
+| MD-BKT-002.093.M16 | SRD-BKT-002.093, .095 | `us_swing/src/us_swing/backtest/steps/sectors.py` | Leading sectors: open sectors per session for longs and shorts, missing ETF check | `sector_gates()`, `missing_symbols()`, `SectorGate` | `spec.py`, `core/stock_context` | No | Implemented |
 
 Also changed: `backtest/results.py` (MD-BKT-002.007.M04) adds `save_variant()` and the four tables; `backtest/service.py` (MD-BKT-002.008.M05) adds `run_portfolio()`; `backtest/cli.py` (MD-BKT-002.009.M06) prints each variant's trades and net P&L.
 

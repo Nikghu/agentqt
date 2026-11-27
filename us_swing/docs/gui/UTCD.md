@@ -1095,6 +1095,7 @@ Test files:
 | UT-GUI-031.089.M07.T03 | MD-GUI-031.053.M07 | Negative | No start capital | trades only | Available shows a dash; Allocated still shown | Pass |
 | UT-GUI-031.090.M07.T01 | MD-GUI-031.053.M07 | Positive | Idle capital shaded red | 3 trades, $100 start; then no start | only the two $100 rows red ($80 = 80% plain); no shade without start | Pass |
 | UT-GUI-031.091.M04.T01 | MD-GUI-031.040.M04 | Positive | Not in index yet chip | 2 entries, 3 skips before Added date | chip "Not in index yet 3"; "2 of 5 entry signals were taken" | Pass |
+| UT-GUI-031.093.M04.T01 | MD-GUI-031.040.M04 | Positive | Sector chips | 4 not leading, 2 not weak | chips "Sector not leading 4", "Sector not weak 2" | Pass |
 | UT-GUI-031.053.M03.T01 | MD-GUI-031.003.M03 | Positive | Trade list opens day | click trade #2 | Inspector tab; day 2026-03-03; chart on MSFT | Pass |
 | UT-GUI-031.054.M08.T01 | MD-GUI-031.054.M08 | Positive | Screener use | 3 sessions, one with no picks | traded / not traded per day; facts line | Pass |
 | UT-GUI-031.054.M08.T02 | MD-GUI-031.054.M08 | Edge | Margin use | 2 days; then no days | peak = capital minus lowest margin; paints; empty safe | Pass |
@@ -1107,6 +1108,7 @@ Test files:
 | UT-GUI-031.055.M09.T06 | MD-GUI-031.055.M09 | Positive | Multi-select delete | 2 runs picked, Yes | one confirm; 2 delete calls; Delete (2) | Pass |
 | UT-GUI-031.055.M09.T07 | MD-GUI-031.055.M09 | Edge | Many sectors | 3 sectors | shown as "3 sectors" | Pass |
 | UT-GUI-031.055.M09.T08 | MD-GUI-031.055.M09 | Positive | Screener name | run with a saved screener | details show the screener name | Pass |
+| UT-GUI-031.093.M09.T01 | MD-GUI-031.055.M09 | Positive | Details show the setting | plan off; plan on Top 3 1M | "Off"; "Top 3 · 1M · beats RSP" | Pass |
 | UT-GUI-031.082.M09.T01 | MD-GUI-031.055.M09 | Positive | Download HTML | Cancel, then a path | nothing, then one export call with the default file name offered; button back on; off with no run | Pass |
 | UT-GUI-031.083.M14.T01 | MD-GUI-031.083.M14 | Positive | Day-first date text | date, datetime, ET Timestamp | 04-03-2026, 02-11-2026, 31-12-2025 | Pass |
 | UT-GUI-031.084.M03.T01 | MD-GUI-031.003.M03 | Positive | Inspector 30m choice | chart timeframe picker | 30m offered between 15m and 1D; 5 days before entry | Pass |
@@ -1147,6 +1149,7 @@ Test files:
 | UT-GUI-031.073.M02.T01 | MD-GUI-031.002.M02 | Positive | Strategy table | tick first row | Strategy, 50, 100; plan has ST_A | Pass |
 | UT-GUI-031.073.M02.T02 | MD-GUI-031.002.M02 | Positive | Direction column after Strategy | one SHORT, one with no direction | Short, Long; money columns move one place right | Pass |
 | UT-GUI-031.074.M02.T01 | MD-GUI-031.002.M02 | Positive | Plan round trip | plan with sector, saved lists, strategy, capital | same plan after load | Pass |
+| UT-GUI-031.092.M02.T01 | MD-GUI-031.002.M02 | Positive | Leading sectors card | tick, Top 2, 3 months | greyed while off; plan and load_plan keep it; header "· leading 2 (3M)" | Pass |
 | UT-GUI-031.074.M10.T01 | MD-GUI-031.071.M10 | Negative | Cancel and Save | change name, Cancel; change, Save | old name back; new name kept | Pass |
 | UT-GUI-031.074.M03.T01 | MD-GUI-031.003.M03 | Positive | Run from window | Run in footer | window closed; run done | Pass |
 

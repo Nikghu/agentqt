@@ -179,3 +179,15 @@ Blocked candidates are logged once per (strategy, stock, entry window, decision)
 
 `run_portfolio(..., added=)` passes the map to `_Sim`, which keeps the session day in `today`. In `_entries_at_close`, after the window checks and before the daily loss stop, an entry signal with `today < added[symbol]` is logged once per window as `not_in_index_yet` and skipped. Steps 1 and 2 and their caches are unchanged; the stock still loads its 3m bars, so the skip is counted. The report's chips show the code as "Not in index yet" (SRD-GUI-031.091). Saved runs keep their stored decision log.
 
+---
+
+## DD-BKT-002.093.D01 — Leading Sectors
+
+**Plan (`spec.py`).** `SectorFilterSpec(enabled=False, top_n=3, range="1M", beat_benchmark=True)` sits on `RunPlan.sector_filter`. `to_dict` writes a `sector_filter` block only when it is on, so plans without it keep their old JSON; `from_dict` reads the block with defaults. `validate` checks Top 1–11 and a range of 1W, 1M or 3M. No schema change.
+
+**Ranking (`steps/sectors.py`).** `sector_gates(closes, days, spec)` uses RSP's dates. For a session D the end is the last RSP date before D and the start is `RANGE_DAYS[range]` RSP dates earlier; each ETF's move minus RSP's move (same formula as `core/stock_context` `sector_moves`) is ranked strongest first with a stable sort. Longs get the first N ETFs (only those above 0 with Must beat RSP); shorts get the last N (only those below 0). ETFs map to GICS names. A session with too little history or no ETF close is left out, so nothing is checked that day. `sector_moves` is not called per day because it ranks only the last date; one vectorised pass over the period is used instead.
+
+**Data (`service.py`).** `_sector_errors` lists RSP or ETFs with no saved 1d coverage; Estimate shows it and `run_portfolio` raises `StepRefused`. `_sector_inputs` reads RSP and the 11 ETFs from 120 calendar days before the start, builds the gates for the run's sessions and maps each record to its GICS sector when that sector has an ETF; a log line says on how many days a ranking was made.
+
+**Step 3 (`steps/portfolio.py`).** `_Sim._sector_skip` runs after the Added-date check and before the daily loss stop. With a gate for the day and a known sector, a long outside `gate.longs` logs `sector_not_leading`, a short outside `gate.shorts` logs `sector_not_weak`. Exits and open trades are never checked. Steps 1 and 2 and their caches are unchanged.
+

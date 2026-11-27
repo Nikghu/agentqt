@@ -106,3 +106,19 @@ def test_no_screener_plan() -> None:
     assert RunPlan.from_json(plan.to_json()).screener.skip
     assert not plain.screener.skip
     assert "Pick a screener preset" in RunPlan.from_dict({**data, "screener": {}}).validate()
+
+
+def test_leading_sectors_in_plan() -> None:
+    """UT-BKT-002.094.M01.T01: The setting saves and loads; old plans load it off; bad values listed."""
+    from dataclasses import replace
+
+    from us_swing.backtest.spec import SectorFilterSpec
+
+    plain = RunPlan.from_dict(_EXAMPLE)
+    on = replace(plain, sector_filter=SectorFilterSpec(True, 2, "3M", False))
+    bad = replace(plain, sector_filter=SectorFilterSpec(True, 0, "2W"))
+
+    assert plain.sector_filter == SectorFilterSpec() and "sector_filter" not in plain.to_dict()
+    assert RunPlan.from_json(on.to_json()) == on
+    assert {"Leading sectors: Top must be between 1 and 11",
+            "Leading sectors: unknown period 2W"} <= set(bad.validate())

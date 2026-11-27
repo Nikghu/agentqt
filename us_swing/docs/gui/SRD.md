@@ -5,6 +5,7 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-11-27
+> v2.146.0: SRD-GUI-031.092–.093 added and approved by user 2026-11-27 (chat) — Leading sectors setup card and report chip.
 > v2.145.0: SRD-GUI-031.091 added and approved by user 2026-11-27 (chat) — Not in index yet chip.
 > v2.144.0: Section FO-GUI-047 added — SRD-GUI-047.001–.002 (Universe membership dates), approved by user 2026-11-27 (chat).
 > SRD-GUI-030.013 added and approved by user 2026-11-27 (chat) — SPY, RSP and sector ETFs shown in the Universe table.
@@ -807,6 +808,8 @@
 | SRD-GUI-031.089 | FO-GUI-031 | Should | The Trade list shows an Entry row and an Exit row per trade in time order, with Trade and Time columns, and Available capital as start capital less open trades after each row. | saved trades, start capital | event rows | Approved by user 2026-11-26 (chat); first trade of $4,000 at $982.58 shows $3,017.42; P&L, Duration and Exit reason on Exit rows only; replaces the time and price columns of SRD-GUI-031.053 and Available of SRD-GUI-031.088 | Implemented |
 | SRD-GUI-031.090 | FO-GUI-031 | Should | The Trade list shades the Available capital cell light red when it is above 80% of the start capital (money mostly idle). | event rows, start capital | cell shade | Approved by user 2026-11-26 (chat); exactly 80% stays plain; no shade when start capital is unknown | Implemented |
 | SRD-GUI-031.091 | FO-GUI-031 | Should | The report's Signals chips show skips before the Added date as "Not in index yet N". | decision counts | chip | Approved by user 2026-11-27 (chat); counted in the "N of M entry signals were taken" line | Implemented |
+| SRD-GUI-031.092 | FO-GUI-031 | Should | The backtest setup Stocks page has a Leading sectors card: Only trade leading sectors, Top N, Period and Must beat RSP; the header line shows it when on. | user input | plan setting | Approved by user 2026-11-27 (chat); Top N, Period and Must beat RSP are greyed while off; the tooltip says shorts use the weakest sectors | Implemented |
+| SRD-GUI-031.093 | FO-GUI-031 | Should | The report shows skips as "Sector not leading N" and "Sector not weak N" chips, and Report details shows the Leading sectors setting. | decision counts, plan | chips, details row | Approved by user 2026-11-27 (chat); details show "Off" or e.g. "Top 3 · 1M · beats RSP" | Implemented |
 
 ## FO-GUI-032 — Strategies Views
 

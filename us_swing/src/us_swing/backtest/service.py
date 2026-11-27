@@ -24,15 +24,17 @@ from us_swing.backtest.cache import StepCache
 from us_swing.backtest.results import ResultsStore, RunRow
 from us_swing.backtest.settings import BacktestDataSettings
 from us_swing.backtest.spec import Period, RunPlan, Variant
-from us_swing.backtest.steps import portfolio, recorded, report, signals, stocks
+from us_swing.backtest.steps import portfolio, recorded, report, sectors, signals, stocks
 from us_swing.backtest.store import BacktestStore, StoredTf
 from us_swing.backtest.universe import UniverseRecord, resolve
 from us_swing.core.dates import DATE_TIME_FMT, show_date
+from us_swing.core.stock_context import GICS_TO_ETF, SECTOR_SYMBOLS
 
 _log = logging.getLogger(__name__)
 
 _EDGE_DAYS = 5
 _BENCHMARK_LOOKBACK_DAYS = 10
+_SECTOR_LOOKBACK_DAYS = 120  # calendar days; covers the 3M (63 sessions) range
 
 PresetLoader = Callable[[str, str], dict[str, Any]]
 StrategyLoader = Callable[[], Sequence[dict[str, Any]]]
@@ -131,7 +133,7 @@ class BacktestService:
         """Return the stock count, missing candles and Step 1 day counts."""
         today = today or datetime.now(timezone.utc).date()
         symbols = resolve(plan.universe, self._records())
-        errors = plan.validate()
+        errors = plan.validate() + self._sector_errors(plan)
         if plan.screener.skip:
             return self._estimate_fixed(plan, symbols, errors, today)
         if plan.screener.recorded:
@@ -318,6 +320,10 @@ class BacktestService:
             StepRefused, StepCancelled: from Step 3.
         """
         chosen = self._chosen_strategies(plan)
+        refused = self._sector_errors(plan)
+        if refused:
+            raise stocks.StepRefused("; ".join(refused))
+        gates, sector_of = self._sector_inputs(plan, daily.days)
 
         def work(run_id: str) -> list[portfolio.VariantResult]:
             if started is not None:
@@ -325,7 +331,7 @@ class BacktestService:
             results = portfolio.run_portfolio(
                 plan, chosen, daily.frame, daily.days, found, self._store,
                 progress=progress, cancel=cancel, loading=loading,
-                added=self._added_dates(plan),
+                added=self._added_dates(plan), gates=gates, sectors=sector_of,
             )
             for i, res in enumerate(results):
                 self._results.save_variant(run_id, i, res.variant, res.trades, res.day_log,
@@ -336,6 +342,33 @@ class BacktestService:
         _log.info("[Backtest] Portfolio done: %d trade(s) in %d variant(s)",
                   sum(len(r.trades) for r in results), len(results))
         return results
+
+    def _sector_errors(self, plan: RunPlan) -> list[str]:
+        """Leading sectors needs RSP and every sector ETF saved (SRD-BKT-002.095)."""
+        if not plan.sector_filter.enabled:
+            return []
+        missing = sectors.missing_symbols(
+            {s: self._store.coverage(s, "1d") is not None for s in SECTOR_SYMBOLS})
+        if not missing:
+            return []
+        return [f"Leading sectors needs daily data for {', '.join(missing)} in Backtest Data"]
+
+    def _sector_inputs(self, plan: RunPlan, days: Sequence[date]
+                       ) -> tuple[dict[date, sectors.SectorGate], dict[str, str]]:
+        """Open sectors per session and each stock's rankable sector (SRD-BKT-002.093)."""
+        if not plan.sector_filter.enabled:
+            return {}, {}
+        start = plan.period.start - timedelta(days=_SECTOR_LOOKBACK_DAYS)
+        closes = {}
+        for sym in SECTOR_SYMBOLS:
+            frame = self._store.read(sym, "1d", start, plan.period.end)
+            closes[sym] = pd.Series(frame["close"].to_numpy(dtype=float),
+                                    index=[ts.date() for ts in frame["ts"]])
+        gates = sectors.sector_gates(closes, days, plan.sector_filter)
+        sector_of = {rec.symbol: rec.sector for rec in self._records()
+                     if rec.sector in GICS_TO_ETF}
+        _log.info("[Backtest] Leading sectors ranked on %d of %d day(s)", len(gates), len(days))
+        return gates, sector_of
 
     def _added_dates(self, plan: RunPlan) -> dict[str, date]:
         """S&P 500 Added date per stock; typed-names runs get none (SRD-BKT-002.092)."""
