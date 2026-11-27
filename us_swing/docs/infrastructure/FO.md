@@ -1,14 +1,15 @@
 # Functional Objectives — Infrastructure (INF)
 
 **Document ID:** FO-INF
-**Version:** 1.5.0
+**Version:** 1.6.0
 **Status:** Draft
-**Last Updated:** 2026-07-09
+**Last Updated:** 2026-11-27
 **Project:** US Swing Trading System
 
 > Traces to: `us_swing/requirements.md` §2, §4, §5, §6, §7, §11, §12, §13, §22, §24, §26
 > v1.3.0 changes: FO-INF-002 candle metadata; FO-INF-003 history extended to 2 years + candle sync.
 > v1.4.0 changes: FO-INF-009 added — Pluggable Broker Abstraction (Broker_fix.md Phases 1/3/4).
+> v1.6.0 changes: FO-INF-013 added — S&P 500 membership dates (survivorship bias, option B).
 > v1.5.0 changes: FO-INF-010 added — Telegram Notification Integration (scalable business-event notification service).
 
 ---
@@ -232,3 +233,19 @@
   - Opening the tool on a Saturday or after 09:30 ET sends no Morning brief.
   - With AI notes off or the AI failing, the brief is still sent without the AI comment.
   - With two trades closed today (+$120, −$40), the Day-end report shows both, win rate 50%, best +$120 and worst −$40.
+
+---
+
+## FO-INF-013: S&P 500 Membership Dates
+- **Status:** Draft
+
+> Source: chat 2026-11-27 — survivorship bias review, option B. User picked: start tracking from the first refresh (no back-fill); option A (backtest uses members per day) comes later.
+
+- The system shall save the date each S&P 500 stock was added to the index, as given by the universe source.
+- The system shall keep a stock that leaves the index and mark the date it was first seen missing, instead of deleting it.
+- The system shall clear the left date when a stock comes back into the index.
+- The system shall give every existing user of the stock list (screener, backtest, watchlists) only the current members, as today.
+- **Acceptance Criteria:**
+  - After a refresh, a current stock such as MMM has its added date (1957-03-04).
+  - A stock missing from the next refresh stays saved with today's date as its left date and is not in the screener list.
+  - A saved stock list from before this change still loads, with no added or left dates.
