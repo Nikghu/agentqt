@@ -1094,6 +1094,7 @@ Test files:
 | UT-GUI-031.089.M07.T02 | MD-GUI-031.053.M07 | Edge | Exit and entry at same time | exit time = next entry time | Exit row first; money freed before entry | Pass |
 | UT-GUI-031.089.M07.T03 | MD-GUI-031.053.M07 | Negative | No start capital | trades only | Available shows a dash; Allocated still shown | Pass |
 | UT-GUI-031.090.M07.T01 | MD-GUI-031.053.M07 | Positive | Idle capital shaded red | 3 trades, $100 start; then no start | only the two $100 rows red ($80 = 80% plain); no shade without start | Pass |
+| UT-GUI-031.091.M04.T01 | MD-GUI-031.040.M04 | Positive | Not in index yet chip | 2 entries, 3 skips before Added date | chip "Not in index yet 3"; "2 of 5 entry signals were taken" | Pass |
 | UT-GUI-031.053.M03.T01 | MD-GUI-031.003.M03 | Positive | Trade list opens day | click trade #2 | Inspector tab; day 2026-03-03; chart on MSFT | Pass |
 | UT-GUI-031.054.M08.T01 | MD-GUI-031.054.M08 | Positive | Screener use | 3 sessions, one with no picks | traded / not traded per day; facts line | Pass |
 | UT-GUI-031.054.M08.T02 | MD-GUI-031.054.M08 | Edge | Margin use | 2 days; then no days | peak = capital minus lowest margin; paints; empty safe | Pass |

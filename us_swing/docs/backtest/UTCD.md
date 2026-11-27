@@ -7,6 +7,7 @@
 **Last Updated:** 2026-11-02
 **Project:** US Swing Trading System
 
+> v1.14.0: UT-BKT-002.092.M12.T01–T02 and UT-BKT-002.092.M05.T01 added — skip entries before the Added date.
 > v1.13.0: UT-BKT-002.091.M07.T01 added, UT-BKT-002.010.M07.T01 replaced — days from the stocks, not SPY.
 > v1.12.0: UT-BKT-002.089.M15.T01–T02 added, UT-BKT-002.053.M15.T01 replaced; .083.M15.T01 and T09 now expect Entry and Exit rows with time (SRD-BKT-002.089).
 > v1.11.0: UT-BKT-002.053.M12.T01, .M04.T01, .M15.T01 added — available capital per trade (SRD-BKT-002.053).
@@ -208,6 +209,9 @@
 | UT-BKT-002.037.M12.T01 | MD-BKT-002.030.M12 | Positive | Intraday end time and swing overnight | Intraday end 15:30; Swing same signals | intraday exits at 15:30 open; swing still open next day | Pass |
 | UT-BKT-002.037.M12.T02 | MD-BKT-002.030.M12 | Edge | Test-end close in last equity | swing trade open at test end, $1 orders, 10 bps | last equity = capital + trades' net P&L; nothing deployed (ISS-BKT-0001) | Pass |
 | UT-BKT-002.038.M12.T01 | MD-BKT-002.030.M12 | Negative | Daily loss stop | 1 % stop, loss 2 % after first trade | later entries that day blocked; daily_loss_stop logged once | Pass |
+| UT-BKT-002.092.M12.T01 | MD-BKT-002.030.M12 | Negative | No entry before Added date | AAPL added the next day, MSFT earlier | only MSFT traded; AAPL not_in_index_yet logged | Pass |
+| UT-BKT-002.092.M12.T02 | MD-BKT-002.030.M12 | Edge | Added today or unknown | AAPL added that day, MSFT no date | both traded; no skip logged | Pass |
+| UT-BKT-002.092.M05.T01 | MD-BKT-002.008.M05 | Positive | Added dates by universe mode | S&P 500, sector, names runs | dates for S&P 500 and sector; none for names; empty or bad dates left out | Pass |
 | UT-BKT-002.039.M04.T01 | MD-BKT-002.007.M04 | Positive | Variant rows saved | one variant result | rows in variants, trades, day_log, money_daily | Pass |
 | UT-BKT-002.051.M07.T01 | MD-BKT-002.010.M07 | Positive | Sessions use the previous close | 5 sessions from Mon 2025-03-03 | each session maps to the trading day before; first maps to Fri 02-28; no list from the last close | Pass |
 | UT-BKT-002.051.M12.T01 | MD-BKT-002.030.M12 | Edge | First session trades its own list | list for session D1, days D1 and D2 | D1 has the stock; D2 has none | Pass |

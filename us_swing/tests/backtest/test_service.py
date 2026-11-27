@@ -131,3 +131,27 @@ def test_estimate_without_rs_skips_spy(store: BacktestStore, tmp_path: Path) -> 
     est = svc.estimate(plan_for(date(2025, 3, 3), date(2025, 3, 7), _NAMES), "1")
 
     assert "SPY" not in est.missing_1d
+
+
+@pytest.mark.parametrize(("mode", "expected"), [
+    ("sp500", {"AAPL": date(2025, 6, 2)}),
+    ("sector", {"AAPL": date(2025, 6, 2)}),
+    ("names", {}),
+])
+def test_added_dates_by_universe_mode(store: BacktestStore, tmp_path: Path, mode: str,
+                                      expected: dict[str, date]) -> None:
+    """UT-BKT-002.092.M05.T01: S&P 500 and sector runs get Added dates; typed names get none."""
+    from types import SimpleNamespace
+
+    from us_swing.backtest.spec import Period, RunPlan, UniverseSpec
+
+    records = [SimpleNamespace(symbol="AAPL", sector="IT", date_added="2025-06-02"),
+               SimpleNamespace(symbol="MSFT", sector="IT", date_added=""),
+               SimpleNamespace(symbol="NVDA", sector="IT", date_added="bad")]
+    svc = BacktestService(store, StepCache(tmp_path / "cache"),
+                          ResultsStore(tmp_path / "results.db"), lambda: records,
+                          lambda _p, _u: {})
+    plan = RunPlan(name="t", period=Period(date(2025, 1, 2), date(2025, 12, 31)),
+                   universe=UniverseSpec(mode=mode, sectors=("IT",), names=("AAPL",)))
+
+    assert svc._added_dates(plan) == expected

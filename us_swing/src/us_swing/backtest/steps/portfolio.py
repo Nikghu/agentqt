@@ -5,7 +5,8 @@ Parent SRD: SRD-BKT-002.030
 Step 3 · Portfolio: one shared account per variant. Signals of the picked
 strategies become trades with the live money rules (per-trade size, strategy
 limit, margin), next-open fills with costs, stop / target / end time / exit
-condition, a per-day Rex limit and the daily loss stop. Every decision is logged.
+condition, a per-day Rex limit and the daily loss stop. A stock is not entered
+before its S&P 500 Added date (SRD-BKT-002.092). Every decision is logged.
 """
 from __future__ import annotations
 
@@ -264,14 +265,18 @@ class _Sim:
     def __init__(self, variant: Variant, rules: dict[str, StrategyRules], plan: RunPlan,
                  picks: dict[date, dict[str, tuple[float, int]]], bars: dict[str, _Bars],
                  entry: dict[tuple[str, str], IntArray],
-                 exits: dict[tuple[str, str], BoolArray]) -> None:
+                 exits: dict[tuple[str, str], BoolArray],
+                 added: Mapping[str, date] | None = None) -> None:
         self.acc = _Account(variant.capital, plan.account, plan.costs)
         self.rules, self.picks, self.bars = rules, picks, bars
         self.entry, self.exits = entry, exits
+        self.added: Mapping[str, date] = added or {}
+        self.today: date | None = None
         self.when_full = plan.account.when_full
         self.money: list[tuple[Any, ...]] = []
 
     def run_day(self, day: date) -> None:
+        self.today = day
         acc = self.acc
         picks = self.picks.get(day, {})
         names = (set(picks) | set(acc.positions) | {o.symbol for o in acc.pending}) & set(self.bars)
@@ -364,6 +369,10 @@ class _Sim:
                 pos = acc.positions.get(s)
                 if pos is not None and pos.rules.name == rules.name and pos.window == window:
                     continue
+                joined = self.added.get(s)
+                if joined is not None and self.today is not None and self.today < joined:
+                    acc.note(t, s, rules, "not_in_index_yet", window)
+                    continue
                 if stopped:
                     acc.note(t, s, rules, "daily_loss_stop", window)
                     continue
@@ -421,10 +430,12 @@ def run_portfolio(
     progress: Progress | None = None,
     cancel: Cancel | None = None,
     loading: Progress | None = None,
+    added: Mapping[str, date] | None = None,
 ) -> list[VariantResult]:
     """Run every variant of the plan (SRD-BKT-002.030–.038).
 
     ``loading`` gets (stocks read, total) while 3m candles load, before ``progress`` starts.
+    ``added`` maps a stock to its S&P 500 Added date; earlier entries are skipped.
 
     Raises:
         StepRefused: trailing levels, PNL conditions or Grow with P&L.
@@ -462,7 +473,7 @@ def run_portfolio(
     for vi, variant in enumerate(variants):
         rules = {name: StrategyRules.from_live(live[name], alloc, per)
                  for name, alloc, per in variant.strategies}
-        sim = _Sim(variant, rules, plan, picks, bars, entry, exits)
+        sim = _Sim(variant, rules, plan, picks, bars, entry, exits, added)
         for di, day in enumerate(ordered, start=1):
             sim.run_day(day)
             report(vi * len(ordered) + di, total)

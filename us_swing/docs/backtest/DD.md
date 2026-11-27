@@ -170,3 +170,12 @@ Blocked candidates are logged once per (strategy, stock, entry window, decision)
 **Build.** `_to_30m()` groups the 3m bars of a year file by `ts.floor("30min")`, next to `_to_15m()`. US/Eastern is a whole number of hours from UTC, so the UTC 30-minute buckets start at 09:30, 10:00 … 15:30 ET in summer and winter: 13 full bars a day, none short. `_build_from_3m(symbol, year_file, tf)` writes 15m and 30m; `save()` and `build_missing()` call it for both, so stores saved before 30m existed get the files on the next start. `stats()` counts them in the size; `clear()` removes `30m/`.
 
 **Use in Step 2.** `INTRADAY_MINUTES["30m"] = 30`, so `available_ns()` makes a 30m bar visible at its close (the 09:30 bar at 10:00) and VWAP resets per session; `load_frames()` reads 30m with the intraday warm-up.
+
+---
+
+## DD-BKT-002.092.D01 — Skip Entries Before the S&P 500 Added Date
+
+`BacktestService._added_dates(plan)` builds `{symbol: date}` from the universe records' `date_added` (ISO text, see DD-INF-013.001.D01) only when `plan.universe.mode` is `sp500` or `sector`; typed-names runs get `{}`. Empty or bad dates are left out, so those stocks are always allowed.
+
+`run_portfolio(..., added=)` passes the map to `_Sim`, which keeps the session day in `today`. In `_entries_at_close`, after the window checks and before the daily loss stop, an entry signal with `today < added[symbol]` is logged once per window as `not_in_index_yet` and skipped. Steps 1 and 2 and their caches are unchanged; the stock still loads its 3m bars, so the skip is counted. The report's chips show the code as "Not in index yet" (SRD-GUI-031.091). Saved runs keep their stored decision log.
+
