@@ -9,6 +9,7 @@
 
 > UT-GUI-031.089.M07.T01–T03 added; UT-GUI-031.088.M07.T01–T02 replaced by them — trade list Entry and Exit rows.
 > UT-GUI-031.088.M07.T01–T02 added — trade list days and capital columns.
+> v1.59.0: UT-GUI-031.094.M04.T01 added — Same stocks and Edge rows.
 > v1.58.9: UT-GUI-046.003.M02.T03 added — icon-only buttons with name tooltips (user asked 2026-11-23).
 > v1.58.8: UT-GUI-046.006.M02.T02–T03 added — S&P 500 list, Backtest Data.
 > v1.58.7: UT-GUI-046.003.M02.T02 and .004.M02.T04 changed (user decision 2026-11-23: one shared folder, no user part).
@@ -1096,6 +1097,7 @@ Test files:
 | UT-GUI-031.090.M07.T01 | MD-GUI-031.053.M07 | Positive | Idle capital shaded red | 3 trades, $100 start; then no start | only the two $100 rows red ($80 = 80% plain); no shade without start | Pass |
 | UT-GUI-031.091.M04.T01 | MD-GUI-031.040.M04 | Positive | Not in index yet chip | 2 entries, 3 skips before Added date | chip "Not in index yet 3"; "2 of 5 entry signals were taken" | Pass |
 | UT-GUI-031.093.M04.T01 | MD-GUI-031.040.M04 | Positive | Sector chips | 4 not leading, 2 not weak | chips "Sector not leading 4", "Sector not weak 2" | Pass |
+| UT-GUI-031.094.M04.T01 | MD-GUI-031.040.M04 | Positive | Same stocks and Edge rows | winning and losing report | Same stocks return 1.2%; Edge 0.8% green, −5.2% red | Pass |
 | UT-GUI-031.053.M03.T01 | MD-GUI-031.003.M03 | Positive | Trade list opens day | click trade #2 | Inspector tab; day 2026-03-03; chart on MSFT | Pass |
 | UT-GUI-031.054.M08.T01 | MD-GUI-031.054.M08 | Positive | Screener use | 3 sessions, one with no picks | traded / not traded per day; facts line | Pass |
 | UT-GUI-031.054.M08.T02 | MD-GUI-031.054.M08 | Edge | Margin use | 2 days; then no days | peak = capital minus lowest margin; paints; empty safe | Pass |

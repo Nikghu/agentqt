@@ -208,3 +208,43 @@ def test_report_unknown_run(store: BacktestStore, tmp_path: Path) -> None:
 
     with pytest.raises(ValueError, match="No saved run"):
         svc.report_for_run("nope")
+
+
+def test_benchmark_from_added_date() -> None:
+    """UT-BKT-002.096.M13.T01: A stock counts in the benchmark only from its Added date."""
+    closes = {
+        "A": pd.Series([100.0, 110.0, 121.0], index=[date(2025, 2, 28), *_DAYS[:2]]),
+        "B": pd.Series([50.0, 50.0, 50.0], index=[date(2025, 2, 28), *_DAYS[:2]]),
+    }
+
+    bench = report.equal_weight_benchmark(closes, _DAYS[:2], 1000.0, {"A": _DAYS[1]})
+    no_date = report.equal_weight_benchmark(closes, _DAYS[:2], 1000.0, {})
+
+    assert list(bench) == pytest.approx([1000.0, 1050.0])
+    assert list(no_date) == pytest.approx([1050.0, 1102.5])
+
+
+def test_benchmark_stats_and_edge() -> None:
+    """UT-BKT-002.097.M13.T01: Same stocks return, worst drop and Edge above and below 0."""
+    daily = pd.DataFrame({"date": _DAYS[:3], "equity": [1010.0, 1050.0, 1100.0],
+                          "benchmark": [1100.0, 990.0, 1200.0]})
+
+    ret, drop, edge = report.benchmark_stats(daily, 1000.0)
+    low = report.benchmark_stats(daily.assign(equity=[1000.0, 1000.0, 1150.0]), 1000.0)[2]
+
+    assert (ret.name, drop.name, edge.name) == ("Same stocks return", "Same stocks worst drop",
+                                                "Edge")
+    assert ret.value == pytest.approx(0.2)
+    assert drop.value == pytest.approx(-0.1)
+    assert edge.value == pytest.approx(-0.1)
+    assert low.value == pytest.approx(-0.05)
+    assert report.benchmark_stats(daily.assign(equity=[1000.0, 1000.0, 1300.0]),
+                                  1000.0)[2].value == pytest.approx(0.1)
+
+
+def test_benchmark_stats_without_benchmark() -> None:
+    """UT-BKT-002.097.M13.T02: No benchmark leaves the three stats empty."""
+    daily = pd.DataFrame({"date": _DAYS[:2], "equity": [1000.0, 1010.0],
+                          "benchmark": [np.nan, np.nan]})
+
+    assert all(math.isnan(s.value) for s in report.benchmark_stats(daily, 1000.0))

@@ -303,17 +303,39 @@ def skip_counts(day_log: pd.DataFrame) -> pd.DataFrame:
 
 
 def equal_weight_benchmark(closes: Mapping[str, pd.Series], days: Sequence[date],
-                           capital: float) -> pd.Series:
-    """Capital grown by the average daily return of the stocks (SRD-BKT-002.046).
+                           capital: float, added: Mapping[str, date] | None = None
+                           ) -> pd.Series:
+    """Capital grown by the average daily return of the stocks (SRD-BKT-002.046, .096).
 
     ``closes`` maps each stock to its daily closes indexed by date; a day's return
-    uses the stock's previous close, so the first test day already counts.
+    uses the stock's previous close, so the first test day already counts. A stock
+    in ``added`` counts only from its S&P 500 Added date.
     """
     if not closes or not len(days):
         return pd.Series(np.full(len(days), np.nan), index=list(days), dtype=float)
     rets = pd.DataFrame({s: c.sort_index().pct_change() for s, c in closes.items()})
-    mean = rets.reindex(list(days)).mean(axis=1, skipna=True).fillna(0.0)
+    rets = rets.reindex(list(days))
+    for sym, joined in (added or {}).items():
+        if sym in rets:
+            rets.loc[rets.index < joined, sym] = np.nan
+    mean = rets.mean(axis=1, skipna=True).fillna(0.0)
     return capital * (1.0 + mean).cumprod()
+
+
+def benchmark_stats(daily: pd.DataFrame, capital: float) -> list[Stat]:
+    """Same stocks return and worst drop, and Edge against it (SRD-BKT-002.097)."""
+    bench = daily["benchmark"].astype(float).dropna() if "benchmark" in daily else pd.Series()
+    if bench.empty or not capital:
+        return [Stat(n, math.nan, "pct")
+                for n in ("Same stocks return", "Same stocks worst drop", "Edge")]
+    values = bench.to_numpy(dtype=np.float64)
+    peak = np.maximum.accumulate(np.concatenate(([capital], values)))[1:]
+    bench_ret = float(values[-1]) / capital - 1.0
+    return [
+        Stat("Same stocks return", bench_ret, "pct"),
+        Stat("Same stocks worst drop", float((values / peak - 1.0).min()), "pct"),
+        Stat("Edge", float(daily["equity"].iloc[-1]) / capital - 1.0 - bench_ret, "pct"),
+    ]
 
 
 def build_report(label: str, capital: float, trades: pd.DataFrame, money: pd.DataFrame,
@@ -326,7 +348,7 @@ def build_report(label: str, capital: float, trades: pd.DataFrame, money: pd.Dat
                           if benchmark is not None else np.nan)
     stats = (*returns_stats(trades, daily, capital), *risk_stats(trades, daily, capital),
              *trade_stats(trades), *exit_hold_stats(trades),
-             *robustness_stats(trades, daily, capital))
+             *robustness_stats(trades, daily, capital), *benchmark_stats(daily, capital))
     return Report(label, capital, stats, daily, monthly_pnl(daily, capital),
                   skip_counts(day_log), with_groups(trades, sectors))
 

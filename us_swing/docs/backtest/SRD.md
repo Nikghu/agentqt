@@ -7,6 +7,8 @@
 **Last Updated:** 2026-11-02
 **Project:** US Swing Trading System
 
+
+> v1.26.0: SRD-BKT-002.096–.097 added and approved by user 2026-11-27 (chat) — fair benchmark from the Added date, Edge numbers.
 > v1.25.0: SRD-BKT-002.093–.095 added and approved by user 2026-11-27 (chat) — Leading sectors backtest option (T253).
 > v1.24.0: SRD-BKT-002.092 added and approved by user 2026-11-27 (chat) — skip entries before a stock's S&P 500 Added date.
 > v1.23.0: SRD-BKT-001.019 added and approved by user 2026-11-27 (chat) — SPY, RSP and sector ETFs download before the stocks.
@@ -172,3 +174,5 @@
 | SRD-BKT-002.093 | FO-BKT-002 | Should | With Leading sectors on, a long entry is skipped (sector_not_leading) unless the stock's sector is in the day's top N sectors against RSP, and a short entry is skipped (sector_not_weak) unless it is in the bottom N. | sector ETF and RSP daily closes, stock sectors | skip row in the decision log | Approved by user 2026-11-27 (chat, weak sectors for shorts added); ranking uses closes up to the previous trading day over the chosen range; Must beat RSP keeps longs to sectors above RSP and shorts to sectors below it; open trades untouched; all universe modes; unknown sector or a day with no ranking is allowed | Implemented |
 | SRD-BKT-002.094 | FO-BKT-002 | Should | The run plan holds the Leading sectors setting: on or off, Top N (1–11), range 1W, 1M or 3M, and Must beat RSP. | setup values | plan JSON | Approved by user 2026-11-27 (chat); default off, Top 3, 1M, Must beat RSP on; one N and range for longs and shorts; plans saved before this load with it off | Implemented |
 | SRD-BKT-002.095 | FO-BKT-002 | Should | With Leading sectors on, Estimate and Run refuse when RSP or any of the 11 sector ETFs has no saved daily data. | Backtest Data | plain error | Approved by user 2026-11-27 (chat); the message names the missing symbols | Implemented |
+| SRD-BKT-002.096 | FO-BKT-002 | Must | In S&P 500 and sector runs, the equal-weight benchmark counts a stock's daily return only from its S&P 500 Added date. | Added dates, 1d closes | benchmark line | Approved by user 2026-11-27 (chat); same rule as SRD-BKT-002.092; empty Added date counts from the first day | Implemented |
+| SRD-BKT-002.097 | FO-BKT-002 | Should | The report adds three stats: Same stocks return, Same stocks worst drop, and Edge (strategy return minus Same stocks return). | daily equity, benchmark | stats | Approved by user 2026-11-27 (chat); empty when there is no benchmark | Implemented |

@@ -7,6 +7,7 @@
 **Last Updated:** 2026-11-02
 **Project:** US Swing Trading System
 
+> v1.16.0: UT-BKT-002.096–.097 added — fair benchmark and Edge.
 > v1.15.0: UT-BKT-002.093–.095 added — Leading sectors.
 > v1.14.0: UT-BKT-002.092.M12.T01–T02 and UT-BKT-002.092.M05.T01 added — skip entries before the Added date.
 > v1.13.0: UT-BKT-002.091.M07.T01 added, UT-BKT-002.010.M07.T01 replaced — days from the stocks, not SPY.
@@ -238,4 +239,7 @@
 | UT-BKT-002.045.M13.T01 | MD-BKT-002.040.M13 | Positive | Skip counts | 4 entered, 2 no_margin | counts per decision | Pass |
 | UT-BKT-002.046.M13.T01 | MD-BKT-002.040.M13 | Positive | Equal-weight benchmark | 2 stocks, 2 days | 1050, 1050 | Pass |
 | UT-BKT-002.046.M13.T02 | MD-BKT-002.040.M13 | Negative | Benchmark without stocks | no closes | all NaN | Pass |
+| UT-BKT-002.096.M13.T01 | MD-BKT-002.040.M13 | Positive | Benchmark from Added date | A added on day 2; no dates | 1000, 1050; without dates 1050, 1102.5 | Pass |
+| UT-BKT-002.097.M13.T01 | MD-BKT-002.040.M13 | Positive | Same stocks and Edge | benchmark 1100, 990, 1200; three equity ends | +20%, −10% drop; Edge −10%, −5%, +10% | Pass |
+| UT-BKT-002.097.M13.T02 | MD-BKT-002.040.M13 | Negative | No benchmark | NaN line | three NaN stats | Pass |
 | UT-BKT-002.047.M13.T01 | MD-BKT-002.040.M13 | Positive | Compare rows | 2 reports | one row each with key stats | Pass |

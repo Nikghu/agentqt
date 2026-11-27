@@ -191,3 +191,11 @@ Blocked candidates are logged once per (strategy, stock, entry window, decision)
 
 **Step 3 (`steps/portfolio.py`).** `_Sim._sector_skip` runs after the Added-date check and before the daily loss stop. With a gate for the day and a known sector, a long outside `gate.longs` logs `sector_not_leading`, a short outside `gate.shorts` logs `sector_not_weak`. Exits and open trades are never checked. Steps 1 and 2 and their caches are unchanged.
 
+---
+
+## DD-BKT-002.096.D01 — Fair Benchmark and Edge
+
+**Benchmark (`steps/report.py`).** `equal_weight_benchmark(closes, days, capital, added)` reindexes each stock's daily returns to the run's sessions and sets them to NaN before the stock's Added date, so the day's average uses only stocks already in the index. `service.build_reports` passes `_added_dates(plan)`: S&P 500 and sector runs only, a stock with no or a bad Added date counts from the first day. Old saved runs get the fair line when their report is rebuilt; trades are untouched.
+
+**Stats.** `benchmark_stats(daily, capital)` adds "Same stocks return" (last benchmark value / capital − 1), "Same stocks worst drop" (lowest benchmark / running peak − 1, the peak starting at capital, as for the strategy) and "Edge" (strategy return minus Same stocks return, in return points). With no benchmark all three are NaN.
+

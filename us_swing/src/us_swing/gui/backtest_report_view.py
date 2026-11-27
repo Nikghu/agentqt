@@ -45,7 +45,7 @@ _log = logging.getLogger(__name__)
 KPIS = ("Net P&L", "Return", "Max drawdown", "Win rate", "Profit factor", "Sharpe")
 STAT_GROUPS = (
     ("Returns", ("Net P&L", "Return", "CAGR", "Time invested", "First half P&L",
-                 "Second half P&L")),
+                 "Second half P&L", "Same stocks return", "Same stocks worst drop", "Edge")),
     ("Risk", ("Max drawdown", "Max drawdown $", "Longest drawdown", "Sharpe", "Sortino", "Calmar",
               "Worst day", "Worst trade")),
     ("Trades", ("Trades", "Win rate", "Average win", "Average loss", "Payoff", "Profit factor",
