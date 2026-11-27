@@ -118,7 +118,6 @@ class _Bars:
         self.close = frame["close"].to_numpy(dtype=np.float64)
         self.minute = np.asarray(et.hour * 60 + et.minute)
         self.day = np.asarray(et.date, dtype="datetime64[D]")
-        self.index = {int(ns): i for i, ns in enumerate(self.close_ns)}
 
     def day_range(self, day: date) -> tuple[int, int]:
         target = np.datetime64(day, "D")
@@ -288,14 +287,15 @@ class _Sim:
         picks = self.picks.get(day, {})
         names = (set(picks) | set(acc.positions) | {o.symbol for o in acc.pending}) & set(self.bars)
         ranges = {s: self.bars[s].day_range(day) for s in names}
-        times = sorted({int(ns) for s, (i0, i1) in ranges.items()
-                        for ns in self.bars[s].close_ns[i0:i1]})
+        rows = {s: {int(ns): i0 + j for j, ns in enumerate(self.bars[s].close_ns[i0:i1])}
+                for s, (i0, i1) in ranges.items()}
+        times = sorted({t for by_time in rows.values() for t in by_time})
         start_equity = acc.equity()
         margin_min = acc.capital - acc.open_cost()
         rex_used: dict[tuple[str, str], int] = defaultdict(int)
         stopped = False
         for t in times:
-            here = {s: self.bars[s].index[t] for s in names if t in self.bars[s].index}
+            here = {s: by_time[t] for s, by_time in rows.items() if t in by_time}
             self._fill(here, t, rex_used)
             for s, k in here.items():
                 bars = self.bars[s]
