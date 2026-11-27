@@ -15,7 +15,13 @@ sys.modules.setdefault("PyQt6.QtWebEngineWidgets", _web_stub)
 
 from us_swing.backtest.results import RunRow  # noqa: E402
 from us_swing.backtest.service import SavedReport  # noqa: E402
-from us_swing.backtest.spec import Period, RunPlan, StrategySpec, UniverseSpec  # noqa: E402
+from us_swing.backtest.spec import (  # noqa: E402
+    Period,
+    RunPlan,
+    ScreenerSpec,
+    StrategySpec,
+    UniverseSpec,
+)
 from us_swing.gui.backtest_reports import (  # noqa: E402
     ReportsView,
     html_file_name,
@@ -48,6 +54,9 @@ class _FakeService:
 
     def delete_run(self, run_id: str) -> None:
         self.calls.append(("delete", run_id))
+
+    def preset_name(self, preset_id: str, _user_id: str) -> str:
+        return {"p1": "Momentum Price"}.get(preset_id, preset_id)
 
     def export_html(self, run_id: str, path: Path, _user_id: str = "") -> Path:
         self.calls.append(("html", run_id, path.name))
@@ -165,6 +174,7 @@ def test_plan_sections_names_mode() -> None:
 
     assert list(sections) == ["UNIVERSE", "STRATEGY", "MONEY"]
     assert ("Stocks", "AAPL, MSFT") in sections["UNIVERSE"]
+    assert ("Screener", "—") in sections["UNIVERSE"]
     assert sections["STRATEGY"] == [("None", "")]
     assert ("Costs", "$1 an order · 5 bps") in sections["MONEY"]
 
@@ -178,3 +188,13 @@ def test_many_sectors_show_a_count() -> None:
     sections = dict(plan_sections(SavedReport(rep.run, plan, 0, 0.0, 0.0, 0.0)))
 
     assert ("Stocks", "3 sectors") in sections["UNIVERSE"]
+
+
+def test_details_show_screener_name(view: ReportsView) -> None:
+    """UT-GUI-031.055.M09.T08: The details sheet shows the run's screener name."""
+    rep = saved_report()
+    plan = RunPlan("x", rep.plan.period, screener=ScreenerSpec(preset_id="p1"))
+
+    view.set_saved([SavedReport(rep.run, plan, 0, 0.0, 0.0, 0.0)])
+
+    assert view.sheet_values()["Screener"] == "Momentum Price"

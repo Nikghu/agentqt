@@ -427,15 +427,16 @@ class BacktestService:
         plan = RunPlan.from_json(run.plan_json)
         reports = self.build_reports(plan, self.saved_results(run_id))
         saved_at = run.started.astimezone().strftime(DATE_TIME_FMT)
-        screener = "" if plan.screener.skip else self._preset_name(plan.screener.preset_id,
-                                                                   user_id)
+        screener = "" if plan.screener.skip else self.preset_name(plan.screener.preset_id,
+                                                                  user_id)
         facts = run_facts(plan, screener)
         path.write_text(html_report.render(run.name, saved_at, facts, reports),
                         encoding="utf-8")
         _log.info("[Backtest] Report saved to %s", path)
         return path
 
-    def _preset_name(self, preset_id: str, user_id: str) -> str:
+    def preset_name(self, preset_id: str, user_id: str) -> str:
+        """Screener preset name for ``preset_id``; its id when the preset is gone."""
         try:
             return str(self._presets(preset_id, user_id).get("name") or preset_id)
         except Exception:  # noqa: BLE001 — a deleted or foreign preset shows its id

@@ -1,5 +1,5 @@
 {
-  "generated": "2026-11-26T08:25:51",
+  "generated": "2026-11-26T20:29:29",
   "subfolder": "execution",
   "root": "f:\\USMarket_Backtesting\\us_swing\\src\\us_swing\\execution",
   "tool_code": "EXE",
@@ -785,32 +785,32 @@
               "signature": "def _connect_with_retry(self, ib: Any) -> bool",
               "docstring": "Attempt IBKR connect with clientId collision retry (SRD-EXE-008.006).",
               "line_start": 187,
-              "line_end": 221
+              "line_end": 222
             },
             {
               "name": "_subscribe_batch",
               "signature": "def _subscribe_batch(self, ib: Any, batch: list[tuple[str, Any]]) -> None",
               "docstring": "Subscribe a batch of (tag, contract) pairs via reqMktData.",
-              "line_start": 223,
-              "line_end": 239
+              "line_start": 224,
+              "line_end": 240
             },
             {
               "name": "_on_pending_tickers",
               "signature": "def _on_pending_tickers(self, tickers: Any) -> None",
               "docstring": "Handle ib_insync pendingTickersEvent \u2014 emit tick_price for valid prices.",
-              "line_start": 241,
-              "line_end": 271
+              "line_start": 242,
+              "line_end": 272
             },
             {
               "name": "_on_ibkr_error",
               "signature": "def _on_ibkr_error(self, req_id: int, code: int, msg: str, *_: Any) -> None",
               "docstring": "Handle ib_insync errorEvent \u2014 manage fatal subscription errors.",
-              "line_start": 273,
-              "line_end": 295
+              "line_start": 274,
+              "line_end": 296
             }
           ],
           "line_start": 23,
-          "line_end": 295
+          "line_end": 296
         }
       ],
       "constants": [

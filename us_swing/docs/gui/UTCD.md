@@ -1061,6 +1061,7 @@ Test files:
 | UT-GUI-031.040.M04.T04 | MD-GUI-031.040.M04 | Edge | Skip line without skips | only entered | no skipped part | Pass |
 | UT-GUI-031.040.M03.T01 | MD-GUI-031.003.M03 | Positive | Run ends on Report | fake run with 2 variants | 4 Report · Done; Report tab open; KPIs filled | Pass |
 | UT-GUI-031.041.M04.T01 | MD-GUI-031.040.M04 | Positive | Chart data | report with benchmark | chart has benchmark per day; paints | Pass |
+| UT-GUI-031.041.M04.T02 | MD-GUI-031.040.M04 | Edge | Cards below chart | tall report in a scroll area | page grows; cards start below the chart dates | Pass |
 | UT-GUI-031.042.M04.T01 | MD-GUI-031.040.M04 | Positive | Month heat map | March and April P&L | one year row; coloured cells; year total | Pass |
 | UT-GUI-031.043.M04.T01 | MD-GUI-031.040.M04 | Positive | Group by picker | pick Sector | table refilled by sector | Replaced by UT-GUI-031.062.M04.T01 |
 | UT-GUI-031.044.M04.T01 | MD-GUI-031.040.M04 | Edge | One variant | one report | picker and compare hidden | Pass |
@@ -1104,6 +1105,7 @@ Test files:
 | UT-GUI-031.055.M09.T05 | MD-GUI-031.055.M09 | Edge | Plan facts | names mode, no strategy | Universe / Strategy / Money groups; names, None, costs | Pass |
 | UT-GUI-031.055.M09.T06 | MD-GUI-031.055.M09 | Positive | Multi-select delete | 2 runs picked, Yes | one confirm; 2 delete calls; Delete (2) | Pass |
 | UT-GUI-031.055.M09.T07 | MD-GUI-031.055.M09 | Edge | Many sectors | 3 sectors | shown as "3 sectors" | Pass |
+| UT-GUI-031.055.M09.T08 | MD-GUI-031.055.M09 | Positive | Screener name | run with a saved screener | details show the screener name | Pass |
 | UT-GUI-031.082.M09.T01 | MD-GUI-031.055.M09 | Positive | Download HTML | Cancel, then a path | nothing, then one export call with the default file name offered; button back on; off with no run | Pass |
 | UT-GUI-031.083.M14.T01 | MD-GUI-031.083.M14 | Positive | Day-first date text | date, datetime, ET Timestamp | 04-03-2026, 02-11-2026, 31-12-2025 | Pass |
 | UT-GUI-031.084.M03.T01 | MD-GUI-031.003.M03 | Positive | Inspector 30m choice | chart timeframe picker | 30m offered between 15m and 1D; 5 days before entry | Pass |

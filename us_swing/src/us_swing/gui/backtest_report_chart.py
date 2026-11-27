@@ -63,7 +63,7 @@ class ReportChart(QWidget):
         self.hover: int | None = None
         self.show_benchmark = False
         self._bench_key = QRectF()
-        self.setMinimumHeight(300)
+        self.setMinimumHeight(420)
         self.setMouseTracking(True)
 
     def set_daily(self, daily: pd.DataFrame, capital: float | None = None) -> None:
