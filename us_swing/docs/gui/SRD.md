@@ -5,6 +5,7 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-11-27
+> v2.149.0: SRD-GUI-031.096 added and approved by user 2026-11-28 (chat) — Cumulative P&L % and Sector in the Trade list.
 > v2.148.0: SRD-GUI-031.095 added and approved by user 2026-11-27 (chat) — Total P&L column in the Trade list.
 > v2.147.0: SRD-GUI-031.094 added and approved by user 2026-11-27 (chat) — Same stocks and Edge rows in the report.
 > v2.146.0: SRD-GUI-031.092–.093 added and approved by user 2026-11-27 (chat) — Leading sectors setup card and report chip.
@@ -814,6 +815,7 @@
 | SRD-GUI-031.093 | FO-GUI-031 | Should | The report shows skips as "Sector not leading N" and "Sector not weak N" chips, and Report details shows the Leading sectors setting. | decision counts, plan | chips, details row | Approved by user 2026-11-27 (chat); details show "Off" or e.g. "Top 3 · 1M · beats RSP" | Implemented |
 | SRD-GUI-031.094 | FO-GUI-031 | Should | The report's Returns stats show Same stocks return, Same stocks worst drop and Edge; Edge is green above 0 and red below. | report | stat rows | Approved by user 2026-11-27 (chat); the chart benchmark line stays hidden by default | Implemented |
 | SRD-GUI-031.095 | FO-GUI-031 | Should | The backtest Trade list has a Total P&L column after P&L % that shows, on each Exit row, the net P&L of all trades closed so far. | trades | column | Approved by user 2026-11-27 (chat); Entry rows empty; green above 0, red below; counts all trades, not only the filtered ones | Implemented |
+| SRD-GUI-031.096 | FO-GUI-031 | Should | The Trade list names the SRD-GUI-031.095 column Cumulative P&L, adds Cumulative P&L % (cumulative P&L as % of start capital) after it, and shows a Sector column after Symbol. | trades, start capital, stock sectors | columns | Approved by user 2026-11-28 (chat); % shows a dash when start capital is unknown; a stock with no sector shows Unknown | Implemented |
 
 ## FO-GUI-032 — Strategies Views
 
