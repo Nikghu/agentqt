@@ -1606,6 +1606,17 @@ MOCHA_QSS += _danger_qss(_MOCHA.RED, _MOCHA.MUTED, _MOCHA.OVERLAY2) + _sidebar_q
 VS_CODE_QSS += _danger_qss(_VS.RED, _VS.MUTED, _VS.OVERLAY2) + _sidebar_qss(
     "#161616", _VS.OVERLAY2, _VS.TEXT, _VS.SUBTEXT, _VS.OVERLAY, "#04395e", _VS.TEXT
 )
+_TICK_SVG = (Path(__file__).parent / "resources" / "check_white.svg").as_posix()
+_TICK_QSS = f"""
+QCheckBox, QCheckBox:focus {{ outline: none; }}
+QCheckBox::indicator:checked,
+QTableWidget#bt_strategies::indicator:checked, QListWidget#bt_sectors::indicator:checked {{
+    image: url("{_TICK_SVG}");
+}}
+"""
+CARBON_QSS += _TICK_QSS
+MOCHA_QSS += _TICK_QSS
+VS_CODE_QSS += _TICK_QSS
 QSS = MOCHA_QSS
 
 THEME_COLORS["carbon"] = {

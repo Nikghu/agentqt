@@ -669,7 +669,7 @@ class _StrategyInfoPage(QScrollArea):
         self._pertrade_spin.setStyleSheet(_spin_ss())
         form.addRow("Per-Trade Size:", self._pertrade_spin)
 
-        self._grow_check = QCheckBox("Grow with P&L")
+        self._grow_check = QCheckBox("Grow with P&&L")
         self._grow_check.setToolTip("The allocation grows or shrinks with the profit of this "
                                     "strategy's closed trades")
         form.addRow("", self._grow_check)

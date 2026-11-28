@@ -145,7 +145,7 @@ class _UserDialog(FramelessDialog):
         self._max_cap.setPrefix("$ ")
         self._max_cap.setSingleStep(500)
         self._max_cap.setValue(rc.max_capital_value)
-        self._grow = QCheckBox("Grow all strategies with P&L")
+        self._grow = QCheckBox("Grow all strategies with P&&L")
         self._grow.setToolTip("Every strategy's allocation grows or shrinks with the profit "
                               "of its closed trades")
         self._grow.setChecked(rc.grow_with_pnl)

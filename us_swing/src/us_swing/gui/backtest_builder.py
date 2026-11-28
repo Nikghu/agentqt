@@ -198,9 +198,6 @@ class BacktestBuilder(QWidget):
         self._source.setFixedWidth(420)
         self._saved_count = _key_label("")
         self._saved_text = ""
-        self._ai = QCheckBox("Use AI ranking")
-        self._ai.setEnabled(False)
-        self._ai.setToolTip("Comes in a later phase")
         self._strategies = QTableWidget(0, 5)
         self._strategies.setObjectName("bt_strategies")
         self._strategies.setHorizontalHeaderLabels(["Use", "Strategy", "Direction",
@@ -211,7 +208,7 @@ class BacktestBuilder(QWidget):
         self._strategies.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
         self._strategies.setMinimumHeight(180)
         self._capital = self._money(100, 10_000_000, 0, "$ ", 10_000)
-        self._grow = QCheckBox("Grow with P&L")
+        self._grow = QCheckBox("Grow with P&&L")
         self._grow.setToolTip("Each strategy's money grows or shrinks with the profit of its "
                               "closed trades")
         self._loss = self._money(0, 100, 1, "", 10.0)
@@ -292,7 +289,6 @@ class BacktestBuilder(QWidget):
                 card("Source", "Run the screener again, or use the lists the app saved "
                      "(AI picks included).",
                      [("Daily lists", self._source), ("", self._saved_count)]),
-                card("Ranking", "", [("AI ranking", self._ai)]),
             ),
             "strategies": _page(
                 card("Strategies", "Tick the live strategies to test. Allocation and per-trade "
@@ -557,7 +553,6 @@ class BacktestBuilder(QWidget):
             screener=ScreenerSpec(
                 preset_id=str(self._preset.currentData() or ""),
                 top_n=0 if self._source.value == "none" else self._top_n.value(),
-                ai_ranking=self._ai.isChecked() and self._source.value != "none",
                 recorded=self._source.value == "saved",
                 skip=self._source.value == "none",
             ),

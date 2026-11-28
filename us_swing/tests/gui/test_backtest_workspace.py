@@ -14,6 +14,7 @@ from typing import Any
 import pandas as pd
 import pytest
 from PyQt6.QtCore import QDate, QObject, QSettings, Qt, pyqtSignal
+from PyQt6.QtWidgets import QCheckBox
 
 from us_swing.backtest.service import DailyList, Estimate, OpenedRun, SavedReport
 from us_swing.backtest.spec import Variant
@@ -239,7 +240,7 @@ def test_screener_fields(qtbot: Any) -> None:
     builder._top_n.setValue(5)
     assert builder.plan().screener.top_n == 5
     assert builder.plan().screener.preset_id == "p1"
-    assert not builder._ai.isEnabled()
+    assert "Use AI ranking" not in [w.text() for w in builder.findChildren(QCheckBox)]
 
 
 def test_step_strip_states(workspace: BacktestWorkspace) -> None:
@@ -645,7 +646,7 @@ def test_no_screener_choice(workspace: BacktestWorkspace) -> None:
 
     plan = builder.plan()
     assert plan.screener.skip and not plan.screener.recorded
-    assert not (builder._preset.isEnabled() or builder._top_n.isEnabled() or builder._ai.isEnabled())
+    assert not (builder._preset.isEnabled() or builder._top_n.isEnabled())
     assert builder.summaries()["screener"] == "None · every stock every day"
 
     builder._source.buttons[0].click()
