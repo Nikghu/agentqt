@@ -376,3 +376,74 @@ def test_open_trade_kept_when_sector_drops(tmp_path: Path) -> None:
                gates={D3: _TECH_LEADS[D2]}, sectors=_SECTOR_OF)
 
     assert list(res.trades["exit_reason"]) == ["end_of_test"]
+
+
+def _grow_rules(name: str, grow: bool) -> portfolio.StrategyRules:
+    return portfolio.StrategyRules(name=name, sign=1, intraday=False, end_minute=930,
+                                   stop_pct=None, target_pct=None, rex_count=0,
+                                   alloc_pct=50.0, per_trade_pct=50.0, grow=grow)
+
+
+def _grow_account(grow_any: bool) -> portfolio._Account:
+    return portfolio._Account(4000.0, AccountSpec(), CostSpec(per_order=0.0, slippage_bps=0.0),
+                              grow_any=grow_any)
+
+
+def _order(rules: portfolio.StrategyRules, symbol: str) -> portfolio._Order:
+    return portfolio._Order("entry", rules, symbol)
+
+
+def test_grow_win_raises_next_trade() -> None:
+    """UT-BKT-002.098.M12.T01: A closed win adds to the strategy limit, so the next trade is bigger."""
+    rules = _grow_rules("S1", grow=True)
+    acc = _grow_account(grow_any=True)
+    assert acc.enter(_order(rules, "AAA"), 10.0, 1)
+    assert acc.positions["AAA"].qty == 100
+    acc.close(acc.positions["AAA"], 15.0, 2, "target")
+    assert acc.enter(_order(rules, "BBB"), 10.0, 3)
+    assert acc.positions["BBB"].qty == 125
+
+
+def test_grow_off_keeps_size() -> None:
+    """UT-BKT-002.098.M12.T02: With Grow with P&L off, a win does not change the trade size."""
+    rules = _grow_rules("S1", grow=False)
+    acc = _grow_account(grow_any=False)
+    acc.enter(_order(rules, "AAA"), 10.0, 1)
+    acc.close(acc.positions["AAA"], 15.0, 2, "target")
+    acc.enter(_order(rules, "BBB"), 10.0, 3)
+    assert acc.positions["BBB"].qty == 100
+    assert acc.pool() == 4000.0
+
+
+def test_grow_loss_shrinks_never_below_zero() -> None:
+    """UT-BKT-002.098.M12.T03: A loss shrinks the limit; a loss above the limit blocks entries."""
+    rules = _grow_rules("S1", grow=True)
+    acc = _grow_account(grow_any=True)
+    acc.closed["S1"] = -1000.0
+    acc.enter(_order(rules, "AAA"), 10.0, 1)
+    assert acc.positions["AAA"].qty == 50
+    acc.closed["S1"] = -5000.0
+    assert not acc.enter(_order(rules, "BBB"), 10.0, 2)
+
+
+def test_grow_uses_own_strategy_pnl() -> None:
+    """UT-BKT-002.098.M12.T04: Only the strategy's own closed P&L grows its limit."""
+    acc = _grow_account(grow_any=True)
+    acc.closed["S2"] = 2000.0
+    acc.enter(_order(_grow_rules("S1", grow=True), "AAA"), 10.0, 1)
+    assert acc.positions["AAA"].qty == 100
+
+
+def test_grow_free_cash_adds_closed_pnl() -> None:
+    """UT-BKT-002.099.M12.T01: With growth on, free cash includes all closed P&L."""
+    acc = _grow_account(grow_any=True)
+    acc.realized = 500.0
+    assert acc.pool() == 4500.0
+
+
+def test_grow_switch_or_strategy_tick() -> None:
+    """UT-BKT-002.098.M12.T05: The run switch or the strategy's own tick turns growth on."""
+    cfg = _strategy()
+    assert not portfolio.StrategyRules.from_live(cfg, 50, 50).grow
+    assert portfolio.StrategyRules.from_live(cfg, 50, 50, grow_all=True).grow
+    assert portfolio.StrategyRules.from_live(cfg | {"grow_with_pnl": True}, 50, 50).grow

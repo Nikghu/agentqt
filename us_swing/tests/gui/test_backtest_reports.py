@@ -214,3 +214,19 @@ def test_details_show_leading_sectors() -> None:
 
     assert ("Leading sectors", "Off") in off_rows
     assert ("Leading sectors", "Top 3 · 1M · beats RSP") in on_rows
+
+
+def test_details_show_grow_with_pnl() -> None:
+    """UT-GUI-031.097.M09.T01: Report details show whether all strategies grow with P&L."""
+    from dataclasses import replace
+
+    from us_swing.backtest.spec import AccountSpec
+
+    rep = saved_report()
+    on = replace(rep.plan, account=AccountSpec(grow_with_pnl=True))
+
+    off_rows = dict(plan_sections(rep))["MONEY"]
+    on_rows = dict(plan_sections(SavedReport(rep.run, on, 0, 0.0, 0.0, 0.0)))["MONEY"]
+
+    assert ("Grow with P&L", "Each strategy's own setting") in off_rows
+    assert ("Grow with P&L", "All strategies") in on_rows

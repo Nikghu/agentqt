@@ -155,3 +155,17 @@ def test_leading_sectors_card(qtbot: Any) -> None:
     assert (plan.sector_filter.top_n, plan.sector_filter.range) == (2, "3M")
     assert other.plan().sector_filter == plan.sector_filter
     assert builder.summaries()["stocks"].endswith(" · leading 2 (3M)")
+
+
+def test_grow_with_pnl_tick(qtbot: Any) -> None:
+    """UT-GUI-031.097.M02.T01: Grow with P&L is off by default; ticked it goes into the plan."""
+    builder = _builder(qtbot)
+    assert not builder.plan().account.grow_with_pnl
+
+    builder._grow.setChecked(True)
+    plan = builder.plan()
+    other = _builder(qtbot)
+    other.load_plan(plan)
+
+    assert plan.account.grow_with_pnl and other._grow.isChecked()
+    assert " growing · " in builder.summaries()["account"]

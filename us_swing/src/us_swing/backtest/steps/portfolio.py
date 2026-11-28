@@ -54,10 +54,11 @@ class StrategyRules:
     rex_count: int
     alloc_pct: float
     per_trade_pct: float
+    grow: bool = False
 
     @classmethod
-    def from_live(cls, cfg: Mapping[str, Any], alloc_pct: float, per_trade_pct: float
-                  ) -> StrategyRules:
+    def from_live(cls, cfg: Mapping[str, Any], alloc_pct: float, per_trade_pct: float,
+                  grow_all: bool = False) -> StrategyRules:
         hour, minute = str(cfg["end_time"]).split(":")[:2]
         return cls(
             name=str(cfg["name"]),
@@ -69,6 +70,7 @@ class StrategyRules:
             rex_count=int(cfg.get("rex_count", 0)),
             alloc_pct=alloc_pct,
             per_trade_pct=per_trade_pct,
+            grow=grow_all or bool(cfg.get("grow_with_pnl", False)),
         )
 
 
@@ -95,8 +97,6 @@ def refusals(plan: RunPlan, strategies: Sequence[Mapping[str, Any]],
                               f"later phase — set it to Fixed to backtest")
         if name in pnl_names:
             errors.append(f"Strategy {name} uses PNL in a condition, which comes in a later phase")
-    if plan.account.grow_with_pnl:
-        errors.append("Grow with P&L comes in a later phase — untick it to run")
     return errors
 
 
@@ -182,6 +182,8 @@ class _Account:
     pending: list[_Order] = field(default_factory=list)
     last: dict[str, float] = field(default_factory=dict)
     realized: float = 0.0
+    closed: dict[str, float] = field(default_factory=dict)
+    grow_any: bool = False
     trades: list[tuple[Any, ...]] = field(default_factory=list)
     log: list[tuple[Any, ...]] = field(default_factory=list)
     logged: set[tuple[str, str, int, str]] = field(default_factory=set)
@@ -189,6 +191,10 @@ class _Account:
     def open_cost(self, strategy: str | None = None) -> float:
         return sum(p.cost for p in self.positions.values()
                    if strategy is None or p.rules.name == strategy)
+
+    def pool(self) -> float:
+        """SRD-BKT-002.099 — start capital, plus closed P&L when any strategy grows."""
+        return self.capital + self.realized if self.grow_any else self.capital
 
     def equity(self) -> float:
         marks = sum(p.rules.sign * (self.last.get(p.symbol, p.entry_px) - p.entry_px) * p.qty
@@ -200,7 +206,7 @@ class _Account:
         if key in self.logged:
             return
         self.logged.add(key)
-        self.log.append((ns, symbol, rules.name, decision, self.capital - self.open_cost(),
+        self.log.append((ns, symbol, rules.name, decision, self.pool() - self.open_cost(),
                          self.open_cost(rules.name)))
 
     def close(self, pos: _Position, raw: float, ns: int, reason: str) -> None:
@@ -208,6 +214,7 @@ class _Account:
         costs = pos.costs + self.costs.per_order
         net = pos.rules.sign * (px - pos.entry_px) * pos.qty - costs
         self.realized += net
+        self.closed[pos.rules.name] = self.closed.get(pos.rules.name, 0.0) + net
         mfe = max(0.0, pos.rules.sign * (pos.best - pos.entry_px)) * pos.qty
         mae = max(0.0, pos.rules.sign * (pos.entry_px - pos.worst)) * pos.qty
         self.trades.append((pos.rules.name, pos.symbol, "LONG" if pos.rules.sign > 0 else "SHORT",
@@ -224,6 +231,8 @@ class _Account:
             return False
         px = raw * (1 + rules.sign * self.costs.slippage_bps / 10_000)
         limit = self.capital * rules.alloc_pct / 100
+        if rules.grow:
+            limit = max(0.0, limit + self.closed.get(rules.name, 0.0))
         qty = math.floor(limit * rules.per_trade_pct / 100 / px) if px > 0 else 0
         if qty < 1:
             self.note(ns, order.symbol, rules, "too_expensive", order.window)
@@ -231,7 +240,7 @@ class _Account:
         if self.open_cost(rules.name) >= limit:
             self.note(ns, order.symbol, rules, "strategy_limit", order.window)
             return False
-        free = max(0.0, self.capital - self.open_cost())
+        free = max(0.0, self.pool() - self.open_cost())
         qty = min(qty, math.floor(free / px))
         if qty < 1:
             self.note(ns, order.symbol, rules, "no_margin", order.window)
@@ -271,7 +280,8 @@ class _Sim:
                  added: Mapping[str, date] | None = None,
                  gates: Mapping[date, SectorGate] | None = None,
                  sectors: Mapping[str, str] | None = None) -> None:
-        self.acc = _Account(variant.capital, plan.account, plan.costs)
+        self.acc = _Account(variant.capital, plan.account, plan.costs,
+                            grow_any=any(r.grow for r in rules.values()))
         self.rules, self.picks, self.bars = rules, picks, bars
         self.entry, self.exits = entry, exits
         self.added: Mapping[str, date] = added or {}
@@ -291,7 +301,7 @@ class _Sim:
                 for s, (i0, i1) in ranges.items()}
         times = sorted({t for by_time in rows.values() for t in by_time})
         start_equity = acc.equity()
-        margin_min = acc.capital - acc.open_cost()
+        margin_min = acc.pool() - acc.open_cost()
         rex_used: dict[tuple[str, str], int] = defaultdict(int)
         stopped = False
         for t in times:
@@ -307,7 +317,7 @@ class _Sim:
                     pos.worst = (min(pos.worst, bars.low[k]) if pos.rules.sign > 0
                                  else max(pos.worst, bars.high[k]))
                     _levels(acc, pos, bars, k)
-            margin_min = min(margin_min, acc.capital - acc.open_cost())
+            margin_min = min(margin_min, acc.pool() - acc.open_cost())
             loss_pct = acc.account.max_daily_loss_pct
             if (not stopped and loss_pct > 0
                     and acc.equity() - start_equity <= -loss_pct / 100 * start_equity):
@@ -323,7 +333,7 @@ class _Sim:
         deployed = acc.open_cost()
         open_value = sum(acc.last.get(p.symbol, p.entry_px) * p.qty
                          for p in acc.positions.values())
-        self.money.append((day, acc.capital, deployed, margin_min, acc.capital - deployed,
+        self.money.append((day, acc.pool(), deployed, margin_min, acc.pool() - deployed,
                            open_value, acc.equity()))
 
     def _fill(self, here: dict[str, int], t: int,
@@ -496,7 +506,7 @@ def run_portfolio(
     report(0, total)
     results = []
     for vi, variant in enumerate(variants):
-        rules = {name: StrategyRules.from_live(live[name], alloc, per)
+        rules = {name: StrategyRules.from_live(live[name], alloc, per, plan.account.grow_with_pnl)
                  for name, alloc, per in variant.strategies}
         sim = _Sim(variant, rules, plan, picks, bars, entry, exits, added, gates, sectors)
         for di, day in enumerate(ordered, start=1):

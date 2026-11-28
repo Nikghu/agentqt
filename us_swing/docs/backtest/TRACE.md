@@ -39,6 +39,7 @@
 | FO-BKT-002 | SRD-BKT-002.092 | DD-BKT-002.092.D01 | MD-BKT-002.030.M12 (+ .008.M05) | UT-BKT-002.092.M12.T01–T02, UT-BKT-002.092.M05.T01 (Pass) | `backtest/steps/portfolio.py`, `backtest/service.py` | Implemented | RN-BKT-1.18.0-20261127 |
 | FO-BKT-002 | SRD-BKT-002.093–.095 | DD-BKT-002.093.D01 | MD-BKT-002.093.M16, .030.M12, .001.M01, .008.M05 | UT-BKT-002.093.M12.T01–T03, .093.M16.T01–T03, .094.M01.T01, .095.M16.T01, .095.M05.T01 (9, Pass) | `backtest/steps/sectors.py`, `steps/portfolio.py`, `spec.py`, `service.py` | Implemented | RN-BKT-1.18.0-20261127 |
 | FO-BKT-002 | SRD-BKT-002.096–.097 | DD-BKT-002.096.D01 | MD-BKT-002.040.M13, .008.M05 | UT-BKT-002.096.M13.T01, .097.M13.T01–T02 (3, Pass) | `backtest/steps/report.py`, `service.py` | Implemented | RN-BKT-1.18.0-20261127 |
+| FO-BKT-002 | SRD-BKT-002.098–.099 | DD-BKT-002.098.D01 | MD-BKT-002.030.M12 | UT-BKT-002.098.M12.T01–T05, .099.M12.T01 (6, Pass) | `backtest/steps/portfolio.py` | Implemented | pending |
 
 ## Reverse Traceability: Code → MD → SRD → FO
 
