@@ -65,6 +65,7 @@ class StrategyConfig:
     run_state: str = "STOPPED"
     direction: str = "LONG"
     fixed_qty: int = 0  # > 0 buys exactly this many shares instead of percent sizing
+    grow_with_pnl: bool = False
 
 
 # ── Schema ────────────────────────────────────────────────────────────────────
@@ -101,6 +102,7 @@ strategies = sa.Table(
     sa.Column("run_state",          sa.Text,    nullable=False, server_default="STOPPED"),
     sa.Column("direction",          sa.Text,    nullable=False, server_default="LONG"),
     sa.Column("fixed_qty",          sa.Integer, nullable=False, server_default="0"),
+    sa.Column("grow_with_pnl",      sa.Boolean, nullable=False, server_default=sa.false()),
     sa.Column("updated_at",         sa.Text,    nullable=False),
 )
 
@@ -129,6 +131,7 @@ _COLUMN_ADDITIONS: tuple[tuple[str, str], ...] = (
     ("per_trade_pct", "INTEGER NOT NULL DEFAULT 100"),
     ("direction", "TEXT NOT NULL DEFAULT 'LONG'"),
     ("fixed_qty", "INTEGER NOT NULL DEFAULT 0"),
+    ("grow_with_pnl", "BOOLEAN NOT NULL DEFAULT 0"),
 )
 
 

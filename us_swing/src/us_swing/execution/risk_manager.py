@@ -39,6 +39,7 @@ class RiskManager:
         user_id_provider: Callable[[], int],
         tracker: _PositionSource | None = None,
         effective_capital_provider: Callable[[], float] | None = None,
+        allocation_provider: Callable[[str, int], float] | None = None,
         warning_sink: Callable[[RiskWarning], None] | None = None,
     ) -> None:
         """Limits and user are read on every check, so saved changes apply at once."""
@@ -48,6 +49,7 @@ class RiskManager:
         self._user_id_provider = user_id_provider
         self._tracker = tracker
         self._effective_capital_provider = effective_capital_provider
+        self._allocation_provider = allocation_provider
         self._warning_sink = warning_sink
         self._reservations: dict[tuple[str, str], float] = {}
 
@@ -118,7 +120,10 @@ class RiskManager:
         """Blocking per-strategy cap measured against the absolute capital budget."""
         if self._tracker is None:
             return CanAllocateResult(ok=True)
-        limit = self._effective_capital() * capital_max_pct / 100.0
+        if self._allocation_provider is not None:
+            limit = self._allocation_provider(strategy_id, capital_max_pct)
+        else:
+            limit = self._effective_capital() * capital_max_pct / 100.0
         deployed = sum(
             p.average_price * p.quantity
             for p in self._tracker.get_all(self._user_id_provider())

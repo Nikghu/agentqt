@@ -270,3 +270,78 @@ def test_paper_account_counts_only_own_ibkr_positions(qtbot: QtBot) -> None:
     acct = svc.get_account_state(1)
     assert acct.equity == pytest.approx(2_000.0 + 20.0)
     assert acct.gross_position_value == pytest.approx(420.0)
+
+
+# ── Grow with P&L (SRD-EXE-017.029, .030) ─────────────────────────────────────
+
+class _ClosedQuery:
+    def __init__(self, pnl: dict[str, float]) -> None:
+        self._pnl = pnl
+
+    def closed_for_strategy(self, name: str, *, since_iso: str | None = None,
+                            user_id: int | None = None) -> tuple[object, ...]:
+        return tuple(MagicMock(realized_pnl_usd=v) for v in [self._pnl.get(name, 0.0)])
+
+
+def _grow_svc(monkeypatch: pytest.MonkeyPatch, pnl: dict[str, float], ticked: set[str],
+              grow_all: bool = False, user: UserProfile | None = None,
+              ibkr_acct: AccountState | None = None) -> AppService:
+    from us_swing.gui import strategy_store
+
+    cfgs = [MagicMock(grow_with_pnl=n in ticked, fixed_qty=0) for n in ("s1", "s2")]
+    for cfg, name in zip(cfgs, ("s1", "s2")):
+        cfg.name = name
+    monkeypatch.setattr(strategy_store, "load_strategies", lambda: cfgs)
+    user = user or _paper_user()
+    user.risk_config.grow_with_pnl = grow_all
+    return _svc(user.user_id, [user], ibkr_acct=ibkr_acct, tc_query=_ClosedQuery(pnl))
+
+
+def test_grow_adds_own_closed_pnl(qtbot: QtBot, monkeypatch: pytest.MonkeyPatch) -> None:
+    """UT-EXE-017.029.M09.T01: A ticked strategy's allocation adds its own closed P&L."""
+    svc = _grow_svc(monkeypatch, {"s1": 300.0, "s2": 900.0}, ticked={"s1"})
+    assert svc.strategy_allocation("s1", 50) == 1_300.0
+    assert svc.strategy_allocation("s2", 50) == 1_000.0
+
+
+def test_grow_loss_shrinks_not_below_zero(qtbot: QtBot, monkeypatch: pytest.MonkeyPatch) -> None:
+    """UT-EXE-017.029.M09.T02: A loss shrinks the allocation and never below $0."""
+    svc = _grow_svc(monkeypatch, {"s1": -400.0}, ticked={"s1"})
+    assert svc.strategy_allocation("s1", 50) == 600.0
+    svc = _grow_svc(monkeypatch, {"s1": -5_000.0}, ticked={"s1"})
+    assert svc.strategy_allocation("s1", 50) == 0.0
+    assert svc.budget_capital() == 0.0
+
+
+def test_grow_account_switch_and_budget(qtbot: QtBot, monkeypatch: pytest.MonkeyPatch) -> None:
+    """UT-EXE-017.030.M09.T01: The account switch grows all; budget adds their closed P&L."""
+    svc = _grow_svc(monkeypatch, {"s1": 300.0, "s2": 200.0}, ticked=set(), grow_all=True)
+    assert svc.strategy_allocation("s2", 50) == 1_200.0
+    assert svc.budget_capital() == 2_500.0
+
+
+def test_grow_capped_by_live_cash(qtbot: QtBot, monkeypatch: pytest.MonkeyPatch) -> None:
+    """UT-EXE-017.030.M09.T02: A live grown allocation never exceeds 90% of broker cash."""
+    acct = AccountState(2, 3_000.0, 3_000.0, 0.0, total_cash_value=3_000.0)
+    svc = _grow_svc(monkeypatch, {"s1": 2_000.0}, ticked={"s1"},
+                    user=_live_user(2_000.0), ibkr_acct=acct)
+    assert svc.budget_capital() == 2_700.0
+    assert svc.strategy_allocation("s1", 100) == 2_700.0
+
+
+def test_grow_off_keeps_allocation(qtbot: QtBot, monkeypatch: pytest.MonkeyPatch) -> None:
+    """UT-EXE-017.029.M09.T03: With both switches off, closed P&L changes nothing."""
+    svc = _grow_svc(monkeypatch, {"s1": 500.0}, ticked=set())
+    assert svc.strategy_allocation("s1", 50) == 1_000.0
+    assert svc.budget_capital() == 2_000.0
+
+
+def test_grow_switch_round_trip() -> None:
+    """UT-EXE-017.031.M07.T01: The account switch is saved; old files load as off."""
+    profile = UserProfile(1, "Alice", "Alice", 101, "paper",
+                          risk_config=RiskConfig(grow_with_pnl=True),
+                          strategy_config={}, screener_config={})
+    assert _from_dict(_to_dict(profile)).risk_config.grow_with_pnl
+    old = _to_dict(profile)
+    del old["grow_with_pnl"]
+    assert not _from_dict(old).risk_config.grow_with_pnl

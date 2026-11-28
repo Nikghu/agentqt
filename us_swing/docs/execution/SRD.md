@@ -7,6 +7,7 @@
 **Last Updated:** 2026-11-24
 **Project:** US Swing Trading System
 
+> v1.43.0: SRD-EXE-017.029–.031 added and approved by user 2026-11-28 (chat) — Grow with P&L (closed trades only) for live and paper trading.
 > v1.42.0: SRD-EXE-015.010–.011 added (approved by user 2026-11-24, Implemented, ISS-EXE-0018) — IBKR order numbers never repeat; fills that land while the app is away are caught up.
 > v1.39.5: SRD-EXE-022.008 changed: one shared indicator folder (user decision 2026-11-23: one shared folder, no user part).
 > v1.39.4: SRD-EXE-022.017 Implemented (P4).
@@ -425,6 +426,9 @@
 |---|---|---|---|---|---|---|---|
 | SRD-EXE-017.027 | FO-EXE-017 | Must | For a paper user, `get_account_state` returns start-of-day equity = Max Capital, daily P&L = realised P&L of cycles closed today (ET), equity = Max Capital + daily P&L + unrealised P&L, cash = Max Capital + daily P&L − entry value of open positions, and gross position value = market value of open positions. | Max Capital, today's closed cycles, open positions | `AccountState` | Sizing still uses Max Capital (`effective_capital`); live accounts unchanged | Implemented |
 | SRD-EXE-017.028 | FO-EXE-017 | Must | A strategy with a fixed share count (`fixed_qty` > 0) buys exactly that many shares instead of the percent sizing. | `fixed_qty` | `int` shares per trade | The capital cap and `margin_available()` clamp still apply; 0 keeps SRD-EXE-017.024 sizing; used by the Charts chart plan (SRD-GUI-045.008) | Implemented |
+| SRD-EXE-017.029 | FO-EXE-017 | Must | With Grow with P&L on (the strategy's own tick or the user's account switch), a strategy's allocation is Max Capital × allocation % plus the net P&L of all its closed trades for that user, never below 0. | Max Capital, closed cycles | allocation $ | Per-trade size and the strategy cap both use it; a fixed share count ignores it; Approved by user 2026-11-28 (chat) | Implemented |
+| SRD-EXE-017.030 | FO-EXE-017 | Must | With Grow with P&L on for any strategy, the shared budget is Max Capital plus the closed P&L of the growing strategies, and no grown allocation may exceed it. | Max Capital, closed cycles, broker cash | budget $ | A live user's budget keeps the 90%-of-broker-cash cap; Approved by user 2026-11-28 (chat) | Implemented |
+| SRD-EXE-017.031 | FO-EXE-017 | Must | The strategy settings and the user's risk settings each save a Grow with P&L switch, off by default; older saved files load as off. | strategies table, users.json | `grow_with_pnl` | Approved by user 2026-11-28 (chat) | Implemented |
 
 ## Section 22: Requirements for FO-EXE-022 — Custom Indicator Plugins
 

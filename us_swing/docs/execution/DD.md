@@ -4198,6 +4198,14 @@ read logs `[Strategy] Could not load P&L history for %s` and returns `StrategyPn
 
 **Known limit.** Realised P&L from earlier days is not carried; each market day the paper account starts again at Max Capital. Sizing still uses `effective_capital`.
 
+## DD-EXE-017.029.D01 — Grow with P&L (Closed Trades)
+
+**Who grows.** A strategy grows when its `grow_with_pnl` is on or the active user's `RiskConfig.grow_with_pnl` is on; a strategy with a fixed share count never grows. `AppService._grow_pnl()` returns `{name: sum of realized_pnl_usd}` of each growing strategy's CLOSED cycles for the active user (all time, `closed_for_strategy`).
+
+**Allocation.** `strategy_allocation(name, pct)` = `effective_capital × pct/100`; for a growing strategy `min(max(0, base + closed), budget_capital)`. `budget_capital()` = `max(0, Max Capital + closed P&L of growing strategies)`, then the live rule: above broker cash → 90% of cash (`_cash_capped`, shared with `effective_capital`).
+
+**Wiring.** `RiskManager` gets `effective_capital_provider=budget_capital` (margin) and `allocation_provider=strategy_allocation` (strategy cap in `can_allocate`). `StrategyEngine` passes `allocation_provider` to `_Router`; `_size_entry` sizes `floor(allocation × per_trade% ÷ price)`. `AppService.margin_available` uses `budget_capital`. With both switches off every number equals the old rule.
+
 ## DD-EXE-006.015.D01 — 30m Timeframe (Live)
 
 **Traces:** SRD-EXE-006.015, SRD-EXE-007.011

@@ -423,7 +423,7 @@ us_swing/src/us_swing/gui/
 | MD ID | SRD | File | Purpose | Public API | Depends on | Async |
 |---|---|---|---|---|---|---|
 | MD-GUI-031.001.M01 | SRD-GUI-031.001 | `us_swing/src/us_swing/gui/main_window.py` | Backtest sidebar item and stack page | `_NAV_ITEMS`, `_WIDE_PAGES` | `backtest_workspace` | No |
-| MD-GUI-031.002.M02 | SRD-GUI-031.002, .092 | `us_swing/src/us_swing/gui/backtest_builder.py` | Left builder that makes the run plan | `BacktestBuilder`, `plan()`, `changed`, `_NameCompleter` (SRD-GUI-031.078) | `backtest.spec`, `core.backtest_bridge`, `screener_views.ChipGroup` | No |
+| MD-GUI-031.002.M02 | SRD-GUI-031.002, .092, .097 | `us_swing/src/us_swing/gui/backtest_builder.py` | Left builder that makes the run plan | `BacktestBuilder`, `plan()`, `changed`, `_NameCompleter` (SRD-GUI-031.078) | `backtest.spec`, `core.backtest_bridge`, `screener_views.ChipGroup` | No |
 | MD-GUI-031.003.M03 | SRD-GUI-031.003 | `us_swing/src/us_swing/gui/backtest_workspace.py` | Step strip, data check, Step 1 run and view; view pill bar with 1 / 2 / 3 keys over a stacked view (SRD-GUI-031.068) | `BacktestWorkspace` | `backtest.service`, `backtest_builder`, `app_service` | Yes (`QThread` workers) |
 | MD-GUI-031.050.M05 | SRD-GUI-031.050 | `us_swing/src/us_swing/gui/backtest_dock.py` | Section of titled panels in rows; right icon strip and ✕ turn panels on/off, kept in QSettings | `DockSection`, `Panel`, `PanelSpec` | `cards`, `icons` | No |
 | MD-GUI-031.052.M06 | SRD-GUI-031.052, .076 | `us_swing/src/us_swing/gui/backtest_trade_chart.py` | Candles of one stock around a trade with entry/exit dots, path, callouts, result badge and dimmed outside bars | `TradeChart`, `time_labels()`, `trade_badge()` | `theme`, `strategy_pnl_chart.nice_ticks` | No |

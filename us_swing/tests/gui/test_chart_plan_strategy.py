@@ -124,7 +124,8 @@ def test_engine_buys_fixed_shares() -> None:
     """UT-GUI-045.008.M01.T02: engine sizing uses the fixed share count, else the percent rule."""
     from us_swing.execution.strategy_engine._router import _Router
 
-    router = SimpleNamespace(_effective_capital_provider=lambda: 50_000.0)
+    router = SimpleNamespace(_effective_capital_provider=lambda: 50_000.0,
+                             _allocation_provider=None)
     plan = build_chart_plan("VRSN", 108.0, 103.5, 122.0, 25, _TODAY)
     ctx = SimpleNamespace(cfg=plan)
 

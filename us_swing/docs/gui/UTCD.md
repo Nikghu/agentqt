@@ -1153,6 +1153,10 @@ Test files:
 | UT-GUI-031.073.M02.T02 | MD-GUI-031.002.M02 | Positive | Direction column after Strategy | one SHORT, one with no direction | Short, Long; money columns move one place right | Pass |
 | UT-GUI-031.074.M02.T01 | MD-GUI-031.002.M02 | Positive | Plan round trip | plan with sector, saved lists, strategy, capital | same plan after load | Pass |
 | UT-GUI-031.092.M02.T01 | MD-GUI-031.002.M02 | Positive | Leading sectors card | tick, Top 2, 3 months | greyed while off; plan and load_plan keep it; header "· leading 2 (3M)" | Pass |
+| UT-GUI-031.097.M02.T01 | MD-GUI-031.002.M02 | Positive | Grow with P&L tick | default; tick; load_plan | off; plan on, kept, summary says growing | Pass |
+| UT-GUI-031.097.M09.T01 | MD-GUI-031.055.M09 | Positive | Details show Grow with P&L | plan off; plan on | Each strategy's own setting; All strategies | Pass |
+| UT-GUI-013.025.M01.T01 | MD-GUI-013.001.M01 | Positive | Strategy Grow with P&L tick | new; edit ticked; save | off; on; saved on | Pass |
+| UT-GUI-006.024.M01.T01 | MD-GUI-006.001.M01 | Positive | Grow all strategies tick | new user; tick | off; profile on | Pass |
 | UT-GUI-031.074.M10.T01 | MD-GUI-031.071.M10 | Negative | Cancel and Save | change name, Cancel; change, Save | old name back; new name kept | Pass |
 | UT-GUI-031.074.M03.T01 | MD-GUI-031.003.M03 | Positive | Run from window | Run in footer | window closed; run done | Pass |
 

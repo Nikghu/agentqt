@@ -669,6 +669,11 @@ class _StrategyInfoPage(QScrollArea):
         self._pertrade_spin.setStyleSheet(_spin_ss())
         form.addRow("Per-Trade Size:", self._pertrade_spin)
 
+        self._grow_check = QCheckBox("Grow with P&L")
+        self._grow_check.setToolTip("The allocation grows or shrinks with the profit of this "
+                                    "strategy's closed trades")
+        form.addRow("", self._grow_check)
+
         self._capital_hint = QLabel()
         self._capital_hint.setWordWrap(True)
         self._capital_hint.setStyleSheet(f"color: {active_palette().MUTED}; font-size: 11px;")
@@ -1592,6 +1597,7 @@ class StrategyBuilderDialog(QDialog):
         i._mode_combo.setCurrentText(cfg.mode.capitalize())
         i._capital_spin.setValue(cfg.capital_max)
         i._pertrade_spin.setValue(cfg.per_trade_pct)
+        i._grow_check.setChecked(cfg.grow_with_pnl)
 
         sc = self._sched_page
         sc._start_time.setTime(QTime.fromString(cfg.start_time, "HH:mm"))
@@ -1666,6 +1672,7 @@ class StrategyBuilderDialog(QDialog):
             mode=i._mode_combo.currentText().lower(),
             capital_max=i._capital_spin.value(),
             per_trade_pct=i._pertrade_spin.value(),
+            grow_with_pnl=i._grow_check.isChecked(),
             start_time=sc._start_time.time().toString("HH:mm"),
             end_time=sc._end_time.time().toString("HH:mm"),
             start_date=sc._start_date.date().toString("yyyy-MM-dd"),

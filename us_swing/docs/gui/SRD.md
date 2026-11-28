@@ -5,6 +5,7 @@
 **Traces To:** FO-GUI v2.6.0
 **Status:** Draft
 **Last Updated:** 2026-11-27
+> v2.150.0: SRD-GUI-031.097, SRD-GUI-013.025 and SRD-GUI-006.024 added and approved by user 2026-11-28 (chat) — Grow with P&L tick boxes.
 > v2.149.0: SRD-GUI-031.096 added and approved by user 2026-11-28 (chat) — Cumulative P&L % and Sector in the Trade list.
 > v2.148.0: SRD-GUI-031.095 added and approved by user 2026-11-27 (chat) — Total P&L column in the Trade list.
 > v2.147.0: SRD-GUI-031.094 added and approved by user 2026-11-27 (chat) — Same stocks and Edge rows in the report.
@@ -355,6 +356,7 @@
 | SRD-GUI-006.022 | FO-GUI-006 | Must | A stock whose IBKR daily bars end before the last trading day is listed as failed after the download. | IBKR daily bars | failed list entry "IBKR has no bar for <day>" | Bars received are still saved; Retry Failed asks again; approved by user 2026-11-05 in chat (ISS-GUI-0017) | Implemented |
 | SRD-GUI-006.023 | FO-GUI-006 | Must | Update now downloads only index stocks whose last daily candle is before the last trading day. | `price_1d`, index list | Stocks behind, from the day after the oldest of them | Failed stocks that are behind are asked again; none behind → no download; asked by user 2026-11-05 in chat (ISS-GUI-0018) | Implemented |
 | SRD-GUI-006.016 | FO-GUI-010 | Should | **Fix Discrepancies UI.** `_DatabaseTab` adds a "Discrepancies" `QGroupBox` (initially hidden) below the build group. Contents: warning label `"⚠  N symbols have no data:"`, a read-only `QLabel` listing symbols (comma-separated, truncated to 80 chars with "…" if longer), and a `"🔧  Fix Discrepancies"` `QPushButton`. Signal wiring: `svc.candle_symbol_failed` → `_on_symbol_failed(symbol, reason)` increments a live fail counter shown in the progress label suffix `"  (N failed)"`. `svc.candle_download_failures` → `_on_failures_ready(symbols)` shows/hides the discrepancies group and populates it. `_DatabaseTab` calls `_load_persisted_failures()` on init (after status refresh) to show the group immediately if a failures file exists from a prior session. Clicking "Fix Discrepancies" checks IBKR connection (same gate as SRD-GUI-006.012), then calls `svc.start_candle_download(start_date=today, mode="fix", symbols=failed_list)`. On `candle_download_failures([])` (empty list after fix run), the discrepancy group is hidden and the failures file deleted via `svc.clear_failed_symbols()`. | Download finish; app init | Discrepancy group shown/hidden; Fix button triggers targeted re-download | Group hidden during active download; re-shown after completion if failures remain | Approved |
+| SRD-GUI-006.024 | FO-GUI-006 | Should | The user's risk settings show a Grow all strategies with P&L tick box next to Max Capital, off by default. | user tick | user setting | Turns growth on for every strategy of that user; Approved by user 2026-11-28 (chat) | Implemented |
 
 ---
 
@@ -446,6 +448,7 @@
 | SRD-GUI-013.022 | FO-GUI-013 | Must | The SWING form offers Symbol Type, Candles (1–500), Price Swing, Window (Previous / Current) and Timeframe; LookbackDays is removed. | indicator selection | 5-field form | Window defaults to Previous; matches SRD-EXE-011.026 (ISS-EXE-0014) | Implemented |
 | SRD-GUI-013.023 | FO-GUI-013 | Must | Every Timeframe dropdown in the strategy builder offers 3m, 15m, 30m, 1d and 1w in that order. | indicator form | timeframe choice | One shared list for all forms | Implemented |
 | SRD-GUI-013.024 | FO-GUI-013 | Must | The condition dialog offers BOSS_ST with Symbol Type, Swing Lookback (1–500, was 1–20, reopened 2026-11-22), Min Break ATR (0–5), HTF (30m / 15m), LTF (15m / 3m) and Signal (Fresh / State). | indicator selection | 6-field form | HTF must be above LTF, else an error and no condition; matches SRD-EXE-011.027 | Implemented |
+| SRD-GUI-013.025 | FO-GUI-013 | Should | The strategy builder shows a Grow with P&L tick box next to Per-Trade Size, off by default. | user tick | strategy setting | Matches SRD-EXE-017.031; Approved by user 2026-11-28 (chat) | Implemented |
 
 ---
 
@@ -816,6 +819,7 @@
 | SRD-GUI-031.094 | FO-GUI-031 | Should | The report's Returns stats show Same stocks return, Same stocks worst drop and Edge; Edge is green above 0 and red below. | report | stat rows | Approved by user 2026-11-27 (chat); the chart benchmark line stays hidden by default | Implemented |
 | SRD-GUI-031.095 | FO-GUI-031 | Should | The backtest Trade list has a Total P&L column after P&L % that shows, on each Exit row, the net P&L of all trades closed so far. | trades | column | Approved by user 2026-11-27 (chat); Entry rows empty; green above 0, red below; counts all trades, not only the filtered ones | Implemented |
 | SRD-GUI-031.096 | FO-GUI-031 | Should | The Trade list names the SRD-GUI-031.095 column Cumulative P&L, adds Cumulative P&L % (cumulative P&L as % of start capital) after it, and shows a Sector column after Symbol. | trades, start capital, stock sectors | columns | Approved by user 2026-11-28 (chat); % shows a dash when start capital is unknown; a stock with no sector shows Unknown | Implemented |
+| SRD-GUI-031.097 | FO-GUI-031 | Should | The backtest setup Money card has a Grow with P&L tick box, off by default, saved in the run plan and shown in Report details. | user tick | plan setting | Approved by user 2026-11-28 (chat) | Implemented |
 
 ## FO-GUI-032 — Strategies Views
 
