@@ -211,7 +211,7 @@ class BacktestBuilder(QWidget):
         self._strategies.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
         self._strategies.setMinimumHeight(180)
         self._capital = self._money(100, 10_000_000, 0, "$ ", 10_000)
-        self._grow = QCheckBox("Grow with P&L")
+        self._grow = QCheckBox("Grow with P&&L")
         self._grow.setToolTip("Each strategy's money grows or shrinks with the profit of its "
                               "closed trades")
         self._loss = self._money(0, 100, 1, "", 10.0)
