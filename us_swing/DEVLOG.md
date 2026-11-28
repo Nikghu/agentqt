@@ -2,6 +2,19 @@
 
 ---
 
+## [20261128] BKT + EXE + GUI — Grow with P&L (backtest, live, paper), Step 3 memory fix, Cumulative P&L columns, VS Code tick fill
+
+- Type: Feature + Bugfix
+- FO(s): FO-BKT-002, FO-EXE-017, FO-GUI-031, FO-GUI-013, FO-GUI-006
+- RN: RN-BKT-1.19.0-20261128, RN-EXE-1.45.0-20261128, RN-GUI-2.12.0-20261128
+- Artifacts updated: SRD (BKT-002.098–.099, EXE-017.029–.031, GUI-031.095–.097, GUI-013.025, GUI-006.024), DD (BKT-002.098.D01, EXE-017.029.D01), MD, UTCD, TRACE (BKT, EXE, GUI), ISS-BKT-0004, Code (backtest/steps/portfolio.py; gui/app_service.py, execution/risk_manager.py, execution/strategy_engine/_router.py and _engine.py, gui/strategy_store.py, gui/user_store.py, user/manager.py, data/models.py; gui/backtest_builder.py, backtest_trade_list.py, backtest_workspace.py, backtest_reports.py, strategy_builder_dialog.py, settings_panel.py, theme.py), Tests, RN, CONTEXT, DEVLOG
+- Decisions: Grow with P&L uses closed trades only (BKT limit = capital × alloc% + closed P&L, floor 0; free cash = capital + all closed P&L − open cost); live and paper grow from the strategy tick or the account switch; fixed-share strategies do not grow; budget floored at 0 (found in tests); live keeps 90%-of-cash cap; switches off by default; ISS-BKT-0004 fix has no SRD change (whole-period `_Bars.index` removed, per-day time map; IT sector 2021–2026 Step 3 memory 2,459 MB → 857 MB, 182 s → 139 s, same trades and net $1,649.61); disabled tick boxes greyed in all themes; VS Code ticked boxes fill #007acc
+- Findings: backtest 226 pass; execution and related GUI pass; 4 old failures in tests/gui/test_manual_picks.py also fail without these changes (T267)
+- Known: no P&L reset button; renaming a strategy starts from $0
+- Open: T271 (VS Code tick fill), T272 (Step 3 no freeze), T273 (Cumulative P&L columns), T274 (Grow with P&L backtest); PRs to push and merge when the user says
+
+---
+
 ## [20261127] BKT + GUI — Added-date filter, Leading sectors (longs strong, shorts weak), fair Same stocks benchmark + Edge
 
 - Type: Feature (BKT + GUI)
