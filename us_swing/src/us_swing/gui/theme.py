@@ -617,6 +617,8 @@ QCheckBox::indicator:checked {
     background: #89b4fa;
     border-color: #89b4fa;
 }
+QCheckBox:disabled { color: #6c7086; }
+QCheckBox::indicator:checked:disabled { background: #45475a; border-color: #45475a; }
 QTableWidget#bt_strategies::indicator, QListWidget#bt_sectors::indicator {
     width: 14px; height: 14px;
     border: 1px solid #7f849c;
@@ -1113,6 +1115,18 @@ QCheckBox::indicator {
 }
 QCheckBox::indicator:checked { background: #007acc; border-color: #007acc; }
 QCheckBox::indicator:hover { border-color: #007acc; }
+QCheckBox:disabled { color: #6e6e6e; }
+QCheckBox::indicator:checked:disabled { background: #5a5a5a; border-color: #5a5a5a; }
+QTableWidget#bt_strategies::indicator, QListWidget#bt_sectors::indicator {
+    width: 14px; height: 14px;
+    border: 1px solid #858585;
+    border-radius: 2px;
+    background: #3c3c3c;
+}
+QTableWidget#bt_strategies::indicator:checked, QListWidget#bt_sectors::indicator:checked {
+    background: #007acc;
+    border-color: #007acc;
+}
 
 /* ── Status bar ───────────────────────────────────────────── */
 QStatusBar {

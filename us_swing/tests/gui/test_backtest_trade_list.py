@@ -67,7 +67,7 @@ def test_table_and_click(qtbot: Any) -> None:
 
     assert view.table.rowCount() == 6
     assert _text(view, 0, 2) == "LONG"
-    assert _text(view, 0, 5) == "03-03-2026 10:00:00"
+    assert _text(view, 0, 6) == "03-03-2026 10:00:00"
     view.chips.buttons[4].click()  # SHORT
     assert view.table.rowCount() == 2
     assert view.summary.text() == "1 of 3 trades · net P&L -$2.00"
@@ -84,18 +84,19 @@ def test_entry_exit_rows_in_time_order(qtbot: Any) -> None:
     headers = [view.table.horizontalHeaderItem(c).text()  # type: ignore[union-attr]
                for c in range(view.table.columnCount())]
 
-    assert headers[:7] == ["Trade #", "Trade", "Type", "Symbol", "Strategy", "Time", "Price"]
+    assert headers[:8] == ["Trade #", "Trade", "Type", "Symbol", "Sector", "Strategy", "Time",
+                           "Price"]
     assert [(_text(view, r, 3), _text(view, r, 1)) for r in range(6)] == [
         ("AAPL", "Entry"), ("MSFT", "Entry"), ("AAPL", "Exit"), ("MSFT", "Exit"),
         ("NVDA", "Entry"), ("NVDA", "Exit")]
-    assert [_text(view, r, 11) for r in range(6)] == [
+    assert [_text(view, r, 14) for r in range(6)] == [
         "$970.00", "$950.00", "$980.00", "$1,000.00", "$900.00", "$1,000.00"]
-    assert _text(view, 0, 6) == "10.00"
-    assert _text(view, 2, 6) == "20.00"
-    assert [_text(view, 0, c) for c in (8, 9, 12, 13)] == ["", "", "", ""]
-    assert [_text(view, 2, c) for c in (8, 9, 12, 13)] == ["$30.00", "+100.00%", "0.1",
+    assert _text(view, 0, 7) == "10.00"
+    assert _text(view, 2, 7) == "20.00"
+    assert [_text(view, 0, c) for c in (9, 10, 11, 12, 15, 16)] == [""] * 6
+    assert [_text(view, 2, c) for c in (9, 10, 15, 16)] == ["$30.00", "+100.00%", "0.1",
                                                           "strategy"]
-    assert _text(view, 0, 10) == "$30.00"
+    assert _text(view, 0, 13) == "$30.00"
     assert numbered(_trades())["days"].iloc[0] == pytest.approx(1.5 / 24)
 
 
@@ -105,14 +106,14 @@ def test_idle_capital_shaded_red(qtbot: Any) -> None:
     qtbot.addWidget(view)
     view.set_trades(_trades(), 100.0)
 
-    shown = [_text(view, r, 11) for r in range(6)]
-    red = [view.table.item(r, 11).background().style()  # type: ignore[union-attr]
+    shown = [_text(view, r, 14) for r in range(6)]
+    red = [view.table.item(r, 14).background().style()  # type: ignore[union-attr]
            != Qt.BrushStyle.NoBrush for r in range(6)]
 
     assert shown == ["$70.00", "$50.00", "$80.00", "$100.00", "$0.00", "$100.00"]
     assert red == [False, False, False, True, False, True]
     view.set_trades(_trades())
-    assert view.table.item(0, 11).background().style() == Qt.BrushStyle.NoBrush  # type: ignore[union-attr]
+    assert view.table.item(0, 14).background().style() == Qt.BrushStyle.NoBrush  # type: ignore[union-attr]
 
 
 def test_exit_before_entry_at_same_time() -> None:
@@ -133,8 +134,30 @@ def test_available_unknown_without_capital(qtbot: Any) -> None:
     qtbot.addWidget(view)
     view.set_trades(_trades())
 
-    assert _text(view, 0, 11) == "—"
-    assert _text(view, 0, 10) == "$30.00"
+    assert _text(view, 0, 14) == "—"
+    assert _text(view, 0, 13) == "$30.00"
+    assert _text(view, 2, 12) == "—"
+
+
+def test_cumulative_pnl_and_sector(qtbot: Any) -> None:
+    """UT-GUI-031.095.M07.T01: Exit rows show cumulative P&L in $ and % of capital; Sector shown."""
+    from PyQt6.QtGui import QColor
+
+    from us_swing.gui.theme import C
+
+    view = TradeList()
+    qtbot.addWidget(view)
+    view.set_trades(_trades(), 1000.0, {"AAPL": "Information Technology"})
+    headers = [view.table.horizontalHeaderItem(c).text()  # type: ignore[union-attr]
+               for c in (4, 11, 12)]
+
+    assert headers == ["Sector", "Cumulative P&L", "Cumulative P&L %"]
+    assert [_text(view, r, 11) for r in range(6)] == [
+        "", "", "$30.00", "$28.00", "", "$28.00"]
+    assert [_text(view, r, 12) for r in (2, 3)] == ["+3.00%", "+2.80%"]
+    assert view.table.item(3, 11).foreground().color() == QColor(C.GREEN)  # type: ignore[union-attr]
+    assert [_text(view, r, 4) for r in (0, 1)] == ["Information Technology", "Unknown"]
+    assert list(events(numbered(_trades().iloc[:1]), None)["total"]) == [0.0, -2.0]
 
 
 def test_empty_trade_list(qtbot: Any) -> None:

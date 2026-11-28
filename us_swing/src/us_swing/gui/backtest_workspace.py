@@ -294,6 +294,7 @@ class BacktestWorkspace(QWidget):
         self._daily: DailyList | None = None
         self._signals: pd.DataFrame | None = None
         self._results: list[VariantResult] = []
+        self._sectors: dict[str, str] = {}
         self._variant = 0
         self._top_n: int | None = None  # Stocks per day of an opened saved run
         self._day_trades = pd.DataFrame(columns=["symbol", "direction", "entry_ts", "exit_ts"])
@@ -570,7 +571,9 @@ class BacktestWorkspace(QWidget):
         return str(self._svc.get_active_user().user_id)
 
     def _load_universe(self) -> None:
-        self.builder.set_universe(self._svc.get_sp500_universe())
+        records = self._svc.get_sp500_universe()
+        self._sectors = {r.symbol: r.sector for r in records}
+        self.builder.set_universe(records)
 
     def refresh_presets(self) -> None:
         """Reload the screener picker (presets may change in the Screener screen)."""
@@ -862,7 +865,7 @@ class BacktestWorkspace(QWidget):
         self._variant = index
         self._render_days()
         res = self._results[index]
-        self.trade_list.set_trades(res.trades, res.variant.capital)
+        self.trade_list.set_trades(res.trades, res.variant.capital, self._sectors)
         days = [] if self._daily is None else list(self._daily.days)
         self.screener_use.set_use(screener_use(days, self._shown(), res.trades))
         self.margin_use.set_use(margin_use(res.money))
