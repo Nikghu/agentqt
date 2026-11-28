@@ -349,3 +349,15 @@ def test_short_without_stop_saves_no_stop_unless_edited(qtbot: QtBot) -> None:
     assert "hard_sl" not in w._collect_changed_fields()
     w._hsl.setValue(105.0)
     assert w._collect_changed_fields()["hard_sl"] == pytest.approx(105.0)
+
+
+def test_grow_with_pnl_tick_saved_and_loaded(qtbot: QtBot) -> None:
+    """UT-GUI-013.025.M01.T01: Grow with P&L is off for a new strategy; ticked it is saved."""
+    assert not _dialog(qtbot)._info_page._grow_check.isChecked()
+    dlg = _dialog(qtbot, existing=_cfg(grow_with_pnl=True), existing_names={"FADE"})
+    assert dlg._info_page._grow_check.isChecked()
+    saved = _saved(dlg)
+
+    dlg._on_save()
+
+    assert [c.grow_with_pnl for c in saved] == [True]

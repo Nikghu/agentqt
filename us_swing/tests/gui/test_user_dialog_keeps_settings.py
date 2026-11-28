@@ -95,3 +95,12 @@ def test_tests_never_write_real_users_file() -> None:
 
     assert user_store._STORE_FILE != real
     assert user_store.load_users()[0].telegram_chat_id == "12345"
+
+
+def test_grow_all_strategies_tick(qapp: Any) -> None:
+    """UT-GUI-006.024.M01.T01: The Grow all strategies tick is off by default and is saved."""
+    dlg = _UserDialog(None)
+    assert not dlg._grow.isChecked()
+    dlg._grow.setChecked(True)
+
+    assert dlg.get_profile().risk_config.grow_with_pnl

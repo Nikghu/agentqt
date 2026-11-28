@@ -211,6 +211,9 @@ class BacktestBuilder(QWidget):
         self._strategies.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
         self._strategies.setMinimumHeight(180)
         self._capital = self._money(100, 10_000_000, 0, "$ ", 10_000)
+        self._grow = QCheckBox("Grow with P&L")
+        self._grow.setToolTip("Each strategy's money grows or shrinks with the profit of its "
+                              "closed trades")
         self._loss = self._money(0, 100, 1, "", 10.0)
         self._loss.setSuffix(" %")
         self._loss.setSpecialValueText("Off")
@@ -260,6 +263,7 @@ class BacktestBuilder(QWidget):
         self._lead_top.valueChanged.connect(self.changed)
         self._lead_range.currentIndexChanged.connect(self.changed)
         self._lead_beat.toggled.connect(self.changed)
+        self._grow.toggled.connect(self.changed)
         self._on_mode()
         self._on_lead()
 
@@ -296,7 +300,8 @@ class BacktestBuilder(QWidget):
             ),
             "account": _page(
                 card("Money", "Start values come from the active user's risk settings.",
-                     [("Capital", self._capital), ("Daily loss stop", self._loss),
+                     [("Capital", self._capital), ("", self._grow),
+                      ("Daily loss stop", self._loss),
                       ("When money short", self._when)]),
                 card("Costs", "Added to every fill.",
                      [("Commission per order", self._commission),
@@ -492,7 +497,8 @@ class BacktestBuilder(QWidget):
                 f"{self._preset.currentText() or 'No preset'} · "
                 f"{'saved lists' if scr.recorded else 'replay'} · {scr.top_n or 'All'} a day"),
             "strategies": ", ".join(s.id for s in plan.strategies) or "None picked",
-            "account": f"${acc.capital[0]:,.0f} · loss stop {acc.max_daily_loss_pct:g}% · "
+            "account": f"${acc.capital[0]:,.0f}{' growing' if acc.grow_with_pnl else ''} · "
+                       f"loss stop {acc.max_daily_loss_pct:g}% · "
                        f"${plan.costs.per_order:g} · {plan.costs.slippage_bps:g} bps",
         }
 
@@ -522,6 +528,7 @@ class BacktestBuilder(QWidget):
         for use, (name, _alloc, _per) in self._strategy_rows():
             use.setCheckState(Qt.CheckState.Checked if name in ticked else Qt.CheckState.Unchecked)
         self._capital.setValue(plan.account.capital[0])
+        self._grow.setChecked(plan.account.grow_with_pnl)
         self._loss.setValue(plan.account.max_daily_loss_pct)
         self._when.setCurrentIndex(max(self._when.findData(plan.account.when_full), 0))
         self._commission.setValue(plan.costs.per_order)
@@ -557,6 +564,7 @@ class BacktestBuilder(QWidget):
             strategies=self._ticked_strategies(),
             account=AccountSpec(
                 capital=(self._capital.value(),),
+                grow_with_pnl=self._grow.isChecked(),
                 max_daily_loss_pct=self._loss.value(),
                 when_full=str(self._when.currentData()),
             ),

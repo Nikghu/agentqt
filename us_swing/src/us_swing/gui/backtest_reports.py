@@ -104,6 +104,8 @@ def plan_sections(saved: SavedReport, screener: str = "") -> list[Section]:
                       ("Leading sectors", _lead_text(plan))]),
         ("STRATEGY", strategies),
         ("MONEY", [("Capital", capital),
+                   ("Grow with P&L", "All strategies" if plan.account.grow_with_pnl
+                    else "Each strategy's own setting"),
                    ("Daily loss stop", f"{plan.account.max_daily_loss_pct:g}%"),
                    ("Costs", f"${plan.costs.per_order:g} an order · "
                              f"{plan.costs.slippage_bps:g} bps")]),

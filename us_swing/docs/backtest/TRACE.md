@@ -3,7 +3,7 @@
 **Document ID:** TRACE-BKT
 **Version:** 1.0.1
 **Project:** US Swing Trading System
-**Last Updated:** 2026-11-27 (RN-BKT-1.17.0-20261127: SRD-BKT-002.089–.090 HTML Entry and Exit rows and red shade; SRD-BKT-002.091 Step 1 days from the run stocks; SRD-BKT-001.019 SPY, RSP and sector ETFs first. Earlier: RN-BKT-1.15.0-20261125: SRD-BKT-001.018 RSP and sector ETF daily data. Earlier: RN-BKT-1.14.1-20261123: SRD-BKT-002.088 run range from the settings start to the latest data day (reopened 2026-11-22). Earlier: RN-BKT-1.14.0-20261122: 3m gap days asked again, ISS-BKT-0003. Earlier: SRD-BKT-002.083–.084 HTML report, ISS-BKT-0001)
+**Last Updated:** 2026-11-28 (RN-BKT-1.19.0-20261128: SRD-BKT-002.098–.099 Grow with P&L (closed trades only); ISS-BKT-0004 Step 3 memory fix (no SRD change). Earlier: RN-BKT-1.17.0-20261127: SRD-BKT-002.089–.090 HTML Entry and Exit rows and red shade; SRD-BKT-002.091 Step 1 days from the run stocks; SRD-BKT-001.019 SPY, RSP and sector ETFs first. Earlier: RN-BKT-1.15.0-20261125: SRD-BKT-001.018 RSP and sector ETF daily data. Earlier: RN-BKT-1.14.1-20261123: SRD-BKT-002.088 run range from the settings start to the latest data day (reopened 2026-11-22). Earlier: RN-BKT-1.14.0-20261122: 3m gap days asked again, ISS-BKT-0003. Earlier: SRD-BKT-002.083–.084 HTML report, ISS-BKT-0001)
 
 ---
 
@@ -39,6 +39,7 @@
 | FO-BKT-002 | SRD-BKT-002.092 | DD-BKT-002.092.D01 | MD-BKT-002.030.M12 (+ .008.M05) | UT-BKT-002.092.M12.T01–T02, UT-BKT-002.092.M05.T01 (Pass) | `backtest/steps/portfolio.py`, `backtest/service.py` | Implemented | RN-BKT-1.18.0-20261127 |
 | FO-BKT-002 | SRD-BKT-002.093–.095 | DD-BKT-002.093.D01 | MD-BKT-002.093.M16, .030.M12, .001.M01, .008.M05 | UT-BKT-002.093.M12.T01–T03, .093.M16.T01–T03, .094.M01.T01, .095.M16.T01, .095.M05.T01 (9, Pass) | `backtest/steps/sectors.py`, `steps/portfolio.py`, `spec.py`, `service.py` | Implemented | RN-BKT-1.18.0-20261127 |
 | FO-BKT-002 | SRD-BKT-002.096–.097 | DD-BKT-002.096.D01 | MD-BKT-002.040.M13, .008.M05 | UT-BKT-002.096.M13.T01, .097.M13.T01–T02 (3, Pass) | `backtest/steps/report.py`, `service.py` | Implemented | RN-BKT-1.18.0-20261127 |
+| FO-BKT-002 | SRD-BKT-002.098–.099 | DD-BKT-002.098.D01 | MD-BKT-002.030.M12 | UT-BKT-002.098.M12.T01–T05, .099.M12.T01 (6, Pass) | `backtest/steps/portfolio.py` | Implemented | RN-BKT-1.19.0-20261128 |
 
 ## Reverse Traceability: Code → MD → SRD → FO
 

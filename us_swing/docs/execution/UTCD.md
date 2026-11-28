@@ -781,6 +781,14 @@
 | UT-EXE-017.027.M14.T01 | MD-EXE-017.016.M14 | Positive | Paper equity, cash and P&L move with trades | budget 2000; closes +42.10 today; SHORT −8.55, LONG +20 | equity 2053.55; daily 42.10; cash and gross from positions | Pass |
 | UT-EXE-017.027.M14.T02 | MD-EXE-017.016.M14 | Edge | All users; no ledger | two users 2000 + 1000; `_tc_query` None | start 3000; daily 0; deployed summed per user | Pass |
 | UT-EXE-017.027.M14.T03 | MD-EXE-017.016.M14 | Negative | Other users' broker positions ignored | IBKR rows for users 1 and 2; view user 1 | equity 2020; gross 420 | Pass |
+| UT-EXE-017.029.M01.T01 | MD-EXE-017.029.M01 | Positive | Strategy cap uses the grown allocation | deployed $500, plain cap $500, grown $800 | `ok=True` | Pass |
+| UT-EXE-017.029.M03.T01 | MD-EXE-017.029.M03 | Positive | Entry sized from the grown allocation | grown $960, 100%, $96 | qty 10 | Pass |
+| UT-EXE-017.029.M09.T01 | MD-EXE-017.029.M09 | Positive | Ticked strategy adds its own closed P&L | $2,000, 50%; s1 +$300 ticked, s2 +$900 not | $1,300; $1,000 | Pass |
+| UT-EXE-017.029.M09.T02 | MD-EXE-017.029.M09 | Edge | A loss shrinks, never below 0 | s1 −$400; then −$5,000 | $600; $0 and budget $0 | Pass |
+| UT-EXE-017.029.M09.T03 | MD-EXE-017.029.M09 | Negative | Both switches off | s1 +$500 | $1,000; budget $2,000 | Pass |
+| UT-EXE-017.030.M09.T01 | MD-EXE-017.029.M09 | Positive | Account switch grows all; budget adds P&L | switch on; s1 +$300, s2 +$200 | s2 $1,200; budget $2,500 | Pass |
+| UT-EXE-017.030.M09.T02 | MD-EXE-017.029.M09 | Edge | Live cash cap | live $2,000, cash $3,000, s1 +$2,000 | budget $2,700; s1 $2,700 | Pass |
+| UT-EXE-017.031.M07.T01 | MD-EXE-017.031.M07 | Positive | Account switch saved; old file off | save on; drop key | on; off | Pass |
 | UT-EXE-015.004.M01.T32 | MD-EXE-015.004.M01 | Negative | Submit raising never escapes into the Qt slot | live entry signal; submitter raises `BrokerConnectionError` | `execute_signal` returns -1, no exception propagates | Pass |
 | UT-EXE-015.004.M01.T33 | MD-EXE-015.004.M01 | Negative | A failed submit returns the signal to the pending store | same as T32 | `pending_store.add` called once with the popped signal | Pass |
 | UT-EXE-015.004.M01.T34 | MD-EXE-015.004.M01 | Positive | A healthy submit is unchanged | submitter returns order id 77 | returns 77; `pending_store.add` never called | Pass |

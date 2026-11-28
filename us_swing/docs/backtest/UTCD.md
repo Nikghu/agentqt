@@ -242,4 +242,10 @@
 | UT-BKT-002.096.M13.T01 | MD-BKT-002.040.M13 | Positive | Benchmark from Added date | A added on day 2; no dates | 1000, 1050; without dates 1050, 1102.5 | Pass |
 | UT-BKT-002.097.M13.T01 | MD-BKT-002.040.M13 | Positive | Same stocks and Edge | benchmark 1100, 990, 1200; three equity ends | +20%, −10% drop; Edge −10%, −5%, +10% | Pass |
 | UT-BKT-002.097.M13.T02 | MD-BKT-002.040.M13 | Negative | No benchmark | NaN line | three NaN stats | Pass |
+| UT-BKT-002.098.M12.T01 | MD-BKT-002.030.M12 | Positive | A win grows the next trade | $4,000, 50%/50%, win $500 | 100 then 125 shares at $10 | Pass |
+| UT-BKT-002.098.M12.T02 | MD-BKT-002.030.M12 | Negative | Off keeps the size | same win, growth off | 100 then 100 shares; pool $4,000 | Pass |
+| UT-BKT-002.098.M12.T03 | MD-BKT-002.030.M12 | Edge | A loss shrinks, never below 0 | closed −$1,000; then −$5,000 | 50 shares; then no entry | Pass |
+| UT-BKT-002.098.M12.T04 | MD-BKT-002.030.M12 | Negative | Only own P&L counts | other strategy +$2,000 | 100 shares | Pass |
+| UT-BKT-002.098.M12.T05 | MD-BKT-002.030.M12 | Positive | Run switch or strategy tick | from_live off; grow_all; cfg tick | off, on, on | Pass |
+| UT-BKT-002.099.M12.T01 | MD-BKT-002.030.M12 | Positive | Free cash adds closed P&L | $4,000, realized $500 | pool $4,500 | Pass |
 | UT-BKT-002.047.M13.T01 | MD-BKT-002.040.M13 | Positive | Compare rows | 2 reports | one row each with key stats | Pass |

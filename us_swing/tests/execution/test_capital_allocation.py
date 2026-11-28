@@ -348,3 +348,29 @@ def test_rex_no_reset_on_stop(qtbot: QtBot) -> None:
     engine._rex_counters = rex
     engine._apply_run_state("s1", _RS.STOPPED)
     rex.reset.assert_not_called()
+
+
+# ── Grow with P&L (SRD-EXE-017.029) ───────────────────────────────────────────
+
+
+def test_can_allocate_uses_grown_allocation() -> None:
+    """UT-EXE-017.029.M01.T01: The strategy cap uses the grown allocation when one is given."""
+    pos = MagicMock(strategy_id="s1", average_price=100.0, quantity=5)  # $500 deployed
+    rm = RiskManager(
+        config_provider=lambda: RiskConfig(), account_provider=lambda: AccountState(1, 0, 0, 0.0),
+        cb_state_provider=lambda: False, user_id_provider=lambda: 1,
+        tracker=_FakeTracker([pos]), effective_capital_provider=lambda: 2_000.0,
+        allocation_provider=lambda name, pct: 800.0,
+    )
+    assert rm.can_allocate("s1", 25).ok is True
+
+
+@pytest.mark.asyncio
+async def test_router_sizes_from_grown_allocation() -> None:
+    """UT-EXE-017.029.M03.T01: The entry size is the grown allocation × per-trade %."""
+    router, queue, _bus, registry = _router(effective=2_000.0)  # plain budget $500 = 5 @ $96
+    router._allocation_provider = lambda name, pct: 960.0
+    ctx = list(registry.values())[0]
+    await router.evaluate(ctx, "CVS", _candles(96.0), _bar(96.0))
+    signal = await asyncio.wait_for(queue.get(), timeout=1.0)
+    assert signal.qty_recommended == 10

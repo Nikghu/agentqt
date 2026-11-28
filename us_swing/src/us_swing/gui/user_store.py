@@ -45,6 +45,7 @@ def _to_dict(u: UserProfile) -> dict:
         "max_daily_loss_pct": rc.max_daily_loss_pct,
         "default_order_type": rc.default_order_type,
         "confirm_orders":     rc.confirm_orders,
+        "grow_with_pnl":      rc.grow_with_pnl,
         "telegram_enabled":   u.telegram_enabled,
         "telegram_chat_id":   u.telegram_chat_id,
         "notify_tool_started":      u.notify_tool_started,
@@ -74,6 +75,7 @@ def _from_dict(d: dict) -> UserProfile:
         max_daily_loss_pct = float(d.get("max_daily_loss_pct",  2.0)),
         default_order_type = str(d.get("default_order_type",    "MKT")),
         confirm_orders     = bool(d.get("confirm_orders",        True)),
+        grow_with_pnl      = bool(d.get("grow_with_pnl",         False)),
     )
     return UserProfile(
         user_id         = int(d["user_id"]),

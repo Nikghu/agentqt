@@ -8,6 +8,7 @@
 **Project:** US Swing Trading System
 
 
+> v1.27.0: SRD-BKT-002.098–.099 added and approved by user 2026-11-28 (chat) — Grow with P&L (closed trades only) in the backtest.
 > v1.26.0: SRD-BKT-002.096–.097 added and approved by user 2026-11-27 (chat) — fair benchmark from the Added date, Edge numbers.
 > v1.25.0: SRD-BKT-002.093–.095 added and approved by user 2026-11-27 (chat) — Leading sectors backtest option (T253).
 > v1.24.0: SRD-BKT-002.092 added and approved by user 2026-11-27 (chat) — skip entries before a stock's S&P 500 Added date.
@@ -176,3 +177,5 @@
 | SRD-BKT-002.095 | FO-BKT-002 | Should | With Leading sectors on, Estimate and Run refuse when RSP or any of the 11 sector ETFs has no saved daily data. | Backtest Data | plain error | Approved by user 2026-11-27 (chat); the message names the missing symbols | Implemented |
 | SRD-BKT-002.096 | FO-BKT-002 | Must | In S&P 500 and sector runs, the equal-weight benchmark counts a stock's daily return only from its S&P 500 Added date. | Added dates, 1d closes | benchmark line | Approved by user 2026-11-27 (chat); same rule as SRD-BKT-002.092; empty Added date counts from the first day | Implemented |
 | SRD-BKT-002.097 | FO-BKT-002 | Should | The report adds three stats: Same stocks return, Same stocks worst drop, and Edge (strategy return minus Same stocks return). | daily equity, benchmark | stats | Approved by user 2026-11-27 (chat); empty when there is no benchmark | Implemented |
+| SRD-BKT-002.098 | FO-BKT-002 | Must | With Grow with P&L on (the run's switch or the strategy's own tick), a strategy's limit is start capital × allocation % plus the net P&L of its own closed trades, never below 0. | start capital, closed trades | strategy limit | Per trade = limit × per-trade %; a loss shrinks the limit; replaces the Grow with P&L part of SRD-BKT-002.036; Approved by user 2026-11-28 (chat) | Implemented |
+| SRD-BKT-002.099 | FO-BKT-002 | Must | With Grow with P&L on for any strategy, free cash is start capital plus the net P&L of all closed trades minus the cost of open trades. | start capital, closed trades, open trades | free cash | Off keeps today's sizing exactly; Approved by user 2026-11-28 (chat) | Implemented |

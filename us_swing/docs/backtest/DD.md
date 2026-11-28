@@ -199,3 +199,11 @@ Blocked candidates are logged once per (strategy, stock, entry window, decision)
 
 **Stats.** `benchmark_stats(daily, capital)` adds "Same stocks return" (last benchmark value / capital − 1), "Same stocks worst drop" (lowest benchmark / running peak − 1, the peak starting at capital, as for the strategy) and "Edge" (strategy return minus Same stocks return, in return points). With no benchmark all three are NaN.
 
+
+## DD-BKT-002.098.D01 — Grow with P&L (Closed Trades)
+
+**Switch.** `StrategyRules.grow` is true when the plan's `account.grow_with_pnl` is on or the live strategy has `grow_with_pnl`. `_Account.grow_any` is true when any strategy grows.
+
+**Sizing (`_Account.enter`).** `limit = capital × alloc%`; for a growing strategy `limit = max(0, limit + closed[name])`, where `closed[name]` sums the net P&L of that strategy's closed trades (updated in `close`). Shares = floor(limit × per-trade% ÷ fill), as before.
+
+**Free cash (`_Account.pool`).** `capital + realized` when `grow_any`, else `capital`. Free cash, the day log Available, margin_min and the money rows use `pool()`. With every switch off the numbers are exactly as before.

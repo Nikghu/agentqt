@@ -145,6 +145,10 @@ class _UserDialog(FramelessDialog):
         self._max_cap.setPrefix("$ ")
         self._max_cap.setSingleStep(500)
         self._max_cap.setValue(rc.max_capital_value)
+        self._grow = QCheckBox("Grow all strategies with P&L")
+        self._grow.setToolTip("Every strategy's allocation grows or shrinks with the profit "
+                              "of its closed trades")
+        self._grow.setChecked(rc.grow_with_pnl)
         self._max_loss   = QDoubleSpinBox()
         self._max_loss.setRange(0.5, 10.0)
         self._max_loss.setDecimals(1)
@@ -154,6 +158,7 @@ class _UserDialog(FramelessDialog):
         risk_form.addRow("Risk per trade",    self._risk)
         risk_form.addRow("Max position",      self._max_pos)
         risk_form.addRow("Max capital",       self._max_cap)
+        risk_form.addRow("",                  self._grow)
         risk_form.addRow("Max daily loss",    self._max_loss)
 
         cancel_btn = QPushButton("Cancel")
@@ -195,6 +200,7 @@ class _UserDialog(FramelessDialog):
                 risk_per_trade_pct = self._risk.value(),
                 max_position_value = self._max_pos.value(),
                 max_capital_value  = self._max_cap.value(),
+                grow_with_pnl      = self._grow.isChecked(),
                 max_daily_loss_pct = self._max_loss.value(),
             ),
         )

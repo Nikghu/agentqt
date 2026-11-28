@@ -125,6 +125,7 @@ class StrategyEngine(QThread):
         cycle_query: TradeCycleQuery | None = None,
         user_id_provider: Callable[[], int] | None = None,
         effective_capital_provider: Callable[[], float] | None = None,
+        allocation_provider: Callable[[str, int], float] | None = None,
         primary_timeframe: str = "3m",
         parent: QObject | None = None,
     ) -> None:
@@ -142,6 +143,7 @@ class StrategyEngine(QThread):
         self._cycle_query = cycle_query
         self._user_id_provider = user_id_provider or (lambda: 0)
         self._effective_capital_provider = effective_capital_provider
+        self._allocation_provider = allocation_provider
         self._primary_tf = primary_timeframe
 
         self._loop: asyncio.AbstractEventLoop | None = None
@@ -185,6 +187,7 @@ class StrategyEngine(QThread):
             user_id_provider=self._user_id_provider,
             cycle_query=self._cycle_query,
             effective_capital_provider=self._effective_capital_provider,
+            allocation_provider=self._allocation_provider,
         )
         self.started_ok.emit()
         log.info("[Strategy] engine ready — %d active strateg(ies)", len(self._registry))

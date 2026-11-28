@@ -286,6 +286,7 @@ class RiskConfig:
     max_daily_loss_pct: float = 2.0
     default_order_type: str   = "MKT"
     confirm_orders:     bool  = True
+    grow_with_pnl:      bool  = False
 
 
 # ── Screener / signals ────────────────────────────────────────────────────────

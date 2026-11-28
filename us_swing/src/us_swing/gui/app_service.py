@@ -1625,7 +1625,8 @@ class AppService(QObject):
             cb_state_provider=lambda: self._circuit_breaker_active,
             user_id_provider=lambda: self._active_uid,
             tracker=self._cycle_position_source,
-            effective_capital_provider=self.effective_capital,
+            effective_capital_provider=self.budget_capital,
+            allocation_provider=self.strategy_allocation,
             warning_sink=lambda w: self._event_bus.publish(w),
         )
 
@@ -1644,6 +1645,7 @@ class AppService(QObject):
             cycle_query=self._tc_query,
             user_id_provider=lambda: self._active_uid,
             effective_capital_provider=self.effective_capital,
+            allocation_provider=self.strategy_allocation,
             parent=self,
         )
         self._strategy_engine.plugin_stopped.connect(self._on_indicator_stopped)
@@ -1792,8 +1794,8 @@ class AppService(QObject):
         return sum(p.average_price * p.quantity for u in uids for p in src.get_all(u))
 
     def margin_available(self) -> float:
-        """Remaining budget = effective capital − deployed open-position value."""
-        return max(0.0, self.effective_capital() - self._open_position_value(self._active_uid))
+        """Remaining budget = budget capital − deployed open-position value."""
+        return max(0.0, self.budget_capital() - self._open_position_value(self._active_uid))
 
     def _user_max_capital(self, uid: int | None) -> float:
         user = next((u for u in self._users if u.user_id == uid), None)
@@ -1807,7 +1809,10 @@ class AppService(QObject):
         Paper uses the stored Max Capital. Live caps it at 90% of broker cash
         when Max Capital exceeds available cash; the stored setting is unchanged.
         """
-        cap = self._user_max_capital(self._active_uid)
+        return self._cash_capped(self._user_max_capital(self._active_uid))
+
+    def _cash_capped(self, cap: float) -> float:
+        """A live user's budget is at most 90% of broker cash when it exceeds the cash."""
         user = self.get_active_user()
         if user.mode != "live" or self._ibkr_acct is None:
             return cap
@@ -1815,6 +1820,39 @@ class AppService(QObject):
         if cap > cash:
             return 0.9 * cash
         return cap
+
+    def _grow_pnl(self) -> dict[str, float]:
+        """Closed-trade net P&L of each strategy that grows with P&L (SRD-EXE-017.029)."""
+        from us_swing.gui.strategy_store import load_strategies
+
+        if self._tc_query is None:
+            return {}
+        grow_all = self.get_active_user().risk_config.grow_with_pnl
+        out: dict[str, float] = {}
+        for cfg in load_strategies():
+            if not (grow_all or cfg.grow_with_pnl) or cfg.fixed_qty > 0:
+                continue
+            try:
+                cycles = self._tc_query.closed_for_strategy(cfg.name, user_id=self._active_uid)
+            except Exception:
+                _log.warning("[Strategy] Could not read closed trades of %s", cfg.name)
+                continue
+            out[cfg.name] = sum(c.realized_pnl_usd or 0.0 for c in cycles)
+        return out
+
+    def budget_capital(self, grow: dict[str, float] | None = None) -> float:
+        """Max Capital plus the growing strategies' closed P&L (SRD-EXE-017.030)."""
+        grow = self._grow_pnl() if grow is None else grow
+        cap = max(0.0, self._user_max_capital(self._active_uid) + sum(grow.values()))
+        return self._cash_capped(cap)
+
+    def strategy_allocation(self, name: str, capital_max_pct: int) -> float:
+        """A strategy's dollar allocation, grown by its closed P&L when on (SRD-EXE-017.029)."""
+        base = self.effective_capital() * capital_max_pct / 100.0
+        grow = self._grow_pnl()
+        if name not in grow:
+            return base
+        return min(max(0.0, base + grow[name]), self.budget_capital(grow))
 
     def get_users(self) -> list[UserProfile]:
         return list(self._users)

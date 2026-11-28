@@ -76,6 +76,7 @@ class _Router:
         user_id_provider: Callable[[], int] | None = None,
         cycle_query: TradeCycleQuery | None = None,
         effective_capital_provider: Callable[[], float] | None = None,
+        allocation_provider: Callable[[str, int], float] | None = None,
     ) -> None:
         self._queue = queue
         self._registry = registry
@@ -89,6 +90,7 @@ class _Router:
         self._user_id_provider = user_id_provider or (lambda: 0)
         self._cycle_query = cycle_query
         self._effective_capital_provider = effective_capital_provider
+        self._allocation_provider = allocation_provider
         self._stop_event = asyncio.Event()
         self._emergency_active = False
         self._quiesced_event = asyncio.Event()
@@ -569,6 +571,9 @@ class _Router:
             return 1
         if entry_price <= 0:
             return 0
+        if self._allocation_provider is not None:
+            allocation = self._allocation_provider(ctx.name, ctx.cfg.capital_max)
+            return math.floor(allocation * ctx.cfg.per_trade_pct / 100.0 / entry_price)
         budget = (
             self._effective_capital_provider()
             * ctx.cfg.capital_max

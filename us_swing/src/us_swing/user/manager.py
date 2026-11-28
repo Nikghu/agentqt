@@ -193,6 +193,7 @@ class UserManager:
             max_daily_loss_pct = float(risk_raw.get("max_daily_loss_pct", 2.0)),
             default_order_type = str(risk_raw.get("default_order_type", "MKT")),
             confirm_orders     = bool(risk_raw.get("confirm_orders", True)),
+            grow_with_pnl      = bool(risk_raw.get("grow_with_pnl", False)),
         )
 
         return UserProfile(

@@ -72,7 +72,7 @@ Also changed: `core/backtest_bridge.py` (MD-BKT-002.011.M08) adds `load_strategi
 
 | MD ID | SRD | File | Purpose | Public API | Depends on | Async |
 |---|---|---|---|---|---|---|
-| MD-BKT-002.030.M12 | SRD-BKT-002.030, .092, .093 | `us_swing/src/us_swing/backtest/steps/portfolio.py` | Step 3 day loop, money rules, exits, logs | `run_portfolio()`, `refusals()`, `StrategyRules`, `VariantResult` | `store`, `spec` | No |
+| MD-BKT-002.030.M12 | SRD-BKT-002.030, .092, .093, .098, .099 | `us_swing/src/us_swing/backtest/steps/portfolio.py` | Step 3 day loop, money rules, exits, logs | `run_portfolio()`, `refusals()`, `StrategyRules`, `VariantResult` | `store`, `spec` | No |
 | MD-BKT-002.093.M16 | SRD-BKT-002.093, .095 | `us_swing/src/us_swing/backtest/steps/sectors.py` | Leading sectors: open sectors per session for longs and shorts, missing ETF check | `sector_gates()`, `missing_symbols()`, `SectorGate` | `spec.py`, `core/stock_context` | No | Implemented |
 
 Also changed: `backtest/results.py` (MD-BKT-002.007.M04) adds `save_variant()` and the four tables; `backtest/service.py` (MD-BKT-002.008.M05) adds `run_portfolio()`; `backtest/cli.py` (MD-BKT-002.009.M06) prints each variant's trades and net P&L.
